@@ -84,25 +84,46 @@ end
 --（還在戰鬥、錨點型別還是 ANCHOR_NONE、owner 沒換）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
 -- 重設過就不是我們藏的那一份，面板照接。讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
 ------------------------------------------------------------
+-- /mtip log 開著時：藏了之後下一幀拍一張「到底誰還看得見」（原生／面板／skin 的顯示狀態與位置）
+local function LogVisibleNextFrame(tip, state)
+    C_Timer.After(0, function()
+        if S.IsForbiddenObject(tip) then return end
+        local shown = S.SafeCall(tip.IsShown, tip)
+        local alpha = S.SafeCall(tip.GetAlpha, tip)
+        local p, rel, rp, x, y = S.SafeCall(tip.GetPoint, tip)
+        local panel = state.panel
+        local skin = state.skin
+        ns.Log("戰鬥隱藏 下一幀：原生 shown=%s alpha=%s 點=%s/%s/%s/%s/%s 原生寬高=%s×%s；面板 shown=%s；skin shown=%s；flag=%s",
+            ns.Describe(shown), ns.Describe(alpha), ns.Describe(p),
+            ns.Describe(rel and rel.GetName and S.SafeCall(rel.GetName, rel) or rel), ns.Describe(rp), ns.Describe(x), ns.Describe(y),
+            ns.Describe(S.SafeCall(tip.GetWidth, tip)), ns.Describe(S.SafeCall(tip.GetHeight, tip)),
+            tostring(panel and panel:IsShown()), tostring(skin and skin:IsShown()), tostring(state.combatHidden))
+    end)
+end
+
 local function NoteCombatHidden(tip, owner)
     local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
     if not state then return end
     state.combatHidden = owner and true or nil
     state.combatHiddenOwner = owner
+    if owner and ns.logEnabled then LogVisibleNextFrame(tip, state) end
 end
 
 function Anchor.IsCombatHidden(tip, state)
     if not state or not state.combatHidden then return false end
-    local stale = not InCombatLockdown()
+    local stale = not InCombatLockdown() and "脫戰"
     if not stale and tip.GetAnchorType then
         local ok, anchorType = pcall(tip.GetAnchorType, tip)
-        if ok and not S.IsSecret(anchorType) and anchorType ~= "ANCHOR_NONE" then stale = true end
+        if ok and not S.IsSecret(anchorType) and anchorType ~= "ANCHOR_NONE" then stale = "錨點型別 " .. tostring(anchorType) end
     end
     if not stale and tip.GetOwner then
         local ok, owner = pcall(tip.GetOwner, tip)
-        if ok and not S.IsSecret(owner) and owner ~= state.combatHiddenOwner then stale = true end
+        if ok and not S.IsSecret(owner) and owner ~= state.combatHiddenOwner then
+            stale = "owner 換了 " .. ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner))
+        end
     end
     if stale then
+        if ns.logEnabled then ns.Log("戰鬥隱藏 旗標過期（%s）⇒ 清掉", stale) end
         state.combatHidden, state.combatHiddenOwner = nil, nil
         return false
     end
@@ -211,6 +232,11 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
         local owner = SafeSetOwner(tip, parent, "ANCHOR_NONE")
         tip:Hide()
         NoteCombatHidden(tip, owner)
+        if ns.logEnabled then
+            ns.Log("戰鬥隱藏 藏 owner=%s 來源：%s",
+                ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
+                debugstack and debugstack(3, 4, 0) or "?")
+        end
         return
     end
     if not anchor then return end
@@ -300,7 +326,11 @@ local function RehideIfCombatHidden(tip)
     if not ns.db or S.IsForbiddenObject(tip) then return end
     local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
     if not state or not state.combatHidden then return end
-    if Anchor.IsCombatHidden(tip, state) then tip:Hide() end
+    local hide = Anchor.IsCombatHidden(tip, state)
+    if ns.logEnabled then
+        ns.Log("戰鬥隱藏 Show 後掛勾 ⇒ %s 來源：%s", hide and "再藏" or "不藏", debugstack and debugstack(3, 4, 0) or "?")
+    end
+    if hide then tip:Hide() end
 end
 if GameTooltip then
     hooksecurefunc(GameTooltip, "Show", RehideIfCombatHidden)
