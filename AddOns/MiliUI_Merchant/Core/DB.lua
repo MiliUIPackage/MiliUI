@@ -28,6 +28,9 @@ local function BuildDefaults()
         rows = 5,
         cols = 4,
 
+        -- 格子的排列順序：across＝先往右（暴雪原本的 1 2 / 3 4）、down＝先往下排滿一欄
+        order = "across",
+
         -- Shift 點商品、想買的量超過一組時換成批量購買視窗（Modules/BulkBuy.lua）
         bulkBuy = true,
 
@@ -77,9 +80,12 @@ local function Clamp(db, key)
     db[key] = v
 end
 
+DB.ORDERS = { across = true, down = true }
+
 local function Normalize(db)
     Clamp(db, "rows")
     Clamp(db, "cols")
+    if not DB.ORDERS[db.order] then db.order = BuildDefaults().order end
 end
 
 function DB.Init()

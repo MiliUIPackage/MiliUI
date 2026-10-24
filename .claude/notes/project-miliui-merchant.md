@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 3797478f-dadc-4703-a9bd-65d89fd251d9
-  modified: 2026-09-19T18:33:56.601Z
+  modified: 2026-10-24T18:41:10.257Z
 ---
 
 **MiliUI_Merchant（2026-09-19 建立，TOC 版本仍是 1.0.0）**：加大商人視窗（列×欄可調，預設 5×4）＋已收藏的
@@ -83,6 +83,11 @@ Shift 點商品、錢跟背包都夠買**超過一組**（`GetMerchantItemMaxSta
   改在 secure snippet 裡對 handle Hide（受限環境只在脫戰有效 ⇒ **戰鬥中整個功能不接手**）。規則見 [[wow-stacksplit-onhide-runbinding]]，
   套組先例 `MiliUI_QoL/Modules/GroupLootHistory_AutoClose.lua`。
 - `BuyMerchantItem` 不是保護函式；視窗全是自己的框。
+
+## 2026-10-25 排列順序（`db.order`，未實機驗證）
+使用者要的「直的、像暴雪原本」＝**整欄往下**（1–5 / 6–10 …，column-major），不是「兩欄一組像兩頁並排」——
+問過、使用者選的。預設維持 `across`（暴雪原本的 1 2 / 3 4）。只改 `LayoutCells` 算位置的方式，第 i 格仍是這頁第 i 個商品，
+所以裝飾類插件與批量購買不受影響；買回分頁固定照原廠排、不吃這個設定。
 
 ## 待驗證（剩下的）
 已驗過（2026-09-19 使用者實機）：翻頁、買回分頁、13 格以後的購買操作、裝飾插件、買了就變暗、戰鬥中用背包物品無封鎖。

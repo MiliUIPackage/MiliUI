@@ -21,6 +21,10 @@ L["Window size"] = "視窗大小"
 L["Rows"] = "列數"
 L["Columns"] = "欄數"
 L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by the game, so tooltips and other add-ons keep working on the extra ones."] = "暴雪原本的視窗是 5 列 2 欄。每一格仍然由遊戲本身繪製，所以多出來的格子上工具提示與其他插件都照常運作。"
+L["Order"] = "排列順序"
+L["Across, then down"] = "橫排：先往右、再往下"
+L["Down, then across"] = "直排：先往下、再往右"
+L["Down fills a whole column before starting the next, so the list keeps reading downward like the original two-column window."] = "直排會先由上往下排滿一欄才換下一欄，商品清單跟暴雪原本兩欄的視窗一樣是往下讀的。"
 
 -- 一般：批量購買
 L["Bulk buy"] = "批量購買"
