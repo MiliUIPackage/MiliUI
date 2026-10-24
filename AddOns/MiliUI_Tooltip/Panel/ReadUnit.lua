@@ -17,6 +17,7 @@
 --   * 提示行的文字、顏色是秘密，type／lineIndex 是明文。NPC 的等級行、類型行、PvP 行都是 type 0（None）：
 --     認不出哪一行是哪一行，但順序固定——名字後的第一個 None 行是等級行（面板用等級底板＋分類徽章畫），
 --     其餘 None 行照順序原封不動交給 SetText 放在標題區（類型行只有部分生物有；M+ 的怪多兩行）。
+--     一個 None 行都沒有＝暴雪沒寫等級行（長得像物件的生物）⇒ 等級底板、分類徽章、龍都不畫（明文的單位同一條規則）。
 --     認得出型別的（任務、主人、仇恨、M+ 敵軍部隊的進度 type 50）一樣原封不動交給 SetText
 --   * 原生 GameTooltip 的幾何（GetPoint／寬高／padding）一直是明文（戰鬥、首領戰也是）⇒ 替身照常撐、照常對齊；
 --     秘密字串的寬照原生排好的寬留
@@ -54,6 +55,9 @@ local function Words()
     for _, key in ipairs({ "UNIT_SKINNABLE_LEATHER", "UNIT_SKINNABLE_HERB", "UNIT_SKINNABLE_ROCK",
         "UNIT_SKINNABLE_BOLTS", "UNIT_SKINNABLE_ENGINEERING" }) do add(words.skin, key) end
     words.level = type(_G.LEVEL) == "string" and _G.LEVEL ~= "" and _G.LEVEL or nil
+    -- 這個語系的等級行開頭是不是「等級」（有的語系把數字放前面）：不是的話認不出等級行，「沒有等級行」也就不能當真
+    local fmt = _G.TOOLTIP_UNIT_LEVEL
+    words.levelReliable = words.level ~= nil and (type(fmt) ~= "string" or fmt:sub(1, #words.level) == words.level)
     words.hint = type(_G.UNIT_POPUP_RIGHT_CLICK) == "string" and _G.UNIT_POPUP_RIGHT_CLICK or nil
     return words
 end
@@ -62,6 +66,13 @@ Panel.ResetUnitWords = function() words = nil end      -- 離線測試換語系�
 local function IsLevelLine(text)
     local w = Words()
     return w.level ~= nil and text:sub(1, #w.level) == w.level
+end
+
+-- 暴雪沒寫等級行的 NPC（長得像物件的生物，例如探究的「探究者的補給品」：提示只有名字）：等級、分類都是等級行的內容，
+-- 暴雪不顯示 ⇒ 面板也不畫等級底板、分類徽章、龍。API 照樣回 90／elite，不能拿來判斷要不要畫
+-- （舊樣式 Modules/UnitLines.lua 的 ApplyNpc 也是只有名字一行就不寫等級）
+local function DropLevel(facts)
+    facts.level, facts.levelColor, facts.classif, facts.classifPlain = nil, nil, nil, nil
 end
 
 -- 公會行兩種寫法：「<公會> 階級」，以及不帶角括號的「公會-伺服器」（另起一行，標題區已經畫了公會 ⇒ 都丟）
@@ -149,7 +160,8 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
             end
         end
     end
-    -- 沒有等級行的 NPC（寵物、有些物件）：頭銜候選照「第一行頭銜、其他放其他」
+    -- 沒有等級行的 NPC（長得像物件的生物）：頭銜候選照「第一行頭銜、其他放其他」，等級與分類不畫
+    if not facts.isPlayer and not levelSeen and w.levelReliable then DropLevel(facts) end
     for i, r in ipairs(beforeLevel) do
         if i == 1 then model.npcTitle = r.left else pending[#pending + 1] = r end
     end
@@ -631,6 +643,8 @@ function Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
             model.secretOthers[#model.secretOthers + 1] = { value = row.secretText }
         end
     end
+    -- 名字後一個 None 行都沒有＝暴雪沒寫等級行（只有名字的提示）：等級與分類不畫
+    if not facts.isPlayer and not levelSeen then DropLevel(facts) end
     return model
 end
 
