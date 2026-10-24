@@ -23,18 +23,23 @@ local Bar = ns.Bar
 local DEAD = DEAD
 
 ------------------------------------------------------------
--- 引擎血條閘：12.x 的 GameTooltip 自帶血條（GameTooltip.StatusBar＝全域 GameTooltipStatusBar）
--- 是 C 端對「該顯示血量的單位」呼叫 SetWatch(guid) 才 Show、ClearWatch 才 Hide（Lua 這邊沒有
--- 任何地方叫 SetWatch）。副本裡火盆、祭壇、補給品這類**用生物做的互動物**走的是 Unit 型別的提示
---（GetUnit 只對 Unit 型別回 token，所以 OnUnit 一樣會跑），但引擎不替它們 SetWatch。
+-- 引擎血條閘：12.x 的 GameTooltip 自帶血條（GameTooltip.StatusBar＝全域 GameTooltipStatusBar），
+-- 由暴雪自己的 post-call TooltipDataRules.HealthBar（Unit／Object 型別）照提示資料的 healthGUID
+-- SetWatch(guid)＝Show、沒有就 ClearWatch＝Hide；給不給 healthGUID 是 C 端組資料時決定的。
+-- 副本裡火盆、祭壇、補給品這類**用生物做的互動物**走的是 Unit 型別的提示（GetUnit 只對 Unit 型別回
+-- token，所以 OnUnit 一樣會跑），但世界游標給的資料沒有 healthGUID。
 -- 我們只是把那條 alpha 0 自己畫一條，所以**顯示與否跟著它**：它沒顯示就不畫——不然 Unit
 -- post-call 一來就無條件畫，這些「物件」底下會多一條滿血條（2026-10-24 玩家回報）。
 -- 只看 IsShown（alpha 0 不影響）、只對 GameTooltip 看（預覽 tooltip 沒有引擎替它 SetWatch）；
 -- 讀不到／秘密 ⇒ 照舊畫（fail-open）。引擎那條 Show／Hide 時 Hooks.lua 的後掛勾會叫 Bar.OnEngineBar
 -- 立刻同步，不用等 0.15s 輪詢。
+-- 例外：戰鬥中按修飾鍵叫回來的世界單位，內容是 SetUnit("mouseover") 那份（另一份資料，補給品在那份裡
+-- 有 healthGUID：2026-10-25 玩家回報按修飾鍵冒出血條）⇒ 照叫回來時記下的世界游標那份（Modules/Anchor.lua 的 Anchor.ReviveHealth）
 ------------------------------------------------------------
 local function EngineBarShown(tip)
     if tip ~= GameTooltip then return true end
+    local revived = ns.Anchor and ns.Anchor.ReviveHealth and ns.Anchor.ReviveHealth(tip)
+    if revived ~= nil then return revived end
     local eb = tip.StatusBar or GameTooltipStatusBar
     if not eb or S.IsForbiddenObject(eb) or not eb.IsShown then return true end
     local ok, shown = pcall(eb.IsShown, eb)
