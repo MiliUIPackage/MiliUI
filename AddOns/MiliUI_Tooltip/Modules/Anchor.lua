@@ -5,15 +5,17 @@
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
 --
--- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)、Hide，並把決定記在 state（NoteCombatHidden）。
--- 暴雪的 InternalProcessInfo 在 post-call 之後會呼叫 Show()（快捷列按鈕：SetDefaultAnchor → SetAction），
--- 但 **GameTooltip:Hide() 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 Show() 是空操作**
---（2026-10-24 實機 log：post-call 之後原生 shown=false、GetOwner()=nil）⇒ 原生藏了就不會回來，
--- 不需要再掛 Show 後掛勾。
--- **重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：Panel.Try 進來先問 Anchor.IsCombatHidden，
--- 是就不接（2026-10-24 回報「對 Bartender 沒用」：看到的其實是面板；暴雪自己的快捷列也一樣）。
--- IsCombatHidden 的「owner 換了」只認**非 nil 且不同**的 owner：nil 是 Hide 清掉的，仍是我們藏的那一份
---（第一版把 nil 當成換了 ⇒ 旗標被清、面板照畫，就是「在固定的那個點閃一下」）。
+-- 戰鬥中隱藏（2026-10-24 定案，三輪實機）：一張網、一個判斷。
+--   * 判斷：Anchor.ShouldHideNow(tip)——戰鬥中、依游標下的單位挑錨點設定（單位錨點自己有開關才用它，否則用全域）、
+--     修飾鍵沒按著。SetDefaultAnchor 掛勾、GameTooltip 的 OnShow 後掛勾、Panel.Try 三處問的都是它。
+--   * 網：GameTooltip 的 **OnShow 後掛勾**（接觸面 #3，HookScript）。提示從哪條路顯示都會經過 OnShow：
+--     SetDefaultAnchor（UberTooltips=1 的快捷列、世界游標）、SetOwner(ANCHOR_RIGHT)＋SetAction（UberTooltips=0 的
+--     快捷列、LibActionButton）、SetOwner＋SetText／SetInventoryItem／SetSpellByID（微型選單、背包欄、狀態追蹤列、
+--     載具離開鈕、額外快捷鍵）。一條一條掛 Set* 掛不完（Bartender 九種列就有五種路徑）。
+--     該藏就當場 Panel.Restore（面板是獨立的框，post-call 已經畫了；同一幀拆不會閃）再 Hide。
+--   * 事實：GameTooltip:Hide() 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 Show() 是空操作 ⇒ 藏了就不會回來，
+--     GameTooltip_OnUpdate 不跑、LibActionButton 的事件刷新（GetOwner()==button 才重設）也認不到。
+--     SetDefaultAnchor 掛勾裡提早藏（SetOwner(ANCHOR_NONE)＋Hide）只是省掉後面的定位工作，不是必要條件。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -78,14 +80,6 @@ local function SafeSetOwner(tip, parent, anchorType, ...)
 end
 
 ------------------------------------------------------------
--- 戰鬥中隱藏 ⇄ 重繪面板（Panel/Try.lua）
---
--- 藏的時候記下「藏了、替誰藏的」（owner＝SetOwner 用的那個框）；每次重新定位都先清掉。
--- 面板在 post-call 裡問 IsCombatHidden：旗標還在、而且 tooltip 還是我們藏它時的樣子
---（還在戰鬥、錨點型別還是 ANCHOR_NONE、沒有別人 SetOwner 過）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
--- 重設過就不是我們藏的那一份，面板照接。Hide 之後 GetOwner() 是 nil，那不算換過。
--- 讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
-------------------------------------------------------------
 -- /mtip log 開著時：藏了之後下一幀拍一張「到底誰還看得見」（原生／面板／skin 的顯示狀態與位置）
 local function LogVisibleNextFrame(tip, state)
     C_Timer.After(0, function()
@@ -99,45 +93,10 @@ local function LogVisibleNextFrame(tip, state)
             ns.Describe(shown), ns.Describe(alpha), ns.Describe(p),
             ns.Describe(rel and rel.GetName and S.SafeCall(rel.GetName, rel) or rel), ns.Describe(rp), ns.Describe(x), ns.Describe(y),
             ns.Describe(S.SafeCall(tip.GetWidth, tip)), ns.Describe(S.SafeCall(tip.GetHeight, tip)),
-            tostring(panel and panel:IsShown()), tostring(skin and skin:IsShown()), tostring(state.combatHidden))
+            tostring(panel and panel:IsShown()), tostring(skin and skin:IsShown()), tostring(InCombatLockdown()))
     end)
 end
 
-local function PlainAnchorType(tip)
-    local ok, anchorType = pcall(tip.GetAnchorType, tip)
-    return ok and S.PlainText(anchorType) or nil
-end
-
-local function NoteCombatHidden(tip, owner)
-    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
-    if not state then return end
-    state.combatHidden = owner and true or nil
-    state.combatHiddenOwner = owner
-    state.combatHiddenAnchor = owner and PlainAnchorType(tip) or nil
-    if owner and ns.logEnabled then LogVisibleNextFrame(tip, state) end
-end
-
-function Anchor.IsCombatHidden(tip, state)
-    if not state or not state.combatHidden then return false end
-    local stale = not InCombatLockdown() and "脫戰"
-    if not stale and state.combatHiddenAnchor then
-        -- 錨點型別跟藏的時候不一樣＝別人 SetOwner 過（SetDefaultAnchor 路徑是 ANCHOR_NONE、UberTooltips=0 的快捷列是 ANCHOR_RIGHT）
-        local anchorType = PlainAnchorType(tip)
-        if anchorType and anchorType ~= state.combatHiddenAnchor then stale = "錨點型別 " .. anchorType end
-    end
-    if not stale and tip.GetOwner then
-        local ok, owner = pcall(tip.GetOwner, tip)
-        if ok and not S.IsSecret(owner) and owner ~= nil and owner ~= state.combatHiddenOwner then
-            stale = "owner 換了 " .. ns.Describe(owner.GetName and S.SafeCall(owner.GetName, owner))
-        end
-    end
-    if stale then
-        if ns.logEnabled then ns.Log("戰鬥隱藏 旗標過期（%s）⇒ 清掉", stale) end
-        state.combatHidden, state.combatHiddenOwner, state.combatHiddenAnchor = nil, nil, nil
-        return false
-    end
-    return true
-end
 
 ------------------------------------------------------------
 -- 游標跟隨 driver（cursor 模式選了九宮格方向或自訂偏移時用）
@@ -224,25 +183,30 @@ local function AnchorDefaultPosition(tip, parent, anchor, finally)
     end
 end
 
-local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
-    -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
-    -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
-    if not finally then
-        StopCursorFollow()
-        NoteCombatHidden(tip, nil)
-    end
+-- 戰鬥隱藏／戰鬥固定位置／頭像框固定位置要看哪一份設定：單位錨點（玩家／NPC）自己有開其中一項才算它的，
+-- 否則一律看全域（單位錨點預設 inherit、三個開關都關）
+local function ResolveHideAnchor(anchor, combatAnchor)
     local hideAnchor = combatAnchor or anchor
     local general = GeneralAnchor()
     if hideAnchor and hideAnchor ~= general and not hideAnchor.hiddenInCombat
         and not hideAnchor.returnInCombat and not hideAnchor.returnOnUnitFrame then
         hideAnchor = general
     end
+    return hideAnchor
+end
+
+local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
+    -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
+    -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
+    if not finally then StopCursorFollow() end
+    local hideAnchor = ResolveHideAnchor(anchor, combatAnchor)
+    local general = GeneralAnchor()
     if ShouldHideInCombat(hideAnchor) then
+        -- 提早藏：省掉後面的定位；真正的網是 OnShow 後掛勾（檔頭）
         local owner = SafeSetOwner(tip, parent, "ANCHOR_NONE")
-        NoteCombatHidden(tip, owner)       -- 在 Hide 之前記：錨點型別要記藏之前的
         tip:Hide()
         if ns.logEnabled then
-            ns.Log("戰鬥隱藏 藏 owner=%s 來源：%s",
+            ns.Log("戰鬥隱藏 SetDefaultAnchor 藏 owner=%s 來源：%s",
                 ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
                 debugstack and debugstack(3, 4, 0) or "?")
         end
@@ -315,6 +279,15 @@ local function GetMouseoverContext()
 end
 
 ------------------------------------------------------------
+-- 判斷：這一刻 GameTooltip 該不該藏（檔頭）。Panel.Try 與 OnShow 後掛勾都問這個
+------------------------------------------------------------
+function Anchor.ShouldHideNow(tip)
+    if not ns.db or tip ~= GameTooltip or not InCombatLockdown() then return false end
+    local _, _, anchor, combatAnchor = GetMouseoverContext()
+    return ShouldHideInCombat(ResolveHideAnchor(anchor, combatAnchor))
+end
+
+------------------------------------------------------------
 -- 入口
 ------------------------------------------------------------
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
@@ -330,34 +303,38 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
 end)
 
 ------------------------------------------------------------
--- 快捷列不經 SetDefaultAnchor 的那條路（2026-10-24 玩家回報「Bartender 沒隱藏」、作者自己的暴雪快捷列正常）：
--- CVar UberTooltips=0 時，暴雪的 ActionButton:SetTooltip 跟 LibActionButton（Bartender4、Dominos…）的 UpdateTooltip
--- 都改走 GameTooltip:SetOwner(self, "ANCHOR_RIGHT") 再 SetAction，上面的掛勾根本不會跑。舊玩家常見是 0
---（ElvUI 安裝時甚至硬設成 1）。⇒ 另掛 SetAction／SetPetAction／SetShapeshift 的後掛勾（接觸面 #2，只 Hide 不加行）：
--- 該藏就先拆面板（post-call 已經畫了，同一幀拆不會閃）再 Hide；Hide 清掉 owner 之後 GameTooltip_OnUpdate 不跑、
--- LAB 的事件刷新（GetOwner()==button 才重設）也認不到。SetDefaultAnchor 路徑已經藏過的（旗標在）直接跳過。
+-- 網：OnShow 後掛勾（檔頭）。提示從哪條路顯示都會到這裡；該藏就當場拆面板再 Hide。
+-- 只掛 GameTooltip；HookScript 是後掛勾，暴雪的 GameTooltip_OnShow 先跑完
 ------------------------------------------------------------
-local function HideActionTooltipInCombat(tip)
-    if not ns.db or tip ~= GameTooltip or S.IsForbiddenObject(tip) then return end
-    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
-    if not state or state.combatHidden then return end
-    if not ShouldHideInCombat(GeneralAnchor()) then return end
-    local ok, owner = pcall(tip.GetOwner, tip)
-    owner = (ok and not S.IsSecret(owner) and owner) or UIParent
-    if ns.logEnabled then
-        ns.Log("戰鬥隱藏 SetAction 後掛勾 ⇒ 藏 owner=%s 錨點型別=%s",
-            ns.Describe(owner.GetName and S.SafeCall(owner.GetName, owner)), tostring(PlainAnchorType(tip)))
-    end
-    if ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
-    NoteCombatHidden(tip, owner)       -- 在 Hide 之前記：錨點型別要記藏之前的
-    tip:Hide()
-end
-if GameTooltip then
-    for _, name in ipairs({ "SetAction", "SetPetAction", "SetShapeshift" }) do
-        if type(GameTooltip[name]) == "function" then
-            hooksecurefunc(GameTooltip, name, HideActionTooltipInCombat)
+if GameTooltip and GameTooltip.HookScript then
+    GameTooltip:HookScript("OnShow", function(tip)
+        if S.IsForbiddenObject(tip) or not Anchor.ShouldHideNow(tip) then return end
+        local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+        if ns.logEnabled then
+            local ok, owner = pcall(tip.GetOwner, tip)
+            owner = ok and not S.IsSecret(owner) and owner or nil
+            ns.Log("戰鬥隱藏 OnShow 藏 owner=%s 錨點型別=%s 來源：%s",
+                ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
+                ns.Describe(S.SafeCall(tip.GetAnchorType, tip)), debugstack and debugstack(3, 4, 0) or "?")
+            if state then LogVisibleNextFrame(tip, state) end
         end
-    end
+        if state and ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
+        tip:Hide()
+    end)
+end
+
+------------------------------------------------------------
+-- 佇列狀態（地城／戰場排隊）那顆鈕滑過時出現的 QueueStatusFrame 不是 GameTooltip，是暴雪自己的狀態面板，
+-- 上面那張網接不到。它只在滑過時 Show ⇒ 同樣掛 OnShow 後掛勾，戰鬥中照全域設定藏（沒有單位，不看單位錨點）。
+-- 沒有受保護，Hide 不染髒任何 secure 狀態；Bartender 會把它 SetParent 到 UIParent，不影響
+------------------------------------------------------------
+if QueueStatusFrame and QueueStatusFrame.HookScript then
+    QueueStatusFrame:HookScript("OnShow", function(frame)
+        if not ns.db or not InCombatLockdown() or S.IsForbiddenObject(frame) then return end
+        if not ShouldHideInCombat(GeneralAnchor()) then return end
+        if ns.logEnabled then ns.Log("戰鬥隱藏 QueueStatusFrame OnShow ⇒ 藏") end
+        frame:Hide()
+    end)
 end
 
 ------------------------------------------------------------
@@ -368,12 +345,7 @@ watcher:RegisterEvent("MODIFIER_STATE_CHANGED")
 watcher:SetScript("OnEvent", function(_, _, key, stateArg)
     if not ns.db or not InCombatLockdown() then return end
     local unit, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
-    local ruleAnchor = combatAnchor
-    local general = GeneralAnchor()
-    if ruleAnchor and ruleAnchor ~= general and not ruleAnchor.hiddenInCombat
-        and not ruleAnchor.returnInCombat and not ruleAnchor.returnOnUnitFrame then
-        ruleAnchor = general
-    end
+    local ruleAnchor = ResolveHideAnchor(anchor, combatAnchor)
     if not S.SafeBool(UnitExists, unit) or not ruleAnchor or not ruleAnchor.hiddenInCombat then return end
     local modifierKey = GetAnchorModifierKey(ruleAnchor)
     if modifierKey == "none" then return end

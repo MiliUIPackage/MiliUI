@@ -201,8 +201,11 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 `/mtip logdump` 2026-10-24 起開視窗（Api.lua 的 ShowLogWindow，可全選複製），聊天視窗貼不下 400 條。
 **CVar `UberTooltips`（介面選項「進階提示資訊」）=0 時快捷列不走 SetDefaultAnchor**：暴雪 ActionButton:SetTooltip 與 LibActionButton（Bartender4／Dominos）都改走
 `SetOwner(self, "ANCHOR_RIGHT")`＋SetAction，SetDefaultAnchor 掛勾完全不跑（玩家「Bartender 沒隱藏」、作者自己的暴雪快捷列正常＝作者是 1、玩家是 0；ElvUI 安裝時硬設成 1）。
-⇒ 另掛 `GameTooltip.SetAction／SetPetAction／SetShapeshift` 後掛勾：該藏就先 `Panel.Restore` 再 `Hide`（接觸面 #2，只 Hide 不加行）。
-旗標的錨點型別改記「藏的時候是什麼」（ANCHOR_NONE 或 ANCHOR_RIGHT），不寫死 ANCHOR_NONE。
+同一天再回報 Bartender 的微型選單／背包欄／載具列／佇列狀態列／狀態追蹤列／姿勢列／寵物列／額外快捷鍵／獎勵動作列**全部都要藏**：
+九種列五種路徑（SetDefaultAnchor、SetOwner＋SetAction、SetOwner＋SetText／SetInventoryItem／SetSpellByID、QueueStatusFrame 自己的面板），一條一條掛 Set* 掛不完
+⇒ **定案：一個判斷＋一張網**。判斷 `Anchor.ShouldHideNow(tip)`（戰鬥中、`ResolveHideAnchor` 依游標下的單位挑單位錨點或全域、修飾鍵沒按）；
+網是 `GameTooltip:HookScript("OnShow")`（接觸面 #3）：該藏就當場 `Panel.Restore` 再 `Hide`。SetDefaultAnchor 掛勾的提早藏只是省定位；旗標機制（combatHidden／IsCombatHidden）與 SetAction 後掛勾全拔。
+`QueueStatusFrame` 不是 GameTooltip，另掛它的 OnShow 照全域設定藏。`Tests/Try_test.lua` #19 stub 換成 ShouldHideNow。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；
