@@ -20,6 +20,7 @@ commit 慣例 `chore: MiliUI 發佈版本號修改`（同一天多次發佈就�
 **Why:** 忘記改的話，所有玩家互相廣播的都是舊數字，版本提示等於沒作用，而且不會有任何錯誤——跟沒裝一樣安靜。
 
 **How to apply:**
+- **這個欄位由使用者自己改，agent 不準主動 bump、不開 chore bump commit**（[[feedback-no-toc-version-bump]]，2026-10-24）；下面「發佈時要改」描述的是機制，執行者是使用者。
 - 12.1 起遊戲會在**首領戰／M+／PvP 進行中封鎖插件通訊**，所以 `MiliUI/Init.lua` 有一份抄自 Cell `Comm/Comm.lua` 的 `ns.IsCommRestricted()`
   （`IsEncounterInProgress` / `C_MythicPlus.IsRunActive` / `C_PvP.IsActiveBattlefield`）。**任何新寫的 `SendAddonMessage` 都要照這個擋一次**，不要去賭受限時是回傳失敗碼還是直接報錯。
   細節見 [[wow-12x-addon-restrictions]]。
