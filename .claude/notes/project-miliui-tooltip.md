@@ -194,9 +194,11 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 ## 戰鬥中隱藏 vs 重繪面板（2026-10-24 玩家回報「對 Bartender 沒用」）
 
 「戰鬥中隱藏滑鼠提示」只做在 `Modules/Anchor.lua` 的 `GameTooltip_SetDefaultAnchor` 後掛勾：`SetOwner(ANCHOR_NONE)`（＝清錨點）＋`Hide()`。
-暴雪 `InternalProcessInfo` 在 post-call 之後會 `Show()` 回來（快捷列：SetDefaultAnchor → SetAction）。**沒有錨點的框會留在上一次的位置**，清錨點不會讓它看不見
-（第一版修正只擋面板 ⇒ 原生在固定錨點閃一下、下一輪 UpdateTooltip 再藏，使用者實機「在固定的那個點閃爍」）⇒ 另掛 `hooksecurefunc(GameTooltip, "Show"／"SetShown")`，
-還是我們藏的那一份就當場 `Hide()`；藏了 `GameTooltip_OnUpdate` 不跑，按鈕不再每 0.2 秒重設。
+暴雪 `InternalProcessInfo` 在 post-call 之後會呼叫 `Show()`（快捷列：SetDefaultAnchor → SetAction），但 **`GameTooltip:Hide()` 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 `Show()` 是空操作**
+（2026-10-24 實機 log：post-call 之後原生 shown=false、`GetOwner()`=nil）⇒ 原生藏了就不會回來，ElvUI 在 SetDefaultAnchor 掛勾裡只 `tt:Hide()` 就夠也是這個原因。
+「在固定的那個點閃一下」是**面板**：第一版的過期判斷把 `GetOwner()==nil` 當成「owner 換了」⇒ 旗標被清、面板照畫，下一輪才被 Release 拆掉。
+規則：**owner 過期只認非 nil 且不同的 owner**；推理不出來的顯示問題先用 `/mtip log` 拍「下一幀誰還看得見」（原生／面板／skin 的 shown＋原生錨點），別再猜錨點行為。
+`/mtip logdump` 2026-10-24 起開視窗（Api.lua 的 ShowLogWindow，可全選複製），聊天視窗貼不下 400 條。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；

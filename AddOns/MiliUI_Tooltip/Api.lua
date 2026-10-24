@@ -95,6 +95,61 @@ MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
     OnClick = function() ns.OpenOptions() end,
 }
 
+------------------------------------------------------------
+-- /mtip logdump 的記錄視窗：400 條記錄貼在聊天視窗複製不完（2026-10-24 使用者要求），
+-- 改開一扇可以全選複製的視窗。只能看、只能選：一被輸入就把原文填回去
+------------------------------------------------------------
+local logWindow
+local function ShowLogWindow(text)
+    local W = ns.W
+    if not logWindow then
+        local W_, H_ = 760, 480
+        local f = W.CreateFrame("MiliUITip_LogWindow", UIParent, W_, H_)
+        f:SetFrameStrata("DIALOG")
+        f:SetFrameLevel(100)
+        f:SetPoint("CENTER")
+        f:SetBackdropBorderColor(W.Accent(1))
+        f:SetMovable(true)
+        f:SetClampedToScreen(true)
+        f:RegisterForDrag("LeftButton")
+        f:SetScript("OnDragStart", f.StartMoving)
+        f:SetScript("OnDragStop", f.StopMovingOrSizing)
+        W.CloseOnEscape(f)
+
+        local title = f:CreateFontString(nil, "OVERLAY")
+        title:SetFontObject(W.fontTitle)
+        title:SetPoint("TOP", 0, -12)
+        title:SetText(L["Diagnostic log"])
+
+        local box = W.CreateScrollEditBox(f, W_ - 28, H_ - 90)
+        box:SetPoint("TOPLEFT", 14, -36)
+        local eb = box.editBox
+        eb:SetScript("OnTextChanged", function(_, userInput)
+            if userInput then
+                eb:SetText(f.text or "")
+                eb:SetCursorPosition(0)
+            end
+        end)
+        f.box = box
+
+        local selectAll = W.CreateButton(f, L["Select all"], "primary", 90, 22)
+        selectAll:SetPoint("BOTTOMLEFT", 14, 12)
+        selectAll:SetScript("OnClick", function()
+            eb:SetFocus()
+            eb:HighlightText()
+        end)
+        local close = W.CreateButton(f, L["Okay"], "normal", 90, 22)
+        close:SetPoint("BOTTOMRIGHT", -14, 12)
+        close:SetScript("OnClick", function() f:Hide() end)
+        logWindow = f
+    end
+    logWindow.text = text
+    logWindow.box.editBox:SetText(text)
+    logWindow.box.editBox:SetCursorPosition(0)
+    logWindow:Show()
+    logWindow:Raise()
+end
+
 SLASH_MILIUITIP1 = "/mtip"
 SLASH_MILIUITIP2 = "/miliuitooltip"
 SlashCmdList.MILIUITIP = function(msg)
@@ -112,10 +167,10 @@ SlashCmdList.MILIUITIP = function(msg)
     elseif msg == "log" then
         ns.logEnabled = not ns.logEnabled
         if ns.logEnabled then wipe(ns.logBuf) end
-        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄：" .. (ns.logEnabled and "開（重現問題後 /mtip logdump 印出）" or "關"))
+        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄：" .. (ns.logEnabled and "開（重現問題後 /mtip logdump 開視窗）" or "關"))
     elseif msg == "logdump" then
-        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄 " .. #ns.logBuf .. " 條：")
-        for _, line in ipairs(ns.logBuf) do print(line) end
+        print("|cff4DD2FF[米利的滑鼠提示]|r 診斷記錄 " .. #ns.logBuf .. " 條")
+        ShowLogWindow(table.concat(ns.logBuf, "\n"))
         wipe(ns.logBuf)
     elseif msg == "debug" then
         print("|cff4DD2FF[MiliUI Tooltip]|r v" .. ns.VERSION)

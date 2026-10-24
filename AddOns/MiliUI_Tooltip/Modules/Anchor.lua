@@ -6,13 +6,14 @@
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
 --
 -- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)、Hide，並把決定記在 state（NoteCombatHidden）。
--- 暴雪的 InternalProcessInfo 在 post-call 之後會把 tooltip 再 Show 回來（快捷列按鈕：
--- SetDefaultAnchor → SetAction），而且**沒有錨點的框會留在上一次的位置**，清錨點救不了 ⇒
--- 原生在固定錨點閃一下、下一輪 UpdateTooltip 再被藏（2026-10-24 實機「在固定的那個點閃爍」）。
--- 所以 Show 的後掛勾（接觸面 #12 同一種）看到「還是我們藏的那一份」就當場 Hide；藏了之後
--- GameTooltip_OnUpdate 不跑，按鈕的 UpdateTooltip 也不會每 0.2 秒重設。
+-- 暴雪的 InternalProcessInfo 在 post-call 之後會呼叫 Show()（快捷列按鈕：SetDefaultAnchor → SetAction），
+-- 但 **GameTooltip:Hide() 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 Show() 是空操作**
+--（2026-10-24 實機 log：post-call 之後原生 shown=false、GetOwner()=nil）⇒ 原生藏了就不會回來，
+-- 不需要再掛 Show 後掛勾。
 -- **重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：Panel.Try 進來先問 Anchor.IsCombatHidden，
 -- 是就不接（2026-10-24 回報「對 Bartender 沒用」：看到的其實是面板；暴雪自己的快捷列也一樣）。
+-- IsCombatHidden 的「owner 換了」只認**非 nil 且不同**的 owner：nil 是 Hide 清掉的，仍是我們藏的那一份
+--（第一版把 nil 當成換了 ⇒ 旗標被清、面板照畫，就是「在固定的那個點閃一下」）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -81,8 +82,9 @@ end
 --
 -- 藏的時候記下「藏了、替誰藏的」（owner＝SetOwner 用的那個框）；每次重新定位都先清掉。
 -- 面板在 post-call 裡問 IsCombatHidden：旗標還在、而且 tooltip 還是我們藏它時的樣子
---（還在戰鬥、錨點型別還是 ANCHOR_NONE、owner 沒換）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
--- 重設過就不是我們藏的那一份，面板照接。讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
+--（還在戰鬥、錨點型別還是 ANCHOR_NONE、沒有別人 SetOwner 過）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
+-- 重設過就不是我們藏的那一份，面板照接。Hide 之後 GetOwner() 是 nil，那不算換過。
+-- 讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
 ------------------------------------------------------------
 -- /mtip log 開著時：藏了之後下一幀拍一張「到底誰還看得見」（原生／面板／skin 的顯示狀態與位置）
 local function LogVisibleNextFrame(tip, state)
@@ -118,8 +120,8 @@ function Anchor.IsCombatHidden(tip, state)
     end
     if not stale and tip.GetOwner then
         local ok, owner = pcall(tip.GetOwner, tip)
-        if ok and not S.IsSecret(owner) and owner ~= state.combatHiddenOwner then
-            stale = "owner 換了 " .. ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner))
+        if ok and not S.IsSecret(owner) and owner ~= nil and owner ~= state.combatHiddenOwner then
+            stale = "owner 換了 " .. ns.Describe(owner.GetName and S.SafeCall(owner.GetName, owner))
         end
     end
     if stale then
@@ -319,27 +321,6 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
     local _, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
     AnchorFrame(tip, parent, anchor, isUnitFrame, nil, combatAnchor)
 end)
-
--- 暴雪 ProcessInfo 的 Show（post-call 之後）把藏掉的 tooltip 帶回來 ⇒ 還是我們藏的那一份就再藏一次。
--- 只掛 GameTooltip（戰鬥隱藏只管它）；IsCombatHidden 的三個條件不成立（脫戰、別人重設了 owner／錨點）就不動
-local function RehideIfCombatHidden(tip)
-    if not ns.db or S.IsForbiddenObject(tip) then return end
-    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
-    if not state or not state.combatHidden then return end
-    local hide = Anchor.IsCombatHidden(tip, state)
-    if ns.logEnabled then
-        ns.Log("戰鬥隱藏 Show 後掛勾 ⇒ %s 來源：%s", hide and "再藏" or "不藏", debugstack and debugstack(3, 4, 0) or "?")
-    end
-    if hide then tip:Hide() end
-end
-if GameTooltip then
-    hooksecurefunc(GameTooltip, "Show", RehideIfCombatHidden)
-    if GameTooltip.SetShown then
-        hooksecurefunc(GameTooltip, "SetShown", function(tip, shown)
-            if S.IsSecret(shown) or shown then RehideIfCombatHidden(tip) end
-        end)
-    end
-end
 
 ------------------------------------------------------------
 -- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）

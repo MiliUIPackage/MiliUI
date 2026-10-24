@@ -24,8 +24,7 @@
 --      它的 OnClick 是 HideUIPanel(ItemRefTooltip)，在污染的執行裡跑會連坐面板管理與比價管理器的共用狀態
 --  12. hooksecurefunc(tip, "Show")／(tip, "SetShown")（Panel/Native.lua 的 HookShow）：暴雪的 Show 會把
 --      alpha 改回 1、而且在 post-call 之後才叫 ⇒ 後掛勾同一幀壓回 0。只掛在用過面板的 tooltip 上、
---      面板沒在用時掛勾什麼都不做；掛勾裡只查 Skin.State、只呼叫 SetAlpha（與補回被清掉的 padding）。
---      Modules/Anchor.lua 另掛一組在 GameTooltip 上：戰鬥中藏掉的提示被 ProcessInfo 的 Show 帶回來時再 Hide（#8）
+--      面板沒在用時掛勾什麼都不做；掛勾裡只查 Skin.State、只呼叫 SetAlpha（與補回被清掉的 padding）
 --  13. tip:SetClampRectInsets／還原（Panel/Native.lua 的 UpdateClamp）：接管期間原生**照暴雪的夾邊**，我們只替它
 --      設夾邊範圍（四邊呼吸、上緣多留比價標籤）。C 端 setter，第一次藏原生時 GetClampRectInsets 記原值、Restore 寫回。
 --      （2026-10-18～19 曾改成 SetClampedToScreen(false) 由面板自己夾：原生幾何變假、下游全被誤導，已改回）
