@@ -108,6 +108,7 @@ L["Interaction"] = "互動"
 L["Pin your own row when it scrolls out of view"] = "自己掉出畫面時把那一列釘住"
 L["Show a spell preview on hover"] = "滑過長條顯示法術預覽"
 L["Preview position"] = "預覽位置"
+L["Spells shown in the preview"] = "預覽顯示的法術數"
 L["Show the game tooltip on breakdown rows"] = "展開頁滑過法術顯示遊戲提示"
 L["Buttons"] = "按鈕"
 L["Drag a button to reorder it, drag it into \"Not shown\" (or just click it) to turn it off. Hover a button to see what it does."] =

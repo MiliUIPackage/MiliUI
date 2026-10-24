@@ -108,6 +108,7 @@ L["Interaction"] = "交互"
 L["Pin your own row when it scrolls out of view"] = "自己滚出画面时把那一行钉住"
 L["Show a spell preview on hover"] = "鼠标悬停显示法术预览"
 L["Preview position"] = "预览位置"
+L["Spells shown in the preview"] = "预览显示的技能数"
 L["Show the game tooltip on breakdown rows"] = "展开页悬停法术显示游戏提示"
 L["Buttons"] = "按钮"
 L["Drag a button to reorder it, drag it into \"Not shown\" (or just click it) to turn it off. Hover a button to see what it does."] =

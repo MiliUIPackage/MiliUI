@@ -16,7 +16,7 @@ local M = ns.Media
 local Win = ns.Window
 local Card = ns.Card
 
-local MAX_ROWS = 8
+local DEF_ROWS = 8     -- 列數走設定（hoverRows），這只是拿不到時的退路
 local ROW_H    = 16   -- 列高與標題高的**下限**；實際值跟著字型大小算（見 Populate）
 local ROW_SP   = 1
 local HDR_H    = 20
@@ -114,6 +114,7 @@ local function Populate(bar)
     ApplyEdge(_frame)
     local s = ns.DB.Style()
     local fs = math.max(8, (s.leftFontSize or 11) - 1)
+    local maxRows = s.hoverRows or DEF_ROWS
 
     -- 寬度跟本體視窗一樣：預覽是那一列的延伸，寬度對不齊看起來像另一個東西。
     -- （視窗 frame 的幾何是乾淨的 —— 秘密值只餵給 bar.fill / bar.line）
@@ -154,7 +155,7 @@ local function Populate(bar)
             if ok and events and #events > 0 then
                 rows = {}
                 -- 最後幾筆最有意義（是那幾下打死的），API 給的就是最近的在前
-                for i = 1, math.min(#events, MAX_ROWS) do
+                for i = 1, math.min(#events, maxRows) do
                     local ev = events[i]
                     rows[#rows + 1] = {
                         spellID = ev.spellId,
@@ -172,7 +173,7 @@ local function Populate(bar)
         local spells = srcData and srcData.combatSpells
         if spells and #spells > 0 then
             rows = {}
-            for i = 1, math.min(#spells, MAX_ROWS) do
+            for i = 1, math.min(#spells, maxRows) do
                 local sp = spells[i]
                 local name
                 if sp.spellID and C_Spell and C_Spell.GetSpellName then
@@ -207,7 +208,8 @@ local function Populate(bar)
     local br, bg, bb = Win.BarColor(s, D.SafeClass(src.classFilename), dmType)
     local texPath = M.BarTexture(s.barTexture)
     local y = -(hdrH + PAD)
-    for i = 1, MAX_ROWS do
+    -- 上限取「設定值」與「已建的列數」較大者：玩家把 slider 調低時，多出來的列要藏掉
+    for i = 1, math.max(maxRows, #_bars) do
         local row = rows[i]
         local tb = _bars[i]
         if row then

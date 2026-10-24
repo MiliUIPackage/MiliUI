@@ -74,6 +74,8 @@ local CONTROLS = {
     { type = "header", label = L["Interaction"] },
     { type = "toggle", key = "showPinnedSelf", label = L["Pin your own row when it scrolls out of view"] },
     { type = "toggle", key = "showHoverTooltip", label = L["Show a spell preview on hover"] },
+    { type = "slider", key = "hoverRows", label = L["Spells shown in the preview"],
+      min = 3, max = 20, step = 1 },
     { type = "dropdown", key = "breakdownAnchor", label = L["Preview position"],
       items = Specs.BREAKDOWN_ANCHORS },
     { type = "toggle", key = "showSpellTooltips", label = L["Show the game tooltip on breakdown rows"] },
