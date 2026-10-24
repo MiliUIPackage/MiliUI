@@ -6,7 +6,8 @@
 --   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
 --      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
---   3. HookScript("OnTooltipCleared")（清理暫態）
+--   3. HookScript("OnTooltipCleared")（清理暫態）、GameTooltipStatusBar 的 OnShow／OnHide
+--      （我們的血條跟著引擎血條開關，Bar.OnEngineBar；掛勾裡只動自己的條）
 --   4. line FontString 的 SetText / SetTextColor（UnitLines.lua；暴雪每次
 --      ProcessInfo 會重設所有行，寫入活不到 secure 讀取）
 --   5. tip:AddLine / tip:Show（官方內容 API；Show 只在 ProcessInfo 之外呼叫）
@@ -326,6 +327,13 @@ local function Install()
     -- 一次性視覺中和（接觸面 #6）：血條自己畫，暴雪那條藏掉
     if GameTooltipStatusBar and GameTooltipStatusBar.SetAlpha then
         pcall(GameTooltipStatusBar.SetAlpha, GameTooltipStatusBar, 0)
+    end
+    -- 引擎血條的 Show／Hide（C 端 SetWatch／ClearWatch，只對有血量的單位叫）⇒ 我們的條跟著開關
+    -- （接觸面 #3；Bar.lua 的 EngineBarShown）。後掛勾，裡面只查 Skin.State、只動自己的條
+    local engineBar = GameTooltip and (GameTooltip.StatusBar or GameTooltipStatusBar)
+    if engineBar and engineBar.HookScript then
+        engineBar:HookScript("OnShow", function() ns.Bar.OnEngineBar(GameTooltip) end)
+        engineBar:HookScript("OnHide", function() ns.Bar.OnEngineBar(GameTooltip) end)
     end
     if ItemRefCloseButton then
         ItemRefCloseButton:SetSize(14, 14)

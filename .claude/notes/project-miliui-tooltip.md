@@ -24,7 +24,7 @@ metadata:
   只有提示插件 ⇒ 沒人叫 Adopt、那些框維持暴雪原樣；只有外觀插件 ⇒ API 不存在、MiliUI_Skin 退回自己畫一層（[[project-miliui-skin]]「特例二」）。
   2026-10-18 加第二參數 `opts.keepScale`：Adopt 預設會 `SetScale(general.scale)`，對「自己 SetParent 到 GameTooltip 底下」的框（AppearanceTooltip 的預覽）會變成平方倍 ⇒ 那種要帶 keepScale，旗標存 state、`ApplyBase` 重跑也跳過。同一天 `NeutralizeTemplateBar` 補了秘密名字閘（`GetName` 在秘密錨點鏈上回秘密字串，查 `_G` 會炸）。
 - 一次性視覺中和：`NineSlice:SetAlpha(0)`（skin OnShow 重申）、`GameTooltipStatusBar:SetAlpha(0)`（載入時壓一次不夠，單位提示流程會弄回來 → `Bar.Activate` 每次重申）。
-- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。
+- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。**顯示與否跟著引擎血條**（GameTooltip.StatusBar 的 IsShown；12.x 是 C 端對有血量的單位 SetWatch 才 Show，火盆／祭壇／補給品這種用生物做的互動物走 Unit 型別提示但不 SetWatch）——2026-10-24 玩家回報物件底下多一條滿血條，Bar.Refresh 加閘＋HookScript 引擎條的 OnShow／OnHide 即時同步。
 - **post-call 時序紅利**：行加在暴雪排版之前 ⇒ 不需要自我 Show()，比價重建風暴只剩重上色。Show() 只在 ProcessInfo 之外（目標行輪詢、非同步觀察刷新）呼叫。
 - 輪詢走 `Skin.Poll`（`ns.Metro.New(0.05, ns.ReportError)`，共用層）並掛在「有沒有 tooltip 顯示中」上——沒有提示的時候 ticker 根本不存在。
   可見度判斷用**自己的 skin frame 的 OnShow/OnHide**（父層一藏子層就跟著發，零接觸面）。`Core/Secret.lua` 已刪，`ns.Secret` 由共用層提供（[[project-miliui-widgets-vendor]]）。
