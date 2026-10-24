@@ -199,6 +199,10 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 「在固定的那個點閃一下」是**面板**：第一版的過期判斷把 `GetOwner()==nil` 當成「owner 換了」⇒ 旗標被清、面板照畫，下一輪才被 Release 拆掉。
 規則：**owner 過期只認非 nil 且不同的 owner**；推理不出來的顯示問題先用 `/mtip log` 拍「下一幀誰還看得見」（原生／面板／skin 的 shown＋原生錨點），別再猜錨點行為。
 `/mtip logdump` 2026-10-24 起開視窗（Api.lua 的 ShowLogWindow，可全選複製），聊天視窗貼不下 400 條。
+**CVar `UberTooltips`（介面選項「進階提示資訊」）=0 時快捷列不走 SetDefaultAnchor**：暴雪 ActionButton:SetTooltip 與 LibActionButton（Bartender4／Dominos）都改走
+`SetOwner(self, "ANCHOR_RIGHT")`＋SetAction，SetDefaultAnchor 掛勾完全不跑（玩家「Bartender 沒隱藏」、作者自己的暴雪快捷列正常＝作者是 1、玩家是 0；ElvUI 安裝時硬設成 1）。
+⇒ 另掛 `GameTooltip.SetAction／SetPetAction／SetShapeshift` 後掛勾：該藏就先 `Panel.Restore` 再 `Hide`（接觸面 #2，只 Hide 不加行）。
+旗標的錨點型別改記「藏的時候是什麼」（ANCHOR_NONE 或 ANCHOR_RIGHT），不寫死 ANCHOR_NONE。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；
