@@ -1506,6 +1506,16 @@ local function GlowLine(item, rec)
     local mgr = _G.ActionButtonSpellAlertManager
     if item and mgr and mgr.HasAlert then has = Show(Call(mgr.HasAlert, mgr, item)) end
     local alertA = item and item.SpellActivationAlert and Show(Call(item.SpellActivationAlert.GetAlpha, item.SpellActivationAlert)) or "—"
+    -- 暴雪發光框的尺寸 vs 格子（Decorate.ApplyProcAlert 照格子 ×1.4 重設；戰鬥中被擋會掛在 alertPending 等脫戰）
+    local function Size(f)
+        if not (f and f.GetSize) then return "—" end
+        local ok, w, h = pcall(f.GetSize, f)
+        if not ok then return "?" end
+        w, h = Plain(w), Plain(h)
+        return (w and h) and ("%.0fx%.0f"):format(w, h) or "秘密"
+    end
+    local alertSz = ("%s（格子 %s，glowW %s，待脫戰重設=%s）"):format(Size(item and item.SpellActivationAlert), Size(item),
+        Show(rec.glowW), tostring(ns.Decorate and ns.Decorate.alertPending and ns.Decorate.alertPending[item] ~= nil))
     local cdInfo = "—"
     local sid = live or override or spellID
     if type(sid) == "number" then
@@ -1517,8 +1527,8 @@ local function GlowLine(item, rec)
         Show(spellID), Show(override), Show(live), tostring(rec.cooldownID),
         rec.parked and " 停放" or "", rec.hidden and " 隱藏" or "",
         #lit > 0 and table.concat(lit, ",") or "無")
-    lines[2] = ("     觸發：procActive=%s 事件id=%s 暴雪HasAlert=%s 暴雪發光alpha=%s 設定=%s"):format(
-        Show(rec.procActive), Show(rec.procEventID), has, alertA, barKey and tostring(Wanted(rec, barKey, "proc")) or "—")
+    lines[2] = ("     觸發：procActive=%s 事件id=%s 暴雪HasAlert=%s 暴雪發光alpha=%s 設定=%s 暴雪發光框=%s"):format(
+        Show(rec.procActive), Show(rec.procEventID), has, alertA, barKey and tostring(Wanted(rec, barKey, "proc")) or "—", alertSz)
     lines[3] = ("     快捷列發光 IsSpellOverlayed：%s %s %s 事件 %s"):format(Overlayed(spellID),
         override ~= spellID and Overlayed(override) or "", live ~= spellID and live ~= override and Overlayed(live) or "",
         Overlayed(rec.procEventID))

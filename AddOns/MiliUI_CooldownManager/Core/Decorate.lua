@@ -1931,21 +1931,29 @@ end
 -- 圓角／圓形被形狀遮罩遮掉看不出來（玩家回報 2026-10-24）。所以每次都照格子尺寸重設一次：框 ×1.4（跟暴雪快捷列、
 -- MiliUIGlow 的觸發發光同一個比例）、入場爆光圖 ProcStartFlipbook 等比（模板寫死 150，是 45px 快捷鍵的比例）。
 -- 只呼叫 SetSize，不寫暴雪框的欄位；上次套的尺寸記在弱鍵表。Masque 在畫的格不碰（它的 ShowAlert 後掛勾照皮定尺寸）。
+-- ⚠ 發光框幾乎都是**戰鬥中**第一次觸發才建的，而 CDM 的 item 是保護框，戰鬥中對它子樹 SetSize 會被擋
+--（1.6.23 第一版直接呼叫、呼叫前就記了去重鍵 ⇒ 被擋那一次之後永遠不再試，玩家回報照舊）：
+-- 改成 pcall、成功才記；被擋的 item 記在 alertPending，PLAYER_REGEN_ENABLED 再套一次。
 local ALERT_SCALE, ALERT_START = 1.4, 150 / 45
-local alertSized = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套的尺寸鍵
+local alertSized = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套成功的尺寸鍵
+local alertPending = setmetatable({}, { __mode = "k" })   -- item → rec：戰鬥中被擋，脫戰重套
+D.alertPending = alertPending                             -- /mcdm debug／測試用
+-- 回 true ＝ 已是這個尺寸或套成功；false ＝ 被擋（要重試）；nil ＝ 沒有可用的尺寸
 local function SizeProcAlert(alert, w, h)
     w, h = tonumber(w), tonumber(h)
-    if not (alert and w and h and w > 0 and h > 0) then return end
+    if not (alert and w and h and w > 0 and h > 0) then return nil end
     local key = w .. "x" .. h
-    if alertSized[alert] == key then return end
-    alertSized[alert] = key
-    alert:SetSize(w * ALERT_SCALE, h * ALERT_SCALE)
+    if alertSized[alert] == key then return true end
+    local ok = pcall(alert.SetSize, alert, w * ALERT_SCALE, h * ALERT_SCALE)
     local start = alert.ProcStartFlipbook
-    if start and start.SetSize then start:SetSize(w * ALERT_START, h * ALERT_START) end
+    if ok and start and start.SetSize then ok = pcall(start.SetSize, start, w * ALERT_START, h * ALERT_START) end
+    if ok then alertSized[alert] = key end
+    return ok and true or false
 end
 D.SizeProcAlert = SizeProcAlert          -- Bars.ReleaseAll 還給暴雪時照原尺寸復原
 
--- w, h（格子尺寸）可省：Glow.SyncProc 叫的時候拿 Glow.AfterApply 記的 rec.glowW／glowH
+-- w, h（格子尺寸）可省：Glow.SyncProc 叫的時候拿 Glow.AfterApply 記的 rec.glowW／glowH；連那個都還沒有
+-- （ShowAlert 搶在第一次 Apply 前）就讀 item 自己的尺寸（明文才用），之後 Apply 會再照格子尺寸套一次
 local function ApplyProcAlert(item, rec, barKey, w, h)
     local alert = item.SpellActivationAlert
     if not alert then return end
@@ -1954,9 +1962,32 @@ local function ApplyProcAlert(item, rec, barKey, w, h)
     -- 圓環：發光第一版不畫（方形的觸發發光套在圓上很怪），暴雪的也一起熄
     if rec and rec.ring then owns = true end
     alert:SetAlpha(owns and 0 or 1)
-    if rec and not rec.msqSkinned then SizeProcAlert(alert, w or rec.glowW, h or rec.glowH) end
+    if rec and not rec.msqSkinned then
+        w, h = w or rec.glowW, h or rec.glowH
+        if not (w and h) then
+            local ok, iw, ih = pcall(item.GetSize, item)
+            if ok then w, h = Plain(iw), Plain(ih) end
+        end
+        if SizeProcAlert(alert, w, h) == false then alertPending[item] = rec else alertPending[item] = nil end
+    end
 end
 D.ApplyProcAlert = ApplyProcAlert
+
+-- 脫戰：戰鬥中被擋的發光框重套（先收成清單再套：ApplyProcAlert 會改 alertPending）
+local function RetryProcAlerts()
+    if ns.released then return end
+    local list = {}
+    for item, rec in pairs(alertPending) do list[#list + 1] = { item, rec } end
+    for i = 1, #list do
+        local item, rec = list[i][1], list[i][2]
+        alertPending[item] = nil
+        if item.SpellActivationAlert then ApplyProcAlert(item, rec, rec.claimKey or rec.barKey) end
+    end
+end
+D.RetryProcAlerts = RetryProcAlerts
+if ns.Events and ns.Events.Register then
+    ns.Events.Register("PLAYER_REGEN_ENABLED", "decorate_alert", RetryProcAlerts)
+end
 
 ------------------------------------------------------------
 -- 簽章：條層設定＋逐法術覆寫＋格子尺寸（真實 item 與預覽格共用）

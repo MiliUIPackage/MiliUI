@@ -2904,14 +2904,18 @@ do
 end
 
 ------------------------------------------------------------
--- 暴雪的觸發發光框照格子尺寸重設（D.ApplyProcAlert／D.SizeProcAlert，2026-10-24）：
--- 暴雪只在建框時照 item 當時的尺寸定 ×1.4，之後不跟 ⇒ 我們每次 Apply 都補；入場爆光圖等比；同尺寸不重寫；Masque 的格不碰
+-- 暴雪的觸發發光框照格子尺寸重設（D.ApplyProcAlert／D.SizeProcAlert，2026-10-24／25）：
+-- 暴雪只在建框時照 item 當時的尺寸定 ×1.4，之後不跟 ⇒ 我們每次 Apply 都補；入場爆光圖等比；同尺寸不重寫；Masque 的格不碰；
+-- 戰鬥中被擋（SetSize 拋錯）⇒ 不記去重鍵、掛 alertPending，脫戰 RetryProcAlerts 重套；沒有 glowW 時讀 item 自己的尺寸
 ------------------------------------------------------------
 do
     local function Alert()
         local a = { alpha = 1, sets = 0, ProcStartFlipbook = { sets = 0 } }
         function a:SetAlpha(v) self.alpha = v end
-        function a:SetSize(w, h) self.sets = self.sets + 1; self.w, self.h = w, h end
+        function a:SetSize(w, h)
+            if self.blocked then error("attempted to call a protected function") end
+            self.sets = self.sets + 1; self.w, self.h = w, h
+        end
         function a.ProcStartFlipbook:SetSize(w, h) self.sets = self.sets + 1; self.w, self.h = w, h end
         return a
     end
@@ -2929,11 +2933,51 @@ do
     check("沒給 w, h ⇒ 用 rec.glowW／glowH", alert.sets == 2 and alert.w == 56)
     D.ApplyProcAlert(item, {}, "essential")
     eq("尺寸讀不到 ⇒ 不寫", alert.sets, 2)
+    eq("尺寸讀不到 ⇒ 不算待重試", D.alertPending[item], nil)
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40, msqSkinned = true }, "essential", 70, 70)
     eq("Masque 在畫 ⇒ 不碰尺寸", alert.sets, 2)
     ns.Glow.OwnsProc = function() return true end
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 70, 70)
     check("我們接管 ⇒ alpha 0，尺寸照樣跟著（之後還給暴雪不必再補）", alert.alpha == 0 and alert.w == 98)
+    ns.Glow.OwnsProc = function() return false end
+
+    -- 還沒 Apply 過（沒有 glowW）：讀 item 自己的尺寸
+    local a3 = Alert()
+    local item3 = { SpellActivationAlert = a3, GetSize = function() return 50, 50 end }
+    D.ApplyProcAlert(item3, {}, "essential")
+    check("沒有 glowW ⇒ 讀 item 的尺寸 ×1.4", a3.w == 70 and a3.h == 70)
+    local a3s = Alert()
+    D.ApplyProcAlert({ SpellActivationAlert = a3s, GetSize = function() return Secret(), Secret() end }, {}, "essential")
+    eq("item 尺寸是秘密值 ⇒ 不寫", a3s.sets, 0)
+
+    -- 戰鬥中被擋：不記去重鍵、掛待重試；脫戰重套成功就消掉
+    local a4 = Alert()
+    a4.blocked = true
+    local item4 = { SpellActivationAlert = a4 }
+    local rec4 = { glowW = 40, glowH = 40, claimKey = "essential" }
+    D.ApplyProcAlert(item4, rec4, "essential", 60, 60)
+    check("被擋 ⇒ 沒寫、掛 alertPending", a4.sets == 0 and D.alertPending[item4] == rec4)
+    D.ApplyProcAlert(item4, rec4, "essential", 60, 60)
+    check("被擋期間再叫：還是會再試（沒有去重鍵）、仍待重試", a4.sets == 0 and D.alertPending[item4] == rec4)
+    a4.blocked = false
+    D.RetryProcAlerts()
+    check("脫戰重套 ⇒ 套成功（用 glowW）、alertPending 消掉", a4.w == 56 and D.alertPending[item4] == nil)
+    D.ApplyProcAlert(item4, rec4, "essential", 40, 40)
+    eq("之後同尺寸 ⇒ 去重生效", a4.sets, 1)
+    a4.blocked = true
+    D.ApplyProcAlert(item4, rec4, "essential", 80, 80)
+    check("換尺寸又被擋 ⇒ 再掛", D.alertPending[item4] == rec4 and a4.w == 56)
+    item4.SpellActivationAlert = nil
+    D.RetryProcAlerts()
+    eq("脫戰時框已經不在 ⇒ 只消掉、不炸", D.alertPending[item4], nil)
+    local saveRel = ns.released
+    ns.released = true
+    D.alertPending[item4] = rec4
+    D.RetryProcAlerts()
+    eq("已還給暴雪 ⇒ 脫戰不動", D.alertPending[item4], rec4)
+    D.alertPending[item4] = nil
+    ns.released = saveRel
+
     local a2 = Alert()
     D.SizeProcAlert(a2, 50, 50)
     check("ReleaseAll 的復原：照原尺寸 ×1.4", a2.w == 70 and a2.h == 70)
