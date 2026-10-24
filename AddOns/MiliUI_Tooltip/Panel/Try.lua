@@ -2,6 +2,7 @@
 -- 重繪面板的流程：Try（post-call 進來）／Reconcile（下一幀對帳）／Release（內容被清掉）／Restore（退回原生）
 --
 --   1. 該型別的開關關 → Restore 後 return（沒畫過就什麼都不碰 ⇒ 開關關掉時跟以前逐位元一樣）
+--   1b. 戰鬥中隱藏（Anchor.IsCombatHidden）→ 同上。原生是靠「沒有錨點」看不見的，面板不會跟著消失
 --   2. **同一件的重建**（state.panelKey 相同、panel 顯示中）→ 當幀不解析、不重畫，只重壓 alpha、Fit，
 --      排一次 Reconcile。原因：post-call 在暴雪 ProcessInfo 的中間——比價框的「若你更換此裝備…」、
 --      別家插件 post-call 加的行，都是**同一幀、我們之後**才補上的。當幀就畫會畫出「少那幾行」的版本，
@@ -458,6 +459,13 @@ function Panel.Try(tip, state, dataType, data)
         return false
     end
     if S.IsForbiddenObject(tip) or not Eligible(tip) then
+        Panel.Restore(tip, state)
+        return false
+    end
+    -- 戰鬥中隱藏（Modules/Anchor.lua 把原生藏了）：面板是獨立的框、不跟著原生消失 ⇒ 這裡也不接，
+    -- 不然玩家在戰鬥中看到的就是面板（快捷列按鈕每 0.2 秒重設一次，每次都會進來）
+    if ns.Anchor and ns.Anchor.IsCombatHidden and ns.Anchor.IsCombatHidden(tip, state) then
+        if ns.logEnabled then ns.Log("Try 戰鬥中隱藏 ⇒ 不接 key=%s", tostring(Panel.Key(kind, data))) end
         Panel.Restore(tip, state)
         return false
     end

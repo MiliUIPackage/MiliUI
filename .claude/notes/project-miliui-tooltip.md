@@ -191,4 +191,14 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
   每次 post-call 後第一次量可以變窄（換了一隻），之後同一輪只長不縮。`ContentWidth` 在「padding 剛被清、我們設過別的值」時回 nil。`/mtip panel` 印「受限單位」行、`/mtip log` 記秘密字寬的變化。
   離線重現：`Tests/Unit_test.lua` 的 `Refresh`（padding 清 0、尺寸不動 → post-call → 才照新內容重排），舊程式 289→440。
 
+## 戰鬥中隱藏 vs 重繪面板（2026-10-24 玩家回報「對 Bartender 沒用」）
+
+「戰鬥中隱藏滑鼠提示」只做在 `Modules/Anchor.lua` 的 `GameTooltip_SetDefaultAnchor` 後掛勾：`SetOwner(ANCHOR_NONE)`（＝清錨點）＋`Hide()`。
+暴雪 `InternalProcessInfo` 在 post-call 之後會 `Show()` 回來（快捷列：SetDefaultAnchor → SetAction），原生靠**沒有錨點**才看不見。
+**重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
+Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
+修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；
+秘密值當還藏著）⇒ Restore、不接；每次 AnchorFrame 重新定位先清旗標。`Tests/Try_test.lua` #19。
+Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.tooltip = "nocombat"`），可當玩家端的替代方案。
+
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
