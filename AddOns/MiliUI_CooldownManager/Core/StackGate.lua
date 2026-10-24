@@ -333,9 +333,11 @@ function SG.Config(barKey, id, aura, isBar)
     local op = n and SG.Op(ns.SpellSetting(barKey, id, "stackGlowOp")) or nil
     -- 這一招的長條顏色（原色填充／層數當填充那一層照它畫）；不是色表 ＝ 跟隨條
     local bc = isBar and ns.SpellSetting(barKey, id, "barColor") or nil
+    -- 這一招的圖示位置（條身寬要扣圖示；逐法術覆寫優先，ns.BarIconSide 解好）；nil ＝ 照條層 bar.iconSide
+    local side = isBar and ns.BarIconSide and ns.BarIconSide(barKey, id) or nil
     return { glow = n, op = op, gates = n and SG.GateSpec(op, n) or nil,
         style = n and SG.GlowStyle(barKey, id) or nil, colors = colors,
-        stackBar = barN, ticks = ticks, barColor = type(bc) == "table" and bc or nil }
+        stackBar = barN, ticks = ticks, barColor = type(bc) == "table" and bc or nil, iconSide = side }
 end
 
 -- 條身底下那一層（換色／層數當填充／刻度）要不要建
@@ -381,7 +383,7 @@ function SG.Signature(cfg, w, h, bar)
         bar = type(bar) == "table" and bar or {}
         parts[#parts + 1] = tostring(bar.texture) .. "/" .. CSig(bar.color) .. "/" .. CSig(bar.bgColor)
             .. "/" .. BarLook(bar) .. "/" .. CSig(bar.blizzardColor)
-            .. "/" .. tostring(bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
+            .. "/" .. tostring(cfg.iconSide or bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
             .. "/" .. GradSig(bar.gradient) .. "/" .. tostring(bar.vertical and true or false)
             .. "/" .. tostring(bar.reverseFill and true or false)
     end
@@ -816,7 +818,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         tf:SetAllPoints(root)
         tf:SetFrameLevel(lv + 2 + SG.MAX_COLORS)
         local vert = bar.vertical and true or false
-        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert,
+        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, cfg.iconSide or bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert,
             bar.reverseFill and true or false)
         tf:Show()
     elseif ui.ticks then
@@ -994,7 +996,8 @@ function SG.ApplyPreview(cell, barKey, id, w, h)
     local host = cell.Bar
     host.tickLayer, host.tickSub = "ARTWORK", 7          -- 在填充上面、名字／時間字底下
     local vert = bar.vertical and true or false
-    SG.DrawTicks(host, host, SG.BodyWidth(w, h, bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg and cfg.ticks, vert,
+    local side = (cfg and cfg.iconSide) or (ns.BarIconSide and ns.BarIconSide(barKey, id)) or bar.iconSide or "LEFT"
+    SG.DrawTicks(host, host, SG.BodyWidth(w, h, side, bar.iconGap or 0, vert), cfg and cfg.ticks, vert,
         bar.reverseFill and true or false)
 end
 

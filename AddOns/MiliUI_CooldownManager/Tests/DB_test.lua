@@ -1410,5 +1410,29 @@ do
     eq("v13 登入遷移：別份設定檔也翻", sv.profiles.Other13.theme.cooldownText.timeFormat, "mmss")
 end
 
+------------------------------------------------------------
+-- 長條的圖示位置（逐法術 barIconSide，2026-10-24）：登記、分組、ns.BarIconSide 的三層退路
+------------------------------------------------------------
+do
+    eq("SPELL_FALLBACK barIconSide", DB.SPELL_FALLBACK.barIconSide, "bar.iconSide")
+    eq("覆寫分組 barIconSide ＝ icon（跟自訂圖示同一組）", DB.OVERRIDE_GROUP.barIconSide, "icon")
+    eq("跟隨來源：條自己的（bar.* 不跟主題）", DB.SpellFallbackSource("buffbars", "barIconSide"), "bar")
+    local bb = ns.profile.bars.buffbars.bar
+    local saved = bb.iconSide
+    bb.iconSide = "RIGHT"
+    eq("沒覆寫 ⇒ 條層", ns.BarIconSide("buffbars", 777), "RIGHT")
+    eq("SpellSetting 退條層", SS("buffbars", 777, "barIconSide"), "RIGHT")
+    DB.SetOverride(777, "barIconSide", "NONE")
+    eq("覆寫優先", ns.BarIconSide("buffbars", 777), "NONE")
+    eq("別的招照條", ns.BarIconSide("buffbars", 778), "RIGHT")
+    DB.SetOverride(777, "barIconSide", "sideways")
+    eq("壞值退條層", ns.BarIconSide("buffbars", 777), "RIGHT")
+    bb.iconSide = "nope"
+    eq("條層也壞 ⇒ LEFT", ns.BarIconSide("buffbars", 777), "LEFT")
+    DB.SetOverride(777, "barIconSide", nil)
+    bb.iconSide = saved
+    eq("清掉回到條層", ns.BarIconSide("buffbars", 777), saved)
+end
+
 print(("DB_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

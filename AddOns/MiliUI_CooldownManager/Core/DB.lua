@@ -1511,6 +1511,9 @@ local SPELL_FALLBACK = {
     barShowName     = "bar.showName",
     barNameFont     = "bar.nameFont",
     barNameSize     = "bar.nameSize",
+    -- 長條的圖示位置（長條類的條才有；逐法術小窗的「圖示」分頁）："LEFT"｜"RIGHT"｜"NONE"（直向時 LEFT ＝ 上、RIGHT ＝ 下，
+    -- 跟條層同一個欄位的語意）；nil 跟隨條的 bar.iconSide。引擎不直接讀，走 ns.BarIconSide（壞值退回條層、再退 LEFT）
+    barIconSide     = "bar.iconSide",
     -- 圓環的填色（圓環條才用；Core/Decorate.lua 的 SpellStyle）：色表＝這一招的填色；沒覆寫跟隨條的 ring.fillColor
     -- （條層 false ＝ 職業色，所以讀到 false 也是職業色）。「區分不同效果」用，不是狀態色
     ringColor       = "ring.fillColor",
@@ -1610,6 +1613,18 @@ function ns.SpellSetting(barKey, cooldownID, key, specID)
     local path = SPELL_FALLBACK[key]
     if path then return ns.Setting(barKey, path) end
     return SPELL_CONST[key]
+end
+
+-- 長條上這一招的圖示位置（生效值）："LEFT"｜"RIGHT"｜"NONE"（直向時 LEFT ＝ 上、RIGHT ＝ 下）。
+-- 逐法術覆寫 barIconSide 優先；沒覆寫（或壞值）退回條層 bar.iconSide；那也不是三個之一就 LEFT。
+-- 引擎（Decorate 的長條幾何、StackGate 的條身寬、Custom 的充能分段）與預覽都走這支，不各自翻表
+local ICON_SIDES = { LEFT = true, RIGHT = true, NONE = true }
+DB.ICON_SIDES = ICON_SIDES
+function ns.BarIconSide(barKey, cooldownID)
+    local v = ns.SpellOverride(cooldownID, "barIconSide")
+    if ICON_SIDES[v] then return v end
+    v = ns.Setting(barKey, "bar.iconSide")
+    return ICON_SIDES[v] and v or "LEFT"
 end
 
 -- 沒覆寫時這個欄位的值從哪來（單一法術小窗的「（跟隨…）」用）：
@@ -1958,6 +1973,8 @@ DB.OVERRIDE_GROUP = {
     keybindFont = "text", keybindSize = "text", keybindPoint = "text", keybindX = "text", keybindY = "text",
     -- 長條的名字（開關、字型、字級）：條層在「文字」分頁最後的「長條文字」小節 ⇒ 同一組
     barShowName = "text", barNameFont = "text", barNameSize = "text",
+    -- 長條的圖示位置（逐法術小窗的「圖示」分頁）：跟自訂圖示同一組（條頁「清除圖示覆寫」一起清，回到條層的值）
+    barIconSide = "icon",
     colorDuration = "icon", durationColor = "icon", durationSwipeColor = "icon",
     -- 增益持續時間變色顏色：控件在文字節（跟增益持續時間另外三列排在一起），覆寫也歸文字組，文字節的清除覆寫一起清（資料路徑照舊 icon.*）
     durationLowColor = "text",

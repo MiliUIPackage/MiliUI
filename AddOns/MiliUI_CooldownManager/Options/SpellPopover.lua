@@ -28,8 +28,9 @@
 --   * 寬層（戰隊／職業／角色）的「從這條移除」＝整筆刪掉、每個專精都沒了 ⇒ 先問（Preview.RemoveCustom）。
 -- 列是動態排的：每一列是一個自己的框，Layout 依種類決定哪幾列顯示、由上往下疊。
 -- 分頁（玩家回報 2026-10-03 列太長；2026-10-05 H 改成五頁）：一般（所在條、以增益取代、天賦條件、占位）／
--- 文字（長條的名字、倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、圖示、
--- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色）／發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
+-- 文字（長條的名字、倒數、充能、層數、按鍵文字的字型／字級／顏色／位置與隱藏；增益那一段的換色與兩個字色）／外觀（邊框、
+-- 去飽和、冷卻狀態、顯示增益持續時間、增益轉圈背景色、層數換色、圓環／長條顏色）／圖示（長條上的圖示位置、自訂圖示；2026-10-24）／
+-- 發光（觸發、就緒＋亮多久＋等資源、生效、層數）／
 -- 音效／自訂文字（M，增益圖示類的格才有，排最後；見 BuildLabelTab）。每一列建立時記下當下的 buildTab；這一格一列都顯示不了的分頁不出鈕。底部說明與按鈕每頁都有（tab ＝ "all"）。
 --
 -- 音效（Core/Sound.lua）：冷卻類（暴雪核心／輔助、自訂法術／物品）一列「就緒音效」，這招現在有充能
@@ -71,8 +72,12 @@
 -- 長條顏色（長條類的條才有；外觀分頁、圓環顏色下面）：勾「自訂」＋色票，寫 overrides[id].barColor；這一招的條改畫單色
 --   （蓋過條的顏色、漸層與暴雪樣式的填色）；沒自訂＝跟隨條。
 --
--- 自訂圖示（光環格以外都有）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
---   Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
+-- 圖示分頁（2026-10-24，使用者指定；建列在 SpellPopover_Tabs.lua 的 Pop.BuildIconTab）：
+--   * 圖示位置（長條類的條才有）：下拉，第一項「跟隨『條名』（條現在的值）」＝清掉覆寫；其餘左／右／無（直向的條：上／下／無，
+--     存的值跟條層同一個語意 LEFT／RIGHT／NONE）。寫進 overrides[id].barIconSide；生效值一律走 ns.BarIconSide。
+--     「無」＝這一招不畫圖示、整格都是條身。下一列灰字；右鍵標籤清。
+--   * 自訂圖示（光環格以外都有；從外觀分頁搬來）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
+--     Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
 --
 -- 以增益取代（暴雪的核心／輔助技能才有；引擎在 Core/Catalog.lua 的 Replacements 與 Core/Bars.lua）：
 --   一列下拉，第一項「無」＝清掉覆寫，其餘是這個專精增益圖示列的全部項目（含被移除的、拉去別條的）；
@@ -106,7 +111,8 @@ local W, P = ns.W, ns.P
 ns.SpellPopover = {}
 local Pop = ns.SpellPopover
 
-local WIDTH   = 450          -- 六個分頁（一般／文字／外觀／發光／音效／自訂文字）要在同一列（使用者 2026-10-03 指定五個、2026-10-06 加到六個）
+local WIDTH   = 450          -- 分頁鈕要在同一列（使用者 2026-10-03 指定五個、2026-10-06 加到六個；2026-10-24 加「圖示」，一格最多七個：
+                             -- 一般／文字／外觀／圖示／發光／音效＋沸點或自訂文字，56×7＋4×6 ＝ 416 ≤ ROW_W）
 local PAD     = 12
 local LABEL_W = 130
 local ROW_H   = 26
@@ -129,6 +135,8 @@ local TABS = {
     { id = "general",  label = L["General"] },
     { id = "text",     label = L["Text"] },
     { id = "look",     label = L["Appearance"] },
+    -- 圖示（2026-10-24）：長條上的圖示位置、自訂圖示（Pop.BuildIconTab）
+    { id = "icon",     label = L["Icon"] },
     { id = "glow",     label = L["Glow"] },
     { id = "sound",    label = L["Sounds"] },
     -- 沸點（事件視窗）：鮮血死騎的沸血術那一格才有（Pop.EchoWhen）
@@ -611,7 +619,7 @@ end
 
 local Layout          -- 前置宣告（Build 的 OnShow 要用，定義在下面）
 
-Pop.HIDE_VISUAL_TABS = { text = true, look = true, glow = true, label = true }
+Pop.HIDE_VISUAL_TABS = { text = true, look = true, icon = true, glow = true, label = true }
 
 -- 這一格能不能勾（暴雪的增益兩條來源的 item；自訂項目 kind 不是 nil）
 function Pop.HideCapable(kind)
@@ -1078,24 +1086,7 @@ local function Build()
     frame.customCB, frame.swatch = custom, swatch
     RightClickClears(br, bh, "borderColor")
 
-    -- 自訂圖示（光環格不支援：圖示是引擎畫的）
-    local ir, ih = NewRow(L["Custom icon"], function(kind) return kind ~= "aura" end)
-    local change = W.CreateButton(ir, L["Change"], "normal", 70, 22)
-    W.FitButton(change, 70, 22)
-    change:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
-    change:SetScript("OnClick", function()
-        if Pop.cur then Pop.AskIcon(Pop.cur.id) end
-    end)
-    local clearIcon = W.CreateButton(ir, L["Clear"], "normal", 60, 22)
-    W.FitButton(clearIcon, 60, 22)
-    clearIcon:SetPoint("LEFT", change, "RIGHT", 6, 0)
-    clearIcon:SetScript("OnClick", function()
-        if not Pop.cur then return end
-        ns.DB.SetOverride(Pop.cur.id, "customIcon", nil)
-        Changed()
-    end)
-    frame.iconClear = clearIcon
-    RightClickClears(ir, ih, "customIcon")
+    -- 自訂圖示搬到「圖示」分頁（Pop.BuildIconTab，2026-10-24）
 
     for _, t in ipairs(TOGGLES) do
         local when = t.when
@@ -1306,6 +1297,8 @@ local function Build()
     -- 文字分頁（H）：拆成自己的函式（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
     -- 文字分頁（H）＋自訂文字分頁（M，BuildTextTab 最後叫）
     Pop.BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
+    -- 圖示分頁（長條上的圖示位置、自訂圖示）：同上，自己的函式
+    Pop.BuildIconTab(NoteRow)
 
     -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
     -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
@@ -2242,7 +2235,7 @@ function Pop.Refresh()
     if ns.Glow and ns.Glow.PreviewActive then
         ns.Glow.PreviewActive(frame.glowHost, key, (class == "aura" or kind == nil) and id or nil)
     end
-    frame.iconClear:SetEnabled(Override("customIcon") ~= nil)
+    Pop.RefreshIconTab()          -- 圖示分頁：位置下拉的選項與選中值、自訂圖示的「清除」
     -- 語音播報：勾著＝有覆寫（true 或字串）；換了一格才清輸入框（同一格沒勾時保留剛打的字）
     for _, r in ipairs(speaks) do
         local v = Override(r.field)

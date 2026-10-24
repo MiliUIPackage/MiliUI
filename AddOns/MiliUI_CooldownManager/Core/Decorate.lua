@@ -239,6 +239,8 @@ local function SpellStyle(barKey, id, fresh)
         ringColor        = SS(barKey, id, "ringColor"),
         -- 長條的填充色（長條類的條才用）：色表或 false（＝跟隨條）；D.BarFillStyle 解
         barColor         = SS(barKey, id, "barColor"),
+        -- 長條上圖示的位置（長條類的條才用）：生效值 LEFT／RIGHT／NONE（逐法術覆寫 barIconSide，沒設跟隨條的 bar.iconSide）
+        barIconSide      = ns.BarIconSide and ns.BarIconSide(barKey, id) or nil,
     }
 end
 D.SpellStyle = SpellStyle                                           -- 測試用
@@ -1949,7 +1951,7 @@ local function Signature(style, id, spell, w, h)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(spell.textSig)
         .. "|" .. ((ns.Text and ns.Text.LabelSig) and ns.Text.LabelSig(spell.label) or "-")
-        .. "|" .. CSig(spell.ringColor) .. "," .. CSig(spell.barColor)
+        .. "|" .. CSig(spell.ringColor) .. "," .. CSig(spell.barColor) .. "," .. tostring(spell.barIconSide)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -2227,7 +2229,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
         local bar = type(style.bar) == "table" and style.bar or {}
         local look = D.BarLook(bar)
         local blizz = look == "blizzard"
-        rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+        -- 圖示位置：這一招的生效值（逐法術覆寫優先，SpellStyle 走 ns.BarIconSide 解好）
+        rec.barGeometry = { h = h, w = w, side = spell.barIconSide or bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
         D.ApplyBarLook(item, rec, style, bar, h, spell.barColor)
@@ -2424,7 +2427,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         local bar = type(style.bar) == "table" and style.bar or {}
         local look = D.BarLook(bar)
         local blizz = look == "blizzard"
-        local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+        local g = { h = h, w = w, side = spell.barIconSide or bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(cell, nil, g)
         D.ApplyBarLook(cell, nil, style, bar, h, spell.barColor)

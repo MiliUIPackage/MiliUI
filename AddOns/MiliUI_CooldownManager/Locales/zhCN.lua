@@ -818,6 +818,7 @@ L["A bright marker at the moving end of the bar."] = "在条身填充的末端�
 L["Blizzard style"] = "暴雪样式"
 L["Blizzard style only works on horizontal bars."] = "暴雪样式只能用在横向的条上。"
 L["Custom icon"] = "自定义图标"
+L["“None” hides this spell's icon; the bar takes the whole cell."] = "“无”＝这一招不画图标，整格都是条身。"
 L["Change"] = "更换"
 L["Clear"] = "清除"
 L["Icon ID"] = "图标编号"

@@ -2903,5 +2903,32 @@ do
     env.CreateFrame, ns.P = savedCF, savedP
 end
 
+------------------------------------------------------------
+-- 長條的圖示位置（逐法術 barIconSide，2026-10-24）：SpellStyle 解好的生效值、簽章、長條幾何
+------------------------------------------------------------
+do
+    local bt = DB.BarTable("buffbars")
+    bt.bar = type(bt.bar) == "table" and bt.bar or {}
+    local bar = bt.bar
+    local saved = bar.iconSide
+    bar.iconSide = "LEFT"
+    D.InvalidateAll()
+    local id = 4451
+    eq("沒覆寫 ⇒ SpellStyle 帶條層", D.SpellStyle("buffbars", id, true).barIconSide, "LEFT")
+    local a = D.Signature(D.Resolve("buffbars", true), id, D.SpellStyle("buffbars", id, true), 200, 20)
+    DB.SetOverride(id, "barIconSide", "NONE")
+    eq("覆寫 ⇒ SpellStyle 帶覆寫", D.SpellStyle("buffbars", id, true).barIconSide, "NONE")
+    local b = D.Signature(D.Resolve("buffbars", true), id, D.SpellStyle("buffbars", id, true), 200, 20)
+    check("簽章帶圖示位置", a ~= b)
+    eq("別的招照條", D.SpellStyle("buffbars", id + 1, true).barIconSide, "LEFT")
+    bar.iconSide = "RIGHT"
+    D.InvalidateAll()
+    eq("條層換了：沒覆寫的跟著走", D.SpellStyle("buffbars", id + 1, true).barIconSide, "RIGHT")
+    eq("條層換了：覆寫的不動", D.SpellStyle("buffbars", id, true).barIconSide, "NONE")
+    DB.SetOverride(id, "barIconSide", nil)
+    bar.iconSide = saved
+    D.InvalidateAll()
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

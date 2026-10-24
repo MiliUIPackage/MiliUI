@@ -373,6 +373,17 @@ do
     check("刻度顏色進簽章", SG.Signature(SG.Config("buffbars", 12, true, true), 220, 20, settings.bar) ~= st)
     check("圖示邊進簽章（條身寬）", SG.Signature(ct, 220, 20, { texture = "solid", iconSide = "NONE" })
         ~= SG.Signature(ct, 220, 20, { texture = "solid" }))
+    -- 逐法術的圖示位置（2026-10-24）：ns.BarIconSide 解好的生效值進 cfg.iconSide，蓋過條層進簽章；測試環境沒有那支 ⇒ nil
+    eq("沒有 ns.BarIconSide ⇒ cfg 不帶", ct.iconSide, nil)
+    ns.BarIconSide = function(_, id) return id == 12 and "NONE" or "LEFT" end
+    local cs = SG.Config("buffbars", 12, true, true)
+    eq("cfg 帶這一招的圖示位置", cs.iconSide, "NONE")
+    eq("圖示格不帶", SG.Config("buffs", 10, true, false).iconSide, nil)
+    local sideA = SG.Signature(cs, 220, 20, { texture = "solid", iconSide = "LEFT" })
+    cs.iconSide = nil
+    check("逐法術的圖示位置蓋過條層進簽章", sideA == SG.Signature(cs, 220, 20, { texture = "solid", iconSide = "NONE" }))
+    check("cfg 不帶時照條層", sideA ~= SG.Signature(cs, 220, 20, { texture = "solid", iconSide = "LEFT" }))
+    ns.BarIconSide = nil
     overrides[13] = { stackTicks = { at = "all", max = 8 } }
     local c13 = SG.Config("buffbars", 13, true, true)
     eq("只有刻度：用自己的 max", c13.ticks.n, 8)
