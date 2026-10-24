@@ -114,6 +114,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-unit-power-update-2s.md](wow-unit-power-update-2s.md) | `UNIT_POWER_UPDATE` 在回能／衰減期間**兩秒才送一次** ——「能量要 2 秒才更新」的成因；掛 `UNIT_POWER_FREQUENT`，UPDATE 留 force 當「回滿」的保底 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按**塑形**聊天印出 `u`、`]` 之類怪字元：GlobalStrings 缺塑形的 `_SELF` 字串，客戶端把首領編號的原始位元組當訊息（**位元組當整數解回來＝lootHistory 編號**是指紋）；GlobalStrings 可從 wago.tools 整張抓；含四條看起來很像真的錯路 |
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
+| [wow-repopme-release-suppressed.md](wow-repopme-release-suppressed.md) | `RepopMe` 在遭遇壓制釋放／禁止釋放光環／墜落中是空操作，自動釋放要照暴雪 DEATH 彈窗三條件重試、不能固定延遲單發；`GetSelfResurrectOptions` 要看 `canUse`（冷卻中的也會列） |
 | [wow-hasrestrictions-mouse-apis.md](wow-hasrestrictions-mouse-apis.md) | `SetPassThroughButtons`／`SetPropagateMouseClicks`／`SetPropagateMouseMotion` 戰鬥中對**任何**框都封鎖（API 文件標 HasRestrictions，不是 IsProtectedFunction）；懶建的列池要在戰鬥外預建 |
 | [wow-chattynator-chat-window-frame.md](wow-chattynator-chat-window-frame.md) | 要吸附／對齊「聊天視窗」時 `ChatFrame1` 是錯的答案 —— 沒名字的那顆怎麼認 |
 | [wow-addon-texture-negative-fileid.md](wow-addon-texture-negative-fileid.md) | 插件貼圖的 `GetTexture`／`GetTextureFileID` 回負數（-5272 之類）、FilePath 讀不到；判「有沒有貼圖」要 `~= 0` |
@@ -249,7 +250,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 175 篇）
+## 全部筆記（自動產生，共 176 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -328,6 +329,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；改既有 TOC 的標題／分類等欄位 /reload 就會重讀；交件時要提醒使用者 |
 | [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 暴雪的替身施法條 OverlayPlayerCastingBarFrame 有五個宿主——只有覆蓋快捷列是「代班玩家施法條」，專精／天賦／專業視窗裡的是視窗自己的進度條；藏暴雪施法條時只能在宿主是 OverrideActionBar 時解它 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | PlayerModel:SetUnit 對「已經載好的同一個單位」再呼叫一次也會重新串流、空一兩幀；UNIT_MODEL_CHANGED 不是可靠的「模型換了」訊號 |
+| [wow-repopme-release-suppressed.md](wow-repopme-release-suppressed.md) | RepopMe（釋放靈魂）在遭遇壓制釋放／禁止釋放光環／墜落中是空操作，自動釋放要照暴雪 DEATH 彈窗的三個條件重試，不能固定延遲單發；自我復活選項要看 canUse |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | How to fix \"attempted to index a table that cannot be indexed with secret keys\" in WoW addons |
 | [wow-securegroupheader-refresh-snippet.md](wow-securegroupheader-refresh-snippet.md) | 給 SecureGroupHeader 的格子掛額外的次要按鈕（寵物、目標）時，unit 只能在 refreshUnitChange snippet 裡派；Lua 端唯一的開關是「動 header 的任一個屬性」（值沒變別重設，那是整排重排） |
 | [wow-setpoint-nil-relativeto.md](wow-setpoint-nil-relativeto.md) | SetPoint 的 relativeTo 傳 nil 不會報錯，會靜默退成父層；配合 GetStatusBarTexture() 在 SetStatusBarTexture 之前回 nil 就是「元件錨錯位置」的成因 |
