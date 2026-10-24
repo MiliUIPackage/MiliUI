@@ -194,7 +194,9 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 ## 戰鬥中隱藏 vs 重繪面板（2026-10-24 玩家回報「對 Bartender 沒用」）
 
 「戰鬥中隱藏滑鼠提示」只做在 `Modules/Anchor.lua` 的 `GameTooltip_SetDefaultAnchor` 後掛勾：`SetOwner(ANCHOR_NONE)`（＝清錨點）＋`Hide()`。
-暴雪 `InternalProcessInfo` 在 post-call 之後會 `Show()` 回來（快捷列：SetDefaultAnchor → SetAction），原生靠**沒有錨點**才看不見。
+暴雪 `InternalProcessInfo` 在 post-call 之後會 `Show()` 回來（快捷列：SetDefaultAnchor → SetAction）。**沒有錨點的框會留在上一次的位置**，清錨點不會讓它看不見
+（第一版修正只擋面板 ⇒ 原生在固定錨點閃一下、下一輪 UpdateTooltip 再藏，使用者實機「在固定的那個點閃爍」）⇒ 另掛 `hooksecurefunc(GameTooltip, "Show"／"SetShown")`，
+還是我們藏的那一份就當場 `Hide()`；藏了 `GameTooltip_OnUpdate` 不跑，按鈕不再每 0.2 秒重設。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；

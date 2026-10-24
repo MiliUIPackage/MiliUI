@@ -5,12 +5,14 @@
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
 --
--- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)＝清掉錨點、再 Hide。暴雪的 ProcessInfo 在 post-call 之後
--- 會把 tooltip 再 Show 回來（快捷列按鈕：SetDefaultAnchor → SetAction），但沒有錨點的框畫不出來，
--- 所以原生看不見。**重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：它在 post-call 裡照畫，
--- 還會沿用上一次的貼法 ⇒ 玩家看到的是面板（2026-10-24 回報「戰鬥中隱藏對 Bartender 沒用」，其實
--- 暴雪自己的快捷列也一樣）。所以隱藏的決定記在 state（NoteCombatHidden），Panel.Try 進來先問
--- Anchor.IsCombatHidden，是就不接。
+-- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)、Hide，並把決定記在 state（NoteCombatHidden）。
+-- 暴雪的 InternalProcessInfo 在 post-call 之後會把 tooltip 再 Show 回來（快捷列按鈕：
+-- SetDefaultAnchor → SetAction），而且**沒有錨點的框會留在上一次的位置**，清錨點救不了 ⇒
+-- 原生在固定錨點閃一下、下一輪 UpdateTooltip 再被藏（2026-10-24 實機「在固定的那個點閃爍」）。
+-- 所以 Show 的後掛勾（接觸面 #12 同一種）看到「還是我們藏的那一份」就當場 Hide；藏了之後
+-- GameTooltip_OnUpdate 不跑，按鈕的 UpdateTooltip 也不會每 0.2 秒重設。
+-- **重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：Panel.Try 進來先問 Anchor.IsCombatHidden，
+-- 是就不接（2026-10-24 回報「對 Bartender 沒用」：看到的其實是面板；暴雪自己的快捷列也一樣）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -291,6 +293,23 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
     local _, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
     AnchorFrame(tip, parent, anchor, isUnitFrame, nil, combatAnchor)
 end)
+
+-- 暴雪 ProcessInfo 的 Show（post-call 之後）把藏掉的 tooltip 帶回來 ⇒ 還是我們藏的那一份就再藏一次。
+-- 只掛 GameTooltip（戰鬥隱藏只管它）；IsCombatHidden 的三個條件不成立（脫戰、別人重設了 owner／錨點）就不動
+local function RehideIfCombatHidden(tip)
+    if not ns.db or S.IsForbiddenObject(tip) then return end
+    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+    if not state or not state.combatHidden then return end
+    if Anchor.IsCombatHidden(tip, state) then tip:Hide() end
+end
+if GameTooltip then
+    hooksecurefunc(GameTooltip, "Show", RehideIfCombatHidden)
+    if GameTooltip.SetShown then
+        hooksecurefunc(GameTooltip, "SetShown", function(tip, shown)
+            if S.IsSecret(shown) or shown then RehideIfCombatHidden(tip) end
+        end)
+    end
+end
 
 ------------------------------------------------------------
 -- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）
