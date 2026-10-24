@@ -847,6 +847,9 @@ function Specs.Themed(mode, key)
     -- 長條類的條：倒數與充能的文字樣式用不到（長條的秒數字型／字級在「長條」節；秒數是暴雪每幀寫的，
     -- 小數門檻與低秒變色都換不了），只留層數
     local function NB(s) if barsKind then return nil end return s end
+    -- 反過來只有長條類的條（與主題頁）才出：長條上圖示的位置
+    local function BO(s) if bar and not barsKind then return nil end return s end
+    local barsVertical = barsKind and type(bt.bar) == "table" and bt.bar.vertical and true or false
     -- 按鍵鏡射：長條類與增益圖示列不做（Core/Keybinds.lua 的 NoKeybind 同時涵蓋兩者）
     local noPress = bar and key and ns.Keybinds.NoKeybind(key) or false
     local function NK(s) if noPress then return nil end return s end
@@ -898,6 +901,11 @@ function Specs.Themed(mode, key)
     if bar then add(OverrideRow("icon"), FollowToggle("icon"),
         Note(L["While checked, this section uses the Theme page. Uncheck it to give this bar its own values."])) end
     add(SkinRows())
+    -- 長條上圖示的位置（主題欄位 icon.barIconSide；長條類的條才讀，2026-10-24 從條頁「版面」搬來）：直向的條字換成上／下
+    add(BO(TS("icon", "dropdown", "icon.barIconSide", L["Icon position"], { items = barsVertical and SIDE_ITEMS_V or SIDE_ITEMS,
+            get = function(info) return ReadThemed(info, "icon.barIconSide") or "LEFT" end })),
+        BO(Note(barsKind and L["“None” hides the icon; the bar takes the whole cell."]
+            or L["Long bars only. “None” hides the icon; the bar takes the whole cell. On a vertical bar, left means top and right means bottom."], "icon")))
     add(TS("icon", "dropdown", "border.texture", L["Border texture"], { items = BorderItems, disabled = BorderOff }),
         TS("icon", "slider", "border.size", L["Border size"], { min = 0, max = 4, step = 1, disabled = BorderOff }),
         TS("icon", "color", "border.color", L["Border color"], { disabled = BorderOff }),
@@ -1635,7 +1643,7 @@ function Specs.Layout(key)
         add(Note(L["The bar stands upright and fills from the bottom; bars line up side by side. Width is the bar's length and height its thickness. Names aren't shown, and the time sits at the top of the bar."]))
         add(BS("toggle", "bar.reverseFill", L["Reverse fill"]))
         add(Note(L["Fills from the right instead of the left (from the top when vertical)."]))
-        add(BS("dropdown", "bar.iconSide", L["Icon position"], { items = vertical and SIDE_ITEMS_V or SIDE_ITEMS }))
+        -- 圖示位置 2026-10-24 搬到「圖示」節（主題欄位 icon.barIconSide，跟隨主題；直向時那邊的字換成上／下）
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
         -- 充能分段（F8b，Modules/Custom.lua）：只對自己加的、有充能的法術；分隔線色沒勾時停用
         add(BS("toggle", "bar.chargeSegments", L["Charge segments"]))

@@ -952,7 +952,7 @@ function Pop.RefreshIconTab()
     local key = Pop.cur.key
     local vertical = ns.Setting(key, "bar.vertical") and true or false
     local items = SideItems(vertical)
-    local barSide = ns.Setting(key, "bar.iconSide")
+    local barSide = ns.Setting(key, "icon.barIconSide")
     local barText
     for _, it in ipairs(items) do
         if it.value == barSide then barText = it.text end

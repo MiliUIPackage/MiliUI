@@ -188,7 +188,8 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
         local bar = S(barKey, "bar")
         bar = type(bar) == "table" and bar or {}
         local font = S(barKey, "font")
-        local side = bar.iconSide
+        -- 圖示位置：這一招的生效值（逐法術覆寫 → 主題／條層，ns.BarIconSide）
+        local side = ns.BarIconSide and ns.BarIconSide(barKey, id) or S(barKey, "icon.barIconSide")
         if side ~= "RIGHT" and side ~= "NONE" then side = "LEFT" end
         st.shape     = "bars"
         st.bh        = tonumber(h) or tonumber(bar.height) or 20

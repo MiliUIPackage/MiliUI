@@ -2907,27 +2907,38 @@ end
 -- 長條的圖示位置（逐法術 barIconSide，2026-10-24）：SpellStyle 解好的生效值、簽章、長條幾何
 ------------------------------------------------------------
 do
-    local bt = DB.BarTable("buffbars")
-    bt.bar = type(bt.bar) == "table" and bt.bar or {}
-    local bar = bt.bar
-    local saved = bar.iconSide
-    bar.iconSide = "LEFT"
+    local ti = p.theme.icon
+    local saved = ti.barIconSide
+    ti.barIconSide = "LEFT"
+    p.bars.buffbars.follow.icon = true
     D.InvalidateAll()
     local id = 4451
-    eq("沒覆寫 ⇒ SpellStyle 帶條層", D.SpellStyle("buffbars", id, true).barIconSide, "LEFT")
+    eq("沒覆寫 ⇒ SpellStyle 帶主題", D.SpellStyle("buffbars", id, true).barIconSide, "LEFT")
+    eq("Resolve 帶條層生效值", D.Resolve("buffbars", true).barIconSide, "LEFT")
     local a = D.Signature(D.Resolve("buffbars", true), id, D.SpellStyle("buffbars", id, true), 200, 20)
     DB.SetOverride(id, "barIconSide", "NONE")
     eq("覆寫 ⇒ SpellStyle 帶覆寫", D.SpellStyle("buffbars", id, true).barIconSide, "NONE")
     local b = D.Signature(D.Resolve("buffbars", true), id, D.SpellStyle("buffbars", id, true), 200, 20)
     check("簽章帶圖示位置", a ~= b)
-    eq("別的招照條", D.SpellStyle("buffbars", id + 1, true).barIconSide, "LEFT")
-    bar.iconSide = "RIGHT"
+    eq("別的招照主題", D.SpellStyle("buffbars", id + 1, true).barIconSide, "LEFT")
+    ti.barIconSide = "RIGHT"
     D.InvalidateAll()
-    eq("條層換了：沒覆寫的跟著走", D.SpellStyle("buffbars", id + 1, true).barIconSide, "RIGHT")
-    eq("條層換了：覆寫的不動", D.SpellStyle("buffbars", id, true).barIconSide, "NONE")
+    eq("主題換了：沒覆寫的跟著走", D.SpellStyle("buffbars", id + 1, true).barIconSide, "RIGHT")
+    check("主題換了：條層簽章跟著變", D.Resolve("buffbars", true).sig ~= D.Resolve("essential", true).sig)
+    eq("主題換了：覆寫的不動", D.SpellStyle("buffbars", id, true).barIconSide, "NONE")
     DB.SetOverride(id, "barIconSide", nil)
-    bar.iconSide = saved
+    ti.barIconSide = saved
     D.InvalidateAll()
+    -- 增益圖示的隱藏圖示（逐法術 hideIcon）：SpellStyle 的布林、簽章
+    local bid = 4461
+    eq("沒覆寫 ⇒ 不藏", D.SpellStyle("buffs", bid, true).hideIcon, false)
+    local sa = D.Signature(D.Resolve("buffs", true), bid, D.SpellStyle("buffs", bid, true), 36, 36)
+    DB.SetOverride(bid, "hideIcon", true)
+    eq("覆寫 ⇒ 藏", D.SpellStyle("buffs", bid, true).hideIcon, true)
+    check("簽章帶隱藏圖示", sa ~= D.Signature(D.Resolve("buffs", true), bid, D.SpellStyle("buffs", bid, true), 36, 36))
+    DB.SetOverride(bid, "hideIcon", "yes")
+    eq("壞值當不藏", D.SpellStyle("buffs", bid, true).hideIcon, false)
+    DB.SetOverride(bid, "hideIcon", nil)
 end
 
 ------------------------------------------------------------

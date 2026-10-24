@@ -384,9 +384,15 @@ local function StepSizes(ctx)
         end
         local sp = Num(Take(ctx, "buffBarSpacing"))
         if sp and sp >= 0 then Layout(bb).spacing = sp end
+        -- 圖示位置是主題「圖示」節的欄位（v14）：寫成這一條自己的值、這一節不跟主題（沒存的欄位照退主題，畫面不變）
         local side = Take(ctx, "buffBarIconPosition")
-        if side == "LEFT" or side == "RIGHT" then bar.iconSide = side
-        elseif side == "HIDDEN" then bar.iconSide = "NONE" end
+        if side == "HIDDEN" then side = "NONE" end
+        if side == "LEFT" or side == "RIGHT" or side == "NONE" then
+            if type(bb.icon) ~= "table" then bb.icon = {} end
+            bb.icon.barIconSide = side
+            if type(bb.follow) ~= "table" then bb.follow = {} end
+            bb.follow.icon = false
+        end
         local gap = Num(Take(ctx, "buffBarIconGap"))
         if gap and gap >= 0 then bar.iconGap = gap end
         local v = Take(ctx, "buffBarShowName")

@@ -76,6 +76,8 @@
 --   * 圖示位置（長條類的條才有）：下拉，第一項「跟隨『條名』（條現在的值）」＝清掉覆寫；其餘左／右／無（直向的條：上／下／無，
 --     存的值跟條層同一個語意 LEFT／RIGHT／NONE）。寫進 overrides[id].barIconSide；生效值一律走 ns.BarIconSide。
 --     「無」＝這一招不畫圖示、整格都是條身。下一列灰字；右鍵標籤清。
+--   * 隱藏圖示（暴雪的增益圖示才有：圖示類的條、不是圓環；Pop.HideIconWhen）：勾選框＋下一列灰字；寫 overrides[id].hideIcon。
+--     引擎（Core/Decorate.lua 的圖示分支）藏貼圖、邊框、形狀陰影、轉圈，只留倒數時間與層數。
 --   * 自訂圖示（光環格以外都有；從外觀分頁搬來）：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術／物品取它的圖示，
 --     Picker.WatchInput 的 "icon" 模式）＋「清除」；寫進 overrides[id].customIcon（右鍵整列清掉）。
 --
@@ -251,6 +253,13 @@ local function HidePassiveWhen(kind)
     return kind == nil and Pop.cur ~= nil and type(Pop.cur.id) == "number" and ns.Catalog.ProxySlotOf(Pop.cur.id) ~= nil
 end
 
+-- 隱藏圖示：暴雪的增益圖示（kind nil、增益類）放在圖示類的條上（長條有自己的「圖示位置：無」、圓環沒有方形圖示）
+function Pop.HideIconWhen(kind, class)
+    if kind ~= nil or class ~= "aura" or not Pop.cur then return false end
+    local key = Pop.cur.key
+    return ns.Setting(key, "kind") ~= "bars" and not ns.DB.BarIsRings(key)
+end
+
 local TOGGLES = {
     -- 觸發發光：法術的觸發（SPELL_ACTIVATION_OVERLAY_GLOW_SHOW）；飾品欄（含代畫格）＝觸發增益在身上時亮（Modules/Custom.lua 的
     -- 觸發發光疊層），下一列灰字只對飾品欄出現；自訂物品、暴雪自己畫的裝備欄格永遠不會亮 ⇒ 不出（Pop.ProcWhen）
@@ -265,6 +274,9 @@ local TOGGLES = {
     { field = "fullGlow",         label = L["Glow at max charges"],    noAura = true, noBar = true, tab = "glow", charge = true,
       tip = L["Glows while a spell with charges has all of them back. Spells without charges never glow."] },
     { field = "desaturate",       label = L["Desaturate on cooldown"], noAura = true, tab = "look" },
+    -- 隱藏圖示（圖示分頁，2026-10-24）：暴雪的增益圖示才有；下一列灰字說明
+    { field = "hideIcon",         label = L["Hide icon"], when = function(kind, class) return Pop.HideIconWhen(kind, class) end,
+      tab = "icon", tip = L["Only the time and stack count stay. The border, shape, shadow and swipe go with the icon."] },
     -- 回充的長相（Core/Decorate.lua）：只在這招現在有充能時出現；長條類的條不適用。隱藏倒數只給暴雪的冷卻格
     -- （自訂法術的回充本來就不顯示倒數，Modules/Custom.lua 的 ApplyChargeLook）
     { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true },

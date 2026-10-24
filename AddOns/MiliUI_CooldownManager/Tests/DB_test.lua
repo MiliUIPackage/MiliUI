@@ -1414,24 +1414,67 @@ end
 -- 長條的圖示位置（逐法術 barIconSide，2026-10-24）：登記、分組、ns.BarIconSide 的三層退路
 ------------------------------------------------------------
 do
-    eq("SPELL_FALLBACK barIconSide", DB.SPELL_FALLBACK.barIconSide, "bar.iconSide")
+    eq("主題預設 LEFT", DB.BuildDefaults().profile.theme.icon.barIconSide, "LEFT")
+    eq("長條預設沒有 bar.iconSide（v14 搬進主題）", DB.BuildDefaults().profile.bars.buffbars.bar.iconSide, nil)
+    eq("SPELL_FALLBACK barIconSide ＝ 主題路徑", DB.SPELL_FALLBACK.barIconSide, "icon.barIconSide")
     eq("覆寫分組 barIconSide ＝ icon（跟自訂圖示同一組）", DB.OVERRIDE_GROUP.barIconSide, "icon")
-    eq("跟隨來源：條自己的（bar.* 不跟主題）", DB.SpellFallbackSource("buffbars", "barIconSide"), "bar")
-    local bb = ns.profile.bars.buffbars.bar
-    local saved = bb.iconSide
-    bb.iconSide = "RIGHT"
-    eq("沒覆寫 ⇒ 條層", ns.BarIconSide("buffbars", 777), "RIGHT")
-    eq("SpellSetting 退條層", SS("buffbars", 777, "barIconSide"), "RIGHT")
-    DB.SetOverride(777, "barIconSide", "NONE")
-    eq("覆寫優先", ns.BarIconSide("buffbars", 777), "NONE")
-    eq("別的招照條", ns.BarIconSide("buffbars", 778), "RIGHT")
+    local P4 = ns.profile
+    local bb = P4.bars.buffbars
+    bb.follow.icon = true
+    eq("跟隨來源：條跟主題", DB.SpellFallbackSource("buffbars", "barIconSide"), "theme")
+    eq("沒覆寫、條跟主題 ⇒ 主題 LEFT", ns.BarIconSide("buffbars", 777), "LEFT")
+    P4.theme.icon.barIconSide = "RIGHT"
+    eq("改主題 ⇒ 跟著變", ns.BarIconSide("buffbars", 777), "RIGHT")
+    eq("SpellSetting 退主題", SS("buffbars", 777, "barIconSide"), "RIGHT")
+    DB.OwnSet("buffbars", "icon.barIconSide", "NONE")
+    eq("條自己存了但還在跟主題 ⇒ 主題", ns.BarIconSide("buffbars", 777), "RIGHT")
+    eq("OwnSet 落在 bars[k].icon", bb.icon.barIconSide, "NONE")
+    bb.follow.icon = false
+    eq("不跟主題 ⇒ 條自己的", ns.BarIconSide("buffbars", 777), "NONE")
+    eq("跟隨來源：條自己的", DB.SpellFallbackSource("buffbars", "barIconSide"), "bar")
+    DB.SetOverride(777, "barIconSide", "LEFT")
+    eq("覆寫優先", ns.BarIconSide("buffbars", 777), "LEFT")
+    eq("別的招照條", ns.BarIconSide("buffbars", 778), "NONE")
     DB.SetOverride(777, "barIconSide", "sideways")
-    eq("壞值退條層", ns.BarIconSide("buffbars", 777), "RIGHT")
-    bb.iconSide = "nope"
+    eq("壞值退條層", ns.BarIconSide("buffbars", 777), "NONE")
+    bb.icon.barIconSide = "nope"
     eq("條層也壞 ⇒ LEFT", ns.BarIconSide("buffbars", 777), "LEFT")
+    eq("沒給 id 也能問條層", ns.BarIconSide("buffbars"), "LEFT")
     DB.SetOverride(777, "barIconSide", nil)
-    bb.iconSide = saved
-    eq("清掉回到條層", ns.BarIconSide("buffbars", 777), saved)
+    bb.icon.barIconSide = nil
+    bb.follow.icon = true
+    P4.theme.icon.barIconSide = "LEFT"
+    eq("清掉回到主題", ns.BarIconSide("buffbars", 777), "LEFT")
+    -- v14 遷移：條自己的 bar.iconSide 搬進 icon.barIconSide；不是 LEFT 的條關掉 follow.icon（畫面不變），LEFT 的不動
+    local old = { bars = {
+        right = { bar = { iconSide = "RIGHT", iconGap = 2 }, follow = { icon = true } },
+        left  = { bar = { iconSide = "LEFT" },  follow = { icon = true } },
+        none  = { bar = { iconSide = "NONE" } },
+        bad   = { bar = { iconSide = "up" }, follow = { icon = true } },
+        icons = { layout = {} },
+    } }
+    DB.MIGRATIONS[14](old)
+    eq("v14：RIGHT 搬到 icon.barIconSide", old.bars.right.icon.barIconSide, "RIGHT")
+    eq("v14：RIGHT 的條關掉跟隨", old.bars.right.follow.icon, false)
+    eq("v14：舊欄位拿掉", old.bars.right.bar.iconSide, nil)
+    eq("v14：別的 bar 欄位不動", old.bars.right.bar.iconGap, 2)
+    eq("v14：LEFT 也搬", old.bars.left.icon.barIconSide, "LEFT")
+    eq("v14：LEFT 的條照跟主題", old.bars.left.follow.icon, true)
+    eq("v14：NONE 沒有 follow 表 ⇒ 建一張", old.bars.none.follow.icon, false)
+    eq("v14：壞值丟掉", old.bars.bad.icon, nil)
+    eq("v14：壞值的舊欄位也拿掉", old.bars.bad.bar.iconSide, nil)
+    eq("v14：圖示類的條不動", old.bars.icons.icon, nil)
+    DB.MIGRATIONS[14]({})
+    DB.MIGRATIONS[14]({ bars = { x = 1, y = { bar = "壞" } } })
+    check("v14：壞形狀不炸", true)
+    -- 增益圖示的隱藏圖示（同一個分頁、同一組）
+    eq("SPELL_CONST hideIcon 預設 false", DB.SPELL_CONST.hideIcon, false)
+    eq("hideIcon 沒有條層對應", DB.SPELL_FALLBACK.hideIcon, nil)
+    eq("覆寫分組 hideIcon ＝ icon", DB.OVERRIDE_GROUP.hideIcon, "icon")
+    eq("沒覆寫 ⇒ false", SS("buffs", 777, "hideIcon"), false)
+    DB.SetOverride(777, "hideIcon", true)
+    eq("覆寫 ⇒ true", SS("buffs", 777, "hideIcon"), true)
+    DB.SetOverride(777, "hideIcon", nil)
 end
 
 print(("DB_test: %d passed, %d failed"):format(passed, failed))

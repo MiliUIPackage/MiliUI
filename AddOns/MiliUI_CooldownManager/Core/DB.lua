@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 13
+ns.DB_VERSION = 14
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -149,7 +149,8 @@ local function LongBar(o)
             texture   = "solid",
             color     = rgba(0.4, 0.6, 0.9, 1),
             bgColor   = rgba(0.1, 0.1, 0.1, 0.8),
-            iconSide  = "LEFT",             -- LEFT | RIGHT | NONE
+            -- 圖示位置 v14 起在主題的 icon.barIconSide（條層自己的值在 bars[k].icon.barIconSide、跟 follow.icon 走）；
+            -- 舊存檔的 bar.iconSide 由 MIGRATIONS[14] 搬走
             iconGap   = 1,
             showName  = true, nameSize = 16, nameFont = "INHERIT",   -- 字型 "INHERIT" ＝ 跟隨通用字型
             showTime  = true, timeSize = 16, timeFont = "INHERIT",
@@ -693,6 +694,10 @@ function DB.BuildDefaults()
                           -- 舊存檔沒有這三欄 ＝ 合併預設值補成方形、無陰影，行為不變、不遷移
                           shape = "square", shadow = false, shadowAlpha = 0.6,
                           hideGCDSwipe = false, desaturateOnCooldown = true,
+                          -- 長條上圖示的位置（長條類的條才讀；2026-10-24 從條自己的 bar.iconSide 搬進主題，MIGRATIONS[14]）：
+                          -- "LEFT"｜"RIGHT"｜"NONE"（不畫圖示、整格都是條身）；直向的條 LEFT ＝ 上、RIGHT ＝ 下。
+                          -- 逐法術覆寫 barIconSide 蓋；生效值一律走 ns.BarIconSide
+                          barIconSide = "LEFT",
                           -- 暴雪的就緒閃光（item.CooldownFlash：冷卻結束前 0.75 秒蓋在圖示上播的翻頁動畫）：true ＝ 藏。
                           -- 預設 false ＝ 暴雪原本的行為；舊存檔沒有這欄 ＝ 合併預設補成 false，不遷移（2026-10-14 玩家要求）
                           hideReadyFlash = false,
@@ -1085,6 +1090,25 @@ local MIGRATIONS = {
         if type(profile.bars) == "table" then
             for _, bar in pairs(profile.bars) do
                 if type(bar) == "table" and type(bar.text) == "table" then Fix(bar.text.cooldownText) end
+            end
+        end
+    end,
+    -- v14（2026-10-24）：長條的圖示位置從條自己的 bar.iconSide 搬進主題的 icon.barIconSide（跟「圖示」節一起繼承）。
+    -- 每一條：值搬到條自己的 icon.barIconSide；不是預設 LEFT 的條把 follow.icon 關掉——關掉跟隨的當下什麼都不會變
+    -- （沒存的欄位照退主題），所以畫面跟遷移前一樣；LEFT 的條不動跟隨（主題預設就是 LEFT）。舊欄位拿掉
+    [14] = function(profile)
+        if type(profile.bars) ~= "table" then return end
+        for _, bar in pairs(profile.bars) do
+            local b = type(bar) == "table" and type(bar.bar) == "table" and bar.bar or nil
+            local side = b and b.iconSide
+            if b then b.iconSide = nil end
+            if side == "LEFT" or side == "RIGHT" or side == "NONE" then
+                if type(bar.icon) ~= "table" then bar.icon = {} end
+                bar.icon.barIconSide = side
+                if side ~= "LEFT" then
+                    if type(bar.follow) ~= "table" then bar.follow = {} end
+                    bar.follow.icon = false
+                end
             end
         end
     end,
@@ -1512,8 +1536,8 @@ local SPELL_FALLBACK = {
     barNameFont     = "bar.nameFont",
     barNameSize     = "bar.nameSize",
     -- 長條的圖示位置（長條類的條才有；逐法術小窗的「圖示」分頁）："LEFT"｜"RIGHT"｜"NONE"（直向時 LEFT ＝ 上、RIGHT ＝ 下，
-    -- 跟條層同一個欄位的語意）；nil 跟隨條的 bar.iconSide。引擎不直接讀，走 ns.BarIconSide（壞值退回條層、再退 LEFT）
-    barIconSide     = "bar.iconSide",
+    -- 跟主題／條層同一個欄位的語意）；nil 跟隨條（條跟主題就是主題的 icon.barIconSide）。引擎不直接讀，走 ns.BarIconSide
+    barIconSide     = "icon.barIconSide",
     -- 圓環的填色（圓環條才用；Core/Decorate.lua 的 SpellStyle）：色表＝這一招的填色；沒覆寫跟隨條的 ring.fillColor
     -- （條層 false ＝ 職業色，所以讀到 false 也是職業色）。「區分不同效果」用，不是狀態色
     ringColor       = "ring.fillColor",
@@ -1563,6 +1587,9 @@ local SPELL_CONST = {
     soundTalent      = false,
     -- 自訂圖示：貼圖檔案編號（正整數）；false ＝ 用原本的圖示（Core/Decorate.lua 的 IconOverrideOf）
     customIcon       = false,
+    -- 隱藏圖示（2026-10-24；暴雪的增益圖示才有效，Core/Decorate.lua 的圖示分支）：true ＝ 這一格不畫圖示——貼圖、邊框、
+    -- 形狀陰影、轉圈一起藏，只留倒數時間與層數；沒有條層對應
+    hideIcon         = false,
     -- 長條的填充色（長條類的條才用；Core/Decorate.lua 的 BarFillStyle）：色表＝這一招的單色填充（蓋過條的單色／漸層／
     -- 暴雪樣式的 blizzardColor）；false ＝ 跟隨條。沒有條層路徑：條的填色看外觀分兩欄（bar.color／bar.blizzardColor）
     barColor         = false,
@@ -1616,14 +1643,14 @@ function ns.SpellSetting(barKey, cooldownID, key, specID)
 end
 
 -- 長條上這一招的圖示位置（生效值）："LEFT"｜"RIGHT"｜"NONE"（直向時 LEFT ＝ 上、RIGHT ＝ 下）。
--- 逐法術覆寫 barIconSide 優先；沒覆寫（或壞值）退回條層 bar.iconSide；那也不是三個之一就 LEFT。
--- 引擎（Decorate 的長條幾何、StackGate 的條身寬、Custom 的充能分段）與預覽都走這支，不各自翻表
+-- 逐法術覆寫 barIconSide 優先；沒覆寫（或壞值）退回條層 icon.barIconSide（主題 → 條自己的，照 follow.icon）；
+-- 那也不是三個之一就 LEFT。引擎（Decorate 的長條幾何、StackGate 的條身寬、Custom 的充能分段、光環長條）與預覽都走這支，不各自翻表
 local ICON_SIDES = { LEFT = true, RIGHT = true, NONE = true }
 DB.ICON_SIDES = ICON_SIDES
 function ns.BarIconSide(barKey, cooldownID)
-    local v = ns.SpellOverride(cooldownID, "barIconSide")
+    local v = cooldownID ~= nil and ns.SpellOverride(cooldownID, "barIconSide") or nil
     if ICON_SIDES[v] then return v end
-    v = ns.Setting(barKey, "bar.iconSide")
+    v = ns.Setting(barKey, "icon.barIconSide")
     return ICON_SIDES[v] and v or "LEFT"
 end
 
@@ -1973,8 +2000,8 @@ DB.OVERRIDE_GROUP = {
     keybindFont = "text", keybindSize = "text", keybindPoint = "text", keybindX = "text", keybindY = "text",
     -- 長條的名字（開關、字型、字級）：條層在「文字」分頁最後的「長條文字」小節 ⇒ 同一組
     barShowName = "text", barNameFont = "text", barNameSize = "text",
-    -- 長條的圖示位置（逐法術小窗的「圖示」分頁）：跟自訂圖示同一組（條頁「清除圖示覆寫」一起清，回到條層的值）
-    barIconSide = "icon",
+    -- 長條的圖示位置、增益圖示的隱藏圖示（逐法術小窗的「圖示」分頁）：跟自訂圖示同一組（條頁「清除圖示覆寫」一起清）
+    barIconSide = "icon", hideIcon = "icon",
     colorDuration = "icon", durationColor = "icon", durationSwipeColor = "icon",
     -- 增益持續時間變色顏色：控件在文字節（跟增益持續時間另外三列排在一起），覆寫也歸文字組，文字節的清除覆寫一起清（資料路徑照舊 icon.*）
     durationLowColor = "text",

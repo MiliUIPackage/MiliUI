@@ -1930,14 +1930,31 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 
 ### 長條：逐法術的圖示位置（`Core/DB.lua`、`Core/Decorate.lua`、`Core/StackGate.lua`、`Modules/Custom.lua`、`Options/SpellPopover_Tabs.lua`，2026-10-24，玩家要求）
 
-- 覆寫欄位 `barIconSide`：`"LEFT"`／`"RIGHT"`／`"NONE"`（直向的條 LEFT ＝ 上、RIGHT ＝ 下，跟條層 `bar.iconSide` 同一個語意）；
-  nil ＝ 跟隨條。`SPELL_FALLBACK` 指回 `bar.iconSide`，`OVERRIDE_GROUP` 歸 `"icon"`（條頁「清除圖示覆寫」一起清）。
-- **生效值只有一個出口 `ns.BarIconSide(barKey, id)`**（`Core/DB.lua`）：覆寫 → 條層 → `LEFT`，壞值一路退。讀的人：
-  `Decorate.SpellStyle.barIconSide`（→ `Apply`／`ApplyPreview` 的 `barGeometry.side`，進 `Signature`）、`StackGate.Config` 的
-  `cfg.iconSide`（條身寬扣圖示：刻度、層數當填充；進層簽章）、`Custom.SyncSeg` 的充能分段長度。`NONE` 的畫法照條層那一套
+- **條層／主題的欄位搬家（DB v14，同一天第二版，使用者要條頁「圖示」分頁與主題頁都有）**：原本是條自己的 `bar.iconSide`（條頁「版面」分頁），
+  改成主題「圖示」節的 `icon.barIconSide`（預設 `"LEFT"`）：條頁「圖示」分頁第一列（勾「跟隨全域主題」就是主題的值）、主題頁同一列
+  （灰字寫明只有長條類的條用、直向左＝上右＝下）；圖示類的條不出這一列（`BO`）。直向的條字換成上／下（`SIDE_ITEMS_V`）。
+  `MIGRATIONS[14]`：每一條的 `bar.iconSide` 搬到 `bars[k].icon.barIconSide`，**不是 LEFT 的條把 `follow.icon` 關掉**——關掉跟隨的當下
+  什麼都不會變（沒存的欄位照退主題），畫面跟遷移前一樣；LEFT 的條照跟主題。舊欄位拿掉；壞值丟掉。`Import` 寫的也是條自己的值＋關跟隨。
+- 覆寫欄位 `barIconSide`：`"LEFT"`／`"RIGHT"`／`"NONE"`（直向的條 LEFT ＝ 上、RIGHT ＝ 下，跟主題同一個語意）；
+  nil ＝ 跟隨條。`SPELL_FALLBACK` 指回 `icon.barIconSide`（`SpellFallbackSource` 照 `follow.icon` 回 theme／bar），`OVERRIDE_GROUP` 歸 `"icon"`
+  （條頁「清除圖示覆寫」一起清）。
+- **生效值只有一個出口 `ns.BarIconSide(barKey, id)`**（`Core/DB.lua`）：覆寫 → 條層（主題 → 條自己的）→ `LEFT`，壞值一路退。讀的人：
+  `Decorate.SpellStyle.barIconSide`（→ `Apply`／`ApplyPreview` 的 `barGeometry.side`，進 `Signature`；條層值也進 `Resolve.sig`）、
+  `StackGate.Config` 的 `cfg.iconSide`（條身寬扣圖示：刻度、層數當填充；進層簽章）、`Custom.SyncSeg` 的充能分段長度、
+  `Custom_Aura.AuraStyle` 的光環長條（`st.side`）。`NONE` 的畫法照原本那一套
   （`ApplyBarGeometry` 熄圖示、條身佔整格；層數字跟著藏，`Text.ApplyBar` 讀 `rec.barGeometry.side`）。
 - 小窗新分頁「圖示」（排在外觀後面；勾了「不顯示」一起停用）：「圖示位置」下拉——第一項「跟隨『條名』（條現在的值）」＝清掉覆寫，
   其餘左／右／無（直向的條顯示上／下／無），選項每次 Refresh 重列；下一列灰字；右鍵標籤清。「自訂圖示」那一列從外觀分頁搬到這裡。
+
+### 增益圖示：逐法術隱藏圖示（`Core/DB.lua`、`Core/Decorate.lua`、`Options/SpellPopover.lua`，2026-10-24，玩家要求）
+
+- 覆寫欄位 `hideIcon`（`SPELL_CONST` false，沒有條層對應；`OVERRIDE_GROUP` 歸 `"icon"`）。只對**暴雪的增益圖示**生效
+  （`Apply` 的圖示分支：不是長條、不是圓環、不是自訂框、`AURA_KIND[rec.barKey]`；長條用「圖示位置：無」、光環格的圖示是引擎畫的）。
+- 藏的東西：圖示貼圖 `item.Icon` alpha 0（暴雪不碰這個 alpha ⇒ `rec.iconHidden` 記著，取消時與 `D.ClearShape`（還給暴雪）還回 1）、
+  四條邊框（`LayoutBorder(nil)`）、形狀與陰影（`ApplyShape` 的 shape／shadow 當 nil）、轉圈（`rec.style.swipe` 全透明＋
+  `drawEdge` false：`AfterCooldown` 每次刷新照這包蓋回去，所以暴雪重寫轉圈色也擋得住）。不交給 Masque（皮的外框會留一圈）。
+  留下的：倒數時間、層數、自訂文字、發光。進 `Signature`。預覽格（`ApplyPreview`，`cell.aura`）同一套。
+- 小窗「圖示」分頁第一列「隱藏圖示」勾選框＋灰字（`Pop.HideIconWhen`：kind nil、增益類、條不是長條也不是圓環）。
 
 ### 長條：逐法術的名字覆寫（2026-10-07，玩家要求）
 

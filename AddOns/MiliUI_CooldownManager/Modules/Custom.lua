@@ -644,7 +644,7 @@ local function SyncSeg(rec, f, known)
     local vertical = bar.vertical and true or false
     local SG = ns.StackGate
     -- 條身長要扣掉圖示：這一招的圖示位置（逐法術覆寫優先，ns.BarIconSide）
-    local side = ns.BarIconSide and ns.BarIconSide(barKey, rec.cooldownID) or bar.iconSide or "LEFT"
+    local side = ns.BarIconSide and ns.BarIconSide(barKey, rec.cooldownID) or "LEFT"
     local len = SG and SG.BodyWidth and SG.BodyWidth(rec.placeW, rec.placeH, side, bar.iconGap or 0, vertical) or 0
     ConfigureSeg(b, n, len, bar, vertical, ns.SpellSetting(barKey, rec.cooldownID, "barColor"))
     -- 自己的回充那一條（舊行為）調透明：ApplyBarLook 換材質時可能換回不透明，每次照設

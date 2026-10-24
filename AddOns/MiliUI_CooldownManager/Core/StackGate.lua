@@ -383,7 +383,7 @@ function SG.Signature(cfg, w, h, bar)
         bar = type(bar) == "table" and bar or {}
         parts[#parts + 1] = tostring(bar.texture) .. "/" .. CSig(bar.color) .. "/" .. CSig(bar.bgColor)
             .. "/" .. BarLook(bar) .. "/" .. CSig(bar.blizzardColor)
-            .. "/" .. tostring(cfg.iconSide or bar.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
+            .. "/" .. tostring(cfg.iconSide) .. "/" .. tostring(bar.iconGap) .. "/" .. tostring(bar.spark)
             .. "/" .. GradSig(bar.gradient) .. "/" .. tostring(bar.vertical and true or false)
             .. "/" .. tostring(bar.reverseFill and true or false)
     end
@@ -818,7 +818,7 @@ local function BuildLayers(item, rec, cfg, bar, w, h)
         tf:SetAllPoints(root)
         tf:SetFrameLevel(lv + 2 + SG.MAX_COLORS)
         local vert = bar.vertical and true or false
-        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, cfg.iconSide or bar.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert,
+        SG.DrawTicks(tf, b, SG.BodyWidth(w, h, cfg.iconSide or "LEFT", bar.iconGap or 0, vert), cfg.ticks, vert,
             bar.reverseFill and true or false)
         tf:Show()
     elseif ui.ticks then
@@ -996,7 +996,7 @@ function SG.ApplyPreview(cell, barKey, id, w, h)
     local host = cell.Bar
     host.tickLayer, host.tickSub = "ARTWORK", 7          -- 在填充上面、名字／時間字底下
     local vert = bar.vertical and true or false
-    local side = (cfg and cfg.iconSide) or (ns.BarIconSide and ns.BarIconSide(barKey, id)) or bar.iconSide or "LEFT"
+    local side = (cfg and cfg.iconSide) or (ns.BarIconSide and ns.BarIconSide(barKey, id)) or "LEFT"
     SG.DrawTicks(host, host, SG.BodyWidth(w, h, side, bar.iconGap or 0, vert), cfg and cfg.ticks, vert,
         bar.reverseFill and true or false)
 end
