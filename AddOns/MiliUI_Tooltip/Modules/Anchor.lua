@@ -349,10 +349,82 @@ end
 
 ------------------------------------------------------------
 -- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）
+--
+-- 世界裡的單位／物件（游標下不是頭像框）暴雪是 SetWorldCursor 建的（WORLD_CURSOR_TOOLTIP_UPDATE，
+-- 資料 C_TooltipInfo.GetWorldCursor）。那支是一般的 mixin 方法，從插件呼叫整段 ProcessInfo 都帶污染，
+-- 遇到秘密的行（副本裡戰鬥中）就一行都畫不出來（它自己的註解寫的）⇒ 叫回來只能用 SetUnit("mouseover")
+--（secure delegate，污染的呼叫也能安全顯示）。但那是另一份資料，跟世界游標那份差兩件事，這裡補回來：
+--   ① 血條：暴雪的 post-call TooltipDataRules.HealthBar 照資料的 healthGUID 開關引擎血條。補給品這類長得像物件的
+--      生物，世界游標那份沒有 healthGUID（平常沒有條），GetUnit 那份有（玩家回報按修飾鍵後底下冒出血條）
+--      ⇒ 我們的條（Bar.lua 跟著引擎條）跟著出來。
+--      叫回來時先讀世界游標那份記下來，Bar 問 Anchor.ReviveHealth 照它。
+--   ② 收掉：SetWorldCursor 在滑鼠離開時只收 getterName＝"GetWorldCursor" 的內容（Default 淡出、其他直接藏），
+--      SetUnit 的 getterName 是 "GetUnit" ⇒ 沒人收，按著修飾鍵一路跟著游標飛（2026-10-25 玩家回報兩件一起）。
+--      自己聽 WORLD_CURSOR_TOOLTIP_UPDATE，叫回來的那份還在、游標下已經沒東西 ⇒ 照它的規則收。
+-- 「叫回來的那份還在」認 GetPrimaryTooltipInfo 的那張表（同一張＝內容沒被換過；只讀不寫）
 ------------------------------------------------------------
+local WCA_DEFAULT = Enum and Enum.WorldCursorAnchorType and Enum.WorldCursorAnchorType.Default or 1
+local worldAnchorType      -- 最近一次 WORLD_CURSOR_TOOLTIP_UPDATE 的 anchorType（決定收的時候淡出還是藏）
+local revive               -- { health=, fadeOut=, info= }：叫回來的世界單位；info 還沒拿到＝SetUnit 的 post-call 進行中
+
+local function PrimaryInfo(tip)
+    if not tip.GetPrimaryTooltipInfo then return end
+    local ok, info = pcall(tip.GetPrimaryTooltipInfo, tip)
+    return ok and info or nil
+end
+
+local function WorldCursorData()
+    if not (C_TooltipInfo and C_TooltipInfo.GetWorldCursor) then return end
+    local ok, data = pcall(C_TooltipInfo.GetWorldCursor)
+    return ok and type(data) == "table" and data or nil
+end
+
+local function ReviveWorldUnit(tip)
+    local data = WorldCursorData()
+    if not data then
+        pcall(tip.SetUnit, tip, "mouseover")    -- 游標下讀不到世界游標的資料（照舊）
+        return
+    end
+    -- healthGUID 可能是秘密：只看型別
+    revive = { health = type(data.healthGUID) ~= "nil", fadeOut = worldAnchorType == WCA_DEFAULT }
+    local ok = pcall(tip.SetUnit, tip, "mouseover")
+    local info = ok and PrimaryInfo(tip)
+    if info then revive.info = info else revive = nil end
+end
+
+-- 叫回來的世界單位該不該有血條（Bar.lua 的引擎血條閘先問這個）；nil＝不是叫回來的那份，照引擎血條
+function Anchor.ReviveHealth(tip)
+    if not revive or tip ~= GameTooltip then return nil end
+    if revive.info and PrimaryInfo(tip) ~= revive.info then
+        revive = nil
+        return nil
+    end
+    return revive.health
+end
+
+local function OnWorldCursorUpdate(anchorType)
+    worldAnchorType = S.PlainNumber(anchorType)
+    if not revive or not revive.info then return end
+    local tip = GameTooltip
+    if S.IsForbiddenObject(tip) or PrimaryInfo(tip) ~= revive.info then
+        revive = nil
+        return
+    end
+    -- 換到別的東西上：暴雪的 SetWorldCursor 會換掉內容（它先跑後跑都一樣）
+    if WorldCursorData() then return end
+    local fade = revive.fadeOut
+    revive = nil
+    if fade then tip:FadeOut() else tip:Hide() end
+end
+
 local watcher = CreateFrame("Frame")
 watcher:RegisterEvent("MODIFIER_STATE_CHANGED")
-watcher:SetScript("OnEvent", function(_, _, key, stateArg)
+watcher:RegisterEvent("WORLD_CURSOR_TOOLTIP_UPDATE")
+watcher:SetScript("OnEvent", function(_, event, key, stateArg)
+    if event == "WORLD_CURSOR_TOOLTIP_UPDATE" then
+        OnWorldCursorUpdate(key)
+        return
+    end
     if not ns.db or not InCombatLockdown() then return end
     local unit, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
     local ruleAnchor = ResolveHideAnchor(anchor, combatAnchor)
@@ -376,13 +448,14 @@ watcher:SetScript("OnEvent", function(_, _, key, stateArg)
     modifierOverrideDown = isDown
     local tip = GameTooltip
     if not S.IsForbiddenObject(tip) then
+        revive = nil
         AnchorFrame(tip, tip:GetOwner() or UIParent, anchor, isUnitFrame, nil, ruleAnchor)
         if isDown then
             -- unit token 可能是秘密字串（見 Model.lua）——字面值比較前先洗
-            if S.SafeValue(unit) == "mouseover" and tip.SetMouseoverUnit then
-                pcall(tip.SetMouseoverUnit, tip)
+            if S.SafeValue(unit) == "mouseover" then
+                ReviveWorldUnit(tip)
             else
-                pcall(tip.SetUnit, tip, unit)
+                pcall(tip.SetUnit, tip, unit)     -- 頭像框：暴雪自己也是 SetUnit(unit)
             end
         end
         if not ShouldHideInCombat(ruleAnchor) and not tip:IsShown() then

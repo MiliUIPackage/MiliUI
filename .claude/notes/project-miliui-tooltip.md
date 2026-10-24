@@ -24,7 +24,7 @@ metadata:
   只有提示插件 ⇒ 沒人叫 Adopt、那些框維持暴雪原樣；只有外觀插件 ⇒ API 不存在、MiliUI_Skin 退回自己畫一層（[[project-miliui-skin]]「特例二」）。
   2026-10-18 加第二參數 `opts.keepScale`：Adopt 預設會 `SetScale(general.scale)`，對「自己 SetParent 到 GameTooltip 底下」的框（AppearanceTooltip 的預覽）會變成平方倍 ⇒ 那種要帶 keepScale，旗標存 state、`ApplyBase` 重跑也跳過。同一天 `NeutralizeTemplateBar` 補了秘密名字閘（`GetName` 在秘密錨點鏈上回秘密字串，查 `_G` 會炸）。
 - 一次性視覺中和：`NineSlice:SetAlpha(0)`（skin OnShow 重申）、`GameTooltipStatusBar:SetAlpha(0)`（載入時壓一次不夠，單位提示流程會弄回來 → `Bar.Activate` 每次重申）。
-- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。**顯示與否跟著引擎血條**（GameTooltip.StatusBar 的 IsShown；12.x 是 C 端對有血量的單位 SetWatch 才 Show，火盆／祭壇／補給品這種用生物做的互動物走 Unit 型別提示但不 SetWatch）——2026-10-24 玩家回報物件底下多一條滿血條，Bar.Refresh 加閘＋HookScript 引擎條的 OnShow／OnHide 即時同步。
+- 血條／模型層級要明寫 tip+1（skin 是 tip−1，child 放著會被 tooltip 背景蓋掉文字半截）。血條是自己的：`UnitHealthPercent(unit, true, ScaleTo100)` → SetValue(秘密)。**顯示與否跟著引擎血條**（GameTooltip.StatusBar 的 IsShown；開關的是暴雪自己的 post-call `TooltipDataRules.HealthBar`（Unit／Object 型別）照提示資料的 `healthGUID` SetWatch／ClearWatch，給不給 healthGUID 是 C 端組資料時決定的；火盆／祭壇／補給品這種用生物做的互動物走 Unit 型別提示，但世界游標那份沒有 healthGUID）——2026-10-24 玩家回報物件底下多一條滿血條，Bar.Refresh 加閘＋HookScript 引擎條的 OnShow／OnHide 即時同步。
 - **post-call 時序紅利**：行加在暴雪排版之前 ⇒ 不需要自我 Show()，比價重建風暴只剩重上色。Show() 只在 ProcessInfo 之外（目標行輪詢、非同步觀察刷新）呼叫。
 - 輪詢走 `Skin.Poll`（`ns.Metro.New(0.05, ns.ReportError)`，共用層）並掛在「有沒有 tooltip 顯示中」上——沒有提示的時候 ticker 根本不存在。
   可見度判斷用**自己的 skin frame 的 OnShow/OnHide**（父層一藏子層就跟著發，零接觸面）。`Core/Secret.lua` 已刪，`ns.Secret` 由共用層提供（[[project-miliui-widgets-vendor]]）。
@@ -214,5 +214,8 @@ Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；
 秘密值當還藏著）⇒ Restore、不接；每次 AnchorFrame 重新定位先清旗標。`Tests/Try_test.lua` #19。
 Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.tooltip = "nocombat"`），可當玩家端的替代方案。
+**修飾鍵叫回來要照世界游標那份（2026-10-25 玩家回報：戰鬥中按修飾鍵，補給品底下冒出血條、滑開後提示一路跟著游標飛）**：watcher 對世界單位用 `SetUnit("mouseover")` 重建（12.x 已經沒有 `SetMouseoverUnit`，舊分支是死碼），那是 GetUnit 那份資料，跟暴雪 `SetWorldCursor` 的 GetWorldCursor 那份差兩件：①補給品在 GetUnit 那份有 healthGUID ⇒ 引擎條開、我們的條跟著；②getterName 是 "GetUnit"，`SetWorldCursor` 離開時只收 "GetWorldCursor" 的內容（Default 淡出、其他藏）⇒ 沒人收。
+**不能改呼 `GameTooltip:SetWorldCursor`**：一般 mixin，從插件呼叫整段 ProcessInfo 帶污染，遇到秘密行（副本裡戰鬥中）一行都畫不出來（暴雪在 SetWorldCursor 裡的註解自己寫的）；`SetUnit` 這類 accessor 是 `CreateSecureDelegate` 包過的，污染的呼叫也安全。
+修法：叫回時先讀 `C_TooltipInfo.GetWorldCursor()` 記 healthGUID 有無（秘密只看 `type`）與淡出規則（最近一次 `WORLD_CURSOR_TOOLTIP_UPDATE` 的 anchorType），`Bar` 的引擎血條閘先問 `Anchor.ReviveHealth`；自己聽 `WORLD_CURSOR_TOOLTIP_UPDATE`，叫回來那份還在（`GetPrimaryTooltipInfo()` 還是同一張表，只比身分）且游標下沒東西 ⇒ 照暴雪規則 FadeOut／Hide。`Tests/Anchor_test.lua`。未實機：GetUnit 那份對補給品有沒有等級行（有的話叫回來的面板又會畫等級）。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]

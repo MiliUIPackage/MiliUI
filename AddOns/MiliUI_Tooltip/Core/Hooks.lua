@@ -40,6 +40,10 @@
 --  16. 單位的重繪面板（Panel/ReadUnit.lua）：面板接手時**不改寫暴雪的行**（#4 那條只在舊樣式跑），只讀 TooltipData
 --      ＋明文 token 的 Unit API；對原生的寫入跟物品一樣只有 #10／#12／#13／#15。退回舊樣式時用 #5 的 tip:Show()
 --      讓暴雪重跑一次這份內容（Panel.UnitFallback），之後的 post-call 走舊樣式
+--  17. 戰鬥中按修飾鍵叫回藏掉的提示（Modules/Anchor.lua 的 watcher）：tip:SetUnit(unit)——secure delegate，污染的呼叫
+--      也能安全顯示含秘密值的內容（世界單位不能改叫 SetWorldCursor：一般 mixin，整段 ProcessInfo 帶污染）。
+--      tip:GetPrimaryTooltipInfo() 只拿那張表比身分（內容換過沒），不讀寫它的欄位；滑鼠離開時照 SetWorldCursor 的規則
+--      tip:FadeOut()／Hide()（#8）
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，
@@ -346,7 +350,7 @@ local function Install()
     if GameTooltipStatusBar and GameTooltipStatusBar.SetAlpha then
         pcall(GameTooltipStatusBar.SetAlpha, GameTooltipStatusBar, 0)
     end
-    -- 引擎血條的 Show／Hide（C 端 SetWatch／ClearWatch，只對有血量的單位叫）⇒ 我們的條跟著開關
+    -- 引擎血條的 Show／Hide（暴雪的 post-call TooltipDataRules.HealthBar 照資料的 healthGUID SetWatch／ClearWatch）⇒ 我們的條跟著開關
     -- （接觸面 #3；Bar.lua 的 EngineBarShown）。後掛勾，裡面只查 Skin.State、只動自己的條
     local engineBar = GameTooltip and (GameTooltip.StatusBar or GameTooltipStatusBar)
     if engineBar and engineBar.HookScript then
