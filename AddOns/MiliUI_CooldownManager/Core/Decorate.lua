@@ -1924,8 +1924,29 @@ end
 ------------------------------------------------------------
 -- 觸發發光：接管之後才熄（見檔頭）
 ------------------------------------------------------------
--- 暴雪的 SpellActivationAlert 是在第一次 ShowAlert 才建的：Glow 的 ShowAlert 後掛勾會再叫一次
-local function ApplyProcAlert(item, rec, barKey)
+-- 暴雪的 SpellActivationAlert 是在第一次 ShowAlert 才建的：Glow 的 ShowAlert 後掛勾會再叫一次。
+--
+-- ⚠ 暴雪只在**建的那一刻**照 item 當時的尺寸定發光框（×1.4，Blizzard_ActionBar/Shared/ActionButtonSpellAlerts.lua 的
+-- GetAlertFrame），之後 item 被我們 SetSize 它不跟 ⇒ 格子比暴雪模板（50／30）大時發光縮在圖示裡：方形的四個角露在光圈外，
+-- 圓角／圓形被形狀遮罩遮掉看不出來（玩家回報 2026-10-24）。所以每次都照格子尺寸重設一次：框 ×1.4（跟暴雪快捷列、
+-- MiliUIGlow 的觸發發光同一個比例）、入場爆光圖 ProcStartFlipbook 等比（模板寫死 150，是 45px 快捷鍵的比例）。
+-- 只呼叫 SetSize，不寫暴雪框的欄位；上次套的尺寸記在弱鍵表。Masque 在畫的格不碰（它的 ShowAlert 後掛勾照皮定尺寸）。
+local ALERT_SCALE, ALERT_START = 1.4, 150 / 45
+local alertSized = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套的尺寸鍵
+local function SizeProcAlert(alert, w, h)
+    w, h = tonumber(w), tonumber(h)
+    if not (alert and w and h and w > 0 and h > 0) then return end
+    local key = w .. "x" .. h
+    if alertSized[alert] == key then return end
+    alertSized[alert] = key
+    alert:SetSize(w * ALERT_SCALE, h * ALERT_SCALE)
+    local start = alert.ProcStartFlipbook
+    if start and start.SetSize then start:SetSize(w * ALERT_START, h * ALERT_START) end
+end
+D.SizeProcAlert = SizeProcAlert          -- Bars.ReleaseAll 還給暴雪時照原尺寸復原
+
+-- w, h（格子尺寸）可省：Glow.SyncProc 叫的時候拿 Glow.AfterApply 記的 rec.glowW／glowH
+local function ApplyProcAlert(item, rec, barKey, w, h)
     local alert = item.SpellActivationAlert
     if not alert then return end
     local G = ns.Glow
@@ -1933,6 +1954,7 @@ local function ApplyProcAlert(item, rec, barKey)
     -- 圓環：發光第一版不畫（方形的觸發發光套在圓上很怪），暴雪的也一起熄
     if rec and rec.ring then owns = true end
     alert:SetAlpha(owns and 0 or 1)
+    if rec and not rec.msqSkinned then SizeProcAlert(alert, w or rec.glowW, h or rec.glowH) end
 end
 D.ApplyProcAlert = ApplyProcAlert
 
@@ -2360,7 +2382,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
 
     -- 自訂圖示（暴雪 item；自訂框在 Custom.Update 自己設）
     if not rec.custom then ApplyIconOverride(item, rec, id, isBar, spell.customIcon) end
-    ApplyProcAlert(item, rec, barKey)
+    ApplyProcAlert(item, rec, barKey, w, h)
     D.ApplyGCDAlpha(item, rec)          -- 開關切換當場生效（關掉要把 alpha 還回 1）
     D.ApplyTooltip(ov, rec, style.tooltips)
     rec.decorated, rec.decoratedBar = sig, barKey
