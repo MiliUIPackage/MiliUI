@@ -1811,6 +1811,10 @@ function B.ReleaseAll(reason)
         if ns.Decorate and ns.Decorate.ClearShape then pcall(ns.Decorate.ClearShape, item, rec) end
         local alert = item.SpellActivationAlert
         if alert and alert.SetAlpha then pcall(alert.SetAlpha, alert, 1) end
+        -- 發光框照原尺寸復原（Decorate.ApplyProcAlert 有照我們的格子尺寸改過）
+        if alert and rec.origW and ns.Decorate and ns.Decorate.SizeProcAlert then
+            pcall(ns.Decorate.SizeProcAlert, alert, rec.origW, rec.origH)
+        end
         if ns.Decorate and ns.Decorate.DimReadyFlash then ns.Decorate.DimReadyFlash(item, false) end   -- 就緒閃光還給暴雪
         pcall(item.SetAlpha, item, 1)
         pcall(item.ClearAllPoints, item)

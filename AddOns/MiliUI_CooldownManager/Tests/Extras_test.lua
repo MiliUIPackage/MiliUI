@@ -2930,5 +2930,46 @@ do
     D.InvalidateAll()
 end
 
+------------------------------------------------------------
+-- 暴雪的觸發發光框照格子尺寸重設（D.ApplyProcAlert／D.SizeProcAlert，2026-10-24）：
+-- 暴雪只在建框時照 item 當時的尺寸定 ×1.4，之後不跟 ⇒ 我們每次 Apply 都補；入場爆光圖等比；同尺寸不重寫；Masque 的格不碰
+------------------------------------------------------------
+do
+    local function Alert()
+        local a = { alpha = 1, sets = 0, ProcStartFlipbook = { sets = 0 } }
+        function a:SetAlpha(v) self.alpha = v end
+        function a:SetSize(w, h) self.sets = self.sets + 1; self.w, self.h = w, h end
+        function a.ProcStartFlipbook:SetSize(w, h) self.sets = self.sets + 1; self.w, self.h = w, h end
+        return a
+    end
+    local savedGlow = ns.Glow
+    ns.Glow = { ownsProcAlert = true, OwnsProc = function() return false end }     -- 還給暴雪畫
+    local alert = Alert()
+    local item = { SpellActivationAlert = alert }
+    D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
+    eq("還給暴雪 ⇒ alpha 1", alert.alpha, 1)
+    check("框 ＝ 格子 ×1.4（用傳進來的 w, h）", alert.w == 84 and alert.h == 84)
+    check("入場爆光圖等比（45px ⇒ 150）", math.abs(alert.ProcStartFlipbook.w - 200) < 1e-9 and math.abs(alert.ProcStartFlipbook.h - 200) < 1e-9)
+    D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
+    eq("同尺寸不重寫", alert.sets, 1)
+    D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential")
+    check("沒給 w, h ⇒ 用 rec.glowW／glowH", alert.sets == 2 and alert.w == 56)
+    D.ApplyProcAlert(item, {}, "essential")
+    eq("尺寸讀不到 ⇒ 不寫", alert.sets, 2)
+    D.ApplyProcAlert(item, { glowW = 40, glowH = 40, msqSkinned = true }, "essential", 70, 70)
+    eq("Masque 在畫 ⇒ 不碰尺寸", alert.sets, 2)
+    ns.Glow.OwnsProc = function() return true end
+    D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 70, 70)
+    check("我們接管 ⇒ alpha 0，尺寸照樣跟著（之後還給暴雪不必再補）", alert.alpha == 0 and alert.w == 98)
+    local a2 = Alert()
+    D.SizeProcAlert(a2, 50, 50)
+    check("ReleaseAll 的復原：照原尺寸 ×1.4", a2.w == 70 and a2.h == 70)
+    D.SizeProcAlert(a2, 0, 50); D.SizeProcAlert(a2, "x", 50); D.SizeProcAlert(nil, 50, 50)
+    eq("壞尺寸不寫、不炸", a2.sets, 1)
+    D.ApplyProcAlert({}, { glowW = 40, glowH = 40 }, "essential", 60, 60)
+    check("沒有發光框（還沒 ShowAlert 過）不炸", true)
+    ns.Glow = savedGlow
+end
+
 print(("Extras_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end
