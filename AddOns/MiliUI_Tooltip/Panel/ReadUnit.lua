@@ -18,6 +18,7 @@
 --     認不出哪一行是哪一行，但順序固定——名字後的第一個 None 行是等級行（面板用等級底板＋分類徽章畫），
 --     其餘 None 行照順序原封不動交給 SetText 放在標題區（類型行只有部分生物有；M+ 的怪多兩行）。
 --     一個 None 行都沒有＝暴雪沒寫等級行（長得像物件的生物）⇒ 等級底板、分類徽章、龍都不畫（明文的單位同一條規則）。
+--     12.1.0 定義了 UnitLevel／UnitType／UnitDead 行型別但實機還沒用；暴雪開始標之後改認型別（IsLevelType）。
 --     認得出型別的（任務、主人、仇恨、M+ 敵軍部隊的進度 type 50）一樣原封不動交給 SetText
 --   * 原生 GameTooltip 的幾何（GetPoint／寬高／padding）一直是明文（戰鬥、首領戰也是）⇒ 替身照常撐、照常對齊；
 --     秘密字串的寬照原生排好的寬留
@@ -73,6 +74,19 @@ end
 -- （舊樣式 Modules/UnitLines.lua 的 ApplyNpc 也是只有名字一行就不寫等級）
 local function DropLevel(facts)
     facts.level, facts.levelColor, facts.classif, facts.classifPlain = nil, nil, nil, nil
+end
+
+-- 等級行的型別：12.1.0 起有 UnitLevel／UnitType／UnitDead，但到 12.1.5 實機還是全標 None（2026-10-21 探針，
+-- 七百多行一次都沒出現）。暴雪哪天開始標，見過一次就記住（整個 session）：之後等級行只認型別——
+-- 受限時頭銜不再被當成等級行吃掉、沒有等級行也認得出來；明文的照舊也認字（等級行開頭不是 LEVEL 的語系靠型別）
+local levelTyped = false
+local function IsLevelType(row)
+    if LT.UnitLevel == nil or row.type ~= LT.UnitLevel then return false end
+    if not levelTyped then
+        levelTyped = true
+        if ns.logEnabled and ns.Log then ns.Log("單位 暴雪開始標等級行型別（UnitLevel）⇒ 之後只認型別") end
+    end
+    return true
 end
 
 -- 公會行兩種寫法：「<公會> 階級」，以及不帶角括號的「公會-伺服器」（另起一行，標題區已經畫了公會 ⇒ 都丟）
@@ -132,7 +146,7 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
         elseif (LT.QuestObjective and row.type == LT.QuestObjective) or (LT.QuestPlayer and row.type == LT.QuestPlayer) then
             model.quests[#model.quests + 1] = { left = row.left, right = row.right, color = row.color,
                 rightColor = row.rightColor }
-        elseif IsLevelLine(text) then
+        elseif IsLevelType(row) or IsLevelLine(text) then
             levelSeen = true
             -- NPC 的頭銜：等級行之前的那幾行，第一行當頭銜、其他放其他
             if not facts.isPlayer then
@@ -141,7 +155,7 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
                 end
                 beforeLevel = {}
             end
-        elseif w.exact[text] then
+        elseif w.exact[text] or (LT.UnitDead and row.type == LT.UnitDead) then
             -- 陣營、PvP、死亡：API 畫
         elseif w.skin[text] then
             model.skin[#model.skin + 1] = row.left
@@ -161,7 +175,8 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
         end
     end
     -- 沒有等級行的 NPC（長得像物件的生物）：頭銜候選照「第一行頭銜、其他放其他」，等級與分類不畫
-    if not facts.isPlayer and not levelSeen and w.levelReliable then DropLevel(facts) end
+    -- （認字靠 LEVEL 開頭、等級行開頭不是它的語系不當真；暴雪標了型別之後就不用靠字）
+    if not facts.isPlayer and not levelSeen and (w.levelReliable or levelTyped) then DropLevel(facts) end
     for i, r in ipairs(beforeLevel) do
         if i == 1 then model.npcTitle = r.left else pending[#pending + 1] = r end
     end
@@ -583,6 +598,8 @@ local function RestrictedUse()
     RESTRICTED_USE = {}
     local function use(name, how) if LT[name] then RESTRICTED_USE[LT[name]] = how end end
     use("None", "none")
+    use("UnitLevel", "level")      -- 這三個 12.1.5 實機還沒用到（見 IsLevelType）：類型行照 None 一樣進標題區，
+    use("UnitType", "none")        -- 死亡行不收（徽章由 API 畫）
     use("QuestTitle", "questTitle")
     use("QuestObjective", "quest")
     use("QuestPlayer", "quest")
@@ -617,11 +634,16 @@ function Panel.CollectRestrictedLines(tip, data)
 end
 
 -- rows（CollectRestrictedLines）→ model：第一個 None 行（等級行）丟掉、其餘 None 行進標題區（secretHeader），
--- 任務一段、其他（主人、仇恨、M+ 進度）一段，別人的行進附屬框
+-- 任務一段、其他（主人、仇恨、M+ 進度）一段，別人的行進附屬框。
+-- 暴雪標了等級行型別（這一份有、或這個 session 見過）⇒ 等級行只認型別，None 行全部進標題區（頭銜不會被吃掉）
 function Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
     local w = Words()
     local model = { facts = facts, quests = {}, others = {}, extras = {}, skin = {},
         secretHeader = {}, secretQuests = {}, secretOthers = {} }
+    for _, row in ipairs(rows) do
+        if row.use == "level" then IsLevelType(row) end
+    end
+    local typed = levelTyped
     local levelSeen = false
     for _, row in ipairs(rows) do
         if row.appended then
@@ -629,11 +651,13 @@ function Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
             if (text ~= "" or (row.right and row.right ~= "")) and not (hideHint and w.hint and text == w.hint) then
                 model.extras[#model.extras + 1] = row
             end
+        elseif row.use == "level" then
+            levelSeen = true              -- 等級行：面板的等級底板＋分類徽章已經畫了
         elseif row.use == "none" then
-            if levelSeen then
+            if levelSeen or typed then
                 model.secretHeader[#model.secretHeader + 1] = { value = row.secretText }
             else
-                levelSeen = true          -- 等級行：面板的等級底板＋分類徽章已經畫了
+                levelSeen = true          -- 沒標型別：第一個 None 行當等級行
             end
         elseif row.use == "questTitle" then
             model.secretQuests[#model.secretQuests + 1] = { value = row.secretText, title = true }
@@ -643,7 +667,7 @@ function Panel.ReadRestrictedUnitRows(rows, facts, hideHint)
             model.secretOthers[#model.secretOthers + 1] = { value = row.secretText }
         end
     end
-    -- 名字後一個 None 行都沒有＝暴雪沒寫等級行（只有名字的提示）：等級與分類不畫
+    -- 名字後一個 None 行都沒有（標了型別時：沒有 UnitLevel 行）＝暴雪沒寫等級行：等級與分類不畫
     if not facts.isPlayer and not levelSeen then DropLevel(facts) end
     return model
 end
