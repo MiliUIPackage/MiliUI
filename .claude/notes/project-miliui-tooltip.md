@@ -206,6 +206,9 @@ skinMoreFrames 大清單、BattlePetTooltip、LSM border、SavedVariablesPerChar
 ⇒ **定案：一個判斷＋一張網**。判斷 `Anchor.ShouldHideNow(tip)`（戰鬥中、`ResolveHideAnchor` 依游標下的單位挑單位錨點或全域、修飾鍵沒按）；
 網是 `GameTooltip:HookScript("OnShow")`（接觸面 #3）：該藏就當場 `Panel.Restore` 再 `Hide`。SetDefaultAnchor 掛勾的提早藏只是省定位；旗標機制（combatHidden／IsCombatHidden）與 SetAction 後掛勾全拔。
 `QueueStatusFrame` 不是 GameTooltip，另掛它的 OnShow 照全域設定藏。`Tests/Try_test.lua` #19 stub 換成 ShouldHideNow。
+**比價框也要進網**（同日實機：戰鬥中滑快捷列上的飾品，兩顆「已裝備」卡在畫面上）：ShoppingTooltip1／2 是暴雪在 GameTooltip 的物品 post-call 裡
+（TooltipComparisonManager）SetCompareItem＋Show 的，GameTooltip 早被我們藏了、它的 OnHide（平常負責收比價框）已經發過 ⇒ 之後才出現的比價框沒人收。
+`COMBAT_HIDE_TIPS`＝GameTooltip＋ShoppingTooltip1／2，三顆都掛 OnShow、ShouldHideNow 都認。
 **重繪面板是獨立的框（父層 UIParent）**，post-call 照畫、而且 J3「原生暫時沒有點 ⇒ 沿用上次的貼法」讓它停在上一次的位置 ⇒ 玩家戰鬥中看到的是面板。
 Bartender（LibActionButton）跟暴雪快捷列走的是同一條 `GameTooltip_SetDefaultAnchor` → `SetAction`（UberTooltips=1），跟 Bartender 無關。
 修法：藏的時候 `state.combatHidden`／`combatHiddenOwner` 記在 Skin.State，`Panel.Try` 先問 `Anchor.IsCombatHidden`（還在戰鬥、錨點型別仍 ANCHOR_NONE、owner 沒換才算；

@@ -8,7 +8,7 @@
 -- 戰鬥中隱藏（2026-10-24 定案，三輪實機）：一張網、一個判斷。
 --   * 判斷：Anchor.ShouldHideNow(tip)——戰鬥中、依游標下的單位挑錨點設定（單位錨點自己有開關才用它，否則用全域）、
 --     修飾鍵沒按著。SetDefaultAnchor 掛勾、GameTooltip 的 OnShow 後掛勾、Panel.Try 三處問的都是它。
---   * 網：GameTooltip 的 **OnShow 後掛勾**（接觸面 #3，HookScript）。提示從哪條路顯示都會經過 OnShow：
+--   * 網：GameTooltip 與兩顆比價框的 **OnShow 後掛勾**（接觸面 #3，HookScript）。提示從哪條路顯示都會經過 OnShow：
 --     SetDefaultAnchor（UberTooltips=1 的快捷列、世界游標）、SetOwner(ANCHOR_RIGHT)＋SetAction（UberTooltips=0 的
 --     快捷列、LibActionButton）、SetOwner＋SetText／SetInventoryItem／SetSpellByID（微型選單、背包欄、狀態追蹤列、
 --     載具離開鈕、額外快捷鍵）。一條一條掛 Set* 掛不完（Bartender 九種列就有五種路徑）。
@@ -281,8 +281,16 @@ end
 ------------------------------------------------------------
 -- 判斷：這一刻 GameTooltip 該不該藏（檔頭）。Panel.Try 與 OnShow 後掛勾都問這個
 ------------------------------------------------------------
+-- 管的框：GameTooltip 與它的兩顆比價框。比價框是暴雪在 GameTooltip 的物品 post-call 裡（TooltipComparisonManager）
+-- 另外 SetCompareItem＋Show 的：GameTooltip 已經先被我們藏了、OnHide 早就發過，之後才出現的比價框沒人收
+-- ⇒ 戰鬥中滑快捷列上的飾品，兩顆「已裝備」卡在畫面上（2026-10-24 實機 log）。比價框照 GameTooltip 同一條規則
+local COMBAT_HIDE_TIPS = {}
+for _, name in ipairs({ "GameTooltip", "ShoppingTooltip1", "ShoppingTooltip2" }) do
+    if _G[name] then COMBAT_HIDE_TIPS[_G[name]] = true end
+end
+
 function Anchor.ShouldHideNow(tip)
-    if not ns.db or tip ~= GameTooltip or not InCombatLockdown() then return false end
+    if not ns.db or not COMBAT_HIDE_TIPS[tip] or not InCombatLockdown() then return false end
     local _, _, anchor, combatAnchor = GetMouseoverContext()
     return ShouldHideInCombat(ResolveHideAnchor(anchor, combatAnchor))
 end
@@ -304,23 +312,25 @@ end)
 
 ------------------------------------------------------------
 -- 網：OnShow 後掛勾（檔頭）。提示從哪條路顯示都會到這裡；該藏就當場拆面板再 Hide。
--- 只掛 GameTooltip；HookScript 是後掛勾，暴雪的 GameTooltip_OnShow 先跑完
+-- 掛 GameTooltip 與兩顆比價框（COMBAT_HIDE_TIPS）；HookScript 是後掛勾，暴雪的 GameTooltip_OnShow 先跑完
 ------------------------------------------------------------
-if GameTooltip and GameTooltip.HookScript then
-    GameTooltip:HookScript("OnShow", function(tip)
-        if S.IsForbiddenObject(tip) or not Anchor.ShouldHideNow(tip) then return end
-        local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
-        if ns.logEnabled then
-            local ok, owner = pcall(tip.GetOwner, tip)
-            owner = ok and not S.IsSecret(owner) and owner or nil
-            ns.Log("戰鬥隱藏 OnShow 藏 owner=%s 錨點型別=%s 來源：%s",
-                ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
-                ns.Describe(S.SafeCall(tip.GetAnchorType, tip)), debugstack and debugstack(3, 4, 0) or "?")
-            if state then LogVisibleNextFrame(tip, state) end
-        end
-        if state and ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
-        tip:Hide()
-    end)
+local function OnTipShow(tip)
+    if S.IsForbiddenObject(tip) or not Anchor.ShouldHideNow(tip) then return end
+    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+    if ns.logEnabled then
+        local ok, owner = pcall(tip.GetOwner, tip)
+        owner = ok and not S.IsSecret(owner) and owner or nil
+        ns.Log("戰鬥隱藏 OnShow 藏 tip=%s owner=%s 錨點型別=%s 來源：%s",
+            ns.Describe(S.SafeCall(tip.GetName, tip)),
+            ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
+            ns.Describe(S.SafeCall(tip.GetAnchorType, tip)), debugstack and debugstack(3, 4, 0) or "?")
+        if state then LogVisibleNextFrame(tip, state) end
+    end
+    if state and ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
+    tip:Hide()
+end
+for tip in pairs(COMBAT_HIDE_TIPS) do
+    if tip.HookScript then tip:HookScript("OnShow", OnTipShow) end
 end
 
 ------------------------------------------------------------
