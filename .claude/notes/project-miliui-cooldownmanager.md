@@ -164,6 +164,12 @@ TOC 緊接原檔；跨檔 local 升成模組表欄位、新檔檔頭取回成 lo
 
 **共用層選色器**（兩次踩到）：暴雪 ColorPickerFrame 按確定一律叫 opacityFunc、沒開透明度時不重設滑桿 ⇒ 上一個選色器殘留的 alpha 被寫進設定（天空騎術顏色變半透明）；取消時舊值的透明度在 `a` 不在 `opacity`，讀錯欄位寫成 nil。都已在 MiliUIWidgets 修（[[project-miliui-widgets-vendor]]）。
 
+**暴雪的觸發發光框（`item.SpellActivationAlert`）只在建框那一刻定尺寸（2026-10-24 玩家回報）**：`ActionButtonSpellAlertManager:ShowAlert` 第一次叫才 `CreateFrame`，
+照 item **當時**的尺寸 ×1.4 寫死（Blizzard_ActionBar/Shared/ActionButtonSpellAlerts.lua 的 `GetAlertFrame`），之後 item 被我們 `SetSize` 它不跟，入場爆光圖 `ProcStartFlipbook` 模板固定 150（45px 快捷鍵的比例）。
+症狀：觸發發光關掉、交給暴雪畫，格子比暴雪模板（50／30）大時光圈縮在圖示裡——方形四個角露在外面，圓角／圓形被形狀遮罩遮住看不出來。
+解法：`Decorate.ApplyProcAlert` 每次照格子尺寸 `SetSize`（×1.4、爆光圖等比、弱鍵表去重；Masque 在畫的格不碰），`Bars.ReleaseAll` 照 `rec.origW` 復原。
+**How to apply:** 任何「還給暴雪畫」的裝飾都要想一次「它的尺寸是什麼時候定的」——暴雪的 lazy-create 子框大多只在建的時候讀一次父框尺寸。
+
 ## 功能索引（一句話；細節在 README 同名章節）
 
 - **從 Ayije_CDM 匯入**（`Core/Import.lua`，純轉換 `Convert`＋`Tests/Import_test.lua`）、**可點擊的自訂群組**（`Core/Clickable.lua`：每格蓋 secure 鈕、強制固定格位、戰鬥中零寫入；已知限制：淡到 0 的群組鈕還在收點擊）。
