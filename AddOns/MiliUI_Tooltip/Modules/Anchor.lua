@@ -4,6 +4,13 @@
 -- 入口是 hooksecurefunc(GameTooltip_SetDefaultAnchor)（接觸面清單第 2 條），
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
+--
+-- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)＝清掉錨點、再 Hide。暴雪的 ProcessInfo 在 post-call 之後
+-- 會把 tooltip 再 Show 回來（快捷列按鈕：SetDefaultAnchor → SetAction），但沒有錨點的框畫不出來，
+-- 所以原生看不見。**重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：它在 post-call 裡照畫，
+-- 還會沿用上一次的貼法 ⇒ 玩家看到的是面板（2026-10-24 回報「戰鬥中隱藏對 Bartender 沒用」，其實
+-- 暴雪自己的快捷列也一樣）。所以隱藏的決定記在 state（NoteCombatHidden），Panel.Try 進來先問
+-- Anchor.IsCombatHidden，是就不接。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -64,6 +71,40 @@ local function SafeSetOwner(tip, parent, anchorType, ...)
         parent = UIParent
     end
     pcall(tip.SetOwner, tip, parent, anchorType, ...)
+    return parent
+end
+
+------------------------------------------------------------
+-- 戰鬥中隱藏 ⇄ 重繪面板（Panel/Try.lua）
+--
+-- 藏的時候記下「藏了、替誰藏的」（owner＝SetOwner 用的那個框）；每次重新定位都先清掉。
+-- 面板在 post-call 裡問 IsCombatHidden：旗標還在、而且 tooltip 還是我們藏它時的樣子
+--（還在戰鬥、錨點型別還是 ANCHOR_NONE、owner 沒換）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
+-- 重設過就不是我們藏的那一份，面板照接。讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
+------------------------------------------------------------
+local function NoteCombatHidden(tip, owner)
+    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+    if not state then return end
+    state.combatHidden = owner and true or nil
+    state.combatHiddenOwner = owner
+end
+
+function Anchor.IsCombatHidden(tip, state)
+    if not state or not state.combatHidden then return false end
+    local stale = not InCombatLockdown()
+    if not stale and tip.GetAnchorType then
+        local ok, anchorType = pcall(tip.GetAnchorType, tip)
+        if ok and not S.IsSecret(anchorType) and anchorType ~= "ANCHOR_NONE" then stale = true end
+    end
+    if not stale and tip.GetOwner then
+        local ok, owner = pcall(tip.GetOwner, tip)
+        if ok and not S.IsSecret(owner) and owner ~= state.combatHiddenOwner then stale = true end
+    end
+    if stale then
+        state.combatHidden, state.combatHiddenOwner = nil, nil
+        return false
+    end
+    return true
 end
 
 ------------------------------------------------------------
@@ -154,7 +195,10 @@ end
 local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
     -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
     -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
-    if not finally then StopCursorFollow() end
+    if not finally then
+        StopCursorFollow()
+        NoteCombatHidden(tip, nil)
+    end
     local hideAnchor = combatAnchor or anchor
     local general = GeneralAnchor()
     if hideAnchor and hideAnchor ~= general and not hideAnchor.hiddenInCombat
@@ -162,8 +206,9 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
         hideAnchor = general
     end
     if ShouldHideInCombat(hideAnchor) then
-        SafeSetOwner(tip, parent, "ANCHOR_NONE")
+        local owner = SafeSetOwner(tip, parent, "ANCHOR_NONE")
         tip:Hide()
+        NoteCombatHidden(tip, owner)
         return
     end
     if not anchor then return end
