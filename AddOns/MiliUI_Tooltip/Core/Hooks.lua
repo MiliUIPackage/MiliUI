@@ -221,20 +221,37 @@ local function ResolveMacroPayload(tip, macroId)
     end
 end
 
-local function RouteMacroPayload(tip, spellId, itemLink)
-    local state = Gate(tip)
-    if not state then return end
+-- 巨集的 tooltipData 是 type=Macro、id=巨集編號、lines=解析出來那個法術／物品的行。重繪面板的
+-- key（「同一件」）與圖示都認 data.id／data.hyperlink ⇒ 餵一份「法術／物品視角」的資料：id／hyperlink
+-- 換成解析出來的、lines 原封（Collect 只讀 lines）。key 就跟直接滑過那個法術／物品一樣，面板一致
+local function MacroView(data, dataType, id, link)
+    return { type = dataType, id = id, hyperlink = link, lines = type(data) == "table" and data.lines or nil }
+end
+
+local function RouteMacroPayload(tip, state, data, spellId, itemLink)
     if itemLink then
         xpcall(ns.Item.Apply, ns.ReportError, tip, state, itemLink)
+        local itemId = tonumber(itemLink:match("item:(%d+)"))
+        AfterApply(tip, state, "item", T_ITEM, MacroView(data, T_ITEM, itemId, itemLink))
     elseif spellId then
         xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
+        AfterApply(tip, state, "spell", T_SPELL, MacroView(data, T_SPELL, spellId, nil))
+    else
+        -- 純指令巨集（/say 之類）：沒有法術／物品可畫，面板退回原生
+        ns.Panel.Restore(tip, state)
     end
 end
 
 local function OnMacro(tip, data)
+    local state = Gate(tip)
+    if not state then return end
     local macroId = data and S.PlainNumber(data.id)
     local spellId, itemLink = ResolveMacroPayload(tip, macroId)
-    RouteMacroPayload(tip, spellId, itemLink)
+    if ns.logEnabled then
+        ns.Log("OnMacro tip=%s macro=%s spell=%s item=%s", tip:GetName() or "?",
+            ns.Describe(macroId), ns.Describe(spellId), ns.Describe(itemLink))
+    end
+    RouteMacroPayload(tip, state, data, spellId, itemLink)
 end
 
 -- （SetAction / SetMacro 的後掛勾已刪：動作條上的法術／物品／巨集提示都會
