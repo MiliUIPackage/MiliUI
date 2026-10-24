@@ -28,8 +28,9 @@ local function BuildDefaults()
         rows = 5,
         cols = 4,
 
-        -- 格子的排列順序：across＝先往右（暴雪原本的 1 2 / 3 4）、down＝先往下排滿一欄
-        order = "across",
+        -- 格子的排列順序：down＝先往下排滿一欄、across＝先往右（暴雪原本的 1 2 / 3 4）。
+        -- 預設直排：原本兩欄的視窗，商品清單是往下長的，加寬之後維持往下讀
+        order = "down",
 
         -- Shift 點商品、想買的量超過一組時換成批量購買視窗（Modules/BulkBuy.lua）
         bulkBuy = true,
@@ -92,6 +93,15 @@ function DB.Init()
     MiliUI_Merchant_DB = MiliUI_Merchant_DB or {}
     local db = MiliUI_Merchant_DB
     MergeDefaults(db, BuildDefaults())
+
+    -- v1 → v2：排列順序的預設從 across 改成 down。v1 存著 across 的只可能是
+    -- 「載入過預設 across 那一版」，不是玩家自己選的，一律換成新預設。
+    -- 讀 schemaVersion 要趁下面把它蓋成新版之前；全新安裝的 schemaVersion
+    -- 是 MergeDefaults 剛補的新版號，不會走進來。
+    if (db.schemaVersion or 0) < 2 and db.order == "across" then
+        db.order = "down"
+    end
+
     db.schemaVersion = ns.DB_VERSION
     Normalize(db)
     ns.db = db
