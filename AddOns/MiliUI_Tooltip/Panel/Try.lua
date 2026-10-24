@@ -286,7 +286,10 @@ end
 local function Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn)
     local reader = Panel.readers[kind] or Panel.ReadFallback
     local model = reader(tip, data, kind, rows, n, state)
-    if not model then return false end
+    if not model then
+        if ns.logEnabled then ns.Log("reader 回 nil ⇒ 退回 kind=%s 行數 %d", tostring(kind), n or 0) end
+        return false
+    end
     local panel = Panel.Get(tip, state)
     local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
     if not view or not Panel.RenderView(panel, tip, view, state) then return false end

@@ -149,6 +149,15 @@ function Panel.ReadSpellRows(rows, game, id)
     -- 名字：SpellName 型別行；沒有就畫在第 1 行的那一行（天賦面板把名字寫在 data 之外，
     -- 第 1 行是後加的；那時 data 的第一行是描述，不能拿來當名字）；都沒有才退第一個 data 行
     -- （只看巢狀法術之前的行：巢狀那段有自己的 SpellName）
+    -- 巨集（type=Macro）的資料把整個法術包在第 1 行的 NestedBlock 裡（tooltipID＝法術 ID，Hooks 的
+    -- ResolveMacroPayload 就是從這裡拿的）：外層沒有任何行 ⇒ 把那一層拆掉，裡面的就是本體
+    local first = rows[1]
+    if first and Typed(first, "NestedBlock") and Trim(first.left or "") == "" and not first.right then
+        local inner = {}
+        for i = 2, #rows do inner[#inner + 1] = rows[i] end
+        rows = inner
+        id = S.PlainNumber(id) or S.PlainNumber(first.tooltipID)
+    end
     local outer = {}
     for _, row in ipairs(rows) do
         if Typed(row, "NestedBlock") then break end
