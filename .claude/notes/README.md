@@ -148,7 +148,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 設定表單左欄標籤寬度：過長自動換行、列高跟著長；欄寬各宿主 Env.LABEL_W（頭像與 MCDM 中韓 128／歐語 148）；撐寬一律 opt-in、選擇彈窗 OnShow 再量 |
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | 單位框像素對齊：邊框／內縮走 `P.Pixel`、尺寸走 `P.Scale`，混用就露縫或 2px；從 UIParent 左下角起算所以資訊列內縮要 OnSizeChanged 重定位；分段列整列先換整數像素再切格 |
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則（Core/HideBlizzard.lua）：reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件；藏施法條要連 `OverlayPlayerCastingBarFrame` 一起（只在宿主是覆蓋快捷列時）、oUF 系會把事件裝回 |
-| [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動 bump Cell 的 `## Version` —— 那是釋出訊號，由使用者決定 |
+| [feedback-no-toc-version-bump.md](feedback-no-toc-version-bump.md) | 不準主動 bump 任何插件 .toc 的 `## Version`（Cell、MiliUI_* 全部），也不開 chore bump commit —— 版本號由使用者自己處理 |
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
 | [feedback-ayije-cdm-sync-tag.md](feedback-ayije-cdm-sync-tag.md) | Ayije_CDM 出版本只走工作資料夾的 `package.command`（整合包 → 工作 repo，整合包只 commit toc ＋ tag，跟 UnitFrames 同一套）；別在整合包另做同步腳本 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
@@ -440,7 +440,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要從根本解決，不要在錯誤路徑上加閘、加重試、加補寫去治標；範例是 Ayije_CDM 增益長條名字 |
 | [feedback-let-user-pick.md](feedback-let-user-pick.md) | 「給我拍板」「給我選」＝列選項讓使用者挑，不要自己決定就動手 |
 | [feedback-merge-worktree-branch.md](feedback-merge-worktree-branch.md) | worktree 分支 commit 完就主動 merge 進 master（遊戲只載入本體，不合沒辦法驗）；用 merge 不要 cherry-pick；merge 完照 CLAUDE.md 直接 push（2026-10 起） |
-| [feedback-no-cell-version-bump.md](feedback-no-cell-version-bump.md) | 不要主動幫使用者 bump Cell 的 TOC 版本號，那是他自己在釋出時才做的決定 |
+| [feedback-no-toc-version-bump.md](feedback-no-toc-version-bump.md) | 不準主動 bump 任何插件 .toc 的 ## Version（Cell、MiliUI_* 全部），也不要開 chore bump commit；使用者有自己的插件處理版本號，發新版有自己的打算 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則——勾選框（及任何控件）的說明一律放在下一行的灰色小字（Controls 的 type=\"text\"），不要接在勾選框右邊（toggle 的 hint） |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「我寫 plan → Opus 子代理在 worktree 實作 → 我驗收 → commit 並 merge 進 master」，push 另外等使用者說 |
 | [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 給使用者的暫時探針／測試插件要直接放進遊戲本體的 Interface/AddOns，不要叫使用者自己複製 |
