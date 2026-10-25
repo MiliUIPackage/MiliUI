@@ -168,7 +168,8 @@ TOC 緊接原檔；跨檔 local 升成模組表欄位、新檔檔頭取回成 lo
 照 item **當時**的尺寸 ×1.4 寫死（Blizzard_ActionBar/Shared/ActionButtonSpellAlerts.lua 的 `GetAlertFrame`），之後 item 被我們 `SetSize` 它不跟，入場爆光圖 `ProcStartFlipbook` 模板固定 150（45px 快捷鍵的比例）。
 症狀：觸發發光關掉、交給暴雪畫，格子比暴雪模板（50／30）大時光圈縮在圖示裡——方形四個角露在外面，圓角／圓形被形狀遮罩遮住看不出來。
 解法：`Decorate.ApplyProcAlert` 每次照格子尺寸 `SetSize`（×1.4、爆光圖等比、弱鍵表去重；Masque 在畫的格不碰），`Bars.ReleaseAll` 照 `rec.origW` 復原。
-**How to apply:** 任何「還給暴雪畫」的裝飾都要想一次「它的尺寸是什麼時候定的」——暴雪的 lazy-create 子框大多只在建的時候讀一次父框尺寸。
+**第一版（1.6.23）對玩家無效（2026-10-25 回報）**：發光框幾乎都是**戰鬥中**第一次觸發才建的，CDM 的 item 是保護框，戰鬥中對它子樹 `SetSize` 被擋；而我在呼叫前就記了去重鍵 ⇒ 被擋那一次之後永遠不再試。後續改 pcall、成功才記、被擋掛 `alertPending` 等 `PLAYER_REGEN_ENABLED` 重套（分支 claude/new-session-27a3fb 的 07dd7b3f9，使用者自己實機測 1.6.24 是正常的，2026-10-25 說先不要合、留在分支上；要合時 Extras_test 跟 master 有衝突要解）；`/mcdm debug` 觸發那行印「暴雪發光框=WxH（格子 WxH …）」可對帳。
+**How to apply:** 任何「還給暴雪畫」的裝飾都要想一次「它的尺寸是什麼時候定的」——暴雪的 lazy-create 子框大多只在建的時候讀一次父框尺寸；而對暴雪框子樹的幾何寫入一律假設「第一次會在戰鬥中、會被擋」：pcall＋脫戰重試，去重鍵成功才記。
 
 ## 功能索引（一句話；細節在 README 同名章節）
 
