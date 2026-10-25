@@ -288,7 +288,8 @@ end
 local function CachePut(state, guid, field, value)
     guid = S.SafeValue(guid)
     if not guid or type(value) ~= "number" then return end
-    state.cache[guid] = { [field] = floor(value + 0.5), time = GetTime() }
+    -- 裝等照暴雪角色面板與集合石的算法無條件捨去：329.8 顯示 329，不然玩家會找不到「330」的隊伍
+    state.cache[guid] = { [field] = floor(value), time = GetTime() }
 end
 
 local function GetUnitItemLevel(unit)
@@ -458,7 +459,7 @@ function UnitInfo.GetUnitInfo(unit)
     t.gender       = GetGender(gender)
     t.realm        = realm or GetRealmName()
     t.levelValue   = (plainLevel and plainLevel >= 0) and plainLevel or L["unknown"]
-    t.itemLevel    = isPlayer and ((itemLevel and itemLevel > 0) and floor(itemLevel + 0.5) or L["unknown"]) or nil
+    t.itemLevel    = isPlayer and ((itemLevel and itemLevel > 0) and floor(itemLevel) or L["unknown"]) or nil
     t.achievementPoints = isPlayer and ((achievementPoints and achievementPoints >= 0) and floor(achievementPoints + 0.5) or L["unknown"]) or nil
     t.className    = className
     t.raceName     = raceName
