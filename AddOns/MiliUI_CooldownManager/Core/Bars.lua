@@ -1815,6 +1815,7 @@ function B.ReleaseAll(reason)
         if alert and rec.origW and ns.Decorate and ns.Decorate.SizeProcAlert then
             pcall(ns.Decorate.SizeProcAlert, alert, rec.origW, rec.origH)
         end
+        if alert and ns.Decorate and ns.Decorate.ResetProcAlertLevel then pcall(ns.Decorate.ResetProcAlertLevel, item, alert) end
         if ns.Decorate and ns.Decorate.DimReadyFlash then ns.Decorate.DimReadyFlash(item, false) end   -- 就緒閃光還給暴雪
         pcall(item.SetAlpha, item, 1)
         pcall(item.ClearAllPoints, item)

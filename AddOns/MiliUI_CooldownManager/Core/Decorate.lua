@@ -1964,6 +1964,26 @@ local function SizeProcAlert(alert, w, h)
 end
 D.SizeProcAlert = SizeProcAlert          -- Bars.ReleaseAll 還給暴雪時照原尺寸復原
 
+-- 層級：暴雪把發光框建在 item ＋1，比我們的 overlay（item ＋10，邊框畫在上面）低 ⇒ 尺寸對了之後光圈被 1px 邊框切過，
+-- 圖示四角露在邊框外的光帶裡（2026-10-25 實機）。墊到 overlay ＋2 ＝ 跟我們自己的觸發發光宿主同一層（Glow.lua 的 Host），
+-- 文字（overlay ＋5）照樣在上面。同樣 pcall、成功才記；還給暴雪時 Bars.ReleaseAll 退回 item ＋1
+local ALERT_LIFT = 2
+local alertLevel = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套成功的層級
+local function LiftProcAlert(alert, ov)
+    if not (alert and ov and alert.SetFrameLevel and ov.GetFrameLevel) then return nil end
+    local lvl = (ov:GetFrameLevel() or 1) + ALERT_LIFT
+    if lvl > 9000 then lvl = 9000 end
+    if alertLevel[alert] == lvl then return true end
+    local ok = pcall(alert.SetFrameLevel, alert, lvl)
+    if ok then alertLevel[alert] = lvl end
+    return ok and true or false
+end
+function D.ResetProcAlertLevel(item, alert)
+    if not (item and alert and alert.SetFrameLevel) then return end
+    local ok = pcall(alert.SetFrameLevel, alert, (item:GetFrameLevel() or 0) + 1)
+    if ok then alertLevel[alert] = nil end
+end
+
 -- w, h（格子尺寸）可省：Glow.SyncProc 叫的時候拿 Glow.AfterApply 記的 rec.glowW／glowH；連那個都還沒有
 -- （ShowAlert 搶在第一次 Apply 前）就讀 item 自己的尺寸（明文才用），之後 Apply 會再照格子尺寸套一次
 local function ApplyProcAlert(item, rec, barKey, w, h)
@@ -1980,7 +2000,9 @@ local function ApplyProcAlert(item, rec, barKey, w, h)
             local ok, iw, ih = pcall(item.GetSize, item)
             if ok then w, h = Plain(iw), Plain(ih) end
         end
-        if SizeProcAlert(alert, w, h) == false then alertPending[item] = rec else alertPending[item] = nil end
+        local blocked = SizeProcAlert(alert, w, h) == false
+        if LiftProcAlert(alert, rec.overlay) == false then blocked = true end
+        alertPending[item] = blocked and rec or nil
     end
 end
 D.ApplyProcAlert = ApplyProcAlert

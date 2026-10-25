@@ -2955,8 +2955,13 @@ do
             self.sets = self.sets + 1; self.w, self.h = w, h
         end
         function a.ProcStartFlipbook:SetSize(w, h) self.sets = self.sets + 1; self.w, self.h = w, h end
+        function a:SetFrameLevel(v)
+            if self.blockedLevel then error("attempted to call a protected function") end
+            self.levelSets = (self.levelSets or 0) + 1; self.level = v
+        end
         return a
     end
+    local function Overlay(lvl) return { GetFrameLevel = function() return lvl end } end
     local savedGlow = ns.Glow
     ns.Glow = { ownsProcAlert = true, OwnsProc = function() return false end }     -- 還給暴雪畫
     local alert = Alert()
@@ -3015,6 +3020,31 @@ do
     eq("已還給暴雪 ⇒ 脫戰不動", D.alertPending[item4], rec4)
     D.alertPending[item4] = nil
     ns.released = saveRel
+
+    -- 層級：墊到 overlay ＋2（跟自己的觸發發光宿主同層、在 1px 邊框之上、文字之下）；同層不重寫；被擋也掛待重試；還給暴雪退回 item ＋1
+    local a5 = Alert()
+    local item5 = { SpellActivationAlert = a5, GetFrameLevel = function() return 100 end }
+    local rec5 = { glowW = 40, glowH = 40, overlay = Overlay(110), claimKey = "essential" }
+    D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
+    check("發光框墊到 overlay ＋2", a5.level == 112 and a5.levelSets == 1)
+    D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
+    eq("同層不重寫", a5.levelSets, 1)
+    rec5.overlay = Overlay(120)
+    D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
+    check("overlay 換層 ⇒ 跟著換", a5.level == 122 and a5.levelSets == 2)
+    a5.blockedLevel = true
+    rec5.overlay = Overlay(130)
+    D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
+    check("層級被擋 ⇒ 掛待重試、尺寸不受影響", D.alertPending[item5] == rec5 and a5.level == 122 and a5.w == 56)
+    a5.blockedLevel = false
+    D.RetryProcAlerts()
+    check("脫戰重套 ⇒ 層級補上、消掉待重試", a5.level == 132 and D.alertPending[item5] == nil)
+    D.ResetProcAlertLevel(item5, a5)
+    eq("還給暴雪 ⇒ 退回 item ＋1", a5.level, 101)
+    D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
+    eq("退回之後再認領 ⇒ 重新墊", a5.level, 132)
+    D.ApplyProcAlert({ SpellActivationAlert = Alert() }, { glowW = 40, glowH = 40 }, "essential", 40, 40)
+    check("沒有 overlay（還沒建）不炸、不掛待重試", true)
 
     local a2 = Alert()
     D.SizeProcAlert(a2, 50, 50)
