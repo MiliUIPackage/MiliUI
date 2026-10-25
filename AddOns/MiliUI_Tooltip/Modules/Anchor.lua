@@ -3,6 +3,7 @@
 --
 -- 入口是 hooksecurefunc(GameTooltip_SetDefaultAnchor)（接觸面清單第 2 條），
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
+-- 世界游標的 Cursor 分支不經過 SetDefaultAnchor，另外後掛勾 GameTooltip.SetWorldCursor（見 OnSetWorldCursor）。
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
 --
 -- 戰鬥中隱藏（2026-10-24 定案，三輪實機）：一張網、一個判斷。
@@ -77,6 +78,17 @@ local function SafeSetOwner(tip, parent, anchorType, ...)
     end
     pcall(tip.SetOwner, tip, parent, anchorType, ...)
     return parent
+end
+
+-- 世界游標的 Cursor 分支重新定位時（OnSetWorldCursor）為真：內容已經畫好了，只換錨點型別、不換 owner
+local keepOwner
+
+local function SetAnchor(tip, parent, anchorType, ...)
+    if keepOwner then
+        pcall(tip.SetAnchorType, tip, anchorType, ...)
+        return parent
+    end
+    return SafeSetOwner(tip, parent, anchorType, ...)
 end
 
 ------------------------------------------------------------
@@ -163,14 +175,19 @@ end
 -- 定位
 ------------------------------------------------------------
 local function AnchorStatic(tip, anchor)
-    -- 只有還錨在預設容器上才搬（別的程式已自行定位就不搶）
-    local ok, _, relativeTo = pcall(tip.GetPoint, tip)
-    if not ok then return end
-    if relativeTo == UIParent or relativeTo == GameTooltipDefaultContainer then
-        tip:ClearAllPoints()
-        local p = anchor.p or "BOTTOMRIGHT"
-        tip:SetPoint(p, UIParent, p, tonumber(anchor.x) or -(CONTAINER_OFFSET_X or 13), tonumber(anchor.y) or (CONTAINER_OFFSET_Y or 76))
+    if keepOwner then
+        -- 世界游標的 Cursor 分支：暴雪剛 SetOwner(UIParent, "ANCHOR_CURSOR")、沒有別人定位過。
+        -- 錨點型別不換掉的話引擎每幀把它拉回游標，SetPoint 留不住
+        if not pcall(tip.SetAnchorType, tip, "ANCHOR_NONE") then return end
+    else
+        -- 只有還錨在預設容器上才搬（別的程式已自行定位就不搶）
+        local ok, _, relativeTo = pcall(tip.GetPoint, tip)
+        if not ok then return end
+        if relativeTo ~= UIParent and relativeTo ~= GameTooltipDefaultContainer then return end
     end
+    tip:ClearAllPoints()
+    local p = anchor.p or "BOTTOMRIGHT"
+    tip:SetPoint(p, UIParent, p, tonumber(anchor.x) or -(CONTAINER_OFFSET_X or 13), tonumber(anchor.y) or (CONTAINER_OFFSET_Y or 76))
 end
 
 local function AnchorDefaultPosition(tip, parent, anchor, finally)
@@ -225,11 +242,11 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnch
         local cp = anchor.cp or "BOTTOMLEFT"
         -- 兩個沒偏移的常用方向直接交給引擎（原生游標錨點，不用自己每幀 SetPoint）
         if cx == 0 and cy == 0 and cp == "BOTTOMLEFT" then
-            SafeSetOwner(tip, parent, "ANCHOR_CURSOR_RIGHT", 36, -12)
+            SetAnchor(tip, parent, "ANCHOR_CURSOR_RIGHT", 36, -12)
         elseif cx == 0 and cy == 0 and cp == "BOTTOM" then
-            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
+            SetAnchor(tip, parent, "ANCHOR_CURSOR")
         else
-            SafeSetOwner(tip, parent, "ANCHOR_CURSOR")
+            SetAnchor(tip, parent, "ANCHOR_CURSOR")
             StartCursorFollow(tip, cp, cx, cy)
         end
     elseif anchor.position == "inherit" and not finally then
@@ -309,6 +326,41 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
     local _, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
     AnchorFrame(tip, parent, anchor, isUnitFrame, nil, combatAnchor)
 end)
+
+------------------------------------------------------------
+-- 世界游標的 Cursor 分支（2026-10-25 玩家回報：錨點設固定位置，滑過「探究者的補給品」還是跟著游標）
+--
+-- 暴雪 SetWorldCursor 照 WORLD_CURSOR_TOOLTIP_UPDATE 的 anchorType 定位：Default 走 SetDefaultAnchor（上面接得到）；
+-- Cursor（補給品、礦、草這類物件；地上的戰利品物件是 ANCHOR_CURSOR_RIGHT）直接 SetOwner(UIParent, "ANCHOR_CURSOR")，
+-- 上面的掛勾沒跑 ⇒ 固定位置、自訂游標方向都不生效。
+-- 後掛勾 SetWorldCursor 照同一套設定重新定位。這時 ProcessInfo 已經跑完（內容畫好、面板也接了）⇒ 不再 SetOwner
+-- （對已顯示內容的副作用沒把握，暴雪自己只在畫內容之前叫），只 SetAnchorType 換錨點型別＋SetPoint（接觸面 #8）。
+-- 面板錨在原生的角上，原生搬了它就跟著；下一次對帳照原生的新錨點換角。
+-- 「暴雪預設」照舊不動（游標旁就是暴雪對物件的預設）
+------------------------------------------------------------
+local WCA_CURSOR = Enum and Enum.WorldCursorAnchorType and Enum.WorldCursorAnchorType.Cursor or 2
+
+local function OnSetWorldCursor(tip, anchorType)
+    if tip ~= GameTooltip or not ns.db or S.IsForbiddenObject(tip) then return end
+    if S.PlainNumber(anchorType) ~= WCA_CURSOR then return end
+    -- 滑開（沒內容）走的是藏／淡出；戰鬥隱藏的網在 Show 當下就藏了
+    local okS, shown = pcall(tip.IsShown, tip)
+    if not okS or S.IsSecret(shown) or not shown then return end
+    -- 暴雪定位之後又有人換過錨點就不搶
+    local okT, at = pcall(tip.GetAnchorType, tip)
+    if not okT or S.IsSecret(at) or (at ~= "ANCHOR_CURSOR" and at ~= "ANCHOR_CURSOR_RIGHT") then return end
+    local _, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
+    keepOwner = true
+    local ok = xpcall(AnchorFrame, ns.ReportError, tip, UIParent, anchor, isUnitFrame, nil, combatAnchor)
+    keepOwner = nil
+    if ns.logEnabled then
+        ns.Log("世界游標 Cursor 分支 重新定位 %s → %s%s", at,
+            ns.Describe(S.SafeCall(tip.GetAnchorType, tip)), ok and "" or "（出錯）")
+    end
+end
+if GameTooltip and GameTooltip.SetWorldCursor then
+    hooksecurefunc(GameTooltip, "SetWorldCursor", OnSetWorldCursor)
+end
 
 ------------------------------------------------------------
 -- 網：OnShow 後掛勾（檔頭）。提示從哪條路顯示都會到這裡；該藏就當場拆面板再 Hide。
