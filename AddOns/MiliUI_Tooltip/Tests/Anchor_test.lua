@@ -64,9 +64,16 @@ local function Setup()
     tip.StatusBar = H.Region("StatusBar", tip)
     tip.StatusBar.shown = true      -- 引擎血條：GetUnit 那份有 healthGUID ⇒ SetWatch 過
     tip.setUnits = {}
-    function tip:SetOwner(owner, anchorType) self.owner, self.anchorType, self.infoList = owner, anchorType, nil end
+    function tip:SetOwner(owner, anchorType)
+        self.ownerCalls = (self.ownerCalls or 0) + 1
+        self.owner, self.anchorType, self.infoList = owner, anchorType, nil
+    end
     function tip:GetOwner() return self.owner end
     function tip:GetAnchorType() return self.anchorType end
+    function tip:SetAnchorType(anchorType, x, y)
+        self.anchorTypeCalls = (self.anchorTypeCalls or 0) + 1
+        self.anchorType, self.anchorX, self.anchorY = anchorType, x, y
+    end
     function tip:SetUnit(unit)
         self.setUnits[#self.setUnits + 1] = unit
         self.infoList = { { getterName = "GetUnit", getterArgs = { unit } } }
@@ -80,6 +87,29 @@ local function Setup()
     function tip:FadeOut() self.fades = (self.fades or 0) + 1 end
     -- 暴雪的 SetWorldCursor 換上新內容
     function tip:WorldCursorContent() self.infoList = { { getterName = "GetWorldCursor" } } end
+    -- 暴雪的 SetWorldCursor 整支（Blizzard_GameTooltip/Mainline/GameTooltip.lua）：Default 走 SetDefaultAnchor；
+    -- Cursor 直接 SetOwner(UIParent, "ANCHOR_CURSOR")（地上的戰利品物件是 ANCHOR_CURSOR_RIGHT），引擎把框貼到游標；
+    -- 有資料就畫內容＋Show，沒有（滑開）就收掉自己那份
+    function tip:SetWorldCursor(anchorType)
+        local data = env.C_TooltipInfo.GetWorldCursor()
+        local old = self:GetPrimaryTooltipInfo()
+        if anchorType == 1 then
+            self:SetOwner(env.UIParent, "ANCHOR_NONE")
+            self:ClearAllPoints()
+            self:SetPoint("BOTTOMRIGHT", env.UIParent, "BOTTOMRIGHT", -13, 76)
+            defaultAnchorHooks.GameTooltip_SetDefaultAnchor(self, env.UIParent)
+        elseif anchorType == 2 then
+            self:SetOwner(env.UIParent, data and data.worldLootObjectInventoryType and "ANCHOR_CURSOR_RIGHT" or "ANCHOR_CURSOR")
+            self:ClearAllPoints()
+            self:SetPoint("BOTTOMLEFT", env.UIParent, "BOTTOMLEFT", 640, 300)
+        end
+        if data then
+            self:WorldCursorContent()
+            self:Show()
+        elseif old and old.getterName == "GetWorldCursor" then
+            self:Hide()
+        end
+    end
 
     local barState = { barUnit = "mouseover" }
     local ns = {
@@ -232,6 +262,75 @@ do
     o.env.combat = false
     o.Shift(true)
     eq("不在戰鬥：不叫回", #o.tip.setUnits, 0)
+end
+
+------------------------------------------------------------
+-- 6. 世界游標的 Cursor 分支（2026-10-25 玩家回報：錨點設固定位置，滑過補給品還是跟著游標）：
+--    暴雪直接 SetOwner(UIParent, "ANCHOR_CURSOR")、不經過 SetDefaultAnchor ⇒ SetWorldCursor 後掛勾照設定重新定位；
+--    內容已經畫好 ⇒ 只換錨點型別與點，不再 SetOwner
+------------------------------------------------------------
+local function WorldSetup(position)
+    local t = Setup()
+    t.env.combat = false
+    t.ns.db.anchor.position = position
+    t.ns.db.anchor.hiddenInCombat = false
+    return t
+end
+
+do
+    local t = WorldSetup("static")
+    local tip = t.tip
+    tip:SetWorldCursor(2)
+    check("固定位置：顯示中", tip.shown)
+    eq("固定位置：錨點型別換成 ANCHOR_NONE（引擎不再拉回游標）", tip:GetAnchorType(), "ANCHOR_NONE")
+    eq("固定位置：只有暴雪那一次 SetOwner", tip.ownerCalls, 1)
+    check("固定位置：owner 不變", tip:GetOwner() == t.env.UIParent)
+    local info = tip:GetPrimaryTooltipInfo()
+    eq("固定位置：內容還在", info and info.getterName, "GetWorldCursor")
+    eq("固定位置：只有一個點", tip:GetNumPoints(), 1)
+    local p, rel, rp, x, y = tip:GetPoint(1)
+    eq("固定位置：點", tostring(p) .. "|" .. tostring(rp), "BOTTOMRIGHT|BOTTOMRIGHT")
+    check("固定位置：貼 UIParent", rel == t.env.UIParent)
+    eq("固定位置：位移", tostring(x) .. "," .. tostring(y), "-30,30")
+    -- 滑開：暴雪自己藏，我們不動
+    t.env.worldData = nil
+    local calls = tip.anchorTypeCalls
+    tip:SetWorldCursor(2)
+    check("滑開：藏掉", not tip.shown)
+    eq("滑開：不再換錨點", tip.anchorTypeCalls, calls)
+end
+
+do  -- 地上的戰利品物件（ANCHOR_CURSOR_RIGHT）一樣搬
+    local t = WorldSetup("static")
+    t.env.worldData = { type = 2, worldLootObjectInventoryType = 1 }
+    t.tip:SetWorldCursor(2)
+    eq("戰利品物件：搬到固定位置", t.tip:GetAnchorType(), "ANCHOR_NONE")
+end
+
+do  -- 跟隨游標（預設右上）：照設定換成 ANCHOR_CURSOR_RIGHT 36,-12，不 SetOwner
+    local t = WorldSetup("cursor")
+    t.tip:SetWorldCursor(2)
+    eq("跟隨游標：照設定的方向", t.tip:GetAnchorType(), "ANCHOR_CURSOR_RIGHT")
+    eq("跟隨游標：位移", tostring(t.tip.anchorX) .. "," .. tostring(t.tip.anchorY), "36,-12")
+    eq("跟隨游標：只有暴雪那一次 SetOwner", t.tip.ownerCalls, 1)
+    -- 之後一般的 SetDefaultAnchor 照舊 SetOwner（旗標有收回）
+    t.defaultAnchorHooks.GameTooltip_SetDefaultAnchor(t.tip, t.env.UIParent)
+    eq("旗標收回：SetDefaultAnchor 照舊 SetOwner", t.tip.ownerCalls, 2)
+end
+
+do  -- 暴雪預設：不動（游標旁就是暴雪對物件的預設）
+    local t = WorldSetup("default")
+    t.tip:SetWorldCursor(2)
+    eq("暴雪預設：照暴雪的游標錨點", t.tip:GetAnchorType(), "ANCHOR_CURSOR")
+    eq("暴雪預設：沒換錨點型別", t.tip.anchorTypeCalls, nil)
+end
+
+do  -- Default 分支：SetDefaultAnchor 掛勾已經搬好，後掛勾不重做
+    local t = WorldSetup("static")
+    t.tip:SetWorldCursor(1)
+    eq("Default 分支：後掛勾不碰", t.tip.anchorTypeCalls, nil)
+    local p, _, _, x, y = t.tip:GetPoint(1)
+    eq("Default 分支：照固定位置", tostring(p) .. "|" .. tostring(x) .. "," .. tostring(y), "BOTTOMRIGHT|-30,30")
 end
 
 H.finish("Anchor_test")
