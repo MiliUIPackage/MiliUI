@@ -1056,6 +1056,10 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "가장자리 선 숨기기"
 L["Hide recharge countdown"] = "충전 카운트다운 숨기기"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "충전이 남아 있을 때만 다음 충전까지의 초를 숨깁니다. 충전을 다 쓰면 재사용 대기 카운트다운은 평소대로 표시됩니다."
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "끄기"
+L["On"] = "켜기"
+L["On (no charges)"] = "켜기 (충전 없음)"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "플레이어 창"

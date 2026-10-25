@@ -1056,6 +1056,10 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Ocultar linha da borda"
 L["Hide recharge countdown"] = "Ocultar contagem da recarga"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Oculta os segundos até a próxima carga só enquanto ainda resta uma. Sem cargas, a contagem da recarga aparece normalmente."
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "Desativado"
+L["On"] = "Ativado"
+L["On (no charges)"] = "Ativado (sem cargas)"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Quadro do jogador"

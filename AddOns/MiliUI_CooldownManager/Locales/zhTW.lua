@@ -1085,6 +1085,10 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "不畫邊緣亮線"
 L["Hide recharge countdown"] = "隱藏回充倒數"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "只在還有充能時隱藏下一層的倒數；充能用完時，冷卻倒數照常顯示。"
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "關閉"
+L["On"] = "開啟"
+L["On (no charges)"] = "開啟（充能用完）"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "玩家框架"
