@@ -1940,15 +1940,18 @@ end
 --
 -- ⚠ 暴雪只在**建的那一刻**照 item 當時的尺寸定發光框（×1.4，Blizzard_ActionBar/Shared/ActionButtonSpellAlerts.lua 的
 -- GetAlertFrame），之後 item 被我們 SetSize 它不跟 ⇒ 格子比暴雪模板（50／30）大時發光縮在圖示裡：方形的四個角露在光圈外，
--- 圓角／圓形被形狀遮罩遮掉看不出來（玩家回報 2026-10-24）。所以每次都照格子尺寸重設一次：框 ×ALERT_SCALE（見下）、入場爆光圖 ProcStartFlipbook 等比（模板寫死 150，是 45px 快捷鍵的比例）。
+-- 圓角／圓形被形狀遮罩遮掉看不出來（玩家回報 2026-10-24）。所以每次都照格子尺寸重設一次：框 ×D.ALERT_SCALE（見下）、入場爆光圖 ProcStartFlipbook 等比（模板寫死 150，是 45px 快捷鍵的比例）。
 -- 只呼叫 SetSize，不寫暴雪框的欄位；上次套的尺寸記在弱鍵表。Masque 在畫的格不碰（它的 ShowAlert 後掛勾照皮定尺寸）。
 -- ⚠ 發光框幾乎都是**戰鬥中**第一次觸發才建的，而 CDM 的 item 是保護框，戰鬥中對它子樹 SetSize 會被擋
 --（1.6.23 第一版直接呼叫、呼叫前就記了去重鍵 ⇒ 被擋那一次之後永遠不再試，玩家回報照舊）：
 -- 改成 pcall、成功才記；被擋的 item 記在 alertPending，PLAYER_REGEN_ENABLED 再套一次。
--- ⚠ 倍率不是暴雪的 1.4：暴雪圖集的光圈是圓角的，1.4 時光帶內緣剛好貼在圖示邊上，直角圖示的四個角露在內緣的圓角外
---（2026-10-25 實機；使用者不要換成 Masque 的方形循環圖）。縮到 1.3 讓光帶內緣壓進圖示邊緣、蓋過四角；要調只動這個數：
--- 越小蓋得越多、往外露的光越少。入場爆光圖照圖示尺寸等比（跟倍率無關）
-local ALERT_SCALE, ALERT_START = 1.3, 150 / 45
+-- ⚠ 倍率不是暴雪的 1.4：暴雪圖集的光圈是圓角的、光帶有寬度，直角圖示的角要落在光帶**亮的那一段**裡才算蓋住
+--（2026-10-25 實機三次：1.3 整圈縮在圖示裡、四角露在圈外；1.4 光帶內緣貼在圖示邊上、角落只有淡淡一層；
+-- 使用者不要換成 Masque 的方形循環圖，所以往外放大讓亮帶壓到角的對角線上）。
+-- 數字放 D.ALERT_SCALE，/mcdm alertscale <倍率> 可以在遊戲裡現場改（D.SetProcAlertScale），定案再回來改這個預設。
+-- 入場爆光圖照圖示尺寸等比（跟倍率無關）
+D.ALERT_SCALE = 1.5
+local ALERT_START = 150 / 45
 local alertSized = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套成功的尺寸鍵
 local alertPending = setmetatable({}, { __mode = "k" })   -- item → rec：戰鬥中被擋，脫戰重套
 D.alertPending = alertPending                             -- /mcdm debug／測試用
@@ -1956,9 +1959,9 @@ D.alertPending = alertPending                             -- /mcdm debug／測�
 local function SizeProcAlert(alert, w, h)
     w, h = tonumber(w), tonumber(h)
     if not (alert and w and h and w > 0 and h > 0) then return nil end
-    local key = w .. "x" .. h
+    local key = w .. "x" .. h .. "@" .. D.ALERT_SCALE
     if alertSized[alert] == key then return true end
-    local ok = pcall(alert.SetSize, alert, w * ALERT_SCALE, h * ALERT_SCALE)
+    local ok = pcall(alert.SetSize, alert, w * D.ALERT_SCALE, h * D.ALERT_SCALE)
     local start = alert.ProcStartFlipbook
     if ok and start and start.SetSize then ok = pcall(start.SetSize, start, w * ALERT_START, h * ALERT_START) end
     if ok then alertSized[alert] = key end
@@ -2008,6 +2011,19 @@ local function ApplyProcAlert(item, rec, barKey, w, h)
     end
 end
 D.ApplyProcAlert = ApplyProcAlert
+
+-- /mcdm alertscale <倍率>：現場改倍率，所有已建的發光框立刻重套（去重鍵帶倍率，換了就不中）
+function D.SetProcAlertScale(v)
+    v = tonumber(v)
+    if not v or v < 0.5 or v > 3 then return nil end
+    D.ALERT_SCALE = v
+    if ns.Viewers and ns.Viewers.EnumerateItems then
+        ns.Viewers.EnumerateItems(function(item, rec)
+            if item.SpellActivationAlert then ApplyProcAlert(item, rec, rec.claimKey or rec.barKey) end
+        end)
+    end
+    return v
+end
 
 -- 脫戰：戰鬥中被擋的發光框重套（先收成清單再套：ApplyProcAlert 會改 alertPending）
 local function RetryProcAlerts()

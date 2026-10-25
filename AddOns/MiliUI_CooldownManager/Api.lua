@@ -1081,6 +1081,11 @@ SlashCmdList.MILIUICDM = function(msg)
         end
     elseif msg == "perf" or msg:match("^perf%s") then
         Perf(msg:match("^perf%s+(%S+)"))
+    elseif msg:match("^alertscale") then
+        -- 除錯用：暴雪觸發發光框相對格子的倍率（Core/Decorate.lua 的 D.ALERT_SCALE），現場改、全部重套；定案改回程式預設
+        local D = ns.Decorate
+        local v = D and D.SetProcAlertScale and D.SetProcAlertScale(msg:match("^alertscale%s+([%d%.]+)"))
+        print(ns.PREFIX_COLOR .. "[米利冷卻 debug]|r 暴雪觸發發光框倍率 " .. (v and ("＝ " .. v) or ("目前 " .. tostring(D and D.ALERT_SCALE) .. "；用法 /mcdm alertscale 1.5（0.5～3）")))
     elseif msg == "release" then
         -- 除錯用：把暴雪的冷卻管理器還給暴雪（item、檢視器、發光、按鍵文字），/reload 才接回來
         if ns.Bars and ns.Bars.ReleaseAll and not ns.released then

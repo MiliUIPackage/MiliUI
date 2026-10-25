@@ -2968,12 +2968,12 @@ do
     local item = { SpellActivationAlert = alert }
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
     eq("還給暴雪 ⇒ alpha 1", alert.alpha, 1)
-    check("框 ＝ 格子 ×1.3（用傳進來的 w, h）", alert.w == 78 and alert.h == 78)
+    check("框 ＝ 格子 ×1.5（用傳進來的 w, h）", alert.w == 90 and alert.h == 90)
     check("入場爆光圖等比（45px ⇒ 150）", math.abs(alert.ProcStartFlipbook.w - 200) < 1e-9 and math.abs(alert.ProcStartFlipbook.h - 200) < 1e-9)
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
     eq("同尺寸不重寫", alert.sets, 1)
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential")
-    check("沒給 w, h ⇒ 用 rec.glowW／glowH", alert.sets == 2 and alert.w == 52)
+    check("沒給 w, h ⇒ 用 rec.glowW／glowH", alert.sets == 2 and alert.w == 60)
     D.ApplyProcAlert(item, {}, "essential")
     eq("尺寸讀不到 ⇒ 不寫", alert.sets, 2)
     eq("尺寸讀不到 ⇒ 不算待重試", D.alertPending[item], nil)
@@ -2981,14 +2981,14 @@ do
     eq("Masque 在畫 ⇒ 不碰尺寸", alert.sets, 2)
     ns.Glow.OwnsProc = function() return true end
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 70, 70)
-    check("我們接管 ⇒ alpha 0，尺寸照樣跟著（之後還給暴雪不必再補）", alert.alpha == 0 and alert.w == 91)
+    check("我們接管 ⇒ alpha 0，尺寸照樣跟著（之後還給暴雪不必再補）", alert.alpha == 0 and alert.w == 105)
     ns.Glow.OwnsProc = function() return false end
 
     -- 還沒 Apply 過（沒有 glowW）：讀 item 自己的尺寸
     local a3 = Alert()
     local item3 = { SpellActivationAlert = a3, GetSize = function() return 50, 50 end }
     D.ApplyProcAlert(item3, {}, "essential")
-    check("沒有 glowW ⇒ 讀 item 的尺寸 ×1.3", a3.w == 65 and a3.h == 65)
+    check("沒有 glowW ⇒ 讀 item 的尺寸 ×1.5", a3.w == 75 and a3.h == 75)
     local a3s = Alert()
     D.ApplyProcAlert({ SpellActivationAlert = a3s, GetSize = function() return Secret(), Secret() end }, {}, "essential")
     eq("item 尺寸是秘密值 ⇒ 不寫", a3s.sets, 0)
@@ -3004,12 +3004,12 @@ do
     check("被擋期間再叫：還是會再試（沒有去重鍵）、仍待重試", a4.sets == 0 and D.alertPending[item4] == rec4)
     a4.blocked = false
     D.RetryProcAlerts()
-    check("脫戰重套 ⇒ 套成功（用 glowW）、alertPending 消掉", a4.w == 52 and D.alertPending[item4] == nil)
+    check("脫戰重套 ⇒ 套成功（用 glowW）、alertPending 消掉", a4.w == 60 and D.alertPending[item4] == nil)
     D.ApplyProcAlert(item4, rec4, "essential", 40, 40)
     eq("之後同尺寸 ⇒ 去重生效", a4.sets, 1)
     a4.blocked = true
     D.ApplyProcAlert(item4, rec4, "essential", 80, 80)
-    check("換尺寸又被擋 ⇒ 再掛", D.alertPending[item4] == rec4 and a4.w == 52)
+    check("換尺寸又被擋 ⇒ 再掛", D.alertPending[item4] == rec4 and a4.w == 60)
     item4.SpellActivationAlert = nil
     D.RetryProcAlerts()
     eq("脫戰時框已經不在 ⇒ 只消掉、不炸", D.alertPending[item4], nil)
@@ -3035,7 +3035,7 @@ do
     a5.blockedLevel = true
     rec5.overlay = Overlay(130)
     D.ApplyProcAlert(item5, rec5, "essential", 40, 40)
-    check("層級被擋 ⇒ 掛待重試、尺寸不受影響", D.alertPending[item5] == rec5 and a5.level == 122 and a5.w == 52)
+    check("層級被擋 ⇒ 掛待重試、尺寸不受影響", D.alertPending[item5] == rec5 and a5.level == 122 and a5.w == 60)
     a5.blockedLevel = false
     D.RetryProcAlerts()
     check("脫戰重套 ⇒ 層級補上、消掉待重試", a5.level == 132 and D.alertPending[item5] == nil)
@@ -3048,11 +3048,24 @@ do
 
     local a2 = Alert()
     D.SizeProcAlert(a2, 50, 50)
-    check("ReleaseAll 的復原：照原尺寸 ×1.3", a2.w == 65 and a2.h == 65)
+    check("ReleaseAll 的復原：照原尺寸 ×1.5", a2.w == 75 and a2.h == 75)
     D.SizeProcAlert(a2, 0, 50); D.SizeProcAlert(a2, "x", 50); D.SizeProcAlert(nil, 50, 50)
     eq("壞尺寸不寫、不炸", a2.sets, 1)
     D.ApplyProcAlert({}, { glowW = 40, glowH = 40 }, "essential", 60, 60)
     check("沒有發光框（還沒 ShowAlert 過）不炸", true)
+    -- /mcdm alertscale：倍率現場改 ⇒ 去重鍵不中、立刻重套；壞值不收
+    local a6 = Alert()
+    local item6 = { SpellActivationAlert = a6 }
+    local rec6 = { glowW = 40, glowH = 40, claimKey = "essential" }
+    D.ApplyProcAlert(item6, rec6, "essential")
+    eq("倍率改前", a6.w, 60)
+    eq("壞值不收", D.SetProcAlertScale("x"), nil)
+    eq("超出範圍不收", D.SetProcAlertScale(9), nil)
+    eq("倍率沒被壞值動到", D.ALERT_SCALE, 1.5)
+    eq("改倍率回新值", D.SetProcAlertScale("2"), 2)
+    D.ApplyProcAlert(item6, rec6, "essential")
+    check("倍率換了 ⇒ 去重鍵不中、重套", a6.w == 80 and a6.sets == 2)
+    D.SetProcAlertScale(1.5)
     ns.Glow = savedGlow
 end
 
