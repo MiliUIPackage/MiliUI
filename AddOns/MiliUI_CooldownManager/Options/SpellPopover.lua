@@ -279,12 +279,12 @@ local TOGGLES = {
       tab = "icon", tip = L["Only the time and stack count stay. The border, shape, shadow and swipe go with the icon."] },
     -- 回充的長相（Core/Decorate.lua）：只在這招現在有充能時出現；長條類的條不適用。隱藏倒數只給暴雪的冷卻格
     -- （自訂法術的回充本來就不顯示倒數，Modules/Custom.lua 的 ApplyChargeLook）
-    -- demo：勾選框右邊的「!」，滑過演開與關的差別（ns.Specs.ChargeDemoMark，同主題頁）
-    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true, demo = "swipe" },
-    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true, demo = "edge" },
-    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true, demo = "timer" },
+    -- demo：勾選框右邊的「!」，滑過演開與關的差別（ns.Specs.DemoMark，同主題頁）
+    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true, demo = "chargeSwipe" },
+    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true, demo = "chargeEdge" },
+    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true, demo = "chargeTimer" },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
-    { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
+    { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look", demo = "dimNoAura",
       tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },
     -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：決定格子在不在 ⇒ 一般分頁
     { field = "hideNoItem",       label = L["Hide when none in bags"], when = HideNoItemWhen, tab = "general" },
@@ -1116,7 +1116,7 @@ local function Build()
         local note = Note(tr)
         if t.demo then
             -- 「!」夾在勾選框與「值從哪來」的灰字之間
-            local mark = ns.Specs.ChargeDemoMark(tr, t.demo, t.label)
+            local mark = ns.Specs.DemoMark(tr, t.demo, t.label)
             mark:SetPoint("LEFT", cb, "RIGHT", 12, 0)
             note:SetPoint("LEFT", mark, "RIGHT", 8, 0)
         else
@@ -1657,15 +1657,20 @@ local function Build()
     local EMPTY_LOCKED = "locked"
     local function EmptyAura(kind, class) return IsAura(kind) or BlizzAura(kind, class) end
     local pr = NewRow(L["While the buff is missing"], EmptyAura)
-    local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X, {}, function(value)
+    local EM_MARK_W = 16 + 10                -- 右邊的示意「!」＋間距
+    local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X - EM_MARK_W, {}, function(value)
         if not Pop.cur then return end
         if value == EMPTY_LOCKED then Pop.Refresh() return end
         ns.DB.SetOverride(Pop.cur.id, "emptyMode", value or nil)
         Changed()
     end)
-    emdd:SetMaxWidth(ROW_W - CTRL_X)
+    emdd:SetMaxWidth(ROW_W - CTRL_X - EM_MARK_W)
     emdd:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.emptyModeDD = emdd
+    -- 示意「!」（ns.Specs.DemoMark）：長條類的條演空長條那一版；開在哪一條顯示那一刻才知道
+    ns.Specs.DemoMark(pr, function()
+        return (Pop.cur and ns.Setting(Pop.cur.key, "kind") == "bars") and "emptyModeBars" or "emptyMode"
+    end, L["While the buff is missing"]):SetPoint("LEFT", emdd, "RIGHT", 10, 0)
     -- 右鍵清：寫法同 RightClickClears
     do
         local hit = CreateFrame("Frame", nil, pr)

@@ -1089,6 +1089,8 @@ L["Hides the seconds until the next charge only while you still have one left. W
 L["Off"] = "關閉"
 L["On"] = "開啟"
 L["On (no charges)"] = "開啟（充能用完）"
+L["Your debuff is on the target"] = "目標身上有你的減益"
+L["No debuff on the target"] = "目標身上沒有你的減益"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "玩家框架"

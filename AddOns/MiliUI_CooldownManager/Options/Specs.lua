@@ -29,7 +29,8 @@
 --   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
 --   subTab   "cooldown" | "duration" | "charges" | "stacks"：只進那個子分頁的表單（K；Specs.FilterSubTab）
 --   subGroup "cd" | "cs"：subTab 屬於哪一組子分頁（Specs.SUBTAB_GROUPS）
---   demo     "swipe" | "edge" | "timer"：勾選框右邊掛回充長相的示意「!」（Specs.ChargeDemoMark）
+--   demo     示意的鍵（"gcd"、"readyFlash"、"debuffBorder"、"pandemic"、"chargeSwipe"…）：勾選框右邊掛示意「!」
+--            （Specs.DemoMark，鍵的清單在那一節的 DEMOS）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -922,9 +923,10 @@ function Specs.Themed(mode, key)
             disabled = function(info) return MasqueOwns(info) or not ReadThemed(info, "icon.shadow") end })),
         NB(ShapeNoteRow()),
         TS("icon", "color", "icon.swipeColor", L["Cooldown swipe color"], { hasAlpha = true }),
-        CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"])),
+        -- demo：勾選框右邊的「!」，滑過演開與關的差別（Specs.DemoMark）
+        CD(TS("icon", "toggle", "icon.hideGCDSwipe", L["Hide GCD swipe"], { demo = "gcd" })),
         -- 暴雪的就緒閃光（Core/Decorate.lua 的 DimReadyFlash）：增益兩條沒有這個動畫 ⇒ 不出現
-        CD(TS("icon", "toggle", "icon.hideReadyFlash", L["Hide ready flash"])),
+        CD(TS("icon", "toggle", "icon.hideReadyFlash", L["Hide ready flash"], { demo = "readyFlash" })),
         CD(Note(L["Blizzard plays a short flash over the icon just before its cooldown ends."], "icon")),
         CD(TS("icon", "toggle", "icon.desaturateOnCooldown", L["Desaturate on cooldown"])),
         CS(TS("icon", "dropdown", "icon.cdState", L["Cooldown state"], { items = CDSTATE_ITEMS,
@@ -941,7 +943,7 @@ function Specs.Themed(mode, key)
         -- 增益持續時間的變色顏色（icon.durationLowColor）搬到「文字」節增益持續時間那一組（J），資料路徑不變
         CS(TS("icon", "color", "icon.durationSwipeColor", L["Buff duration swipe color"], { hasAlpha = true, disabled = DurationOff })),
         CS(Note(L["After you use a spell that gives you a buff, the countdown shows the buff's remaining time first and the cooldown only after it ends. This colors that first part."], "icon")),
-        AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"])),
+        AU(TS("icon", "toggle", "icon.hideDebuffBorder", L["Hide debuff type border"], { demo = "debuffBorder" })),
         AU(Note(L["Blizzard frames debuffs you track (on your target) in their dispel-type color."], "icon")),
         -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：收掉＝讓位（Core/Bars.lua）；逐法術小窗可以蓋
         TS("icon", "toggle", "icon.hideNoItem", L["Hide when none in bags"]),
@@ -959,11 +961,10 @@ function Specs.Themed(mode, key)
         -- 回充的長相（Core/Decorate.lua）：三個都是改掉暴雪原本的（不畫轉圈、畫邊緣、顯示倒數），預設全關。
         -- 增益兩條與長條類的條用不到（同冷卻狀態效果的 CS）
         CS(Nested(L["While recharging"], "icon")),
-        -- demo：勾選框右邊的「!」，滑過演開與關的差別（Specs.ChargeDemoMark）
-        CS(TS("icon", "toggle", "icon.chargeSwipe", L["Show cooldown swipe"], { demo = "swipe" })),
+        CS(TS("icon", "toggle", "icon.chargeSwipe", L["Show cooldown swipe"], { demo = "chargeSwipe" })),
         CS(Note(L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."], "icon")),
-        CS(TS("icon", "toggle", "icon.chargeHideEdge", L["Hide edge line"], { demo = "edge" })),
-        CS(TS("icon", "toggle", "icon.chargeHideTimer", L["Hide recharge countdown"], { demo = "timer" })),
+        CS(TS("icon", "toggle", "icon.chargeHideEdge", L["Hide edge line"], { demo = "chargeEdge" })),
+        CS(TS("icon", "toggle", "icon.chargeHideTimer", L["Hide recharge countdown"], { demo = "chargeTimer" })),
         CS(Note(L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."], "icon")))
 
     -- 文字
@@ -1109,10 +1110,10 @@ function Specs.Themed(mode, key)
         TS("glow", "slider", "glow.active.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.active.type") }),
         GlowSampleRow("active"))
     add(Nested(L["Pandemic"], "glow"),
-        TS("glow", "toggle", "pandemic.enabled", L["Color the border"]),
+        TS("glow", "toggle", "pandemic.enabled", L["Color the border"], { demo = "pandemic" }),
         Note(L["While a buff or debuff can be refreshed without losing time, its border turns this color."], "glow"),
         TS("glow", "color", "pandemic.color", L["Pandemic border color"]),
-        TS("glow", "toggle", "pandemic.bars", L["Color bars too"]))
+        TS("glow", "toggle", "pandemic.bars", L["Color bars too"], { demo = "pandemicBars" }))
     -- 音效：響什麼是逐法術設定（預覽裡點圖示）；主題頁放總開關與聲道，條頁只有覆寫數＋清除。
     -- 不掛 section：音效不走「跟隨全域主題」，條頁不蓋遮罩
     add({ type = "header", label = L["Sounds"], tab = "sound" })
@@ -1165,6 +1166,9 @@ function EmptyModeRow(key, isBars)
         end)
         dd:SetMaxWidth(width)
         dd:SetPoint("LEFT", parent, "TOPLEFT", x, y - 13)
+        -- 示意「!」（Specs.DemoMark）：下拉右邊，演三個選項各自的結果
+        Specs.DemoMark(parent, isBars and "emptyModeBars" or "emptyMode", L["While the buff is missing"])
+            :SetPoint("LEFT", dd, "RIGHT", 10, 0)
         -- 黃字提示：只在建表單當下需要時建（列高跟著加）；之後狀態變了由 BarSignature 換表單
         local hint = Specs.EmptyModeHint(key)
         local hintFS, hintH = nil, 0
@@ -1324,151 +1328,538 @@ end
 Specs.GlowSampleRow = function(which, path) return GlowSampleRow(which, path) end
 
 ------------------------------------------------------------
--- 回充的長相示意（使用者 2026-10-25：只有文字很難懂）：勾選框右邊一個「!」小方塊（樣式同子分頁卡片的「!」），
--- 滑過彈出一塊提示皮，並排幾顆樣本圖示一直轉同一個六秒的回充：「關閉」＝暴雪原本（不畫轉圈、畫邊緣亮線、
--- 顯示倒數），「開啟」只改掉那一項；隱藏回充倒數多一格「充能用完」：倒數照常（同 Core/Decorate.lua 的
--- ApplyChargeLook——沒充能時暴雪餵的是一般冷卻，不算回充）。
--- 樣本是自己畫的假格（同發光預覽），不套主題的邊框／字型：要看的只是三個開關的差別。
--- 彈窗整個介面共用一塊（框刪不掉 ⇒ 第一次滑過才建）；主題頁／條頁（spec.demo，BuildForm 擺位置）與
--- 逐法術小窗（TOGGLES 的 demo）都叫 Specs.ChargeDemoMark
+-- 設定的示意「!」（使用者 2026-10-25：只有文字很難懂）：勾選框／下拉右邊一個「!」小方塊（樣式同子分頁卡片的「!」），
+-- 滑過彈出一塊提示皮，幾顆自己畫的樣本格並排、一直循環演「關閉」與「開啟」的差別（關閉＝暴雪原本或現況）。
+-- 只給活預覽演不出來的那幾個：要靠遊戲狀況才出現的東西（GCD、目標身上的減益、增益消失、充能、暴雪自己畫的閃光）。
+-- 樣本不套主題的邊框／字型：要看的只是那個開關的差別。
+-- 彈窗整個介面共用一塊（框刪不掉 ⇒ 第一次滑過才建）；每個示意是一塊面板（DEMOS[id].build，第一次用到才建、之後藏／顯示）：
+--   panel.cells        一排樣本（各帶 w／h／cap 說明字／Inset 顯示時換算 1px 的內縮）
+--   panel:Layout()     量字、擺格子（顯示之後叫：字寬字高要框顯示過才量得到）→ panel.w／panel.h
+--   panel:Reset(now)   循環從頭（顯示時叫）
+--   panel:Tick(now)    每幀（彈窗的 OnUpdate）
+-- 主題頁／條頁（spec.demo，BuildForm 擺位置；EmptyModeRow 自己擺）與逐法術小窗（TOGGLES 的 demo、增益不在時那一列）
+-- 都叫 Specs.DemoMark(parent, id, 標題)；id 可以是函式（顯示那一刻才決定是哪個示意）
 ------------------------------------------------------------
 do
-    local SIZE, DUR, PAD, GAP = 40, 6, 10, 14
-    local BLIZZ = { edge = true, time = true, charges = 1 }
-    -- { 格子底下的字, 長相 }：swipe 暗色轉圈、edge 邊緣亮線、time 倒數、charges 角落的充能數
-    local DEMOS = {
-        swipe = { { L["Off"], BLIZZ }, { L["On"], { swipe = true, edge = true, time = true, charges = 1 } } },
-        edge  = { { L["Off"], BLIZZ }, { L["On"], { time = true, charges = 1 } } },
-        timer = { { L["Off"], BLIZZ }, { L["On"], { edge = true, charges = 1 } },
-                  { L["On (no charges)"], { swipe = true, time = true, charges = 0 } } },
-    }
-    local demo
+    local SIZE, PAD, GAP, CAP_GAP = 40, 10, 14, 4
+    local WHITE = "Interface\\BUTTONS\\WHITE8X8"
+    local DOT_ICON = "Interface\\Icons\\Spell_Shadow_ShadowWordPain"
+    local DEMOS = {}
+    local popup
 
-    local function Cell(parent)
+    local function Caption(parent, text)
+        local fs = parent:CreateFontString(nil, "OVERLAY")
+        fs:SetFontObject(W.fontSmall)
+        fs:SetTextColor(0.65, 0.65, 0.65)
+        fs:SetJustifyH("CENTER")
+        fs:SetText(text or "")
+        return fs
+    end
+
+    -- 樣本格：黑底內縮 1px 當邊框（bg 露出來的那一圈）、圖示、轉圈（倒數自己寫，不受「顯示冷卻倒數」那個 CVar 影響）、
+    -- 覆蓋層上的倒數字與角落數字、底下的說明字
+    local function NewCell(parent, icon, size)
+        size = size or SIZE
         local c = CreateFrame("Frame", nil, parent)
-        c:SetSize(SIZE, SIZE)
-        local bg = ns.P.NoSnap(c:CreateTexture(nil, "BACKGROUND"))
-        bg:SetAllPoints()
-        bg:SetColorTexture(0, 0, 0, 1)
+        c:SetSize(size, size)
+        c.w, c.h = size, size
+        c.bg = ns.P.NoSnap(c:CreateTexture(nil, "BACKGROUND"))
+        c.bg:SetAllPoints()
+        c.bg:SetColorTexture(0, 0, 0, 1)
         c.icon = ns.P.NoSnap(c:CreateTexture(nil, "ARTWORK"))
-        c.icon:SetTexture(SAMPLE_ICON)
+        c.icon:SetTexture(icon or SAMPLE_ICON)
         c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         local ok, cd = pcall(CreateFrame, "Cooldown", nil, c, "CooldownFrameTemplate")
         if ok and cd then
             cd:SetAllPoints(c.icon)
-            cd:SetHideCountdownNumbers(true)       -- 倒數自己寫（不受「顯示冷卻倒數」那個 CVar 影響）
+            cd:SetHideCountdownNumbers(true)
             cd:SetDrawBling(false)
-            pcall(cd.SetSwipeTexture, cd, "Interface\\BUTTONS\\WHITE8X8", 1, 1, 1, 1)
+            cd:SetDrawEdge(false)
+            cd:SetDrawSwipe(false)
+            pcall(cd.SetSwipeTexture, cd, WHITE, 1, 1, 1, 1)
             cd:SetSwipeColor(0, 0, 0, 0.8)         -- 主題預設的轉圈色（icon.swipeColor）
             c.cd = cd
         end
         local ov = CreateFrame("Frame", nil, c)
         ov:SetAllPoints()
         ov:SetFrameLevel(c:GetFrameLevel() + 5)
+        c.ov = ov
         c.time = ov:CreateFontString(nil, "OVERLAY")
-        ns.Media.SetFont(c.time, 16, "OUTLINE")
+        ns.Media.SetFont(c.time, size >= 36 and 16 or 11, "OUTLINE")
         c.time:SetPoint("CENTER")
-        c.charges = ov:CreateFontString(nil, "OVERLAY")
-        ns.Media.SetFont(c.charges, 12, "OUTLINE")
-        c.charges:SetPoint("BOTTOMRIGHT", -2, 2)
-        c.cap = parent:CreateFontString(nil, "OVERLAY")
-        c.cap:SetFontObject(W.fontSmall)
-        c.cap:SetTextColor(0.65, 0.65, 0.65)
-        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -4)
+        c.corner = ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.corner, 12, "OUTLINE")
+        c.corner:SetPoint("BOTTOMRIGHT", -2, 2)
+        c.cap = Caption(parent)
+        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -CAP_GAP)
+        function c:Inset()                         -- 邊框粗細在顯示時換算（1px 規則 ③）
+            local px = ns.P.Pixel(1)
+            self.icon:ClearAllPoints()
+            self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", px, -px)
+            self.icon:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -px, px)
+        end
         return c
     end
 
-    local function Restart(d, now)
-        d.start, d.left = now, nil
-        for i = 1, d.n do
-            local cd = d.cells[i].cd
-            if cd then cd:SetCooldown(now, DUR) end
+    -- 樣本長條：黑底、左邊方形圖示、右邊條身（白貼圖、職業色填充、暗底），時間字靠右
+    local BAR_W, BAR_H = 110, 20
+    local function NewBar(parent, icon, w, h)
+        w, h = w or BAR_W, h or BAR_H
+        local c = CreateFrame("Frame", nil, parent)
+        c:SetSize(w, h)
+        c.w, c.h = w, h
+        c.bg = ns.P.NoSnap(c:CreateTexture(nil, "BACKGROUND"))
+        c.bg:SetAllPoints()
+        c.bg:SetColorTexture(0, 0, 0, 1)
+        c.icon = ns.P.NoSnap(c:CreateTexture(nil, "ARTWORK"))
+        c.icon:SetTexture(icon or SAMPLE_ICON)
+        c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        c.body = CreateFrame("StatusBar", nil, c)
+        c.body:SetStatusBarTexture(WHITE)
+        ns.P.NoSnap(c.body)
+        c.body:SetMinMaxValues(0, 1)
+        c.body:SetValue(1)
+        c.body:SetStatusBarColor(W.Accent(1))
+        local track = ns.P.NoSnap(c.body:CreateTexture(nil, "BACKGROUND"))
+        track:SetAllPoints()
+        track:SetColorTexture(0.1, 0.1, 0.1, 1)
+        c.ov = CreateFrame("Frame", nil, c)
+        c.ov:SetAllPoints()
+        c.ov:SetFrameLevel(c.body:GetFrameLevel() + 5)
+        c.time = c.ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.time, 11, "OUTLINE")
+        c.time:SetPoint("RIGHT", c.body, "RIGHT", -3, 0)
+        c.cap = Caption(parent)
+        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -CAP_GAP)
+        function c:Inset()
+            local px = ns.P.Pixel(1)
+            self.icon:ClearAllPoints()
+            self.icon:SetPoint("TOPLEFT", self, "TOPLEFT", px, -px)
+            self.icon:SetSize(self.h - 2 * px, self.h - 2 * px)
+            self.body:ClearAllPoints()
+            self.body:SetPoint("TOPLEFT", self.icon, "TOPRIGHT", px, 0)
+            self.body:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -px, px)
+        end
+        return c
+    end
+
+    local function SetCD(c, now, dur)
+        if c.cd then c.cd:SetCooldown(now, dur) end
+    end
+    local function ClearCD(c)
+        if c.cd then c.cd:Clear() end
+    end
+    -- 秒數變了才寫字
+    local function PutTime(c, left)
+        if c.shownLeft ~= left then
+            c.shownLeft = left
+            c.time:SetText(left and tostring(left) or "")
         end
     end
 
-    local function Demo()
-        if demo then return demo end
-        demo = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-        demo:SetFrameStrata("TOOLTIP")
-        demo:SetClampedToScreen(true)
-        demo:Hide()
-        demo.title = demo:CreateFontString(nil, "OVERLAY")
-        demo.title:SetFontObject(W.fontNormal)
-        demo.title:SetPoint("TOPLEFT", demo, "TOPLEFT", PAD, -PAD)
-        demo.cells, demo.n = {}, 0
-        demo:SetScript("OnUpdate", function(self)
-            -- 設定視窗在滑鼠還停著時被關掉：不一定等得到 OnLeave
-            if not (self.owner and self.owner:IsVisible()) then self:Hide() return end
-            local now = GetTime()
-            if now >= self.start + DUR then Restart(self, now) end
-            local left = math.ceil(self.start + DUR - now)
-            if left == self.left then return end
-            self.left = left
-            for i = 1, self.n do
-                local c = self.cells[i]
-                c.time:SetText(c.look.time and tostring(left) or "")
-            end
-        end)
-        return demo
-    end
-
-    -- 字寬字高在框顯示之後才量（第一次滑過時框還沒顯示過，量到的可能是 0）
-    local function Layout(d)
-        local px = ns.P.Pixel(1)
-        local top = PAD + math.ceil(d.title:GetStringHeight()) + 8
-        local x, capH = PAD, 0
-        for i = 1, d.n do
-            local c = d.cells[i]
-            local colW = math.max(SIZE, math.ceil(c.cap:GetStringWidth()))
+    -- 一排樣本橫向排開：欄寬＝樣本寬與說明字取大；panel.status（可省）排在底下再一行，寬度照 statusTexts 裡最長的量
+    local function RowLayout(panel)
+        local x, h = 0, 0
+        for _, c in ipairs(panel.cells) do
+            if c.Inset then c:Inset() end
+            local colW = math.max(c.w, math.ceil(c.cap:GetStringWidth()))
             c:ClearAllPoints()
-            c:SetPoint("TOPLEFT", d, "TOPLEFT", x + math.floor((colW - SIZE) / 2), -top)
+            c:SetPoint("TOPLEFT", panel, "TOPLEFT", x + math.floor((colW - c.w) / 2), 0)
             x = x + colW + GAP
-            c.icon:ClearAllPoints()
-            c.icon:SetPoint("TOPLEFT", c, "TOPLEFT", px, -px)
-            c.icon:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -px, px)
-            capH = math.max(capH, math.ceil(c.cap:GetStringHeight()))
+            h = math.max(h, c.h + CAP_GAP + math.ceil(c.cap:GetStringHeight()))
         end
-        d:SetSize(math.max(x - GAP + PAD, math.ceil(d.title:GetStringWidth()) + PAD * 2),
-            top + SIZE + 4 + capH + PAD)
+        local w = x - GAP
+        if panel.status then
+            local cur = panel.status:GetText()
+            for _, t in ipairs(panel.statusTexts or {}) do
+                panel.status:SetText(t)
+                w = math.max(w, math.ceil(panel.status:GetStringWidth()))
+            end
+            panel.status:SetText(cur or "")
+            panel.status:ClearAllPoints()
+            panel.status:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -(h + 6))
+            h = h + 6 + math.ceil(panel.status:GetStringHeight())
+        end
+        panel.w, panel.h = w, h
+        panel:SetSize(math.max(1, w), math.max(1, h))
     end
 
-    local function Show(owner, which, label)
-        local defs = DEMOS[which]
-        if not defs then return end
-        local d = Demo()
-        ns.Style.ApplyTooltipPanel(d)              -- 1px 邊在顯示時換算（1px 規則 ③）
-        d.title:SetText(label or "")
+    local function NewPanel(parent)
+        local p = CreateFrame("Frame", nil, parent)
+        p.cells = {}
+        p.Layout = RowLayout
+        return p
+    end
+
+    local function TwoCells(p, icon, swipe)
+        local off, on = NewCell(p, icon), NewCell(p, icon)
+        off.cap:SetText(L["Off"])
+        on.cap:SetText(L["On"])
+        if swipe then
+            if off.cd then off.cd:SetDrawSwipe(true) end
+            if on.cd then on.cd:SetDrawSwipe(true) end
+        end
+        p.cells[1], p.cells[2] = off, on
+        return off, on
+    end
+
+    ------------------------------------------------------------
+    -- 回充的長相（三個開關各一個）：六秒回充循環。關閉＝暴雪原本（不畫轉圈、畫邊緣亮線、顯示倒數），開啟只改那一項；
+    -- 隱藏回充倒數多一格「充能用完」：倒數照常（Core/Decorate.lua 的 ApplyChargeLook——沒充能時暴雪餵的是一般冷卻，不算回充）
+    ------------------------------------------------------------
+    local BLIZZ = { edge = true, time = true, charges = 1 }
+    local CHARGE_LOOKS = {
+        chargeSwipe = { { L["Off"], BLIZZ }, { L["On"], { swipe = true, edge = true, time = true, charges = 1 } } },
+        chargeEdge  = { { L["Off"], BLIZZ }, { L["On"], { time = true, charges = 1 } } },
+        chargeTimer = { { L["Off"], BLIZZ }, { L["On"], { edge = true, charges = 1 } },
+                        { L["On (no charges)"], { swipe = true, time = true, charges = 0 } } },
+    }
+    local CHARGE_DUR = 6
+    local function BuildCharge(parent, defs)
+        local p = NewPanel(parent)
         for i, def in ipairs(defs) do
-            local c = d.cells[i]
-            if not c then c = Cell(d); d.cells[i] = c end
+            local c = NewCell(p)
             local look = def[2]
             c.look = look
             c.cap:SetText(def[1])
             c.icon:SetDesaturated(look.charges == 0)     -- 主題預設冷卻中去飽和
-            c.charges:SetText(tostring(look.charges))
-            c.time:SetText("")
+            c.corner:SetText(tostring(look.charges))
             if c.cd then
                 c.cd:SetDrawSwipe(look.swipe and true or false)
                 c.cd:SetDrawEdge(look.edge and true or false)
             end
-            c:Show()
-            c.cap:Show()
+            p.cells[i] = c
         end
-        for i = #defs + 1, #d.cells do
-            d.cells[i]:Hide()
-            d.cells[i].cap:Hide()
+        function p:Reset(now)
+            self.start = now
+            for _, c in ipairs(self.cells) do SetCD(c, now, CHARGE_DUR) end
         end
-        d.n = #defs
-        d:ClearAllPoints()
-        d:SetPoint("BOTTOMLEFT", owner, "TOPRIGHT", 4, 4)   -- 同 GameTooltip 的 ANCHOR_RIGHT
-        d.owner = owner
-        Restart(d, GetTime())
-        d:Show()
-        Layout(d)
+        function p:Tick(now)
+            if now >= self.start + CHARGE_DUR then self:Reset(now) end
+            local left = math.ceil(self.start + CHARGE_DUR - now)
+            for _, c in ipairs(self.cells) do PutTime(c, c.look.time and left or nil) end
+        end
+        return p
+    end
+    for id, defs in pairs(CHARGE_LOOKS) do
+        DEMOS[id] = { build = function(parent) return BuildCharge(parent, defs) end }
     end
 
-    -- which："swipe"｜"edge"｜"timer"；label：彈窗標題（那一列的名字）。位置由呼叫端錨
-    function Specs.ChargeDemoMark(parent, which, label)
+    ------------------------------------------------------------
+    -- 隱藏 GCD 轉圈：每施放任何法術，所有就緒的圖示都跑一次公共冷卻的短轉圈。關閉＝跑，開啟＝不跑
+    ------------------------------------------------------------
+    local GCD_PERIOD, GCD_DUR = 2.2, 1.2
+    DEMOS.gcd = { build = function(parent)
+        local p = NewPanel(parent)
+        local off = TwoCells(p, nil, false)
+        if off.cd then off.cd:SetDrawSwipe(true) end
+        function p:Reset(now)
+            self.start = now
+            SetCD(off, now, GCD_DUR)
+        end
+        function p:Tick(now)
+            if now >= self.start + GCD_PERIOD then self:Reset(now) end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 隱藏減益類型邊框：暴雪對追蹤中的減益（目標身上你的減益）在圖示外框一圈驅散類型色
+    -- （CooldownViewerItemDebuffBorderTemplate：錨在圖示外 3px，圖集 ui-debuff-border-<類型>-noicon，
+    -- AuraUtil.SetAuraBorderAtlas）。關閉＝有那一圈（示意畫魔法的紫），開啟＝沒有。那一圈比我們的 1px 邊框大一圈 ⇒ 兩層外框
+    ------------------------------------------------------------
+    DEMOS.debuffBorder = { build = function(parent)
+        local p = NewPanel(parent)
+        local off = TwoCells(p, DOT_ICON, false)
+        local ring = ns.P.NoSnap(off.ov:CreateTexture(nil, "BACKGROUND"))
+        ring:SetPoint("TOPLEFT", off.icon, "TOPLEFT", -3, 3)
+        ring:SetPoint("BOTTOMRIGHT", off.icon, "BOTTOMRIGHT", 3, -3)
+        ring:SetAtlas("ui-debuff-border-magic-noicon")
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 無損刷新邊框變色：增益／減益還能不損失時間就刷新的那一段（暴雪的 PandemicStateFrame 旗標），overlay 邊框換成設定色；
+    -- 「條也上色」長條條身也換（Core/Glow.lua 的 ApplyPandemic）。示意跑六秒的減益，最後三成邊框（／條身）變色
+    ------------------------------------------------------------
+    local PAN_DUR, PAN_FRAC = 6, 0.3
+    local function PandemicColor()
+        local c = ns.Setting("theme", "pandemic.color")
+        if type(c) ~= "table" then return 1, 0.5, 0, 1 end
+        return c.r or 1, c.g or 0.5, c.b or 0, 1
+    end
+    DEMOS.pandemic = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = TwoCells(p, DOT_ICON, true)
+        function p:Reset(now)
+            self.start, self.lit = now, nil
+            SetCD(off, now, PAN_DUR)
+            SetCD(on, now, PAN_DUR)
+            on.bg:SetColorTexture(0, 0, 0, 1)
+        end
+        function p:Tick(now)
+            if now >= self.start + PAN_DUR then self:Reset(now) end
+            local rem = self.start + PAN_DUR - now
+            local left = math.ceil(rem)
+            PutTime(off, left)
+            PutTime(on, left)
+            local lit = rem <= PAN_DUR * PAN_FRAC
+            if lit ~= self.lit then
+                self.lit = lit
+                if lit then on.bg:SetColorTexture(PandemicColor()) else on.bg:SetColorTexture(0, 0, 0, 1) end
+            end
+        end
+        return p
+    end }
+    DEMOS.pandemicBars = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = NewBar(p, DOT_ICON), NewBar(p, DOT_ICON)
+        off.cap:SetText(L["Off"])
+        on.cap:SetText(L["On"])
+        p.cells[1], p.cells[2] = off, on
+        function p:Reset(now)
+            self.start, self.lit = now, nil
+            for _, c in ipairs(self.cells) do c.body:SetStatusBarColor(W.Accent(1)) end
+            on.bg:SetColorTexture(0, 0, 0, 1)
+        end
+        function p:Tick(now)
+            if now >= self.start + PAN_DUR then self:Reset(now) end
+            local rem = self.start + PAN_DUR - now
+            local frac, left = rem / PAN_DUR, math.ceil(rem)
+            for _, c in ipairs(self.cells) do
+                c.body:SetValue(frac)
+                PutTime(c, left)
+            end
+            local lit = rem <= PAN_DUR * PAN_FRAC
+            if lit ~= self.lit then
+                self.lit = lit
+                if lit then
+                    local r, g, b = PandemicColor()
+                    on.body:SetStatusBarColor(r, g, b, 1)
+                    on.bg:SetColorTexture(r, g, b, 1)
+                else
+                    on.body:SetStatusBarColor(W.Accent(1))
+                    on.bg:SetColorTexture(0, 0, 0, 1)
+                end
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 效果不在時變暗（逐法術）：暴雪這一格沒在倒你的光環時間（目標身上沒有你的減益、或沒有目標）⇒ 整格乘上變暗透明度
+    -- （icon.cdStateAlpha）。示意兩段輪流：三秒「目標身上有你的減益」（倒減益時間）、三秒「沒有」（就緒；開啟的那格變暗）
+    ------------------------------------------------------------
+    local DIM_PHASE = 3
+    DEMOS.dimNoAura = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = TwoCells(p, DOT_ICON, true)
+        p.status = Caption(p)
+        p.status:SetJustifyH("LEFT")
+        p.statusTexts = { L["Your debuff is on the target"], L["No debuff on the target"] }
+        function p:Reset(now)
+            self.start, self.has = now, nil
+        end
+        function p:Tick(now)
+            if now >= self.start + DIM_PHASE * 2 then self:Reset(now) end
+            local has = now - self.start < DIM_PHASE
+            if has ~= self.has then
+                self.has = has
+                if has then
+                    SetCD(off, now, DIM_PHASE)
+                    SetCD(on, now, DIM_PHASE)
+                    on:SetAlpha(1)
+                    self.status:SetText(self.statusTexts[1])
+                else
+                    ClearCD(off)
+                    ClearCD(on)
+                    PutTime(off, nil)
+                    PutTime(on, nil)
+                    on:SetAlpha(tonumber(ns.Setting("theme", "icon.cdStateAlpha")) or 0.4)
+                    self.status:SetText(self.statusTexts[2])
+                end
+            end
+            if has then
+                local left = math.ceil(self.start + DIM_PHASE - now)
+                PutTime(off, left)
+                PutTime(on, left)
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 增益不在時（條層 layout.emptyMode／逐法術 emptyMode）三態：中間那格的增益每 2.5 秒消失、回來，三欄各畫一種結果：
+    -- 往前補（後面的往前移）、留空位、暗圖示佔位（長條類：空長條）。三格用三個不同的圖示，才看得出誰移了
+    ------------------------------------------------------------
+    local EM_PHASE, EM_SIZE, EM_GAP = 2.5, 24, 3
+    local EM_BAR_W, EM_BAR_H = 72, 12
+    local EM_ICONS = { "Interface\\Icons\\Spell_Nature_Rejuvenation", "Interface\\Icons\\Spell_Holy_PowerWordShield",
+                       "Interface\\Icons\\Spell_Holy_Renew" }
+    local function BuildEmpty(parent, isBars)
+        local p = NewPanel(parent)
+        for i, it in ipairs(Specs.EmptyModeItems(isBars)) do
+            local col = CreateFrame("Frame", nil, p)
+            col.mode, col.cells = it.value, {}
+            if isBars then
+                col.w, col.h = EM_BAR_W, EM_BAR_H * 3 + EM_GAP * 2
+            else
+                col.w, col.h = EM_SIZE * 3 + EM_GAP * 2, EM_SIZE
+            end
+            col:SetSize(col.w, col.h)
+            for j = 1, 3 do
+                local c = isBars and NewBar(col, EM_ICONS[j], EM_BAR_W, EM_BAR_H) or NewCell(col, EM_ICONS[j], EM_SIZE)
+                c.cap:Hide()
+                col.cells[j] = c
+            end
+            col.cap = Caption(p, it.text)
+            col.cap:SetPoint("TOP", col, "BOTTOM", 0, -CAP_GAP)
+            function col:Inset()
+                for _, c in ipairs(self.cells) do c:Inset() end
+            end
+            function col:Place(c, slot)
+                c:ClearAllPoints()
+                if isBars then
+                    c:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -(slot - 1) * (EM_BAR_H + EM_GAP))
+                else
+                    c:SetPoint("TOPLEFT", self, "TOPLEFT", (slot - 1) * (EM_SIZE + EM_GAP), 0)
+                end
+            end
+            function col:Apply(missing)
+                local mid, last = self.cells[2], self.cells[3]
+                mid:SetShown(not missing or self.mode == "dim")
+                self:Place(last, (missing and self.mode == "collapse") and 2 or 3)
+                if self.mode == "dim" then
+                    mid.icon:SetDesaturated(missing)
+                    if isBars then mid.body:SetValue(missing and 0 or 1) else mid:SetAlpha(missing and 0.5 or 1) end
+                end
+            end
+            p.cells[i] = col
+        end
+        function p:Reset(now)
+            self.start, self.missing = now, nil
+            for _, col in ipairs(self.cells) do
+                for j, c in ipairs(col.cells) do col:Place(c, j) end
+            end
+        end
+        function p:Tick(now)
+            local missing = ((now - self.start) % (EM_PHASE * 2)) >= EM_PHASE
+            if missing ~= self.missing then
+                self.missing = missing
+                for _, col in ipairs(self.cells) do col:Apply(missing) end
+            end
+        end
+        return p
+    end
+    DEMOS.emptyMode     = { build = function(parent) return BuildEmpty(parent, false) end }
+    DEMOS.emptyModeBars = { build = function(parent) return BuildEmpty(parent, true) end }
+
+    ------------------------------------------------------------
+    -- 隱藏就緒閃光：暴雪在冷卻結束前 0.75 秒蓋在圖示上播的翻頁動畫（item.CooldownFlash：圖集 UI-HUD-ActionBar-GCD-Flipbook、
+    -- 11 列 2 行 22 格 0.75 秒，同快捷列 GCD 結束的那一下）。示意跑四秒冷卻＋一秒就緒，關閉的那格結束前播同一段
+    ------------------------------------------------------------
+    local RF_DUR, RF_PERIOD, RF_LEAD = 4, 5, 0.75
+    DEMOS.readyFlash = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = TwoCells(p, nil, true)
+        local flash = off.ov:CreateTexture(nil, "BACKGROUND")
+        flash:SetAllPoints(off.icon)
+        flash:SetAtlas("UI-HUD-ActionBar-GCD-Flipbook")
+        flash:SetAlpha(0)
+        local ag = flash:CreateAnimationGroup()
+        local fb = ag:CreateAnimation("FlipBook")
+        fb:SetOrder(1)
+        fb:SetDuration(RF_LEAD)
+        fb:SetFlipBookRows(11)
+        fb:SetFlipBookColumns(2)
+        fb:SetFlipBookFrames(22)
+        fb:SetFlipBookFrameWidth(0)
+        fb:SetFlipBookFrameHeight(0)
+        ag:SetScript("OnFinished", function() flash:SetAlpha(0) end)
+        function p:Reset(now)
+            self.start, self.fired, self.ready = now, false, false
+            SetCD(off, now, RF_DUR)
+            SetCD(on, now, RF_DUR)
+            off.icon:SetDesaturated(true)          -- 主題預設冷卻中去飽和
+            on.icon:SetDesaturated(true)
+        end
+        function p:Tick(now)
+            if now >= self.start + RF_PERIOD then self:Reset(now) end
+            local rem = self.start + RF_DUR - now
+            if rem > 0 then
+                local left = math.ceil(rem)
+                PutTime(off, left)
+                PutTime(on, left)
+                if not self.fired and rem <= RF_LEAD then
+                    self.fired = true
+                    flash:SetAlpha(1)
+                    ag:Stop()
+                    ag:Play()
+                end
+            elseif not self.ready then
+                self.ready = true
+                PutTime(off, nil)
+                PutTime(on, nil)
+                off.icon:SetDesaturated(false)
+                on.icon:SetDesaturated(false)
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 彈窗與「!」
+    ------------------------------------------------------------
+    local function Popup()
+        if popup then return popup end
+        popup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+        popup:SetFrameStrata("TOOLTIP")
+        popup:SetClampedToScreen(true)
+        popup:Hide()
+        popup.title = popup:CreateFontString(nil, "OVERLAY")
+        popup.title:SetFontObject(W.fontNormal)
+        popup.title:SetPoint("TOPLEFT", popup, "TOPLEFT", PAD, -PAD)
+        popup.panels = {}
+        popup:SetScript("OnUpdate", function(self)
+            -- 設定視窗在滑鼠還停著時被關掉：不一定等得到 OnLeave
+            if not (self.owner and self.owner:IsVisible()) then self:Hide() return end
+            local p = self.panel
+            if p and p.Tick then p:Tick(GetTime()) end
+        end)
+        popup:SetScript("OnHide", function(self)
+            if self.panel then self.panel:Hide() end
+            self.panel, self.owner = nil, nil
+        end)
+        return popup
+    end
+
+    local function Show(owner, id, label)
+        local def = DEMOS[id]
+        if not def then return end
+        local pop = Popup()
+        if pop.panel and pop.panel ~= pop.panels[id] then pop.panel:Hide() end
+        local panel = pop.panels[id]
+        if not panel then
+            panel = def.build(pop)
+            pop.panels[id] = panel
+        end
+        ns.Style.ApplyTooltipPanel(pop)              -- 1px 邊在顯示時換算（1px 規則 ③）
+        pop.title:SetText(label or "")
+        pop:ClearAllPoints()
+        pop:SetPoint("BOTTOMLEFT", owner, "TOPRIGHT", 4, 4)   -- 同 GameTooltip 的 ANCHOR_RIGHT
+        pop.owner, pop.panel = owner, panel
+        panel:Show()
+        pop:Show()
+        panel:Layout()
+        local top = PAD + math.ceil(pop.title:GetStringHeight()) + 8
+        panel:ClearAllPoints()
+        panel:SetPoint("TOPLEFT", pop, "TOPLEFT", PAD, -top)
+        pop:SetSize(math.max(panel.w, math.ceil(pop.title:GetStringWidth())) + PAD * 2, top + panel.h + PAD)
+        if panel.Reset then panel:Reset(GetTime()) end
+    end
+
+    -- id：DEMOS 的鍵（或回傳鍵的函式）；label：彈窗標題（那一列的名字）。位置由呼叫端錨
+    function Specs.DemoMark(parent, id, label)
         local m = CreateFrame("Frame", nil, parent, "BackdropTemplate")
         ns.P.Size(m, 16, 16)
         W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
@@ -1480,11 +1871,11 @@ do
         m:EnableMouse(true)
         m:SetScript("OnEnter", function(self)
             q:SetTextColor(1, 1, 1)
-            Show(self, which, label)
+            Show(self, type(id) == "function" and id() or id, label)
         end)
         m:SetScript("OnLeave", function()
             q:SetTextColor(0.6, 0.6, 0.6)
-            if demo then demo:Hide() end
+            if popup then popup:Hide() end
         end)
         return m
     end
@@ -2375,7 +2766,7 @@ function Specs.BuildForm(parent, controls, ctx, width)
         if (RESETTABLE[row.spec.type] or row.spec.resettable) and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
         -- 示意「!」（spec.demo）：勾選框（18px）右邊，跟它垂直置中。層級在兩種遮罩之下：整節跟隨／停用時一起暗、滑不到
         if row.spec.demo then
-            local m = Specs.ChargeDemoMark(content, row.spec.demo, row.spec.label)
+            local m = Specs.DemoMark(content, row.spec.demo, row.spec.label)
             m:SetPoint("LEFT", content, "TOPLEFT", x0 + LABEL_W + CARD_GAP + 18 + 12, (row.top + row.bottom) / 2)
         end
     end
