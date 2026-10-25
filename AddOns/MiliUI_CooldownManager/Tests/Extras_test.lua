@@ -2969,7 +2969,7 @@ do
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
     eq("還給暴雪 ⇒ alpha 1", alert.alpha, 1)
     check("框 ＝ 格子 ×1.5（用傳進來的 w, h）", alert.w == 90 and alert.h == 90)
-    check("入場爆光圖等比（45px ⇒ 150）", math.abs(alert.ProcStartFlipbook.w - 200) < 1e-9 and math.abs(alert.ProcStartFlipbook.h - 200) < 1e-9)
+    check("入場爆光圖跟發光框等比（63 框 ⇒ 150）", math.abs(alert.ProcStartFlipbook.w - 90 * 150 / 63) < 1e-9 and math.abs(alert.ProcStartFlipbook.h - 90 * 150 / 63) < 1e-9)
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential", 60, 60)
     eq("同尺寸不重寫", alert.sets, 1)
     D.ApplyProcAlert(item, { glowW = 40, glowH = 40 }, "essential")

@@ -1949,9 +1949,13 @@ end
 --（2026-10-25 實機三次：1.3 整圈縮在圖示裡、四角露在圈外；1.4 光帶內緣貼在圖示邊上、角落只有淡淡一層；
 -- 使用者不要換成 Masque 的方形循環圖，所以往外放大讓亮帶壓到角的對角線上）。
 -- 數字放 D.ALERT_SCALE，/mcdm alertscale <倍率> 可以在遊戲裡現場改（D.SetProcAlertScale），定案再回來改這個預設。
--- 入場爆光圖照圖示尺寸等比（跟倍率無關）
+-- 入場爆光圖（ProcStartFlipbook，模板寫死 150）跟著發光框等比：暴雪是 45px 鍵 → 63 框 → 150 爆光，
+-- 比例 150/63 固定，倍率改了爆光也跟著（2026-10-25 玩家回報「先小後大」：之前爆光只照圖示等比、沒跟 1.5 倍，
+-- 0.7 秒的入場爆光比循環光圈小一截）。
+-- ⚠ 探針（2026-10-25 _MCDMAlertProbe）：CDM 的 item 與發光框都**不是**保護框（IsProtected 兩個 false、GetFrameHandle nil），
+-- 戰鬥中 SetSize／SetFrameLevel 都過得了；下面的 pcall＋脫戰重試只是保險，不是必要路徑。
 D.ALERT_SCALE = 1.5
-local ALERT_START = 150 / 45
+local ALERT_START = 150 / 63
 local alertSized = setmetatable({}, { __mode = "k" })     -- alert 框 → 上次套成功的尺寸鍵
 local alertPending = setmetatable({}, { __mode = "k" })   -- item → rec：戰鬥中被擋，脫戰重套
 D.alertPending = alertPending                             -- /mcdm debug／測試用
@@ -1961,10 +1965,15 @@ local function SizeProcAlert(alert, w, h)
     if not (alert and w and h and w > 0 and h > 0) then return nil end
     local key = w .. "x" .. h .. "@" .. D.ALERT_SCALE
     if alertSized[alert] == key then return true end
-    local ok = pcall(alert.SetSize, alert, w * D.ALERT_SCALE, h * D.ALERT_SCALE)
+    local aw, ah = w * D.ALERT_SCALE, h * D.ALERT_SCALE
+    local ok = pcall(alert.SetSize, alert, aw, ah)
     local start = alert.ProcStartFlipbook
-    if ok and start and start.SetSize then ok = pcall(start.SetSize, start, w * ALERT_START, h * ALERT_START) end
+    if ok and start and start.SetSize then ok = pcall(start.SetSize, start, aw * ALERT_START, ah * ALERT_START) end
     if ok then alertSized[alert] = key end
+    if ns.Diag and ns.Diag.Note then
+        ns.Diag.Note("alert", ("發光框重設 %s → %.1fx%.1f（戰鬥中=%s）%s"):format(key, aw, ah,
+            tostring(InCombatLockdown and InCombatLockdown() or false), ok and "" or " 被擋"))
+    end
     return ok and true or false
 end
 D.SizeProcAlert = SizeProcAlert          -- Bars.ReleaseAll 還給暴雪時照原尺寸復原
@@ -1981,6 +1990,7 @@ local function LiftProcAlert(alert, ov)
     if alertLevel[alert] == lvl then return true end
     local ok = pcall(alert.SetFrameLevel, alert, lvl)
     if ok then alertLevel[alert] = lvl end
+    if ns.Diag and ns.Diag.Note then ns.Diag.Note("alert", ("發光框層級 → %d%s"):format(lvl, ok and "" or " 被擋")) end
     return ok and true or false
 end
 function D.ResetProcAlertLevel(item, alert)
