@@ -1056,6 +1056,14 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Скрывать линию края"
 L["Hide recharge countdown"] = "Скрывать отсчёт заряда"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Скрывает секунды до следующего заряда, только пока у вас ещё есть заряд. Без зарядов отсчёт восстановления показывается как обычно."
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "Выкл."
+L["On"] = "Вкл."
+L["On (no charges)"] = "Вкл. (нет зарядов)"
+L["Your debuff is on the target"] = "Ваш дебафф на цели"
+L["No debuff on the target"] = "На цели нет дебаффа"
+L["After a reload, not used yet"] = "После перезагрузки, ещё не использовано"
+L["On the ground"] = "На земле"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Рамка игрока"

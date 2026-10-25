@@ -59,6 +59,13 @@ L["Background colour"] = "背景顏色"
 L["Background opacity"] = "背景不透明度"
 L["Hairline dividers"] = "1px 分隔線"
 
+-- 外觀：音效
+L["Sounds"] = "音效"
+L["Quest completed"] = "任務完成"
+L["Listen"] = "試聽"
+L["Orc peon: \"Work complete!\""] = "獸人苦工：「工作完成！」"
+L["Plays once when a quest in your log becomes ready to turn in. The game's own voice lines come first; sounds other addons register through LibSharedMedia follow."] = "任務記錄裡有任務變成可以交的那一刻響一聲。前面是遊戲內建的語音，後面是其他插件透過 LibSharedMedia 註冊的音效。"
+
 -- 外觀：追蹤器
 L["Tracker"] = "追蹤器"
 L["Strip Blizzard's decorations"] = "移除暴雪的裝飾"

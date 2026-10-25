@@ -27,6 +27,38 @@ local function Apply()
     lastStripArt = now
 end
 
+-- 音效列：下拉＋試聽（照 MiliUI_CooldownManager 逐法術小窗那一列；下拉第一項「無」）。
+-- 不走 ctx：這個值不影響畫面，改了不用 Apply；清單要到開頁那一刻才算得準（LSM 的音效是別的插件註冊的）
+local function SoundRow(label)
+    return { type = "custom", label = label, h = 30, build = function(parent, x, y, width)
+        local W = ns.W
+        local cy = y - 15
+        local listen = W.CreateButton(parent, L["Listen"], "normal", 44, 20)
+        W.FitButton(listen, 44, 20)
+        local dd = W.CreateDropdown(parent, 200, {}, function(v)
+            local snd = ns.db.sounds
+            if not snd then return end
+            snd.questComplete = (type(v) == "string" and v ~= "") and v or false
+            listen:SetEnabled(snd.questComplete ~= false)
+        end)
+        dd:SetMaxWidth(math.max(200, width - listen:GetWidth() - 6))
+        dd:SetPoint("LEFT", parent, "TOPLEFT", x, cy)
+        listen:SetPoint("LEFT", dd, "RIGHT", 6, 0)
+        listen:SetScript("OnClick", function()
+            local v = dd:GetSelected()
+            if type(v) == "string" then ns.Sound.Preview(v) end
+        end)
+        local function Refresh()
+            dd:SetItems(ns.Sound.Items())
+            local v = ns.db.sounds and ns.db.sounds.questComplete
+            dd:SetSelectedValue(type(v) == "string" and v or false)
+            listen:SetEnabled(type(v) == "string")
+        end
+        Refresh()
+        return 30, Refresh
+    end }
+end
+
 local function BuildControls()
     return {
         { type = "header", label = L["Position"] },
@@ -74,6 +106,10 @@ local function BuildControls()
         { type = "toggle", key = "hideBlizzardHeader", label = L["Hide Blizzard's \"All Objectives\" header"] },
         { type = "toggle", key = "clickHeaderToCollapse", label = L["Click a section header to collapse it"] },
         { type = "text",   label = L["Widens the hit area of Blizzard's own +/- button across the whole header row. The click still runs Blizzard's code, not ours."] },
+
+        { type = "header", label = L["Sounds"] },
+        SoundRow(L["Quest completed"]),
+        { type = "text",   label = L["Plays once when a quest in your log becomes ready to turn in. The game's own voice lines come first; sounds other addons register through LibSharedMedia follow."] },
 
         { type = "header", label = L["MiliUI title bar"] },
         { type = "toggle", root = "titleBar", key = "enabled",     label = L["Show the title bar"] },

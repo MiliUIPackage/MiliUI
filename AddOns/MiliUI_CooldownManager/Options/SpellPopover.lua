@@ -279,11 +279,12 @@ local TOGGLES = {
       tab = "icon", tip = L["Only the time and stack count stay. The border, shape, shadow and swipe go with the icon."] },
     -- 回充的長相（Core/Decorate.lua）：只在這招現在有充能時出現；長條類的條不適用。隱藏倒數只給暴雪的冷卻格
     -- （自訂法術的回充本來就不顯示倒數，Modules/Custom.lua 的 ApplyChargeLook）
-    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true },
-    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true },
-    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true },
+    -- demo：勾選框右邊的「!」，滑過演開與關的差別（ns.Specs.DemoMark，同主題頁）
+    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true, demo = "chargeSwipe" },
+    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true, demo = "chargeEdge" },
+    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true, demo = "chargeTimer" },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
-    { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
+    { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look", demo = "dimNoAura",
       tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },
     -- 沒有物品時隱藏（自訂物品）／被動飾品不顯示（飾品欄、代畫格）：決定格子在不在 ⇒ 一般分頁
     { field = "hideNoItem",       label = L["Hide when none in bags"], when = HideNoItemWhen, tab = "general" },
@@ -899,7 +900,8 @@ local function Build()
 
     -- 以增益取代（一般分頁、所在條下面）：第一項「無」＝清掉覆寫；被別的技能用掉的那幾項 value 是 "taken"（選了不寫）
     local rwr, rwh = NewRow(L["Replace with buff"], ReplaceCapable)
-    local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X, {}, function(value)
+    local RW_MARK_W = 16 + 10                -- 右邊的示意「!」＋間距
+    local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X - RW_MARK_W, {}, function(value)
         if not Pop.cur then return end
         if value == "taken" then Pop.Refresh() return end
         if type(value) == "number" then
@@ -919,9 +921,10 @@ local function Build()
         if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
         Changed("membership")
     end)
-    rwdd:SetMaxWidth(ROW_W - CTRL_X)
+    rwdd:SetMaxWidth(ROW_W - CTRL_X - RW_MARK_W)
     rwdd:SetPoint("LEFT", rwr, "LEFT", CTRL_X, 0)
     frame.replaceDD = rwdd
+    ns.Specs.DemoMark(rwr, "replaceWith", L["Replace with buff"]):SetPoint("LEFT", rwdd, "RIGHT", 10, 0)
     local rhit = CreateFrame("Frame", nil, rwr)
     rhit:SetPoint("TOPLEFT", rwr, "TOPLEFT", 0, 0)
     rhit:SetPoint("BOTTOMLEFT", rwr, "BOTTOMLEFT", 0, 0)
@@ -1113,7 +1116,14 @@ local function Build()
         end)
         cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
         local note = Note(tr)
-        note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+        if t.demo then
+            -- 「!」夾在勾選框與「值從哪來」的灰字之間
+            local mark = ns.Specs.DemoMark(tr, t.demo, t.label)
+            mark:SetPoint("LEFT", cb, "RIGHT", 12, 0)
+            note:SetPoint("LEFT", mark, "RIGHT", 8, 0)
+        else
+            note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+        end
         note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
         note:SetWordWrap(false)
         toggles[#toggles + 1] = { field = t.field, cb = cb, note = note, row = tr }
@@ -1373,6 +1383,7 @@ local function Build()
         Changed()
     end)
     sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(sgr, "stackGlow", L["Stack glow"]):SetPoint("LEFT", sswatch, "RIGHT", 10, 0)
     frame.stackCB, frame.stackNum, frame.stackSwatch = scb, num, sswatch
     local shit = CreateFrame("Frame", nil, sgr)
     shit:SetPoint("TOPLEFT", sgr, "TOPLEFT", 0, 0)
@@ -1474,6 +1485,7 @@ local function Build()
         end
     end)
     sbnum:SetPoint("LEFT", sbl, "RIGHT", 6, 0)
+    ns.Specs.DemoMark(sbr, "stacksAsFill", L["Stacks as fill"]):SetPoint("LEFT", sbnum, "RIGHT", 10, 0)
     frame.stackBarCB, frame.stackBarNum = sbcb, sbnum
     RightClickClears(sbr, sbh, "stackBar")
     NoteRow(L["The bar shows the stack count (0 up to the max) instead of the remaining time."], BlizzAuraBar)
@@ -1524,6 +1536,7 @@ local function Build()
         if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
     end)
     tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(tkr, "stackTicks", L["Stack ticks"]):SetPoint("LEFT", tksw, "RIGHT", 10, 0)
     frame.stackTicksCB, frame.stackTicksBox, frame.stackTicksSwatch = tkcb, tkbox, tksw
     RightClickClears(tkr, tkh, "stackTicks")
     -- 刻度自己的最大層數：只有沒勾層數當填充時才出現（勾了就跟它共用）
@@ -1649,15 +1662,20 @@ local function Build()
     local EMPTY_LOCKED = "locked"
     local function EmptyAura(kind, class) return IsAura(kind) or BlizzAura(kind, class) end
     local pr = NewRow(L["While the buff is missing"], EmptyAura)
-    local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X, {}, function(value)
+    local EM_MARK_W = 16 + 10                -- 右邊的示意「!」＋間距
+    local emdd = W.CreateDropdown(pr, ROW_W - CTRL_X - EM_MARK_W, {}, function(value)
         if not Pop.cur then return end
         if value == EMPTY_LOCKED then Pop.Refresh() return end
         ns.DB.SetOverride(Pop.cur.id, "emptyMode", value or nil)
         Changed()
     end)
-    emdd:SetMaxWidth(ROW_W - CTRL_X)
+    emdd:SetMaxWidth(ROW_W - CTRL_X - EM_MARK_W)
     emdd:SetPoint("LEFT", pr, "LEFT", CTRL_X, 0)
     frame.emptyModeDD = emdd
+    -- 示意「!」（ns.Specs.DemoMark）：長條類的條演空長條那一版；開在哪一條顯示那一刻才知道
+    ns.Specs.DemoMark(pr, function()
+        return (Pop.cur and ns.Setting(Pop.cur.key, "kind") == "bars") and "emptyModeBars" or "emptyMode"
+    end, L["While the buff is missing"]):SetPoint("LEFT", emdd, "RIGHT", 10, 0)
     -- 右鍵清：寫法同 RightClickClears
     do
         local hit = CreateFrame("Frame", nil, pr)

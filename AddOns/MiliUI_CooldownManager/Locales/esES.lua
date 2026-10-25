@@ -1056,6 +1056,14 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "Ocultar línea del borde"
 L["Hide recharge countdown"] = "Ocultar cuenta de recarga"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "Oculta los segundos hasta la siguiente carga solo mientras te quede una. Sin cargas, la cuenta del tiempo de reutilización se muestra como siempre."
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "Desactivado"
+L["On"] = "Activado"
+L["On (no charges)"] = "Activado (sin cargas)"
+L["Your debuff is on the target"] = "Tu perjuicio está en el objetivo"
+L["No debuff on the target"] = "Sin perjuicio en el objetivo"
+L["After a reload, not used yet"] = "Tras recargar, aún sin usar"
+L["On the ground"] = "En tierra"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Marco del jugador"

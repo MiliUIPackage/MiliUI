@@ -9,7 +9,7 @@
 ## Category-zhTW: 任務
 ## Category-zhCN: 任务
 ## Author: Mili
-## Version: 1.0.16
+## Version: 1.1.0
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## SavedVariables: MiliUI_QuestTracker_DB
@@ -45,6 +45,7 @@ Modules\Visibility.lua
 Modules\MythicPlus.lua
 Modules\Position.lua
 Modules\AutoQuest.lua
+Modules\Sound.lua
 
 # 共用設定介面：Env 要在 Widgets 之前，而且它讀宿主的語系／字型／職業色
 Libs\MiliUIWidgets\Env.lua

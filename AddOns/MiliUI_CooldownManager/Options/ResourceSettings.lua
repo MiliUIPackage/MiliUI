@@ -188,9 +188,9 @@ local function AppendNumbers(add, key, info)
         put(Note(L["One number format is shared by mana, health and the other large numbers."]))
     end
     if info.fill == "rune" then
-        put(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS }))
+        put(BS("dropdown", "runeText", L["Numbers on runes"], { items = RUNE_TEXT_ITEMS, demo = "runeText" }))
         put(Note(L["Ready runes always line up on the left and recharging ones fill up on the right. With \"Show number\" on, pick one number: the seconds left on each recharging rune, or how many runes are ready in the middle."]))
-        put(BS("toggle", "runeQueued", L["Count waiting runes"]))
+        put(BS("toggle", "runeQueued", L["Count waiting runes"], { demo = "runeQueued" }))
         put(Note(L["Only three runes recharge at a time; the rest wait their turn. With this on, waiting runes also show the seconds until they're ready and fill up across the whole wait."]))
     elseif info.castTimers then
         -- 鐵鬃：比照 YHUD／EllesmereUI，剩餘時間條＋中間層數＋每層一根刻度線，兩個勾選（使用者 2026-10-08 指定，不印秒數）
@@ -337,7 +337,7 @@ local function AppendColors(add, key, info)
     elseif key == "IgnorePain" then
         add(Note(L["Shows only your own Ignore Pain shield, as a percent of how big it can get; the game fills it in itself, so it stays right in combat. Showing the value on the bar prints the percent. Until the bar is ready (for example right after logging in during combat) it falls back to the total of every absorb shield on you, where a full bar is 30 percent of your max health."]))
     elseif key == "MaelstromWeapon" then
-        add(BS("toggle", "maelstromFold", L["Fold into 5 segments"]))
+        add(BS("toggle", "maelstromFold", L["Fold into 5 segments"], { demo = "maelstromFold" }))
         add(Note(L["Stacks 6 to 10 fill the same 5 segments again on top, in the overflow color. Condition colors only apply to the first layer."]))
         add(BS("color", "colors.MaelstromWeapon.overflowColor", L["Overflow color"], { hasAlpha = false }))
     elseif key == "SoulShards" then

@@ -1085,6 +1085,14 @@ L["A spell with charges, while it still has one left and the next one comes back
 L["Hide edge line"] = "不显示边缘亮线"
 L["Hide recharge countdown"] = "隐藏恢复倒数"
 L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."] = "只在还有充能时隐藏下一层的倒数；充能用完时，冷却倒数照常显示。"
+-- 回充示意的「!」彈窗（2026-10-25）：格子底下的字
+L["Off"] = "关闭"
+L["On"] = "开启"
+L["On (no charges)"] = "开启（充能用完）"
+L["Your debuff is on the target"] = "目标身上有你的减益"
+L["No debuff on the target"] = "目标身上没有你的减益"
+L["After a reload, not used yet"] = "刚重载，还没用过"
+L["On the ground"] = "在地面"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "玩家框体"
