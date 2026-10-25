@@ -4,6 +4,8 @@
 -- ⚠ 接觸面清單（要碰暴雪物件的新程式碼必須先過這張表）：
 --   1. TooltipDataProcessor.AddTooltipPostCall（官方入口）
 --   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
+--      GameTooltip.SetWorldCursor（Anchor.lua：世界游標的 Cursor 分支不經過 SetDefaultAnchor，後掛勾照設定重新定位；
+--      內容已畫好 ⇒ 只 SetAnchorType／SetPoint，不 SetOwner）、
 --      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
 --   3. HookScript("OnTooltipCleared")（清理暫態）、GameTooltipStatusBar 的 OnShow／OnHide
@@ -15,7 +17,7 @@
 --   6. 一次性視覺中和：NineSlice:SetAlpha(0)（Skin.lua）、
 --      GameTooltipStatusBar:SetAlpha(0)、ItemRefCloseButton 造型
 --   7. 全域字型物件（Fonts.lua）
---   8. SetOwner / SetPoint / SetScale / Hide 等定位 API（Anchor.lua、Skin.lua）
+--   8. SetOwner / SetAnchorType / SetPoint / SetScale / Hide 等定位 API（Anchor.lua、Skin.lua）
 --   9. per-tip 狀態一律放 Skin.State[tip]，暴雪物件上零欄位寫入
 --  10. 重繪面板（Panel/Native.lua）：tip:SetAlpha(0)／還原、tip:SetPadding(right, bottom,
 --      left, top)／還原——定位類 C 端 setter，只在 panel 成功顯示時寫，Restore 寫回原值

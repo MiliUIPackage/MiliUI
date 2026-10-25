@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-22T16:13:36.090Z
+  modified: 2026-10-25T05:01:27.802Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -217,5 +217,8 @@ Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.too
 **修飾鍵叫回來要照世界游標那份（2026-10-25 玩家回報：戰鬥中按修飾鍵，補給品底下冒出血條、滑開後提示一路跟著游標飛）**：watcher 對世界單位用 `SetUnit("mouseover")` 重建（12.x 已經沒有 `SetMouseoverUnit`，舊分支是死碼），那是 GetUnit 那份資料，跟暴雪 `SetWorldCursor` 的 GetWorldCursor 那份差兩件：①補給品在 GetUnit 那份有 healthGUID ⇒ 引擎條開、我們的條跟著；②getterName 是 "GetUnit"，`SetWorldCursor` 離開時只收 "GetWorldCursor" 的內容（Default 淡出、其他藏）⇒ 沒人收。
 **不能改呼 `GameTooltip:SetWorldCursor`**：一般 mixin，從插件呼叫整段 ProcessInfo 帶污染，遇到秘密行（副本裡戰鬥中）一行都畫不出來（暴雪在 SetWorldCursor 裡的註解自己寫的）；`SetUnit` 這類 accessor 是 `CreateSecureDelegate` 包過的，污染的呼叫也安全。
 修法：叫回時先讀 `C_TooltipInfo.GetWorldCursor()` 記 healthGUID 有無（秘密只看 `type`）與淡出規則（最近一次 `WORLD_CURSOR_TOOLTIP_UPDATE` 的 anchorType），`Bar` 的引擎血條閘先問 `Anchor.ReviveHealth`；自己聽 `WORLD_CURSOR_TOOLTIP_UPDATE`，叫回來那份還在（`GetPrimaryTooltipInfo()` 還是同一張表，只比身分）且游標下沒東西 ⇒ 照暴雪規則 FadeOut／Hide。`Tests/Anchor_test.lua`。未實機：GetUnit 那份對補給品有沒有等級行（有的話叫回來的面板又會畫等級）。
+
+**世界游標有兩條定位路（2026-10-25 玩家回報：錨點設固定位置，滑過補給品還是跟著游標，其他地方都正常）**：暴雪 `SetWorldCursor(anchorType)` 照 `WORLD_CURSOR_TOOLTIP_UPDATE` 的 anchorType 分岔——Default（一般單位）走 `GameTooltip_SetDefaultAnchor`，我們的掛勾接得到；**Cursor（補給品、礦、草這類物件；地上的戰利品物件是 `ANCHOR_CURSOR_RIGHT`）直接 `SetOwner(UIParent, "ANCHOR_CURSOR")`，完全不經過 SetDefaultAnchor**，所以只掛 SetDefaultAnchor 的錨點設定對它無效（log 指紋：面板每 0.1 秒「重貼 own:BOTTOMLEFT」、位移跟著游標變；滑開時 OnHide 的堆疊停在 `SetWorldCursor` 的 `self:Hide()`＝非 Default）。
+修法：`hooksecurefunc(GameTooltip, "SetWorldCursor")` 後掛勾，anchorType＝Cursor、顯示中、錨點型別還是暴雪設的那兩個才動，照同一套 `AnchorFrame` 重新定位。這時 ProcessInfo 已跑完（內容、面板都在）⇒ **不再 SetOwner，改 `SetAnchorType`**（`keepOwner` 旗標讓 AnchorFrame 的 SetOwner 換成 SetAnchorType、AnchorStatic 先換 `ANCHOR_NONE` 再 SetPoint、略過「還錨在預設容器上」檢查）——錨點型別不換掉，引擎每幀把框拉回游標，SetPoint 留不住。面板錨在原生的角上，原生搬了就跟著。「暴雪預設」照舊不動。`Tests/Anchor_test.lua` #6。未實機：`SetAnchorType("ANCHOR_NONE")` 是否真的停掉引擎的游標跟隨（`/mtip log` 會印「世界游標 Cursor 分支 重新定位 X → Y」）。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
