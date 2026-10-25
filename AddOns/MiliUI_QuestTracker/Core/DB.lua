@@ -88,6 +88,12 @@ local function BuildDefaults()
             clickHeaderToCollapse = true,
         },
 
+        -- 音效（Modules/Sound.lua）。questComplete：false ＝ 無；"file:<檔案編號>" ＝ 遊戲內建語音；
+        -- 其餘字串 ＝ LibSharedMedia 音效名。預設無：追蹤器本來就不出聲，要響是玩家自己選的
+        sounds = {
+            questComplete = false,
+        },
+
         titleBar = {
             enabled   = true,
             showCount = true,
@@ -245,6 +251,11 @@ local function Normalize(db)
     local mp = db.mythicPlus
     if mp and mp.align ~= "LEFT" and mp.align ~= "RIGHT" then
         mp.align = "RIGHT"
+    end
+
+    local snd = db.sounds
+    if snd and not (snd.questComplete == false or (type(snd.questComplete) == "string" and snd.questComplete ~= "")) then
+        snd.questComplete = false
     end
 
     local a = db.appearance
