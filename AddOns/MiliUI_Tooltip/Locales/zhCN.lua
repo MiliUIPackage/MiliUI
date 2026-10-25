@@ -178,6 +178,8 @@ L["Show 3D model"] = "显示 3D 模型"
 L["Gray out when dead"] = "死亡时转为灰色"
 L["Lines and icons"] = "显示元素"
 L["Icon instead of text"] = "用图标代替文字标签"
+L["Decimal places"] = "小数位数"
+L["Digits are cut off, never rounded up, so the whole number always matches the character sheet and the Group Finder."] = "小数一律截断、不四舍五入，整数位永远跟角色面板与集合石一样。"
 L["Replaces the text label with a small icon (spec icon for class, dedicated icons for the rest)."] = "把文字标签换成小图标（职业换成专精图标，其余用专属图标）。"
 
 -- 锚点标签页

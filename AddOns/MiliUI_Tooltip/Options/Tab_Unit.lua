@@ -52,6 +52,9 @@ local function BuildControls(kind)
             }
         end
         controls[#controls + 1] = { type = "text", label = L["Replaces the text label with a small icon (spec icon for class, dedicated icons for the rest)."] }
+        controls[#controls + 1] = { type = "header", label = L["Item level"] }
+        controls[#controls + 1] = { type = "slider", sub = "elements", sub2 = "itemLevel", key = "decimals", label = L["Decimal places"], min = 0, max = 2, step = 1 }
+        controls[#controls + 1] = { type = "text", label = L["Digits are cut off, never rounded up, so the whole number always matches the character sheet and the Group Finder."] }
     end
     return controls
 end

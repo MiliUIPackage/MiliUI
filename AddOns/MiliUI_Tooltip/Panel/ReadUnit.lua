@@ -465,6 +465,7 @@ function Panel.UnitFacts(token, config)
             local v = raw.itemLevel
             if v == ns.L["unknown"] then UnitInfo.RequestInspect(token) end
             f.itemLevel = v
+            f.itemLevelDecimals = el.itemLevel and el.itemLevel.decimals
             if type(v) == "number" then
                 local r, g, b = ns.Colors.colorfunc.itemLevel(raw)
                 f.itemLevelColor = ColorTable(r, g, b)

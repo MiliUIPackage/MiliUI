@@ -91,7 +91,7 @@ local function BuildDefaults()
                     guildRank   = { enable = true, color = "cc88ff", wildcard = "(%s)", filter = "none" },
                     guildRealm  = { enable = false, color = "00cccc", wildcard = "%s",  filter = "none" },
                     levelValue  = { enable = true, color = "level",  wildcard = "%s",   filter = "none" },
-                    itemLevel   = { enable = true, color = "itemLevel", wildcard = "%s", filter = "none", icon = false },
+                    itemLevel   = { enable = true, color = "itemLevel", wildcard = "%s", filter = "none", icon = false, decimals = 2 },  -- decimals：0～2，一律截斷
                     achievementPoints = { enable = true, color = "achievement", wildcard = "%s", filter = "none", icon = false },
                     factionName = { enable = true, color = "faction", wildcard = "%s",  filter = "none" },
                     gender      = { enable = false, color = "999999", wildcard = "%s",  filter = "none" },
