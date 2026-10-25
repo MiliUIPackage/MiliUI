@@ -58,22 +58,33 @@ local function EnsureCells(n)
 end
 
 ------------------------------------------------------------
--- 排版：1…count 排成 cols 欄，其餘藏起來
+-- 排版：1…count 排成 rows 列 × cols 欄，其餘藏起來
 --
--- 方向固定「先左到右、再上到下」—— 暴雪原本的 1..12 就是這個順序
--- （1 2 / 3 4 / 5 6 …），改成直排會讓看慣的人每次都要重新找東西。
+-- 兩種順序，設定頁選（`db.order`）：
+--   across  先左到右、再上到下 —— 暴雪原本的 1..12 就是這個順序（1 2 / 3 4 / …）
+--   down    （預設）先上到下排滿一欄、再換下一欄 —— 原本只有兩欄的時候，商品清單是
+--           「往下長」的；欄數一加寬，橫排會把第 3 個商品從第二列搬到第一列，
+--           直排則讓清單維持往下讀
+-- 只動格子的**位置**，第 i 格永遠是這一頁的第 i 個商品（暴雪與別的插件都照
+-- `(page-1)*perPage+i` 找東西，編號不能動）。
 --
 -- ⚠ **每次重畫都要排一遍，不能只在尺寸變動時排。** 暴雪的
 --   `MerchantFrame_UpdateMerchantInfo` 結尾固定會把 3/5/7/9 四格的 TOPLEFT
 --   重設回兩欄排版（買回分頁換成另一組間距），不重排的話那四格會每次跳回去。
 ------------------------------------------------------------
-local function LayoutCells(count, cols, rowPitch)
+local function LayoutCells(count, rows, cols, rowPitch, down)
     for i = 1, created do
         local cell = _G["MerchantItem" .. i]
         if cell then
             if i <= count then
-                local row = math.ceil(i / cols)
-                local col = i - (row - 1) * cols
+                local row, col
+                if down then
+                    col = math.ceil(i / rows)
+                    row = i - (col - 1) * rows
+                else
+                    row = math.ceil(i / cols)
+                    col = i - (row - 1) * cols
+                end
                 cell:ClearAllPoints()
                 cell:SetPoint("TOPLEFT", MerchantFrame, "TOPLEFT",
                     ORIGIN_X + (col - 1) * COL_PITCH,
@@ -365,7 +376,7 @@ local function OnMerchantInfo()
     local perPage = Grid.PerPage()
     ApplySize(BASE_W + (db.cols - BASE_COLS) * COL_PITCH,
               BASE_H + (db.rows - BASE_ROWS) * ROW_PITCH)
-    LayoutCells(perPage, db.cols, ROW_PITCH)
+    LayoutCells(perPage, db.rows, db.cols, ROW_PITCH, db.order == "down")
     FixBottomStrip(db.cols > BASE_COLS)
 end
 
@@ -383,7 +394,8 @@ local function OnBuybackInfo()
     end
 
     ApplySize(BASE_W, BASE_H)
-    LayoutCells(STOCK_CELLS, BUYBACK_COLS, BUYBACK_ROW_PITCH)
+    -- 買回分頁是暴雪的原尺寸視窗，順序也照原廠，不吃直排設定
+    LayoutCells(STOCK_CELLS, STOCK_CELLS / BUYBACK_COLS, BUYBACK_COLS, BUYBACK_ROW_PITCH, false)
     if filler then filler:Hide() end
 
     -- 買回的東西沒有「已收藏」的概念（是自己剛賣掉的），alpha 一律還原

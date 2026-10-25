@@ -191,6 +191,28 @@ do
     local tip = H.Tip(env, "GameTooltip", {})
     local st = {}
     check("巢狀：整份畫得出來", P.RenderView(P.Get(tip, st), tip, view, st))
+
+    -- 巨集（快捷列上 #showtooltip 的巨集）：整個法術包在第 1 行的 NestedBlock 裡、外層沒有行
+    m = P.ReadSpellRows({
+        Row(nil, "", nil, { type = LT.NestedBlock, tooltipID = 17364 }),
+        Row(1, "風暴打擊", G.SPELL_RANGE_MELEE or "近戰範圍", { type = LT.SpellName }),
+        Row(2, F("MANA_COST", 1000)),
+        Row(3, "以閃電強化你的兩把武器。", nil, { type = LT.SpellDescription }),
+    }, GAME, nil)
+    check("巨集：外層拆掉後認得名字", m ~= nil)
+    eq("巨集：名字是裡面的法術", m and m.name, "風暴打擊")
+    eq("巨集：ID 取 NestedBlock 的 tooltipID", m and m.id, 17364)
+    eq("巨集：圖示跟著 ID", m and m.icon, 1000 + 17364)
+    eq("巨集：沒有多出一層巢狀", m and m.nested, nil)
+    eq("巨集：描述在本體", m and m.description[1], "以閃電強化你的兩把武器。")
+    -- 外層有名字的（變形法術）照舊：NestedBlock 之後仍是子法術
+    m = P.ReadSpellRows({
+        Row(1, "熊形態", nil, { type = LT.SpellName }),
+        Row(2, "", nil, { type = LT.NestedBlock, tooltipID = 77758 }),
+        Row(3, "痛擊", nil, { type = LT.SpellName }),
+    }, GAME, 5487)
+    eq("外層有名字：不拆", m and m.name, "熊形態")
+    eq("外層有名字：子法術照舊", m and m.nested and m.nested.name, "痛擊")
 end
 
 ------------------------------------------------------------

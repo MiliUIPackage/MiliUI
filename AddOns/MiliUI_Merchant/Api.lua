@@ -41,10 +41,11 @@ SlashCmdList.MILIUIMERCHANT = function(msg)
         -- 跑 Update），而且商人沒開過的話 hookRuns 扣掉 hookGated 應該是 0
         local db = ns.db
         ns.Print("v" .. ns.VERSION)
-        print(("  dormant=%s  rows=%d cols=%d perPage=%d cells=%d"):format(
+        print(("  dormant=%s  rows=%d cols=%d order=%s perPage=%d cells=%d"):format(
             tostring(ns.dormant),
             db and db.rows or -1,
             db and db.cols or -1,
+            tostring(db and db.order),
             ns.Grid.PerPage(),
             ns.Grid.CreatedCells()))
         print(("  MERCHANT_ITEMS_PER_PAGE=%s  merchantShown=%s"):format(

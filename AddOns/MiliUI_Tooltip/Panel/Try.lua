@@ -2,7 +2,7 @@
 -- 重繪面板的流程：Try（post-call 進來）／Reconcile（下一幀對帳）／Release（內容被清掉）／Restore（退回原生）
 --
 --   1. 該型別的開關關 → Restore 後 return（沒畫過就什麼都不碰 ⇒ 開關關掉時跟以前逐位元一樣）
---   1b. 戰鬥中隱藏（Anchor.IsCombatHidden）→ 同上。原生是靠「沒有錨點」看不見的，面板不會跟著消失
+--   1b. 戰鬥中隱藏（Anchor.ShouldHideNow）→ 同上。原生藏了不會回來（Hide 清 owner），面板是獨立的框不會跟著消失
 --   2. **同一件的重建**（state.panelKey 相同、panel 顯示中）→ 當幀不解析、不重畫，只重壓 alpha、Fit，
 --      排一次 Reconcile。原因：post-call 在暴雪 ProcessInfo 的中間——比價框的「若你更換此裝備…」、
 --      別家插件 post-call 加的行，都是**同一幀、我們之後**才補上的。當幀就畫會畫出「少那幾行」的版本，
@@ -286,7 +286,10 @@ end
 local function Render(tip, state, kind, data, rows, n, fingerprint, lineFP, dyn)
     local reader = Panel.readers[kind] or Panel.ReadFallback
     local model = reader(tip, data, kind, rows, n, state)
-    if not model then return false end
+    if not model then
+        if ns.logEnabled then ns.Log("reader 回 nil ⇒ 退回 kind=%s 行數 %d", tostring(kind), n or 0) end
+        return false
+    end
     local panel = Panel.Get(tip, state)
     local view = (Panel.views[kind] or Panel.ViewFallback)(model, state)
     if not view or not Panel.RenderView(panel, tip, view, state) then return false end
@@ -462,9 +465,9 @@ function Panel.Try(tip, state, dataType, data)
         Panel.Restore(tip, state)
         return false
     end
-    -- 戰鬥中隱藏（Modules/Anchor.lua 把原生藏了）：面板是獨立的框、不跟著原生消失 ⇒ 這裡也不接，
-    -- 不然玩家在戰鬥中看到的就是面板（快捷列按鈕每 0.2 秒重設一次，每次都會進來）
-    if ns.Anchor and ns.Anchor.IsCombatHidden and ns.Anchor.IsCombatHidden(tip, state) then
+    -- 戰鬥中隱藏（Modules/Anchor.lua）：面板是獨立的框、不跟著原生消失 ⇒ 該藏的這裡就不接（省一次畫；
+    -- 真正的網是 Anchor 的 OnShow 後掛勾，它會再 Restore 一次，雙保險）
+    if ns.Anchor and ns.Anchor.ShouldHideNow and ns.Anchor.ShouldHideNow(tip) then
         if ns.logEnabled then ns.Log("Try 戰鬥中隱藏 ⇒ 不接 key=%s", tostring(Panel.Key(kind, data))) end
         Panel.Restore(tip, state)
         return false

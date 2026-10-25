@@ -5,15 +5,17 @@
 -- 之後只用 SetOwner / SetPoint 這類定位 API（第 8 條）。
 -- 游標跟隨用自己的 driver frame，不掛 tooltip 的 OnUpdate。
 --
--- 戰鬥中隱藏的機制：SetOwner(ANCHOR_NONE)、Hide，並把決定記在 state（NoteCombatHidden）。
--- 暴雪的 InternalProcessInfo 在 post-call 之後會呼叫 Show()（快捷列按鈕：SetDefaultAnchor → SetAction），
--- 但 **GameTooltip:Hide() 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 Show() 是空操作**
---（2026-10-24 實機 log：post-call 之後原生 shown=false、GetOwner()=nil）⇒ 原生藏了就不會回來，
--- 不需要再掛 Show 後掛勾。
--- **重繪面板是獨立的框（父層 UIParent），不跟著原生消失**：Panel.Try 進來先問 Anchor.IsCombatHidden，
--- 是就不接（2026-10-24 回報「對 Bartender 沒用」：看到的其實是面板；暴雪自己的快捷列也一樣）。
--- IsCombatHidden 的「owner 換了」只認**非 nil 且不同**的 owner：nil 是 Hide 清掉的，仍是我們藏的那一份
---（第一版把 nil 當成換了 ⇒ 旗標被清、面板照畫，就是「在固定的那個點閃一下」）。
+-- 戰鬥中隱藏（2026-10-24 定案，三輪實機）：一張網、一個判斷。
+--   * 判斷：Anchor.ShouldHideNow(tip)——戰鬥中、依游標下的單位挑錨點設定（單位錨點自己有開關才用它，否則用全域）、
+--     修飾鍵沒按著。SetDefaultAnchor 掛勾、GameTooltip 的 OnShow 後掛勾、Panel.Try 三處問的都是它。
+--   * 網：GameTooltip 與兩顆比價框的 **OnShow 後掛勾**（接觸面 #3，HookScript）。提示從哪條路顯示都會經過 OnShow：
+--     SetDefaultAnchor（UberTooltips=1 的快捷列、世界游標）、SetOwner(ANCHOR_RIGHT)＋SetAction（UberTooltips=0 的
+--     快捷列、LibActionButton）、SetOwner＋SetText／SetInventoryItem／SetSpellByID（微型選單、背包欄、狀態追蹤列、
+--     載具離開鈕、額外快捷鍵）。一條一條掛 Set* 掛不完（Bartender 九種列就有五種路徑）。
+--     該藏就當場 Panel.Restore（面板是獨立的框，post-call 已經畫了；同一幀拆不會閃）再 Hide。
+--   * 事實：GameTooltip:Hide() 會把 owner 清成 nil，沒有 owner 的 tooltip 呼叫 Show() 是空操作 ⇒ 藏了就不會回來，
+--     GameTooltip_OnUpdate 不跑、LibActionButton 的事件刷新（GetOwner()==button 才重設）也認不到。
+--     SetDefaultAnchor 掛勾裡提早藏（SetOwner(ANCHOR_NONE)＋Hide）只是省掉後面的定位工作，不是必要條件。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -78,14 +80,6 @@ local function SafeSetOwner(tip, parent, anchorType, ...)
 end
 
 ------------------------------------------------------------
--- 戰鬥中隱藏 ⇄ 重繪面板（Panel/Try.lua）
---
--- 藏的時候記下「藏了、替誰藏的」（owner＝SetOwner 用的那個框）；每次重新定位都先清掉。
--- 面板在 post-call 裡問 IsCombatHidden：旗標還在、而且 tooltip 還是我們藏它時的樣子
---（還在戰鬥、錨點型別還是 ANCHOR_NONE、沒有別人 SetOwner 過）才算數——別的路徑（背包的 SetOwner(ANCHOR_RIGHT)）
--- 重設過就不是我們藏的那一份，面板照接。Hide 之後 GetOwner() 是 nil，那不算換過。
--- 讀到秘密值當作「還藏著」：玩家要的是戰鬥中不要出現。
-------------------------------------------------------------
 -- /mtip log 開著時：藏了之後下一幀拍一張「到底誰還看得見」（原生／面板／skin 的顯示狀態與位置）
 local function LogVisibleNextFrame(tip, state)
     C_Timer.After(0, function()
@@ -99,38 +93,10 @@ local function LogVisibleNextFrame(tip, state)
             ns.Describe(shown), ns.Describe(alpha), ns.Describe(p),
             ns.Describe(rel and rel.GetName and S.SafeCall(rel.GetName, rel) or rel), ns.Describe(rp), ns.Describe(x), ns.Describe(y),
             ns.Describe(S.SafeCall(tip.GetWidth, tip)), ns.Describe(S.SafeCall(tip.GetHeight, tip)),
-            tostring(panel and panel:IsShown()), tostring(skin and skin:IsShown()), tostring(state.combatHidden))
+            tostring(panel and panel:IsShown()), tostring(skin and skin:IsShown()), tostring(InCombatLockdown()))
     end)
 end
 
-local function NoteCombatHidden(tip, owner)
-    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
-    if not state then return end
-    state.combatHidden = owner and true or nil
-    state.combatHiddenOwner = owner
-    if owner and ns.logEnabled then LogVisibleNextFrame(tip, state) end
-end
-
-function Anchor.IsCombatHidden(tip, state)
-    if not state or not state.combatHidden then return false end
-    local stale = not InCombatLockdown() and "脫戰"
-    if not stale and tip.GetAnchorType then
-        local ok, anchorType = pcall(tip.GetAnchorType, tip)
-        if ok and not S.IsSecret(anchorType) and anchorType ~= "ANCHOR_NONE" then stale = "錨點型別 " .. tostring(anchorType) end
-    end
-    if not stale and tip.GetOwner then
-        local ok, owner = pcall(tip.GetOwner, tip)
-        if ok and not S.IsSecret(owner) and owner ~= nil and owner ~= state.combatHiddenOwner then
-            stale = "owner 換了 " .. ns.Describe(owner.GetName and S.SafeCall(owner.GetName, owner))
-        end
-    end
-    if stale then
-        if ns.logEnabled then ns.Log("戰鬥隱藏 旗標過期（%s）⇒ 清掉", stale) end
-        state.combatHidden, state.combatHiddenOwner = nil, nil
-        return false
-    end
-    return true
-end
 
 ------------------------------------------------------------
 -- 游標跟隨 driver（cursor 模式選了九宮格方向或自訂偏移時用）
@@ -217,25 +183,30 @@ local function AnchorDefaultPosition(tip, parent, anchor, finally)
     end
 end
 
-local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
-    -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
-    -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
-    if not finally then
-        StopCursorFollow()
-        NoteCombatHidden(tip, nil)
-    end
+-- 戰鬥隱藏／戰鬥固定位置／頭像框固定位置要看哪一份設定：單位錨點（玩家／NPC）自己有開其中一項才算它的，
+-- 否則一律看全域（單位錨點預設 inherit、三個開關都關）
+local function ResolveHideAnchor(anchor, combatAnchor)
     local hideAnchor = combatAnchor or anchor
     local general = GeneralAnchor()
     if hideAnchor and hideAnchor ~= general and not hideAnchor.hiddenInCombat
         and not hideAnchor.returnInCombat and not hideAnchor.returnOnUnitFrame then
         hideAnchor = general
     end
+    return hideAnchor
+end
+
+local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally, combatAnchor)
+    -- 每次重新定位都先停掉上一輪的跟隨：tooltip 沒關就換了內容（從單位直接滑到按鈕）時，
+    -- 新模式不是自訂跟隨的話，舊的 driver 不能繼續把它拖回游標旁
+    if not finally then StopCursorFollow() end
+    local hideAnchor = ResolveHideAnchor(anchor, combatAnchor)
+    local general = GeneralAnchor()
     if ShouldHideInCombat(hideAnchor) then
+        -- 提早藏：省掉後面的定位；真正的網是 OnShow 後掛勾（檔頭）
         local owner = SafeSetOwner(tip, parent, "ANCHOR_NONE")
         tip:Hide()
-        NoteCombatHidden(tip, owner)
         if ns.logEnabled then
-            ns.Log("戰鬥隱藏 藏 owner=%s 來源：%s",
+            ns.Log("戰鬥隱藏 SetDefaultAnchor 藏 owner=%s 來源：%s",
                 ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
                 debugstack and debugstack(3, 4, 0) or "?")
         end
@@ -308,6 +279,23 @@ local function GetMouseoverContext()
 end
 
 ------------------------------------------------------------
+-- 判斷：這一刻 GameTooltip 該不該藏（檔頭）。Panel.Try 與 OnShow 後掛勾都問這個
+------------------------------------------------------------
+-- 管的框：GameTooltip 與它的兩顆比價框。比價框是暴雪在 GameTooltip 的物品 post-call 裡（TooltipComparisonManager）
+-- 另外 SetCompareItem＋Show 的：GameTooltip 已經先被我們藏了、OnHide 早就發過，之後才出現的比價框沒人收
+-- ⇒ 戰鬥中滑快捷列上的飾品，兩顆「已裝備」卡在畫面上（2026-10-24 實機 log）。比價框照 GameTooltip 同一條規則
+local COMBAT_HIDE_TIPS = {}
+for _, name in ipairs({ "GameTooltip", "ShoppingTooltip1", "ShoppingTooltip2" }) do
+    if _G[name] then COMBAT_HIDE_TIPS[_G[name]] = true end
+end
+
+function Anchor.ShouldHideNow(tip)
+    if not ns.db or not COMBAT_HIDE_TIPS[tip] or not InCombatLockdown() then return false end
+    local _, _, anchor, combatAnchor = GetMouseoverContext()
+    return ShouldHideInCombat(ResolveHideAnchor(anchor, combatAnchor))
+end
+
+------------------------------------------------------------
 -- 入口
 ------------------------------------------------------------
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
@@ -323,19 +311,123 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(tip, parent)
 end)
 
 ------------------------------------------------------------
--- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）
+-- 網：OnShow 後掛勾（檔頭）。提示從哪條路顯示都會到這裡；該藏就當場拆面板再 Hide。
+-- 掛 GameTooltip 與兩顆比價框（COMBAT_HIDE_TIPS）；HookScript 是後掛勾，暴雪的 GameTooltip_OnShow 先跑完
 ------------------------------------------------------------
+local function OnTipShow(tip)
+    if S.IsForbiddenObject(tip) or not Anchor.ShouldHideNow(tip) then return end
+    local state = ns.Skin and ns.Skin.Get and ns.Skin.Get(tip)
+    if ns.logEnabled then
+        local ok, owner = pcall(tip.GetOwner, tip)
+        owner = ok and not S.IsSecret(owner) and owner or nil
+        ns.Log("戰鬥隱藏 OnShow 藏 tip=%s owner=%s 錨點型別=%s 來源：%s",
+            ns.Describe(S.SafeCall(tip.GetName, tip)),
+            ns.Describe(owner and owner.GetName and S.SafeCall(owner.GetName, owner)),
+            ns.Describe(S.SafeCall(tip.GetAnchorType, tip)), debugstack and debugstack(3, 4, 0) or "?")
+        if state then LogVisibleNextFrame(tip, state) end
+    end
+    if state and ns.Panel and ns.Panel.Restore then ns.Panel.Restore(tip, state) end
+    tip:Hide()
+end
+for tip in pairs(COMBAT_HIDE_TIPS) do
+    if tip.HookScript then tip:HookScript("OnShow", OnTipShow) end
+end
+
+------------------------------------------------------------
+-- 佇列狀態（地城／戰場排隊）那顆鈕滑過時出現的 QueueStatusFrame 不是 GameTooltip，是暴雪自己的狀態面板，
+-- 上面那張網接不到。它只在滑過時 Show ⇒ 同樣掛 OnShow 後掛勾，戰鬥中照全域設定藏（沒有單位，不看單位錨點）。
+-- 沒有受保護，Hide 不染髒任何 secure 狀態；Bartender 會把它 SetParent 到 UIParent，不影響
+------------------------------------------------------------
+if QueueStatusFrame and QueueStatusFrame.HookScript then
+    QueueStatusFrame:HookScript("OnShow", function(frame)
+        if not ns.db or not InCombatLockdown() or S.IsForbiddenObject(frame) then return end
+        if not ShouldHideInCombat(GeneralAnchor()) then return end
+        if ns.logEnabled then ns.Log("戰鬥隱藏 QueueStatusFrame OnShow ⇒ 藏") end
+        frame:Hide()
+    end)
+end
+
+------------------------------------------------------------
+-- 戰鬥中按住修飾鍵 → 立刻把藏起來的 tooltip 叫回來（放開再藏）
+--
+-- 世界裡的單位／物件（游標下不是頭像框）暴雪是 SetWorldCursor 建的（WORLD_CURSOR_TOOLTIP_UPDATE，
+-- 資料 C_TooltipInfo.GetWorldCursor）。那支是一般的 mixin 方法，從插件呼叫整段 ProcessInfo 都帶污染，
+-- 遇到秘密的行（副本裡戰鬥中）就一行都畫不出來（它自己的註解寫的）⇒ 叫回來只能用 SetUnit("mouseover")
+--（secure delegate，污染的呼叫也能安全顯示）。但那是另一份資料，跟世界游標那份差兩件事，這裡補回來：
+--   ① 血條：暴雪的 post-call TooltipDataRules.HealthBar 照資料的 healthGUID 開關引擎血條。補給品這類長得像物件的
+--      生物，世界游標那份沒有 healthGUID（平常沒有條），GetUnit 那份有（玩家回報按修飾鍵後底下冒出血條）
+--      ⇒ 我們的條（Bar.lua 跟著引擎條）跟著出來。
+--      叫回來時先讀世界游標那份記下來，Bar 問 Anchor.ReviveHealth 照它。
+--   ② 收掉：SetWorldCursor 在滑鼠離開時只收 getterName＝"GetWorldCursor" 的內容（Default 淡出、其他直接藏），
+--      SetUnit 的 getterName 是 "GetUnit" ⇒ 沒人收，按著修飾鍵一路跟著游標飛（2026-10-25 玩家回報兩件一起）。
+--      自己聽 WORLD_CURSOR_TOOLTIP_UPDATE，叫回來的那份還在、游標下已經沒東西 ⇒ 照它的規則收。
+-- 「叫回來的那份還在」認 GetPrimaryTooltipInfo 的那張表（同一張＝內容沒被換過；只讀不寫）
+------------------------------------------------------------
+local WCA_DEFAULT = Enum and Enum.WorldCursorAnchorType and Enum.WorldCursorAnchorType.Default or 1
+local worldAnchorType      -- 最近一次 WORLD_CURSOR_TOOLTIP_UPDATE 的 anchorType（決定收的時候淡出還是藏）
+local revive               -- { health=, fadeOut=, info= }：叫回來的世界單位；info 還沒拿到＝SetUnit 的 post-call 進行中
+
+local function PrimaryInfo(tip)
+    if not tip.GetPrimaryTooltipInfo then return end
+    local ok, info = pcall(tip.GetPrimaryTooltipInfo, tip)
+    return ok and info or nil
+end
+
+local function WorldCursorData()
+    if not (C_TooltipInfo and C_TooltipInfo.GetWorldCursor) then return end
+    local ok, data = pcall(C_TooltipInfo.GetWorldCursor)
+    return ok and type(data) == "table" and data or nil
+end
+
+local function ReviveWorldUnit(tip)
+    local data = WorldCursorData()
+    if not data then
+        pcall(tip.SetUnit, tip, "mouseover")    -- 游標下讀不到世界游標的資料（照舊）
+        return
+    end
+    -- healthGUID 可能是秘密：只看型別
+    revive = { health = type(data.healthGUID) ~= "nil", fadeOut = worldAnchorType == WCA_DEFAULT }
+    local ok = pcall(tip.SetUnit, tip, "mouseover")
+    local info = ok and PrimaryInfo(tip)
+    if info then revive.info = info else revive = nil end
+end
+
+-- 叫回來的世界單位該不該有血條（Bar.lua 的引擎血條閘先問這個）；nil＝不是叫回來的那份，照引擎血條
+function Anchor.ReviveHealth(tip)
+    if not revive or tip ~= GameTooltip then return nil end
+    if revive.info and PrimaryInfo(tip) ~= revive.info then
+        revive = nil
+        return nil
+    end
+    return revive.health
+end
+
+local function OnWorldCursorUpdate(anchorType)
+    worldAnchorType = S.PlainNumber(anchorType)
+    if not revive or not revive.info then return end
+    local tip = GameTooltip
+    if S.IsForbiddenObject(tip) or PrimaryInfo(tip) ~= revive.info then
+        revive = nil
+        return
+    end
+    -- 換到別的東西上：暴雪的 SetWorldCursor 會換掉內容（它先跑後跑都一樣）
+    if WorldCursorData() then return end
+    local fade = revive.fadeOut
+    revive = nil
+    if fade then tip:FadeOut() else tip:Hide() end
+end
+
 local watcher = CreateFrame("Frame")
 watcher:RegisterEvent("MODIFIER_STATE_CHANGED")
-watcher:SetScript("OnEvent", function(_, _, key, stateArg)
+watcher:RegisterEvent("WORLD_CURSOR_TOOLTIP_UPDATE")
+watcher:SetScript("OnEvent", function(_, event, key, stateArg)
+    if event == "WORLD_CURSOR_TOOLTIP_UPDATE" then
+        OnWorldCursorUpdate(key)
+        return
+    end
     if not ns.db or not InCombatLockdown() then return end
     local unit, isUnitFrame, anchor, combatAnchor = GetMouseoverContext()
-    local ruleAnchor = combatAnchor
-    local general = GeneralAnchor()
-    if ruleAnchor and ruleAnchor ~= general and not ruleAnchor.hiddenInCombat
-        and not ruleAnchor.returnInCombat and not ruleAnchor.returnOnUnitFrame then
-        ruleAnchor = general
-    end
+    local ruleAnchor = ResolveHideAnchor(anchor, combatAnchor)
     if not S.SafeBool(UnitExists, unit) or not ruleAnchor or not ruleAnchor.hiddenInCombat then return end
     local modifierKey = GetAnchorModifierKey(ruleAnchor)
     if modifierKey == "none" then return end
@@ -356,13 +448,14 @@ watcher:SetScript("OnEvent", function(_, _, key, stateArg)
     modifierOverrideDown = isDown
     local tip = GameTooltip
     if not S.IsForbiddenObject(tip) then
+        revive = nil
         AnchorFrame(tip, tip:GetOwner() or UIParent, anchor, isUnitFrame, nil, ruleAnchor)
         if isDown then
             -- unit token 可能是秘密字串（見 Model.lua）——字面值比較前先洗
-            if S.SafeValue(unit) == "mouseover" and tip.SetMouseoverUnit then
-                pcall(tip.SetMouseoverUnit, tip)
+            if S.SafeValue(unit) == "mouseover" then
+                ReviveWorldUnit(tip)
             else
-                pcall(tip.SetUnit, tip, unit)
+                pcall(tip.SetUnit, tip, unit)     -- 頭像框：暴雪自己也是 SetUnit(unit)
             end
         end
         if not ShouldHideInCombat(ruleAnchor) and not tip:IsShown() then

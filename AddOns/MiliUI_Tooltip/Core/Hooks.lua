@@ -6,7 +6,9 @@
 --   2. hooksecurefunc：GameTooltip_SetDefaultAnchor（Anchor.lua）、
 --      GameTooltip_AddInstructionLine、
 --      ItemRefTooltip.SetHyperlink（Quest.lua）、InspectUnit（UnitInfo.lua）
---   3. HookScript("OnTooltipCleared")（清理暫態）
+--   3. HookScript("OnTooltipCleared")（清理暫態）、GameTooltipStatusBar 的 OnShow／OnHide
+--      （我們的血條跟著引擎血條開關，Bar.OnEngineBar；掛勾裡只動自己的條）；
+--      HookScript(GameTooltip, "OnShow")（Anchor.lua：戰鬥中隱藏的網，該藏就 Panel.Restore＋Hide，#8）
 --   4. line FontString 的 SetText / SetTextColor（UnitLines.lua；暴雪每次
 --      ProcessInfo 會重設所有行，寫入活不到 secure 讀取）
 --   5. tip:AddLine / tip:Show（官方內容 API；Show 只在 ProcessInfo 之外呼叫）
@@ -38,6 +40,10 @@
 --  16. 單位的重繪面板（Panel/ReadUnit.lua）：面板接手時**不改寫暴雪的行**（#4 那條只在舊樣式跑），只讀 TooltipData
 --      ＋明文 token 的 Unit API；對原生的寫入跟物品一樣只有 #10／#12／#13／#15。退回舊樣式時用 #5 的 tip:Show()
 --      讓暴雪重跑一次這份內容（Panel.UnitFallback），之後的 post-call 走舊樣式
+--  17. 戰鬥中按修飾鍵叫回藏掉的提示（Modules/Anchor.lua 的 watcher）：tip:SetUnit(unit)——secure delegate，污染的呼叫
+--      也能安全顯示含秘密值的內容（世界單位不能改叫 SetWorldCursor：一般 mixin，整段 ProcessInfo 帶污染）。
+--      tip:GetPrimaryTooltipInfo() 只拿那張表比身分（內容換過沒），不讀寫它的欄位；滑鼠離開時照 SetWorldCursor 的規則
+--      tip:FadeOut()／Hide()（#8）
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，
@@ -219,20 +225,37 @@ local function ResolveMacroPayload(tip, macroId)
     end
 end
 
-local function RouteMacroPayload(tip, spellId, itemLink)
-    local state = Gate(tip)
-    if not state then return end
+-- 巨集的 tooltipData 是 type=Macro、id=巨集編號、lines=解析出來那個法術／物品的行。重繪面板的
+-- key（「同一件」）與圖示都認 data.id／data.hyperlink ⇒ 餵一份「法術／物品視角」的資料：id／hyperlink
+-- 換成解析出來的、lines 原封（Collect 只讀 lines）。key 就跟直接滑過那個法術／物品一樣，面板一致
+local function MacroView(data, dataType, id, link)
+    return { type = dataType, id = id, hyperlink = link, lines = type(data) == "table" and data.lines or nil }
+end
+
+local function RouteMacroPayload(tip, state, data, spellId, itemLink)
     if itemLink then
         xpcall(ns.Item.Apply, ns.ReportError, tip, state, itemLink)
+        local itemId = tonumber(itemLink:match("item:(%d+)"))
+        AfterApply(tip, state, "item", T_ITEM, MacroView(data, T_ITEM, itemId, itemLink))
     elseif spellId then
         xpcall(ns.Spell.Apply, ns.ReportError, tip, state, spellId)
+        AfterApply(tip, state, "spell", T_SPELL, MacroView(data, T_SPELL, spellId, nil))
+    else
+        -- 純指令巨集（/say 之類）：沒有法術／物品可畫，面板退回原生
+        ns.Panel.Restore(tip, state)
     end
 end
 
 local function OnMacro(tip, data)
+    local state = Gate(tip)
+    if not state then return end
     local macroId = data and S.PlainNumber(data.id)
     local spellId, itemLink = ResolveMacroPayload(tip, macroId)
-    RouteMacroPayload(tip, spellId, itemLink)
+    if ns.logEnabled then
+        ns.Log("OnMacro tip=%s macro=%s spell=%s item=%s", tip:GetName() or "?",
+            ns.Describe(macroId), ns.Describe(spellId), ns.Describe(itemLink))
+    end
+    RouteMacroPayload(tip, state, data, spellId, itemLink)
 end
 
 -- （SetAction / SetMacro 的後掛勾已刪：動作條上的法術／物品／巨集提示都會
@@ -326,6 +349,13 @@ local function Install()
     -- 一次性視覺中和（接觸面 #6）：血條自己畫，暴雪那條藏掉
     if GameTooltipStatusBar and GameTooltipStatusBar.SetAlpha then
         pcall(GameTooltipStatusBar.SetAlpha, GameTooltipStatusBar, 0)
+    end
+    -- 引擎血條的 Show／Hide（暴雪的 post-call TooltipDataRules.HealthBar 照資料的 healthGUID SetWatch／ClearWatch）⇒ 我們的條跟著開關
+    -- （接觸面 #3；Bar.lua 的 EngineBarShown）。後掛勾，裡面只查 Skin.State、只動自己的條
+    local engineBar = GameTooltip and (GameTooltip.StatusBar or GameTooltipStatusBar)
+    if engineBar and engineBar.HookScript then
+        engineBar:HookScript("OnShow", function() ns.Bar.OnEngineBar(GameTooltip) end)
+        engineBar:HookScript("OnHide", function() ns.Bar.OnEngineBar(GameTooltip) end)
     end
     if ItemRefCloseButton then
         ItemRefCloseButton:SetSize(14, 14)

@@ -7,7 +7,8 @@
 -- 開關關掉 ⇒ 對 tooltip 零寫入；秘密行／身分受限／token 讀不到 ⇒ 不接（舊樣式）；成功 ⇒ alpha 0、面板顯示；
 -- 間距：標題區各行等距、◆ 線上下等距、四邊內距、頭像與文字的距離、等級底板在頭像下方；
 -- 同一個單位重建不重畫；目標換人（只有動態簽章變）⇒ 下一幀立刻重畫；秘密的目標名字只交給 SetText；
--- 對帳讀到秘密值 ⇒ 退回並封鎖重接；設定改了 ⇒ 退回但不封鎖；被誰當目標的標籤（自己／別人）與名字表（小隊／團隊）。
+-- 對帳讀到秘密值 ⇒ 退回並封鎖重接；設定改了 ⇒ 退回但不封鎖；被誰當目標的標籤（自己／別人）與名字表（小隊／團隊）；
+-- 暴雪沒寫等級行的 NPC（明文／受限）不畫等級底板、分類徽章、龍；暴雪標了等級行型別之後改認型別。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local H = dofile(here .. "/helpers.lua")
@@ -21,10 +22,11 @@ local GS = {
     UNIT_SKINNABLE_LEATHER = "可剝皮", UNIT_SKINNABLE_HERB = "需要草藥學", UNIT_SKINNABLE_ROCK = "需要採礦",
     UNIT_POPUP_RIGHT_CLICK = "<右鍵點擊以查看框架設定>", STATUS_TEXT_TARGET = "目標", ELITE = "精英", BOSS = "首領",
     AFK = "離開", DND = "忙碌", YOU = "你", ZONE = "區域", MAP_LEGEND_RARE = "稀有", MAP_LEGEND_RAREELITE = "稀有精英",
+    TOOLTIP_UNIT_LEVEL = "等級%s",
 }
 
 local LT_EXTRA = { UnitThreat = 7, QuestObjective = 8, UnitOwner = 16, QuestTitle = 17, QuestPlayer = 18,
-    UnitCriteriaProgress = 50 }
+    UnitLevel = 47, UnitType = 48, UnitDead = 49, UnitCriteriaProgress = 50 }
 
 local PLAYER_GUID, NPC_GUID, TARGET_GUID = "Player-1-0001", "Creature-0-1-2-3-4-5", "Creature-0-1-2-3-9-9"
 
@@ -768,6 +770,138 @@ do
     check("M+：仇恨留著", s6.other2 and rawequal(s6.other2.text, SECRET))
     -- 名字那一欄至少要有原生排好的寬：秘密行不量寬，寬度全靠它
     check("M+：標題的秘密行寬度給滿", s6.info1 and s6.name and s6.info1.w == s6.name.w)
+end
+
+------------------------------------------------------------
+-- 7. 暴雪沒寫等級行的 NPC（長得像物件的生物，2026-10-24 回報：探究的「探究者的補給品」提示只有名字，
+--    面板卻畫了 90＋精英＋龍）：明文、受限兩條路都不畫等級底板、分類徽章、龍；有等級行照畫；玩家不受影響
+------------------------------------------------------------
+do
+    local t = Setup({ npc = true })
+    local P = t.P
+    local LT = t.env.Enum.TooltipDataLineType
+    local function Facts(isPlayer)
+        return { isPlayer = isPlayer, name = "探究者的補給品", level = 90, levelColor = { 1, 0.82, 0 },
+            classif = "elite", classifPlain = "elite" }
+    end
+    local nameOnly = { { left = "探究者的補給品", lineIndex = 1, type = LT.UnitName } }
+
+    -- 明文：只有名字
+    local m = P.ReadUnitRows(nameOnly, Facts(false), true)
+    eq("沒等級行：不畫等級", m.facts.level, nil)
+    eq("沒等級行：不畫分類", m.facts.classif, nil)
+    local view = P.ViewUnit(m)
+    eq("沒等級行：沒有等級底板", view.badge, nil)
+    eq("沒等級行：沒有龍（原始分類也清掉）", view.decorate, nil)
+    -- 名字＋頭銜、沒有等級行：一樣不畫
+    local m2 = P.ReadUnitRows({ nameOnly[1], { left = "<探究補給>", lineIndex = 2 } }, Facts(false), true)
+    eq("頭銜但沒等級行：不畫等級", m2.facts.level, nil)
+    eq("頭銜但沒等級行：頭銜照留", m2.npcTitle, "<探究補給>")
+    -- 有等級行：照畫（龍也在）
+    local m3 = P.ReadUnitRows({ nameOnly[1], { left = "等級 90 人型生物（精英）", lineIndex = 2 } }, Facts(false), true)
+    eq("有等級行：等級照畫", m3.facts.level, 90)
+    eq("有等級行：分類照畫", m3.facts.classif, "elite")
+    check("有等級行：龍照畫", P.ViewUnit(m3).decorate ~= nil)
+    -- 玩家沒有等級行（不會發生，但不能被這條規則吃掉）
+    eq("玩家：不受影響", P.ReadUnitRows(nameOnly, Facts(true), true).facts.level, 90)
+    -- 等級行開頭不是 LEVEL 的語系：認不出等級行 ⇒ 「沒有等級行」不當真，照畫
+    local tr = Setup({ npc = true })
+    tr.env.TOOLTIP_UNIT_LEVEL = "%s-го уровня"
+    tr.P.ResetUnitWords()
+    local mr = tr.P.ReadUnitRows({ nameOnly[1], { left = "Гуманоид 90-го уровня", lineIndex = 2 } }, Facts(false), true)
+    eq("等級行不以 LEVEL 開頭的語系：照畫", mr.facts.level, 90)
+
+    -- 受限：名字後沒有 None 行 ⇒ 不畫；有一個 None 行（等級行）⇒ 照畫
+    local r = P.ReadRestrictedUnitRows({}, Facts(false), true)
+    eq("受限沒等級行：不畫等級", r.facts.level, nil)
+    eq("受限沒等級行：不畫分類", r.facts.classif, nil)
+    local r2 = P.ReadRestrictedUnitRows({ { left = "", type = 0, lineIndex = 2, use = "none", secretText = SECRET } },
+        Facts(false), true)
+    eq("受限有等級行：等級照畫", r2.facts.level, 90)
+    eq("受限有等級行：分類照畫", r2.facts.classif, "elite")
+    eq("受限沒等級行：玩家不受影響", P.ReadRestrictedUnitRows({}, Facts(true), true).facts.level, 90)
+
+    -- 整條管線（明文）：暴雪的提示只有名字 ⇒ 面板照接、沒有等級底板、沒有稀有徽章
+    t.data.lines = { { type = LT.UnitName, lineIndex = 1, leftText = "狡猾的莫加尼" } }
+    t.tip:SetLines({ { left = "狡猾的莫加尼" } })
+    check("只有名字（明文）：接", t.P.TryUnit(t.tip, t.state, "mouseover", t.data))
+    local panel = t.state.panel
+    check("只有名字（明文）：名字", FindText(panel, "狡猾的莫加尼"))
+    check("只有名字（明文）：沒有等級底板", not panel.badge.shown)
+    check("只有名字（明文）：沒有稀有徽章", not FindTextLike(panel, "稀有"))
+
+    -- 整條管線（受限，log 裡的那一隻：名字一行、型別 UnitName）
+    local ts = Setup({ npc = true, restricted = true })
+    ts.data.lines = { { type = LT.UnitName, lineIndex = 1, leftText = SECRET, leftColor = SECRET } }
+    ts.tip:SetLines({ { left = SECRET } })
+    check("只有名字（受限）：接", ts.P.TryUnit(ts.tip, ts.state, SECRET, ts.data))
+    local ps = ts.state.panel
+    check("只有名字（受限）：名字原封不動交給 SetText", ps.secretTexts and ps.secretTexts.name
+        and rawequal(ps.secretTexts.name.text, SECRET))
+    check("只有名字（受限）：沒有等級底板", not ps.badge.shown)
+    check("只有名字（受限）：沒有精英徽章", not FindTextLike(ps, "精英"))
+end
+
+------------------------------------------------------------
+-- 8. 暴雪開始標等級行型別（UnitLevel／UnitType／UnitDead，12.1.0 定義、12.1.5 實機還沒用）：
+--    等級行認型別；見過一次就記住（之後受限時 None 行全進標題區、頭銜不被吃，沒有 UnitLevel 行＝沒有等級行）
+------------------------------------------------------------
+do
+    local function Facts()
+        return { isPlayer = false, level = 90, levelColor = { 1, 0.82, 0 }, classif = "elite", classifPlain = "elite" }
+    end
+
+    -- 受限：一份裡有 UnitLevel 行 ⇒ 頭銜（等級行之前的 None）不被吃、類型行照進標題區
+    local t = Setup({ npc = true })
+    local P = t.P
+    local LT = t.env.Enum.TooltipDataLineType
+    local r = P.ReadRestrictedUnitRows({
+        { left = "", type = 0, lineIndex = 2, use = "none", secretText = "頭銜" },
+        { left = "", type = LT.UnitLevel, lineIndex = 3, use = "level", secretText = "等級行" },
+        { left = "", type = LT.UnitType, lineIndex = 4, use = "none", secretText = "類型行" },
+    }, Facts(), true)
+    eq("型別：頭銜進標題區", r.secretHeader[1] and r.secretHeader[1].value, "頭銜")
+    eq("型別：類型行進標題區", r.secretHeader[2] and r.secretHeader[2].value, "類型行")
+    eq("型別：等級行不畫成字", #r.secretHeader, 2)
+    eq("型別：等級照畫", r.facts.level, 90)
+    -- 記住了：之後沒有 UnitLevel 行＝沒有等級行（頭銜照畫、等級不畫）
+    local r2 = P.ReadRestrictedUnitRows({ { left = "", type = 0, lineIndex = 2, use = "none", secretText = "頭銜" } },
+        Facts(), true)
+    eq("記住型別：頭銜不被當成等級行", r2.secretHeader[1] and r2.secretHeader[1].value, "頭銜")
+    eq("記住型別：沒有 UnitLevel 行 ⇒ 不畫等級", r2.facts.level, nil)
+
+    -- 明文：等級行開頭不是 LEVEL 的語系，標了型別就認得（頭銜也認得）；記住之後只有名字也不畫
+    local tr = Setup({ npc = true })
+    tr.env.TOOLTIP_UNIT_LEVEL = "%s-го уровня"
+    tr.P.ResetUnitWords()
+    local LTr = tr.env.Enum.TooltipDataLineType
+    local name = { left = "Сундук", lineIndex = 1, type = LTr.UnitName }
+    local m = tr.P.ReadUnitRows({ name, { left = "<Припасы>", lineIndex = 2 },
+        { left = "Гуманоид 90-го уровня", lineIndex = 3, type = LTr.UnitLevel },
+        { left = "Мертв", lineIndex = 4, type = LTr.UnitDead } }, Facts(), true)
+    eq("明文型別：頭銜", m.npcTitle, "<Припасы>")
+    eq("明文型別：等級照畫", m.facts.level, 90)
+    eq("明文型別：死亡行由 API 畫（不進其他）", #m.others, 0)
+    eq("明文記住型別：只有名字 ⇒ 不畫（語系認不了字也一樣）", tr.P.ReadUnitRows({ name }, Facts(), true).facts.level, nil)
+
+    -- 整條管線（受限）：名字、頭銜（None）、等級（47）、類型（48）、死亡（49）
+    local ts = Setup({ npc = true, restricted = true })
+    local LTs = ts.env.Enum.TooltipDataLineType
+    ts.data.lines = {
+        { type = LTs.UnitName, lineIndex = 1, leftText = SECRET, leftColor = SECRET },
+        { type = 0, lineIndex = 2, leftText = SECRET, leftColor = SECRET },
+        { type = LTs.UnitLevel, lineIndex = 3, leftText = SECRET, leftColor = SECRET },
+        { type = LTs.UnitType, lineIndex = 4, leftText = SECRET, leftColor = SECRET },
+        { type = LTs.UnitDead, lineIndex = 5, leftText = SECRET, leftColor = SECRET },
+    }
+    ts.tip:SetLines({ { left = SECRET }, { left = SECRET }, { left = SECRET }, { left = SECRET }, { left = SECRET } })
+    check("受限型別：接", ts.P.TryUnit(ts.tip, ts.state, SECRET, ts.data))
+    local ps = ts.state.panel
+    local st = ps.secretTexts or {}
+    check("受限型別：頭銜、類型兩行在標題區", st.info1 and st.info2 and not st.info3)
+    check("受限型別：死亡行不畫成字", st.other1 == nil)
+    eq("受限型別：等級底板", ps.badgeText.text, "91")
+    check("受限型別：沒有別人的行（死亡行不是別人後加的）", not (ps.extrasBox and ps.extrasBox.shown))
 end
 
 ------------------------------------------------------------

@@ -145,6 +145,7 @@ function D.Resolve(barKey, fresh)
         hideGCDSwipe = S(barKey, "icon.hideGCDSwipe") and true or false,
         hideDebuffBorder = S(barKey, "icon.hideDebuffBorder") ~= false,   -- 舊存檔沒有這欄 ＝ 預設藏
         hideReadyFlash = S(barKey, "icon.hideReadyFlash") and true or false,   -- 暴雪的就緒閃光（DimReadyFlash）；舊存檔沒有 ＝ 不藏
+        barIconSide  = S(barKey, "icon.barIconSide"),       -- 長條上圖示的位置（條層生效值；逐法術由 ns.BarIconSide 蓋）
         drawEdge     = S(barKey, "icon.drawEdge"),          -- 沒存 ＝ 不動暴雪的
         colorDuration = S(barKey, "icon.colorDuration") and true or false,   -- 增益那一段的倒數換色（PhaseColors）
         durationColor = S(barKey, "icon.durationColor"),
@@ -170,6 +171,7 @@ function D.Resolve(barKey, fresh)
     r.sig = table.concat({
         generation, r.kind, tostring(r.font), r.outline, TSig(r.border), r.zoom, tostring(r.crop),
         CSig(r.swipeColor), tostring(r.hideGCDSwipe), tostring(r.hideDebuffBorder), tostring(r.hideReadyFlash), tostring(r.drawEdge), tostring(r.tooltips),
+        tostring(r.barIconSide),
         tostring(r.pressFlash), r.pressAlpha,
         tostring(r.colorDuration), CSig(r.durationColor), CSig(r.durationLowColor), CSig(r.durationSwipeColor),
         TSig(r.cooldownText), r.timeFormat, TSig(r.chargeText), TSig(r.stackText), r.stackBarPoint,
@@ -228,6 +230,8 @@ local function SpellStyle(barKey, id, fresh)
         chargeHideEdge   = SS(barKey, id, "chargeHideEdge") and true or false,
         chargeHideTimer  = SS(barKey, id, "chargeHideTimer") and true or false,
         customIcon       = D.IconOverrideOf(id),
+        -- 隱藏圖示（暴雪的增益圖示才有效；Apply 的圖示分支看格的種類）：布林
+        hideIcon         = SS(barKey, id, "hideIcon") == true,
         -- 增益持續時間那一段的換色（五個欄位跟條層同一套，沒覆寫自然退回條層）：開關是布林、三個顏色是色表
         colorDuration      = SS(barKey, id, "colorDuration") and true or false,
         durationColor      = SS(barKey, id, "durationColor"),
@@ -239,6 +243,8 @@ local function SpellStyle(barKey, id, fresh)
         ringColor        = SS(barKey, id, "ringColor"),
         -- 長條的填充色（長條類的條才用）：色表或 false（＝跟隨條）；D.BarFillStyle 解
         barColor         = SS(barKey, id, "barColor"),
+        -- 長條上圖示的位置（長條類的條才用）：生效值 LEFT／RIGHT／NONE（逐法術覆寫 barIconSide，沒設跟隨條的 bar.iconSide）
+        barIconSide      = ns.BarIconSide and ns.BarIconSide(barKey, id) or nil,
     }
 end
 D.SpellStyle = SpellStyle                                           -- 測試用
@@ -727,6 +733,12 @@ end
 function D.ClearShape(item, rec)
     if not (item and rec) then return end
     if ns.Shape then ns.Shape.HideEdgeShadow(item) end
+    -- 隱藏圖示熄掉的貼圖還回來（alpha 暴雪不碰）
+    if rec.iconHidden then
+        local icon = item.Icon
+        if icon and icon.SetAlpha then icon:SetAlpha(1) end
+        rec.iconHidden = nil
+    end
     if rec.shapeArt or rec.iconShape then
         ApplyShape(rec, item, item.Icon, true, nil, nil, nil, 0, nil, 0, 0, rec.border)
     end
@@ -1997,12 +2009,12 @@ local function Signature(style, id, spell, w, h)
         .. tostring(spell.desaturate) .. tostring(spell.hideCooldownText) .. tostring(spell.hideStackText)
         .. "|" .. tostring(spell.cdState) .. "," .. tostring(spell.cdStateAlpha) .. "," .. tostring(spell.dimNoAura)
         .. "|" .. tostring(spell.chargeSwipe) .. tostring(spell.chargeHideEdge) .. tostring(spell.chargeHideTimer)
-        .. "|" .. tostring(spell.customIcon)
+        .. "|" .. tostring(spell.customIcon) .. "," .. tostring(spell.hideIcon)
         .. "|" .. tostring(spell.colorDuration) .. "," .. CSig(spell.durationColor) .. "," .. CSig(spell.durationLowColor)
         .. "," .. CSig(spell.durationSwipeColor) .. "," .. tostring(spell.showAuraTime)
         .. "|" .. tostring(spell.textSig)
         .. "|" .. ((ns.Text and ns.Text.LabelSig) and ns.Text.LabelSig(spell.label) or "-")
-        .. "|" .. CSig(spell.ringColor) .. "," .. CSig(spell.barColor)
+        .. "|" .. CSig(spell.ringColor) .. "," .. CSig(spell.barColor) .. "," .. tostring(spell.barIconSide)
         .. "|" .. tostring(w) .. "x" .. tostring(h)
 end
 D.Signature = Signature
@@ -2171,6 +2183,10 @@ function D.Apply(item, rec, barKey, w, h, ring)
     -- 自訂法術／物品 Bars 不會放）
     local ringOn = style.ring ~= nil and ring ~= nil and not isBar and not rec.custom
     if ringOn then sig = sig .. "|rg" .. tostring(ring.ring) .. "," .. tostring(ring.tex) end
+    -- 隱藏圖示（逐法術 hideIcon，2026-10-24）：只對暴雪的增益圖示（圖示類的條、不是圓環；長條有自己的「圖示位置：無」）。
+    -- 藏的是貼圖、邊框、形狀陰影、轉圈（含邊緣）；倒數時間與層數照畫；不交給 Masque（皮的外框會留一圈）
+    local hideIcon = spell.hideIcon and not isBar and not ringOn and not rec.custom
+        and ns.Viewers.AURA_KIND[rec.barKey] == true or false
     -- 以增益取代：這顆增益 item 正頂著 A 的格（rec.replacing ＝ A），A 勾了「使用增益持續時間樣式」（預設）
     -- ⇒ 倒數整段照 A 的增益持續時間樣式（A 的 SpellStyle：換色開關＋三個顏色，沒覆寫退回這一條）。
     -- 沒勾 ⇒ aSpell nil，照增益原本的倒數樣式（不換色）
@@ -2214,6 +2230,11 @@ function D.Apply(item, rec, barKey, w, h, ring)
         dimNoAura  = (spell.dimNoAura == true and not isBar and not rec.custom
                       and not ns.Viewers.AURA_KIND[rec.barKey]) or nil,
     }
+    -- 隱藏圖示：轉圈透明、不畫邊緣（暴雪每次刷新都重寫轉圈色與邊緣，AfterCooldown 照這包蓋回去）
+    if hideIcon then
+        rec.style.swipe = { 0, 0, 0, 0 }
+        rec.style.drawEdge = false
+    end
     -- 回充的長相：方形圖示的冷卻格才有（長條、增益類不適用；圓環在下面清掉）。三個都關 ＝ nil，引擎整段跳過
     if not isBar and not ns.Viewers.AURA_KIND[rec.barKey]
         and (spell.chargeSwipe or spell.chargeHideEdge or spell.chargeHideTimer) then
@@ -2280,7 +2301,8 @@ function D.Apply(item, rec, barKey, w, h, ring)
         local bar = type(style.bar) == "table" and style.bar or {}
         local look = D.BarLook(bar)
         local blizz = look == "blizzard"
-        rec.barGeometry = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+        -- 圖示位置：這一招的生效值（逐法術覆寫優先，SpellStyle 走 ns.BarIconSide 解好）
+        rec.barGeometry = { h = h, w = w, side = spell.barIconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(item, rec, rec.barGeometry)
         D.ApplyBarLook(item, rec, style, bar, h, spell.barColor)
@@ -2357,7 +2379,7 @@ function D.Apply(item, rec, barKey, w, h, ring)
         D.BarShadow(item, nil)
         local icon, cd = item.Icon, item.Cooldown
         local skinned = false
-        if style.masque and icon then
+        if style.masque and icon and not hideIcon then
             -- 自訂法術的回充轉圈（只畫邊緣）也交出去，尺寸才跟主轉圈一致；暴雪 item 沒有這一層
             skinned = ns.Masque.Sync(rec, item, { Icon = icon, Cooldown = cd, ChargeCooldown = rec.custom and item.ChargeCooldown or nil },
                 ns.Masque.TypeFor(barKey, rec.custom and "custom" or rec.barKey), w, h, OnLate)
@@ -2367,19 +2389,29 @@ function D.Apply(item, rec, barKey, w, h, ring)
         rec.msqSkinned = skinned
         rec.border = rec.border or MakeBorder(ov)
         if rec.border2 then LayoutBorder(rec.border2, nil) end
-        -- 圖示形狀與陰影（Core/Shape.lua）：交給 Masque 的格由皮決定（shape／shadow 當 nil ⇒ 我們的全部拿掉）
-        local shape = (not skinned) and style.ishape or nil
-        local shadow = (not skinned) and style.ishadow or nil
+        -- 圖示形狀與陰影（Core/Shape.lua）：交給 Masque 的格由皮決定（shape／shadow 當 nil ⇒ 我們的全部拿掉）；隱藏圖示同樣全拿掉
+        local shape = (not skinned and not hideIcon) and style.ishape or nil
+        local shadow = (not skinned and not hideIcon) and style.ishadow or nil
         ApplyShape(rec, item, icon, not rec.custom, nil,
             shape, shadow, size, rec.borderRGBA, w, h, rec.border)
+        -- 隱藏圖示：貼圖熄掉（alpha 暴雪不碰 ⇒ 要自己還原，rec.iconHidden 記著；還給暴雪時 D.ClearShape 也還）
+        if icon and icon.SetAlpha then
+            if hideIcon then
+                icon:SetAlpha(0)
+                rec.iconHidden = true
+            elseif rec.iconHidden then
+                icon:SetAlpha(1)
+                rec.iconHidden = nil
+            end
+        end
         if skinned then
             rec.msqEdge = { region = item, size = size, token = border.texture }
             rec.swipeSquare = nil            -- 轉圈材質現在是 Masque 的
             LayoutBorder(rec.border, nil)
         else
             rec.msqEdge = nil
-            -- 形狀不是方形：邊框是襯底（ApplyShape 畫的），四條細條收起來；粗細 0 時兩種都不畫
-            if shape then
+            -- 形狀不是方形：邊框是襯底（ApplyShape 畫的），四條細條收起來；粗細 0 時兩種都不畫；隱藏圖示不畫
+            if shape or hideIcon then
                 LayoutBorder(rec.border, nil)
             else
                 LayoutBorder(rec.border, item, size, border.texture, br, bg, bb, ba)
@@ -2391,11 +2423,11 @@ function D.Apply(item, rec, barKey, w, h, ring)
             RefillIcon(cd, item, rec)               -- 轉圈框 Masque 也同樣凍過尺寸
             SquareSwipe(cd, rec, ns.Shape and ns.Shape.SwipeTexture(shape) or nil)
         end
-        -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）
+        -- 轉圈色一律是我們的（Masque 套皮時會寫它的色，所以在 Sync 之後寫）；隱藏圖示的格 rec.style 已經是透明＋不畫邊緣
         if cd then
-            local sw = ((rec.auraTime or rec.style.allAura) and rec.style.durSwipe) or { sr, sg, sb, sa }
+            local sw = ((rec.auraTime or rec.style.allAura) and rec.style.durSwipe) or rec.style.swipe
             cd:SetSwipeColor(sw[1], sw[2], sw[3], sw[4])
-            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+            if type(rec.style.drawEdge) == "boolean" then cd:SetDrawEdge(rec.style.drawEdge) end
         end
         -- 關掉「冷卻中去飽和」：當場還原一次，之後靠 SetDesaturated 後掛勾擋
         if spell.desaturate == false and icon and icon.SetDesaturated then
@@ -2477,7 +2509,7 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         local bar = type(style.bar) == "table" and style.bar or {}
         local look = D.BarLook(bar)
         local blizz = look == "blizzard"
-        local g = { h = h, w = w, side = bar.iconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
+        local g = { h = h, w = w, side = spell.barIconSide or "LEFT", gap = bar.iconGap or 0, vertical = bar.vertical and true or false,
             reverse = bar.reverseFill and true or false, look = look }
         D.ApplyBarGeometry(cell, nil, g)
         D.ApplyBarLook(cell, nil, style, bar, h, spell.barColor)
@@ -2506,8 +2538,10 @@ function D.ApplyPreview(cell, barKey, id, w, h)
     else
         D.BarShadow(cell, nil)
         local icon = cell.Icon
+        -- 隱藏圖示（同真實格：暴雪的增益圖示＝預覽的增益格）：貼圖、邊框、形狀陰影、轉圈都藏，不交 Masque
+        local hideIcon = spell.hideIcon and cell.aura and not cell.custom or false
         local skinned = false
-        if masque and icon then
+        if masque and icon and not hideIcon then
             skinned = masque.Sync(cell, cell, { Icon = icon, Cooldown = cell.Cooldown }, masque.TypeFor(barKey), w, h)
         end
         -- 跟真實格同一個旗標：預覽的發光樣本、按鍵演示（Glow／Keybinds 讀它決定要不要跟著皮的形狀）
@@ -2515,17 +2549,18 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         cell.barGeometry = nil
         cell.border = cell.border or MakeBorder(ov)
         -- 圖示形狀與陰影（同真實格；預覽格是自己的框）
-        local shape = (not skinned) and style.ishape or nil
-        local shadow = (not skinned) and style.ishadow or nil
+        local shape = (not skinned and not hideIcon) and style.ishape or nil
+        local shadow = (not skinned and not hideIcon) and style.ishadow or nil
         if icon and (shape or shadow or cell.shapeArt) then
             ApplyShape(cell, cell, icon, false, nil, shape, shadow, size, { br, bg, bb, ba }, w, h, cell.border)
         end
+        if icon and icon.SetAlpha then icon:SetAlpha(hideIcon and 0 or 1) end
         if skinned then
             cell.swipeSquare = nil
             LayoutBorder(cell.border, nil)
         else
-            if shape then
-                LayoutBorder(cell.border, nil)       -- 邊框是襯底
+            if shape or hideIcon then
+                LayoutBorder(cell.border, nil)       -- 邊框是襯底／隱藏圖示
             else
                 LayoutBorder(cell.border, cell, size, border.texture, br, bg, bb, ba)
             end
@@ -2546,10 +2581,12 @@ function D.ApplyPreview(cell, barKey, id, w, h)
         cell.durColor = cell.buffTime and D.DurationColorOf(spell.colorDuration, spell.durationColor) or nil
         local cd = cell.Cooldown
         if cd then
-            -- 增益那一段的格轉圈用它自己的背景色（逐法術覆寫也照套）
-            if cell.durColor then cd:SetSwipeColor(C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5))
+            -- 增益那一段的格轉圈用它自己的背景色（逐法術覆寫也照套）；隱藏圖示：透明、不畫邊緣
+            if hideIcon then cd:SetSwipeColor(0, 0, 0, 0)
+            elseif cell.durColor then cd:SetSwipeColor(C4(spell.durationSwipeColor, 1, 0.9, 0.5, 0.5))
             else cd:SetSwipeColor(C4(style.swipeColor, 0, 0, 0, 0.8)) end
-            if type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
+            if hideIcon then cd:SetDrawEdge(false)
+            elseif type(style.drawEdge) == "boolean" then cd:SetDrawEdge(style.drawEdge) end
         end
         ns.Text.ApplyPreviewIcon(cell, style, spell)
     end

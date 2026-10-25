@@ -315,7 +315,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Bar.lua` | 一條一頁（四條檢視器與自訂群組共用）：標題列、預覽、說明、表單；開暴雪面板 |
 | `Options/Preview.lua` | 預覽即編輯器（見下） |
 | `Options/Picker.lua` | 預覽最右邊「＋」的挑選器；自訂項目的「適用範圍」下拉列（`Picker.ScopeRow`，新增彈窗與逐法術面板共用文字） |
-| `Options/SpellPopover.lua`（＋`SpellPopover_Tabs.lua` 音效分頁的三件／沸點／自訂文字／文字分頁、`SpellPopover_Popups.lua` 複製到其他專精與自訂圖示彈窗） | 逐法術面板（自訂項目多「適用範圍」與「未學會時不顯示」）；目前那一格是 `Pop.cur`、建列時的分頁游標 `Pop.buildTab／buildSub／buildGroup`（三支共用） |
+| `Options/SpellPopover.lua`（＋`SpellPopover_Tabs.lua` 音效分頁的三件／沸點／自訂文字／文字分頁／圖示分頁、`SpellPopover_Popups.lua` 複製到其他專精與自訂圖示彈窗） | 逐法術面板（自訂項目多「適用範圍」與「未學會時不顯示」）；目前那一格是 `Pop.cur`、建列時的分頁游標 `Pop.buildTab／buildSub／buildGroup`（三支共用） |
 | `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
@@ -779,7 +779,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
   起算／到期／天賦事件由 Timers 叫 `Custom.TimerChanged(key)` 只標那幾格；冷卻／數量事件不聽（`CU.WantedEvents` 與 `activeNonAura` 只算
   spell／item／slot）。滑鼠提示畫天賦本身（`Decorate` 的 ShowTip）。
 - **`rec.spellID` 刻意留 nil**：SpellIndex、按鍵文字、可點擊、觸發發光、施放後提醒、資源檢查的法術路徑都靠它與 `kind == "spell"`
-  判「能施放的法術」，內建冷卻一律不進去。逐法術面板因此只剩一般（範圍、未學會時不顯示、所在條、天賦條件、自訂圖示）、
+  判「能施放的法術」，內建冷卻一律不進去。逐法術面板因此只剩一般（範圍、未學會時不顯示、所在條、天賦條件）、圖示（自訂圖示）、
   文字（倒數）、外觀（去飽和、冷卻狀態）、發光（就緒發光）、音效（就緒音效）；觸發發光與按鍵文字那幾列對 timer 另外藏掉。
 - **挑選器**：常用預設「防禦技能」在法術後面接這個職業**天賦有點**的內建冷卻，一列「自然守護者（內建冷卻）」，預設範圍職業層。
   圓環條不收（`RingRefuses` 只收光環格）。
@@ -1570,7 +1570,7 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
   ⚠ `SetCooldownID` 會同步 `RefreshData`、**比我們的 `SetCooldownID` 後掛勾先跑**（`CooldownViewerItemData.lua` 的 `OnCooldownIDSet`）⇒
   掛勾裡用 item 現在的身分（`Viewers.ReadItemID`）對 `rec.iconFor`，不一樣＝覆寫是上一個法術的，清掉、交回 `Apply` 重判。
   拿掉覆寫時用目錄的圖示（明文）換回去，暴雪下一次刷新也會寫回它自己的。覆寫值進簽章（`Decorate.Signature`）。
-- 逐法術面板一列「自訂圖示」：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術書／天賦／背包裡的法術或物品，取它的圖示——
+- 逐法術面板「圖示」分頁（2026-10-24 從外觀分頁搬來）一列「自訂圖示」：「更換…」開輸入彈窗（圖示編號；或 Shift 點法術書／天賦／背包裡的法術或物品，取它的圖示——
   `Picker.WatchInput(popup, "icon")`，連結 → `C_Spell.GetSpellTexture`／`C_Item.GetItemIconByID`，明文正整數才收）＋「清除」；右鍵整列清。
 - 不支援：光環格（引擎畫圖示，面板不顯示這一列）、固定格位的占位圖。
 
@@ -1927,6 +1927,34 @@ ID 框有焦點時收 Shift 點天賦樹）＋灰字。跟一般分頁那個決�
 - 漸層：起點色跟著**填充起點**（`D.GradientFlip`：反向而且漸層沿填充那一軸——橫條的 H、直條的 V——時兩色對調；跨粗細那一軸不動）。
 - 「顯示名字」（`bar.showName`）：條頁「文字」分頁最後的「長條文字」小節第一列（排在跟隨遮罩外，文字跟隨主題時照樣能改）；名字關掉或直向時名字字型／字級停用。
 - 待實機驗證：暴雪增益長條 `SetReverseFill` 之後暴雪的倒數照常、火花位置；充能分段反向時回充那一段的位置；漸層對調的觀感。
+
+### 長條：逐法術的圖示位置（`Core/DB.lua`、`Core/Decorate.lua`、`Core/StackGate.lua`、`Modules/Custom.lua`、`Options/SpellPopover_Tabs.lua`，2026-10-24，玩家要求）
+
+- **條層／主題的欄位搬家（DB v14，同一天第二版，使用者要條頁「圖示」分頁與主題頁都有）**：原本是條自己的 `bar.iconSide`（條頁「版面」分頁），
+  改成主題「圖示」節的 `icon.barIconSide`（預設 `"LEFT"`）：條頁「圖示」分頁第一列（勾「跟隨全域主題」就是主題的值）、主題頁同一列
+  （灰字寫明只有長條類的條用、直向左＝上右＝下）；圖示類的條不出這一列（`BO`）。直向的條字換成上／下（`SIDE_ITEMS_V`）。
+  `MIGRATIONS[14]`：每一條的 `bar.iconSide` 搬到 `bars[k].icon.barIconSide`，**不是 LEFT 的條把 `follow.icon` 關掉**——關掉跟隨的當下
+  什麼都不會變（沒存的欄位照退主題），畫面跟遷移前一樣；LEFT 的條照跟主題。舊欄位拿掉；壞值丟掉。`Import` 寫的也是條自己的值＋關跟隨。
+- 覆寫欄位 `barIconSide`：`"LEFT"`／`"RIGHT"`／`"NONE"`（直向的條 LEFT ＝ 上、RIGHT ＝ 下，跟主題同一個語意）；
+  nil ＝ 跟隨條。`SPELL_FALLBACK` 指回 `icon.barIconSide`（`SpellFallbackSource` 照 `follow.icon` 回 theme／bar），`OVERRIDE_GROUP` 歸 `"icon"`
+  （條頁「清除圖示覆寫」一起清）。
+- **生效值只有一個出口 `ns.BarIconSide(barKey, id)`**（`Core/DB.lua`）：覆寫 → 條層（主題 → 條自己的）→ `LEFT`，壞值一路退。讀的人：
+  `Decorate.SpellStyle.barIconSide`（→ `Apply`／`ApplyPreview` 的 `barGeometry.side`，進 `Signature`；條層值也進 `Resolve.sig`）、
+  `StackGate.Config` 的 `cfg.iconSide`（條身寬扣圖示：刻度、層數當填充；進層簽章）、`Custom.SyncSeg` 的充能分段長度、
+  `Custom_Aura.AuraStyle` 的光環長條（`st.side`）。`NONE` 的畫法照原本那一套
+  （`ApplyBarGeometry` 熄圖示、條身佔整格；層數字跟著藏，`Text.ApplyBar` 讀 `rec.barGeometry.side`）。
+- 小窗新分頁「圖示」（排在外觀後面；勾了「不顯示」一起停用）：「圖示位置」下拉——第一項「跟隨『條名』（條現在的值）」＝清掉覆寫，
+  其餘左／右／無（直向的條顯示上／下／無），選項每次 Refresh 重列；下一列灰字；右鍵標籤清。「自訂圖示」那一列從外觀分頁搬到這裡。
+
+### 增益圖示：逐法術隱藏圖示（`Core/DB.lua`、`Core/Decorate.lua`、`Options/SpellPopover.lua`，2026-10-24，玩家要求）
+
+- 覆寫欄位 `hideIcon`（`SPELL_CONST` false，沒有條層對應；`OVERRIDE_GROUP` 歸 `"icon"`）。只對**暴雪的增益圖示**生效
+  （`Apply` 的圖示分支：不是長條、不是圓環、不是自訂框、`AURA_KIND[rec.barKey]`；長條用「圖示位置：無」、光環格的圖示是引擎畫的）。
+- 藏的東西：圖示貼圖 `item.Icon` alpha 0（暴雪不碰這個 alpha ⇒ `rec.iconHidden` 記著，取消時與 `D.ClearShape`（還給暴雪）還回 1）、
+  四條邊框（`LayoutBorder(nil)`）、形狀與陰影（`ApplyShape` 的 shape／shadow 當 nil）、轉圈（`rec.style.swipe` 全透明＋
+  `drawEdge` false：`AfterCooldown` 每次刷新照這包蓋回去，所以暴雪重寫轉圈色也擋得住）。不交給 Masque（皮的外框會留一圈）。
+  留下的：倒數時間、層數、自訂文字、發光。進 `Signature`。預覽格（`ApplyPreview`，`cell.aura`）同一套。
+- 小窗「圖示」分頁第一列「隱藏圖示」勾選框＋灰字（`Pop.HideIconWhen`：kind nil、增益類、條不是長條也不是圓環）。
 
 ### 長條：逐法術的名字覆寫（2026-10-07，玩家要求）
 

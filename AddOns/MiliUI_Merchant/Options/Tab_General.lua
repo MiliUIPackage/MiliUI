@@ -22,6 +22,11 @@ local function BuildSpecs()
         { type = "slider", key = "cols", label = L["Columns"],
           min = ns.DB.LIMITS.cols[1], max = ns.DB.LIMITS.cols[2], step = 1 },
         { type = "text", label = L["Blizzard's own window is 5 rows by 2 columns. Every slot is still drawn by the game, so tooltips and other add-ons keep working on the extra ones."] },
+        { type = "dropdown", key = "order", label = L["Order"], items = {
+            { text = L["Across, then down"], value = "across" },
+            { text = L["Down, then across"], value = "down" },
+        } },
+        { type = "text", label = L["Down fills a whole column before starting the next, so the list keeps reading downward like the original two-column window."] },
 
         { type = "header", label = L["Bulk buy"] },
         { type = "toggle", key = "bulkBuy", label = L["Buy more than one stack at a time"] },

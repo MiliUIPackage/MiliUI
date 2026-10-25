@@ -1,11 +1,11 @@
 ------------------------------------------------------------
--- 逐法術面板：音效分頁的三件、沸點分頁、自訂文字分頁、文字分頁
+-- 逐法術面板：音效分頁的三件、沸點分頁、自訂文字分頁、文字分頁、圖示分頁
 -- （從 Options/SpellPopover.lua 切出，2026-10-18；TOC 緊接在 SpellPopover.lua 之後載入）
 --
 -- 共用的常數、控件表與幫手都掛在 ns.SpellPopover 上，這裡取回成 local；會變的狀態（目前那一格 Pop.cur、
 -- 建列時的 Pop.buildTab／buildSub／buildGroup）直接讀寫 Pop 上的欄位。面板本體還沒建就不會被叫：
 -- Build 建好框之後才叫這裡的 Build*，所以 BuildTextTab 開頭 Pop.Frame() 一定有值。
--- 給 SpellPopover.lua 回頭叫的：Pop.BuildTextTab（Build）、Pop.RefreshLabelTab（Refresh）。
+-- 給 SpellPopover.lua 回頭叫的：Pop.BuildTextTab／Pop.BuildIconTab（Build）、Pop.RefreshLabelTab／Pop.RefreshIconTab（Refresh）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -875,6 +875,93 @@ local function BuildTextTab(DurationRows, ColorOverrideRow, NoteRow)
     BuildLabelTab(NoteRow, PointRow, Track)
 end
 Pop.BuildTextTab = BuildTextTab
+
+------------------------------------------------------------
+-- 圖示分頁（使用者 2026-10-24）：長條上這一招的圖示位置＋自訂圖示（從外觀分頁搬來）
+--   圖示位置（長條類的條才有，OnBars）：下拉，第一項「跟隨『條名』（條現在的值）」＝清掉覆寫；其餘左／右／無
+--     （直向的條：上／下／無；存的值跟條層 bar.iconSide 同一個語意 LEFT／RIGHT／NONE）。選項每次 Refresh 重列
+--     （條的直向與否、條層的值會變）。「無」＝這一招不畫圖示、整格都是條身（Decorate.ApplyBarGeometry 的 NONE 分支；
+--     層數字一起藏，Core/Text.lua）。下一列灰字；右鍵標籤清。生效值一律走 ns.BarIconSide。
+--   自訂圖示（光環格以外都有：光環格的圖示是引擎畫的）：「更換」開輸入彈窗（Pop.AskIcon）、「清除」；
+--     寫 overrides[id].customIcon（右鍵整列清掉）。
+-- 掛在 Pop 上（Build 的 upvalue 貼著 Lua 5.1 的 60 上限）
+------------------------------------------------------------
+local SIDE_VALUES = { "LEFT", "RIGHT", "NONE" }
+-- 位置下拉的選項（不含「跟隨」那一項）：直向的條把左／右寫成上／下
+local function SideItems(vertical)
+    local items = {}
+    for i, v in ipairs(SIDE_VALUES) do
+        local text
+        if v == "NONE" then
+            text = L["None"]
+        elseif v == "LEFT" then
+            text = vertical and L["Top"] or L["Left"]
+        else
+            text = vertical and L["Bottom"] or L["Right"]
+        end
+        items[i] = { text = text, value = v }
+    end
+    return items
+end
+Pop.SideItems = SideItems
+
+function Pop.BuildIconTab(NoteRow)
+    local frame = Pop.Frame()           -- Build 建好框才叫這裡（見檔頭）
+    local prevTab = Pop.buildTab
+    Pop.buildTab = "icon"
+    -- 圖示位置
+    local sr, sh = NewRow(L["Icon position"], OnBars)
+    local sdd = W.CreateDropdown(sr, ROW_W - CTRL_X, {}, function(value)
+        if not Pop.cur then return end
+        ns.DB.SetOverride(Pop.cur.id, "barIconSide", value or nil)
+        Changed()
+    end)
+    sdd:SetMaxWidth(ROW_W - CTRL_X)
+    sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
+    frame.iconSideDD = sdd
+    RightClickClears(sr, sh, "barIconSide")
+    NoteRow(L["“None” hides this spell's icon; the bar takes the whole cell."], OnBars)
+
+    -- 自訂圖示
+    local ir, ih = NewRow(L["Custom icon"], function(kind) return kind ~= "aura" end)
+    local change = W.CreateButton(ir, L["Change"], "normal", 70, 22)
+    W.FitButton(change, 70, 22)
+    change:SetPoint("LEFT", ir, "LEFT", CTRL_X, 0)
+    change:SetScript("OnClick", function()
+        if Pop.cur then Pop.AskIcon(Pop.cur.id) end
+    end)
+    local clearIcon = W.CreateButton(ir, L["Clear"], "normal", 60, 22)
+    W.FitButton(clearIcon, 60, 22)
+    clearIcon:SetPoint("LEFT", change, "RIGHT", 6, 0)
+    clearIcon:SetScript("OnClick", function()
+        if not Pop.cur then return end
+        ns.DB.SetOverride(Pop.cur.id, "customIcon", nil)
+        Changed()
+    end)
+    frame.iconClear = clearIcon
+    RightClickClears(ir, ih, "customIcon")
+    Pop.buildTab = prevTab
+end
+
+-- Refresh 叫（Layout 之前）：位置下拉的選項（跟隨那一項帶條現在的值）與選中值、自訂圖示的「清除」
+function Pop.RefreshIconTab()
+    local frame = Pop.Frame()
+    if not (frame and Pop.cur) then return end
+    frame.iconClear:SetEnabled(Override("customIcon") ~= nil)
+    if not OnBars() then return end
+    local key = Pop.cur.key
+    local vertical = ns.Setting(key, "bar.vertical") and true or false
+    local items = SideItems(vertical)
+    local barSide = ns.Setting(key, "icon.barIconSide")
+    local barText
+    for _, it in ipairs(items) do
+        if it.value == barSide then barText = it.text end
+    end
+    table.insert(items, 1, { text = L["%s (%s)"]:format(FollowText(), barText or items[1].text), value = false })
+    frame.iconSideDD:SetItems(items)
+    local own = Override("barIconSide")
+    frame.iconSideDD:SetSelectedValue(ns.DB.ICON_SIDES[own] and own or false)
+end
 
 -- 不顯示（只給其他插件讀取；逐法術 hidden，判準 Catalog.CanHide）：一般分頁最上面一列勾選框＋下一列灰字。
 -- 勾了之後只跟畫面有關的停用（Pop.HIDE_VISUAL_TABS 那幾個分頁鈕、一般分頁的「增益不在時」），音效分頁照常。

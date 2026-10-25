@@ -958,18 +958,19 @@ end
 ------------------------------------------------------------
 -- 19. 戰鬥中隱藏（2026-10-24 玩家回報「對 Bartender 沒用」）：Anchor 把原生藏了（SetOwner(ANCHOR_NONE)＋Hide），
 -- 暴雪 ProcessInfo 的 post-call 照進、之後再 Show；原生沒有錨點畫不出來，但面板是獨立的框 ⇒ 以前照畫、
--- 還沿用上一次的貼法。現在 Try 先問 Anchor.IsCombatHidden，是就不接（已經顯示的面板也拆）
+-- 還沿用上一次的貼法。現在 Try 先問 Anchor.ShouldHideNow，是就不接（已經顯示的面板也拆）
 ------------------------------------------------------------
 do
     local t = Setup()
-    t.ns.Anchor = { IsCombatHidden = function(_, state) return state.combatHidden == true end }
+    local hideNow = false
+    t.ns.Anchor = { ShouldHideNow = function() return hideNow end }
     -- 先在戰鬥外接手一次（面板顯示中）
     t.P.Try(t.tip, t.state, ITEM, t.data)
     t.env.FlushTimers()
     eq("戰鬥隱藏：戰鬥外先畫", t.renders(), 1)
     check("戰鬥隱藏：面板顯示中", t.state.panel and t.state.panel.shown)
     -- 進戰鬥、Anchor 藏了原生（旗標）、按鈕每 0.2 秒重設 ⇒ post-call 再進來
-    t.state.combatHidden = true
+    hideNow = true
     local alphaBefore = t.tip.alphaCalls
     local ok = t.P.Try(t.tip, t.state, ITEM, t.data)
     eq("戰鬥隱藏：Try 回 false", ok, false)
@@ -981,7 +982,7 @@ do
     t.P.Release(t.tip, t.state); t.P.OnSkinHide(t.tip, t.state); t.env.FlushTimers()
     eq("戰鬥隱藏：延幀拆除沒再寫 alpha", t.tip.alphaCalls, alphaBefore + 1)
     -- 旗標清掉（脫戰／別的路徑重設 owner）⇒ 照接
-    t.state.combatHidden = nil
+    hideNow = false
     t.P.Try(t.tip, t.state, ITEM, t.data)
     eq("戰鬥隱藏：旗標清掉後照畫", t.renders(), 2)
     check("戰鬥隱藏：面板回來", t.state.panel.shown)
