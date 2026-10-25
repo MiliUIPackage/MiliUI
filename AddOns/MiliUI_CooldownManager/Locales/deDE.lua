@@ -1062,6 +1062,8 @@ L["On"] = "An"
 L["On (no charges)"] = "An (keine Aufladung)"
 L["Your debuff is on the target"] = "Dein Schwächungszauber liegt auf dem Ziel"
 L["No debuff on the target"] = "Kein Schwächungszauber auf dem Ziel"
+L["After a reload, not used yet"] = "Nach einem Reload, noch nicht benutzt"
+L["On the ground"] = "Am Boden"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Spielerrahmen"

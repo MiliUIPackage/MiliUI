@@ -1062,6 +1062,8 @@ L["On"] = "Вкл."
 L["On (no charges)"] = "Вкл. (нет зарядов)"
 L["Your debuff is on the target"] = "Ваш дебафф на цели"
 L["No debuff on the target"] = "На цели нет дебаффа"
+L["After a reload, not used yet"] = "После перезагрузки, ещё не использовано"
+L["On the ground"] = "На земле"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Рамка игрока"

@@ -1067,7 +1067,7 @@ function Specs.Themed(mode, key)
     if bar then add(OverrideRow("glow"), FollowToggle("glow")) end
     if not auraBar then
         add(Nested(L["Proc glow"], "glow"),
-            TS("glow", "toggle", "glow.proc.enabled", L["Enable"]),
+            TS("glow", "toggle", "glow.proc.enabled", L["Enable"], { demo = "procGlow" }),
             Note(L["Replaces Blizzard's proc glow. When off, Blizzard's own glow shows."], "glow"),
             TS("glow", "dropdown", "glow.proc.type", L["Style"], { items = GLOW_ITEMS }),
             TS("glow", "color", "glow.proc.color", L["Color"]),
@@ -1082,7 +1082,7 @@ function Specs.Themed(mode, key)
             TS("glow", "slider", "glow.ready.lines", L["Lines"], { min = 2, max = 16, step = 1, disabled = NoLines("glow.ready.type") }),
             TS("glow", "slider", "glow.ready.thickness", L["Thickness"], { min = 1, max = 4, step = 1, disabled = NoThickness("glow.ready.type") }),
             GlowSampleRow("ready"),
-            TS("glow", "dropdown", "glow.ready.mode", L["Glow for"], { items = READY_MODE_ITEMS }),
+            TS("glow", "dropdown", "glow.ready.mode", L["Glow for"], { items = READY_MODE_ITEMS, demo = "readyMode" }),
             Note(L["\"Until used\" starts when a cooldown finishes, so after a reload it waits for the first use. Spells with charges still go out after the duration."], "glow"),
             TS("glow", "slider", "glow.ready.duration", L["Duration (sec)"], { min = 1, max = 10, step = 1,
                 disabled = function(info) return (ReadThemed(info, "glow.ready.mode") or "timed") == "whileReady" end }),
@@ -1808,6 +1808,574 @@ do
     end }
 
     ------------------------------------------------------------
+    -- 發光宿主（同發光預覽 GlowSampleRow）：格子上面一層自己的框，PaintOn 畫在它身上；Stop 時 StopOn
+    ------------------------------------------------------------
+    local function GlowHost(c)
+        local h = CreateFrame("Frame", nil, c)
+        h:SetAllPoints()
+        h:SetFrameLevel(c:GetFrameLevel() + 2)
+        return h
+    end
+    local function StyleCopy(path, fallbackType)
+        local c = ns.Setting("theme", path)
+        local out = { type = fallbackType }
+        if type(c) == "table" then for k, v in pairs(c) do out[k] = v end end
+        return out
+    end
+    local function GlowOn(c, style, which)
+        if c.glowOn then return end
+        c.glowOn = ns.Glow.PaintOn(c.glowHost, style, which, "demo", which == "proc") or nil
+    end
+    local function GlowOff(c, which)
+        if not c.glowOn then return end
+        ns.Glow.StopOn(c.glowHost, c.glowOn, "demo")
+        c.glowOn = nil
+    end
+
+    ------------------------------------------------------------
+    -- 觸發發光「啟用」：關＝暴雪自己的觸發發光（ActionButtonSpellAlertManager，同快捷列那一圈），開＝我們的樣式（主題 glow.proc）
+    ------------------------------------------------------------
+    DEMOS.procGlow = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = TwoCells(p, nil, false)
+        on.glowHost = GlowHost(on)
+        function p:Reset(now)
+            local mgr = _G.ActionButtonSpellAlertManager
+            if mgr and mgr.ShowAlert then pcall(mgr.ShowAlert, mgr, off) end
+            GlowOn(on, StyleCopy("glow.proc", "proc"), "proc")
+        end
+        function p:Stop()
+            local mgr = _G.ActionButtonSpellAlertManager
+            if mgr and mgr.HideAlert then pcall(mgr.HideAlert, mgr, off) end
+            GlowOff(on, "proc")
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 就緒發光「發光持續」三選一：一個循環走四段——剛重載（就緒、還沒用過）→ 用掉、冷卻三秒 → 就緒四秒 → 用掉。
+    --   幾秒：就緒後亮 duration 秒（示意最多三秒）；直到使用：從冷卻結束亮到被用掉，剛重載那段不亮；
+    --   就緒期間一直：只要就緒就亮，剛重載那段也亮（Core/Glow.lua 檔頭）
+    ------------------------------------------------------------
+    local RM_FRESH, RM_CD, RM_READY = 2, 3, 4
+    DEMOS.readyMode = { build = function(parent)
+        local p = NewPanel(parent)
+        for i, it in ipairs(READY_MODE_ITEMS) do
+            local c = NewCell(p)
+            c.mode = it.value
+            c.cap:SetText(it.text)
+            c.glowHost = GlowHost(c)
+            if c.cd then c.cd:SetDrawSwipe(true) end
+            p.cells[i] = c
+        end
+        p.status = Caption(p)
+        p.status:SetJustifyH("LEFT")
+        p.statusTexts = { L["After a reload, not used yet"], L["On cooldown"], L["Ready"] }
+        local function Lit(mode, t, dur)
+            if t < RM_FRESH then return mode == "whileReady" end
+            if t < RM_FRESH + RM_CD then return false end
+            if mode == "timed" then return t < RM_FRESH + RM_CD + dur end
+            return true
+        end
+        function p:Reset(now)
+            self.start, self.seg = now, nil
+            self.dur = math.min(tonumber(ns.Setting("theme", "glow.ready.duration")) or 3, 3)
+            self.style = StyleCopy("glow.ready", "button")
+            for _, c in ipairs(self.cells) do
+                ClearCD(c)
+                PutTime(c, nil)
+                c.icon:SetDesaturated(false)
+            end
+        end
+        function p:Stop()
+            for _, c in ipairs(self.cells) do GlowOff(c, "ready") end
+        end
+        function p:Tick(now)
+            local total = RM_FRESH + RM_CD + RM_READY
+            if now >= self.start + total then self:Reset(now) end
+            local t = now - self.start
+            local seg = t < RM_FRESH and 1 or t < RM_FRESH + RM_CD and 2 or 3
+            if seg ~= self.seg then
+                self.seg = seg
+                self.status:SetText(self.statusTexts[seg])
+                for _, c in ipairs(self.cells) do
+                    if seg == 2 then SetCD(c, now, RM_CD) end
+                    c.icon:SetDesaturated(seg == 2)
+                    if seg ~= 2 then PutTime(c, nil) end
+                end
+            end
+            if seg == 2 then
+                local left = math.ceil(self.start + RM_FRESH + RM_CD - now)
+                for _, c in ipairs(self.cells) do PutTime(c, left) end
+            end
+            for _, c in ipairs(self.cells) do
+                if Lit(c.mode, t, self.dur) then GlowOn(c, self.style, "ready") else GlowOff(c, "ready") end
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 層數發光（逐法術）：層數每 0.6 秒加一、到 5 停一秒、歸零；到門檻（示意用預設的 ≥ 3）就亮生效發光的樣式（主題 glow.active）
+    ------------------------------------------------------------
+    local SG_STEP, SG_MAX, SG_HOLD = 0.6, 5, 1.2
+    DEMOS.stackGlow = { build = function(parent)
+        local p = NewPanel(parent)
+        local c = NewCell(p, "Interface\\Icons\\Spell_Nature_Rejuvenation")
+        c.cap:SetText("≥ " .. ns.StackGate.DEFAULT_THRESHOLD)
+        c.glowHost = GlowHost(c)
+        p.cells[1] = c
+        function p:Reset(now)
+            self.start, self.n = now, nil
+            self.style = StyleCopy("glow.active", "pixel")
+        end
+        function p:Stop() GlowOff(c, "active") end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= SG_STEP * SG_MAX + SG_HOLD then self:Reset(now); t = 0 end
+            local n = math.min(SG_MAX, math.floor(t / SG_STEP))
+            if n ~= self.n then
+                self.n = n
+                c.corner:SetText(n > 0 and tostring(n) or "")
+                if n >= ns.StackGate.DEFAULT_THRESHOLD then GlowOn(c, self.style, "active") else GlowOff(c, "active") end
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 長條「充能分段」（自訂法術、有充能）：三充能，現有兩顆、第三顆在回充六秒；滿了停一秒、用掉一顆再回充。
+    --   關＝整條畫下一顆的回充進度（舊行為）＋角落充能數；開＝條身分三段：現有充能滿格、回充那一段從空跑到滿、1px 分隔線
+    --   （Modules/Custom.lua 的「充能分段」）
+    ------------------------------------------------------------
+    local CSG_MAX, CSG_RECHARGE, CSG_HOLD = 3, 6, 1
+    DEMOS.chargeSegments = { build = function(parent)
+        local p = NewPanel(parent)
+        local off, on = NewBar(p), NewBar(p)
+        off.cap:SetText(L["Off"])
+        on.cap:SetText(L["On"])
+        for _, c in ipairs({ off, on }) do
+            c.count = c.ov:CreateFontString(nil, "OVERLAY")
+            ns.Media.SetFont(c.count, 11, "OUTLINE")
+            c.count:SetPoint("BOTTOMRIGHT", c.icon, "BOTTOMRIGHT", -1, 1)
+        end
+        -- 分段：計數填充（現有充能）、進度填充（回充那一段）、分隔線，都畫在條身上（條身自己的填充調透明）
+        on.body:GetStatusBarTexture():SetAlpha(0)
+        local segFill = ns.P.NoSnap(on.body:CreateTexture(nil, "ARTWORK", nil, 1))
+        segFill:SetTexture(WHITE)
+        segFill:SetPoint("TOPLEFT", on.body, "TOPLEFT", 0, 0)
+        segFill:SetPoint("BOTTOMLEFT", on.body, "BOTTOMLEFT", 0, 0)
+        local segProg = ns.P.NoSnap(on.body:CreateTexture(nil, "ARTWORK", nil, 1))
+        segProg:SetTexture(WHITE)
+        segProg:SetPoint("TOPLEFT", segFill, "TOPRIGHT", 0, 0)
+        segProg:SetPoint("BOTTOMLEFT", segFill, "BOTTOMRIGHT", 0, 0)
+        local ticks = {}
+        for k = 1, CSG_MAX - 1 do
+            local t = ns.P.NoSnap(on.body:CreateTexture(nil, "ARTWORK", nil, 2))
+            t:SetTexture(WHITE)
+            t:SetVertexColor(0, 0, 0, 1)
+            ticks[k] = t
+        end
+        local function Paint(charges, frac)
+            local r, g, b = W.Accent(1)
+            segFill:SetVertexColor(r, g, b, 1)
+            segProg:SetVertexColor(r, g, b, 1)
+            local bw = on.body:GetWidth() or 0
+            segFill:SetWidth(math.max(0.001, bw * charges / CSG_MAX))
+            segProg:SetWidth(math.max(0.001, bw / CSG_MAX * frac))
+            local px = ns.P.Pixel(1)
+            for k, t in ipairs(ticks) do
+                t:ClearAllPoints()
+                t:SetPoint("TOPLEFT", on.body, "TOPLEFT", bw * k / CSG_MAX - px / 2, 0)
+                t:SetPoint("BOTTOMLEFT", on.body, "BOTTOMLEFT", bw * k / CSG_MAX - px / 2, 0)
+                t:SetWidth(px)
+            end
+        end
+        function p:Reset(now)
+            self.start = now
+        end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= CSG_RECHARGE + CSG_HOLD then self:Reset(now); t = 0 end
+            local full = t >= CSG_RECHARGE
+            local charges = full and CSG_MAX or CSG_MAX - 1
+            local frac = full and 0 or t / CSG_RECHARGE
+            local left = full and nil or math.ceil(CSG_RECHARGE - t)
+            off.body:SetValue(full and 1 or frac)
+            PutTime(off, left)
+            PutTime(on, left)
+            for _, c in ipairs({ off, on }) do c.count:SetText(tostring(charges)) end
+            Paint(charges, frac)
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 增益長條的層數（逐法術）：一個會疊層的增益，每 1.2 秒加一層到 5、八秒後掉光。
+    --   層數當填充：關＝條身畫剩餘時間（往下掉）、開＝條身畫層數／5（往上跳），兩邊都印層數
+    --   層數刻度：條身上第 k 層的位置畫 1px 刻度（Core/StackGate.lua）
+    ------------------------------------------------------------
+    local SB_STEP, SB_MAX, SB_DUR = 1.2, 5, 8
+    local function StackCount(c)
+        c.stacks = c.ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.stacks, 11, "OUTLINE")
+        c.stacks:SetPoint("CENTER", c.body, "CENTER", 0, 0)
+    end
+    local function StackTick(c, n)
+        local col = ns.StackGate.TICK_COLOR
+        c.ticks = {}
+        for k = 1, n - 1 do
+            local t = ns.P.NoSnap(c.body:CreateTexture(nil, "ARTWORK", nil, 2))
+            t:SetTexture(WHITE)
+            t:SetVertexColor(col.r, col.g, col.b, col.a)
+            c.ticks[k] = t
+        end
+        function c:PlaceTicks()
+            local bw, px = self.body:GetWidth() or 0, ns.P.Pixel(1)
+            for k, t in ipairs(self.ticks) do
+                t:ClearAllPoints()
+                t:SetPoint("TOPLEFT", self.body, "TOPLEFT", bw * k / n - px / 2, 0)
+                t:SetPoint("BOTTOMLEFT", self.body, "BOTTOMLEFT", bw * k / n - px / 2, 0)
+                t:SetWidth(px)
+            end
+        end
+    end
+    local function BuildStacks(parent, which)
+        local p = NewPanel(parent)
+        local off, on = NewBar(p, "Interface\\Icons\\Spell_Nature_Rejuvenation"), NewBar(p, "Interface\\Icons\\Spell_Nature_Rejuvenation")
+        off.cap:SetText(L["Off"])
+        on.cap:SetText(L["On"])
+        StackCount(off)
+        StackCount(on)
+        if which == "ticks" then StackTick(on, SB_MAX) end
+        p.cells[1], p.cells[2] = off, on
+        function p:Reset(now)
+            self.start = now
+            if on.PlaceTicks then on:PlaceTicks() end
+        end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= SB_DUR + 0.8 then self:Reset(now); t = 0 end
+            local up = t < SB_DUR
+            local n = up and math.min(SB_MAX, math.floor(t / SB_STEP) + 1) or 0
+            local timeFrac = up and (SB_DUR - t) / SB_DUR or 0
+            local left = up and math.ceil(SB_DUR - t) or nil
+            off.body:SetValue(timeFrac)
+            on.body:SetValue(which == "fill" and n / SB_MAX or timeFrac)
+            PutTime(off, left)
+            PutTime(on, left)
+            for _, c in ipairs(self.cells) do c.stacks:SetText(n >= 2 and tostring(n) or "") end
+        end
+        return p
+    end
+    DEMOS.stacksAsFill = { build = function(parent) return BuildStacks(parent, "fill") end }
+    DEMOS.stackTicks   = { build = function(parent) return BuildStacks(parent, "ticks") end }
+
+    ------------------------------------------------------------
+    -- 以增益取代（逐法術）：技能放出去、增益掛三秒、冷卻八秒。關＝技能格照倒冷卻，增益另外出現在增益圖示列；
+    --   開＝增益掛著的那三秒這一格換成增益圖示＋增益倒數，增益消失再換回技能的冷卻（增益不再出現在增益圖示列）
+    ------------------------------------------------------------
+    local RW_BUFF, RW_CD, RW_READY = 3, 8, 1
+    local RW_SPELL, RW_AURA = "Interface\\Icons\\Spell_Holy_PowerWordShield", "Interface\\Icons\\Spell_Holy_Renew"
+    DEMOS.replaceWith = { build = function(parent)
+        local p = NewPanel(parent)
+        -- 關：兩格並排（技能格＋增益圖示列上的增益），整組當一欄
+        local col = CreateFrame("Frame", nil, p)
+        col.w, col.h = SIZE * 2 + 6, SIZE
+        col:SetSize(col.w, col.h)
+        local spell, buff = NewCell(col, RW_SPELL), NewCell(col, RW_AURA)
+        spell.cap:Hide()
+        buff.cap:Hide()
+        spell:SetPoint("TOPLEFT", col, "TOPLEFT", 0, 0)
+        buff:SetPoint("TOPLEFT", col, "TOPLEFT", SIZE + 6, 0)
+        if spell.cd then spell.cd:SetDrawSwipe(true) end
+        if buff.cd then buff.cd:SetDrawSwipe(true) end
+        col.cap = Caption(p, L["Off"])
+        col.cap:SetPoint("TOP", col, "BOTTOM", 0, -CAP_GAP)
+        function col:Inset() spell:Inset(); buff:Inset() end
+        -- 開：一格換圖
+        local on = NewCell(p, RW_SPELL)
+        on.cap:SetText(L["On"])
+        if on.cd then on.cd:SetDrawSwipe(true) end
+        p.cells[1], p.cells[2] = col, on
+        function p:Reset(now)
+            self.start, self.seg = now, nil
+        end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= RW_CD + RW_READY then self:Reset(now); t = 0 end
+            local seg = t < RW_BUFF and 1 or t < RW_CD and 2 or 3
+            if seg ~= self.seg then
+                self.seg = seg
+                if seg == 1 then
+                    SetCD(spell, now, RW_CD)
+                    spell.icon:SetDesaturated(true)
+                    SetCD(buff, now, RW_BUFF)
+                    buff:Show()
+                    on.icon:SetTexture(RW_AURA)
+                    on.icon:SetDesaturated(false)
+                    SetCD(on, now, RW_BUFF)
+                elseif seg == 2 then
+                    buff:Hide()
+                    on.icon:SetTexture(RW_SPELL)
+                    on.icon:SetDesaturated(true)
+                    SetCD(on, now - RW_BUFF, RW_CD)
+                else
+                    spell.icon:SetDesaturated(false)
+                    on.icon:SetDesaturated(false)
+                    PutTime(spell, nil)
+                    PutTime(on, nil)
+                end
+            end
+            if seg == 1 then
+                PutTime(spell, math.ceil(RW_CD - t))
+                PutTime(buff, math.ceil(RW_BUFF - t))
+                PutTime(on, math.ceil(RW_BUFF - t))
+            elseif seg == 2 then
+                PutTime(spell, math.ceil(RW_CD - t))
+                PutTime(on, math.ceil(RW_CD - t))
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 符文（資源條）：六顆，一顆轉好、三顆在回充、兩顆排隊（同時只有三顆在轉，Modules/Resources_Rows.lua）。
+    --   符文上的數字：每顆在轉的印剩餘秒數 vs 中間印一個轉好的顆數
+    --   計入等待中的符文：關＝排隊的那兩顆空著、輪到才開始填；開＝從用掉那一刻起跨整段等待慢慢填、印到轉好的秒數
+    ------------------------------------------------------------
+    local RUNE_N, RUNE_W, RUNE_H, RUNE_GAP, RUNE_T = 6, 18, 14, 2, 9
+    local RUNE_C = { 0.77, 0.12, 0.23 }
+    -- 每顆的回充區間 [從, 到]（相對循環起點）：1 轉好；2～4 在轉；5、6 排隊（等 2、3 轉好才輪到）
+    local RUNE_SPAN = { nil, { -2, 2 }, { -1, 3 }, { 0, 4 }, { 2, 6 }, { 3, 7 } }
+    local function NewRuneRow(parent)
+        local c = CreateFrame("Frame", nil, parent)
+        c.w, c.h = RUNE_N * RUNE_W + (RUNE_N - 1) * RUNE_GAP, RUNE_H
+        c:SetSize(c.w, c.h)
+        c.segs = {}
+        for i = 1, RUNE_N do
+            local s = CreateFrame("StatusBar", nil, c)
+            s:SetSize(RUNE_W, RUNE_H)
+            s:SetPoint("LEFT", c, "LEFT", (i - 1) * (RUNE_W + RUNE_GAP), 0)
+            s:SetStatusBarTexture(WHITE)
+            ns.P.NoSnap(s)
+            s:SetMinMaxValues(0, 1)
+            local bg = ns.P.NoSnap(s:CreateTexture(nil, "BACKGROUND"))
+            bg:SetAllPoints()
+            bg:SetColorTexture(RUNE_C[1] * 0.2, RUNE_C[2] * 0.2, RUNE_C[3] * 0.2, 1)
+            local ov = CreateFrame("Frame", nil, s)
+            ov:SetAllPoints()
+            ov:SetFrameLevel(s:GetFrameLevel() + 2)
+            s.timer = ov:CreateFontString(nil, "OVERLAY")
+            ns.Media.SetFont(s.timer, 9, "OUTLINE")
+            s.timer:SetPoint("CENTER")
+            c.segs[i] = s
+        end
+        local ov = CreateFrame("Frame", nil, c)
+        ov:SetAllPoints()
+        ov:SetFrameLevel(c:GetFrameLevel() + 5)
+        c.count = ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.count, 11, "OUTLINE")
+        c.count:SetPoint("CENTER")
+        c.cap = Caption(parent)
+        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -CAP_GAP)
+        -- text："countdown"｜"count"；queued：計入等待中的符文
+        function c:Paint(t, text, queued)
+            local ready = 0
+            for i, s in ipairs(self.segs) do
+                local span = RUNE_SPAN[i]
+                local isReady = not span or t >= span[2]
+                local prog, sec
+                if isReady then
+                    prog = 1
+                    ready = ready + 1
+                else
+                    local from = span[1]
+                    local waiting = t < from
+                    if waiting and not queued then
+                        prog = 0
+                    else
+                        local start = queued and math.min(from, 0) or from
+                        prog = (t - start) / (span[2] - start)
+                        sec = math.ceil(span[2] - t)
+                    end
+                end
+                s:SetValue(prog)
+                if isReady then s:SetStatusBarColor(RUNE_C[1], RUNE_C[2], RUNE_C[3], 1)
+                else s:SetStatusBarColor(RUNE_C[1] * 0.6, RUNE_C[2] * 0.6, RUNE_C[3] * 0.6, 1) end
+                local txt = (text == "countdown" and sec) and tostring(sec) or ""
+                if s.shown ~= txt then
+                    s.shown = txt
+                    s.timer:SetText(txt)
+                end
+            end
+            local ct = text == "count" and tostring(ready) or ""
+            if self.shownCount ~= ct then
+                self.shownCount = ct
+                self.count:SetText(ct)
+            end
+        end
+        return c
+    end
+    local function BuildRunes(parent, defs)
+        local p = NewPanel(parent)
+        for i, d in ipairs(defs) do
+            local c = NewRuneRow(p)
+            c.cap:SetText(d[1])
+            c.text, c.queued = d[2], d[3]
+            p.cells[i] = c
+        end
+        function p:Reset(now) self.start = now end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= RUNE_T then self:Reset(now); t = 0 end
+            for _, c in ipairs(self.cells) do c:Paint(t, c.text, c.queued) end
+        end
+        return p
+    end
+    DEMOS.runeText = { build = function(parent)
+        return BuildRunes(parent, { { L["Seconds left on each rune"], "countdown", true }, { L["Ready runes count"], "count", true } })
+    end }
+    DEMOS.runeQueued = { build = function(parent)
+        return BuildRunes(parent, { { L["Off"], "countdown", false }, { L["On"], "countdown", true } })
+    end }
+
+    ------------------------------------------------------------
+    -- 氣漩武器「折疊成 5 段」（資源條）：層數 0→10 每 0.45 秒加一、滿了停一秒。關＝十格；開＝五格，第 6～10 層疊在同五格上、
+    --   用溢出色（colors.MaelstromWeapon.overflowColor，Modules/Resources.lua 的「氣漩武器摺疊」）
+    ------------------------------------------------------------
+    local MW_STEP, MW_MAX, MW_HOLD, MW_H, MW_GAP = 0.45, 10, 1, 12, 2
+    local MW_C, MW_OVER = { 0.2, 0.65, 1 }, { 1, 0.82, 0.2 }
+    local function NewSegRow(parent, n, segW)
+        local c = CreateFrame("Frame", nil, parent)
+        c.w, c.h = n * segW + (n - 1) * MW_GAP, MW_H
+        c:SetSize(c.w, c.h)
+        c.segs = {}
+        for i = 1, n do
+            local s = CreateFrame("Frame", nil, c)
+            s:SetSize(segW, MW_H)
+            s:SetPoint("LEFT", c, "LEFT", (i - 1) * (segW + MW_GAP), 0)
+            s.bg = ns.P.NoSnap(s:CreateTexture(nil, "BACKGROUND"))
+            s.bg:SetAllPoints()
+            s.bg:SetColorTexture(MW_C[1] * 0.2, MW_C[2] * 0.2, MW_C[3] * 0.2, 1)
+            s.fill = ns.P.NoSnap(s:CreateTexture(nil, "ARTWORK"))
+            s.fill:SetAllPoints()
+            s.fill:SetColorTexture(MW_C[1], MW_C[2], MW_C[3], 1)
+            s.fill:Hide()
+            c.segs[i] = s
+        end
+        c.cap = Caption(parent)
+        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -CAP_GAP)
+        return c
+    end
+    DEMOS.maelstromFold = { build = function(parent)
+        local p = NewPanel(parent)
+        local off = NewSegRow(p, MW_MAX, 9)
+        local on = NewSegRow(p, MW_MAX / 2, 20)
+        off.cap:SetText(L["Off"])
+        on.cap:SetText(L["On"])
+        p.cells[1], p.cells[2] = off, on
+        function p:Reset(now) self.start, self.n = now, nil end
+        function p:Tick(now)
+            local t = now - self.start
+            if t >= MW_STEP * (MW_MAX + 1) + MW_HOLD then self:Reset(now); t = 0 end
+            local n = math.min(MW_MAX, math.floor(t / MW_STEP))
+            if n == self.n then return end
+            self.n = n
+            for i, s in ipairs(off.segs) do s.fill:SetShown(i <= n) end
+            local half = MW_MAX / 2
+            for i, s in ipairs(on.segs) do
+                s.fill:SetShown(i <= n)
+                if i <= n - half then s.fill:SetColorTexture(MW_OVER[1], MW_OVER[2], MW_OVER[3], 1)
+                else s.fill:SetColorTexture(MW_C[1], MW_C[2], MW_C[3], 1) end
+            end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
+    -- 天空騎術「位置」三選一：小版面圖，每 2.5 秒在地面／天空騎術之間切。上面一排四顆＝核心技能、底下一條＝資源條、
+    --   三條細的＝天空騎術列。接力（核心技能的位置）＝騎上去時那一排換成三條細的；接力（資源條的位置）＝那一條換成；
+    --   獨立＝兩個都留著，三條細的出現在自己的位置
+    ------------------------------------------------------------
+    local SK_PHASE, SK_W, SK_ICON, SK_BAR_H, SK_GAP = 2.5, 64, 10, 6, 5
+    local function SkyIcons(parent)
+        local f = CreateFrame("Frame", nil, parent)
+        f:SetSize(SK_ICON * 4 + 3 * 2, SK_ICON)
+        for i = 1, 4 do
+            local t = ns.P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
+            t:SetSize(SK_ICON, SK_ICON)
+            t:SetPoint("LEFT", f, "LEFT", (i - 1) * (SK_ICON + 2), 0)
+            t:SetColorTexture(0.55, 0.55, 0.55, 1)
+        end
+        return f
+    end
+    local function SkyBar(parent, w, h, r, g, b)
+        local f = CreateFrame("Frame", nil, parent)
+        f:SetSize(w, h)
+        local t = ns.P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
+        t:SetAllPoints()
+        t:SetColorTexture(r, g, b, 1)
+        return f
+    end
+    local function SkyBars(parent)
+        local f = CreateFrame("Frame", nil, parent)
+        local h = 3
+        f:SetSize(SK_W, h * 3 + 2 * 2)
+        local colors = { { 0.3, 0.8, 1 }, { 1, 0.75, 0.2 }, { 0.5, 0.9, 0.4 } }
+        for i = 1, 3 do
+            local b = SkyBar(f, SK_W, h, unpack(colors[i]))
+            b:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -(i - 1) * (h + 2))
+        end
+        return f
+    end
+    DEMOS.skyPlacement = { build = function(parent)
+        local p = NewPanel(parent)
+        local defs = { { "essential", L["Relay (Essential Cooldowns' spot)"] }, { "resources", L["Relay (resource bar's spot)"] },
+                       { "standalone", L["Standalone"] } }
+        local slotH = { SK_ICON, SK_BAR_H, 13 }
+        for i, d in ipairs(defs) do
+            local col = CreateFrame("Frame", nil, p)
+            col.mode = d[1]
+            col.w, col.h = SK_W, SK_ICON + SK_GAP + SK_BAR_H + SK_GAP + 13
+            col:SetSize(col.w, col.h)
+            col.icons = SkyIcons(col)
+            col.icons:SetPoint("TOP", col, "TOP", 0, 0)
+            col.res = SkyBar(col, SK_W, SK_BAR_H, W.Accent(1))
+            col.res:SetPoint("TOP", col, "TOP", 0, -(SK_ICON + SK_GAP))
+            col.sky = SkyBars(col)
+            col.cap = Caption(p, d[2])
+            col.cap:SetPoint("TOP", col, "BOTTOM", 0, -CAP_GAP)
+            function col:Apply(flying)
+                self.icons:SetShown(not (flying and self.mode == "essential"))
+                self.res:SetShown(not (flying and self.mode == "resources"))
+                self.sky:SetShown(flying)
+                self.sky:ClearAllPoints()
+                if self.mode == "essential" then
+                    self.sky:SetPoint("TOP", self, "TOP", 0, 0)
+                elseif self.mode == "resources" then
+                    self.sky:SetPoint("TOP", self, "TOP", 0, -(SK_ICON + SK_GAP))
+                else
+                    self.sky:SetPoint("TOP", self, "TOP", 0, -(SK_ICON + SK_GAP + SK_BAR_H + SK_GAP))
+                end
+            end
+            p.cells[i] = col
+        end
+        p.status = Caption(p)
+        p.status:SetJustifyH("LEFT")
+        p.statusTexts = { L["On the ground"], L["Skyriding"] }
+        function p:Reset(now) self.start, self.flying = now, nil end
+        function p:Tick(now)
+            local flying = ((now - self.start) % (SK_PHASE * 2)) >= SK_PHASE
+            if flying == self.flying then return end
+            self.flying = flying
+            self.status:SetText(self.statusTexts[flying and 2 or 1])
+            for _, col in ipairs(self.cells) do col:Apply(flying) end
+        end
+        return p
+    end }
+
+    ------------------------------------------------------------
     -- 彈窗與「!」
     ------------------------------------------------------------
     local function Popup()
@@ -1827,7 +2395,10 @@ do
             if p and p.Tick then p:Tick(GetTime()) end
         end)
         popup:SetScript("OnHide", function(self)
-            if self.panel then self.panel:Hide() end
+            if self.panel then
+                if self.panel.Stop then self.panel:Stop() end
+                self.panel:Hide()
+            end
             self.panel, self.owner = nil, nil
         end)
         return popup
@@ -1837,7 +2408,10 @@ do
         local def = DEMOS[id]
         if not def then return end
         local pop = Popup()
-        if pop.panel and pop.panel ~= pop.panels[id] then pop.panel:Hide() end
+        if pop.panel and pop.panel ~= pop.panels[id] then
+            if pop.panel.Stop then pop.panel:Stop() end
+            pop.panel:Hide()
+        end
         local panel = pop.panels[id]
         if not panel then
             panel = def.build(pop)
@@ -2206,7 +2780,7 @@ function Specs.Layout(key)
         -- 圖示位置 2026-10-24 搬到「圖示」節（主題欄位 icon.barIconSide，跟隨主題；直向時那邊的字換成上／下）
         add(BS("slider", "bar.iconGap", L["Icon gap"], { min = 0, max = 10, step = 1 }))
         -- 充能分段（F8b，Modules/Custom.lua）：只對自己加的、有充能的法術；分隔線色沒勾時停用
-        add(BS("toggle", "bar.chargeSegments", L["Charge segments"]))
+        add(BS("toggle", "bar.chargeSegments", L["Charge segments"], { demo = "chargeSegments" }))
         add(BS("color", "bar.chargeLineColor", L["Divider color"], { hasAlpha = true,
             disabled = function(info) return not ns.DB.GetPath(ns.DB.ConfigTable(info.key), "bar.chargeSegments") end }))
         add(Note(L["Spells with charges that you added yourself: one segment per charge, and the one recharging fills up."]))
@@ -2766,8 +3340,10 @@ function Specs.BuildForm(parent, controls, ctx, width)
         if (RESETTABLE[row.spec.type] or row.spec.resettable) and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
         -- 示意「!」（spec.demo）：勾選框（18px）右邊，跟它垂直置中。層級在兩種遮罩之下：整節跟隨／停用時一起暗、滑不到
         if row.spec.demo then
+            -- 控件多寬就排在它右邊：勾選框 18、下拉照共用層的標準寬（卡片裡收窄成 maxW）
+            local ctrlW = row.spec.type == "toggle" and 18 or math.min(CARD_CTRL_W, row.spec.maxW or CARD_CTRL_W)
             local m = Specs.DemoMark(content, row.spec.demo, row.spec.label)
-            m:SetPoint("LEFT", content, "TOPLEFT", x0 + LABEL_W + CARD_GAP + 18 + 12, (row.top + row.bottom) / 2)
+            m:SetPoint("LEFT", content, "TOPLEFT", x0 + LABEL_W + CARD_GAP + ctrlW + 12, (row.top + row.bottom) / 2)
         end
     end
 

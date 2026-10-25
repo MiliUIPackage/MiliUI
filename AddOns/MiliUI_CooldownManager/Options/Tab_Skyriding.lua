@@ -59,7 +59,7 @@ local function Controls()
     add({ type = "header", label = L["General"] })
     add(BS("toggle", "enabled", L["Show the skyriding bars"]))
     add(Note(L["Your speed, the %s cooldown and your %s while skyriding, one row each."]:format(Spell("surge"), Spell("vigor"))))
-    add(BS("dropdown", "placement", L["Position"], { items = PLACEMENT_ITEMS, refreshPage = true, level = "structure", resetPaths = { "placement", "relayTo" },
+    add(BS("dropdown", "placement", L["Position"], { items = PLACEMENT_ITEMS, demo = "skyPlacement", refreshPage = true, level = "structure", resetPaths = { "placement", "relayTo" },
         get = function() return SR().PlacementValue(Cfg()) end,
         set = function(_, v) SR().SetPlacement(v) end }))
     add(Note(L["Relay: shares the spot of Essential Cooldowns or the resource bar and takes turns with it while skyriding. Drag that bar to move both. Standalone: its own position, drag it in Edit Mode."]))

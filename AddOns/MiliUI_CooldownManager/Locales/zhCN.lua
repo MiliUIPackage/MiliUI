@@ -1091,6 +1091,8 @@ L["On"] = "开启"
 L["On (no charges)"] = "开启（充能用完）"
 L["Your debuff is on the target"] = "目标身上有你的减益"
 L["No debuff on the target"] = "目标身上没有你的减益"
+L["After a reload, not used yet"] = "刚重载，还没用过"
+L["On the ground"] = "在地面"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "玩家框体"

@@ -1062,6 +1062,8 @@ L["On"] = "켜기"
 L["On (no charges)"] = "켜기 (충전 없음)"
 L["Your debuff is on the target"] = "대상에게 내 약화 효과가 있음"
 L["No debuff on the target"] = "대상에게 약화 효과 없음"
+L["After a reload, not used yet"] = "리로드 직후, 아직 사용 안 함"
+L["On the ground"] = "지상"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "플레이어 창"
