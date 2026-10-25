@@ -1010,8 +1010,13 @@ function DB.BuildDefaults()
                                  x = 36, y = 0, w = 184, h = 14, size = 13,
                                  justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
+                    -- y = -24：能量條底在 -23，施法條**不跟它共用邊線**、留 1px 縫。
+                    -- 血條／能量條互疊 1px 是故意的（共用邊線），但施法條不能跟進：
+                    -- 目標邊框／滑鼠高亮／驅散邊框貼的是血條＋能量條、層級 19/20 高於施法條
+                    --（見 Core/UnitFrame.lua 的 BodyBounds），貼在 -22 時白框底線正好畫在
+                    -- 施法條與圖示的上邊線那一列，唱法時看起來是白框劃過施法條（v21 遷移）。
                     castbar = {
-                        enabled = true, x = 36, y = -22, w = 184, h = 14, level = 12,
+                        enabled = true, x = 36, y = -24, w = 184, h = 14, level = 12,
                         timeFormat = "elapsedTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
                         showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
@@ -1647,6 +1652,18 @@ local PROFILE_MIGRATIONS = {
     [20] = function(profile)
         local g = profile.global
         if type(g) == "table" and g.barTexture == "tuktex" then g.barTexture = "satin" end
+    end,
+
+    -- v21（2026-10-25）：首領框施法條 y -22 → -24。
+    -- 舊值跟能量條底（-23）共用一列邊線，而目標邊框／滑鼠高亮／驅散邊框（貼血條＋
+    -- 能量條、層級高於施法條）的底線正好落在那一列 ⇒ 唱法時白框劃過施法條與圖示上緣。
+    -- 值閘：只動還是 -22 的，自己拉過位置的不碰。
+    [21] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local boss = type(units.boss) == "table" and units.boss.elements
+        local cb = type(boss) == "table" and boss.castbar
+        if type(cb) == "table" and cb.y == -22 then cb.y = -24 end
     end,
 }
 
