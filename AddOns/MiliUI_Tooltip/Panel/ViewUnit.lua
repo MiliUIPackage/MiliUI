@@ -194,7 +194,7 @@ local function DetailRows(f, model)
     end
     if f.itemLevel ~= nil then
         local v = f.itemLevel
-        rows[#rows + 1] = Label(L["ItemLevel"], type(v) == "number" and Paint(("%.1f"):format(v), f.itemLevelColor or LOOK.TEXT)
+        rows[#rows + 1] = Label(L["ItemLevel"], type(v) == "number" and Paint(("%.2f"):format(v), f.itemLevelColor or LOOK.TEXT)
             or Paint(L["unknown"], LOOK.DIM))
     end
     if f.mplus then
