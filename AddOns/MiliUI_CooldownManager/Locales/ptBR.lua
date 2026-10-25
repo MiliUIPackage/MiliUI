@@ -1062,6 +1062,8 @@ L["On"] = "Ativado"
 L["On (no charges)"] = "Ativado (sem cargas)"
 L["Your debuff is on the target"] = "Seu debuff está no alvo"
 L["No debuff on the target"] = "Sem debuff no alvo"
+L["After a reload, not used yet"] = "Após um reload, ainda não usado"
+L["On the ground"] = "No chão"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Quadro do jogador"

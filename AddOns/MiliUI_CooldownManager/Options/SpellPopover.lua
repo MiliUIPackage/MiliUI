@@ -900,7 +900,8 @@ local function Build()
 
     -- 以增益取代（一般分頁、所在條下面）：第一項「無」＝清掉覆寫；被別的技能用掉的那幾項 value 是 "taken"（選了不寫）
     local rwr, rwh = NewRow(L["Replace with buff"], ReplaceCapable)
-    local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X, {}, function(value)
+    local RW_MARK_W = 16 + 10                -- 右邊的示意「!」＋間距
+    local rwdd = W.CreateDropdown(rwr, ROW_W - CTRL_X - RW_MARK_W, {}, function(value)
         if not Pop.cur then return end
         if value == "taken" then Pop.Refresh() return end
         if type(value) == "number" then
@@ -920,9 +921,10 @@ local function Build()
         if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
         Changed("membership")
     end)
-    rwdd:SetMaxWidth(ROW_W - CTRL_X)
+    rwdd:SetMaxWidth(ROW_W - CTRL_X - RW_MARK_W)
     rwdd:SetPoint("LEFT", rwr, "LEFT", CTRL_X, 0)
     frame.replaceDD = rwdd
+    ns.Specs.DemoMark(rwr, "replaceWith", L["Replace with buff"]):SetPoint("LEFT", rwdd, "RIGHT", 10, 0)
     local rhit = CreateFrame("Frame", nil, rwr)
     rhit:SetPoint("TOPLEFT", rwr, "TOPLEFT", 0, 0)
     rhit:SetPoint("BOTTOMLEFT", rwr, "BOTTOMLEFT", 0, 0)
@@ -1381,6 +1383,7 @@ local function Build()
         Changed()
     end)
     sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(sgr, "stackGlow", L["Stack glow"]):SetPoint("LEFT", sswatch, "RIGHT", 10, 0)
     frame.stackCB, frame.stackNum, frame.stackSwatch = scb, num, sswatch
     local shit = CreateFrame("Frame", nil, sgr)
     shit:SetPoint("TOPLEFT", sgr, "TOPLEFT", 0, 0)
@@ -1482,6 +1485,7 @@ local function Build()
         end
     end)
     sbnum:SetPoint("LEFT", sbl, "RIGHT", 6, 0)
+    ns.Specs.DemoMark(sbr, "stacksAsFill", L["Stacks as fill"]):SetPoint("LEFT", sbnum, "RIGHT", 10, 0)
     frame.stackBarCB, frame.stackBarNum = sbcb, sbnum
     RightClickClears(sbr, sbh, "stackBar")
     NoteRow(L["The bar shows the stack count (0 up to the max) instead of the remaining time."], BlizzAuraBar)
@@ -1532,6 +1536,7 @@ local function Build()
         if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
     end)
     tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(tkr, "stackTicks", L["Stack ticks"]):SetPoint("LEFT", tksw, "RIGHT", 10, 0)
     frame.stackTicksCB, frame.stackTicksBox, frame.stackTicksSwatch = tkcb, tkbox, tksw
     RightClickClears(tkr, tkh, "stackTicks")
     -- 刻度自己的最大層數：只有沒勾層數當填充時才出現（勾了就跟它共用）
