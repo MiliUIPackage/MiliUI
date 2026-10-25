@@ -9,7 +9,7 @@
 ## Category-zhTW: 滑鼠提示
 ## Category-zhCN: 鼠标提示
 ## Author: Mili
-## Version: 2.1.15
+## Version: 2.1.16
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Misc_Note_01
 ## SavedVariables: MiliUI_Tooltip_DB
