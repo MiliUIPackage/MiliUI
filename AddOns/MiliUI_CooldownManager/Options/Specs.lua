@@ -29,6 +29,7 @@
 --   tab      頂層 header 才帶：這一節放在哪個分頁（Specs.SplitTabs；沒分頁的頁不看）
 --   subTab   "cooldown" | "duration" | "charges" | "stacks"：只進那個子分頁的表單（K；Specs.FilterSubTab）
 --   subGroup "cd" | "cs"：subTab 屬於哪一組子分頁（Specs.SUBTAB_GROUPS）
+--   demo     "swipe" | "edge" | "timer"：勾選框右邊掛回充長相的示意「!」（Specs.ChargeDemoMark）
 --
 -- ⚠ 條頁的主題欄位**讀的是繼承後的值**：沒跟隨、但這一格自己沒存的，看到的是主題的值。
 --   顏色若直接回主題那張表，Controls 的色票會就地改掉主題（它拿到表就直接寫 r/g/b）。
@@ -958,10 +959,11 @@ function Specs.Themed(mode, key)
         -- 回充的長相（Core/Decorate.lua）：三個都是改掉暴雪原本的（不畫轉圈、畫邊緣、顯示倒數），預設全關。
         -- 增益兩條與長條類的條用不到（同冷卻狀態效果的 CS）
         CS(Nested(L["While recharging"], "icon")),
-        CS(TS("icon", "toggle", "icon.chargeSwipe", L["Show cooldown swipe"])),
+        -- demo：勾選框右邊的「!」，滑過演開與關的差別（Specs.ChargeDemoMark）
+        CS(TS("icon", "toggle", "icon.chargeSwipe", L["Show cooldown swipe"], { demo = "swipe" })),
         CS(Note(L["A spell with charges, while it still has one left and the next one comes back: Blizzard only draws a bright line at the edge of the swipe. Turn this on to darken the icon too, like a normal cooldown."], "icon")),
-        CS(TS("icon", "toggle", "icon.chargeHideEdge", L["Hide edge line"])),
-        CS(TS("icon", "toggle", "icon.chargeHideTimer", L["Hide recharge countdown"])),
+        CS(TS("icon", "toggle", "icon.chargeHideEdge", L["Hide edge line"], { demo = "edge" })),
+        CS(TS("icon", "toggle", "icon.chargeHideTimer", L["Hide recharge countdown"], { demo = "timer" })),
         CS(Note(L["Hides the seconds until the next charge only while you still have one left. With none left, the cooldown countdown shows as usual."], "icon")))
 
     -- 文字
@@ -1320,6 +1322,173 @@ function GlowSampleRow(which, path)
     end }
 end
 Specs.GlowSampleRow = function(which, path) return GlowSampleRow(which, path) end
+
+------------------------------------------------------------
+-- 回充的長相示意（使用者 2026-10-25：只有文字很難懂）：勾選框右邊一個「!」小方塊（樣式同子分頁卡片的「!」），
+-- 滑過彈出一塊提示皮，並排幾顆樣本圖示一直轉同一個六秒的回充：「關閉」＝暴雪原本（不畫轉圈、畫邊緣亮線、
+-- 顯示倒數），「開啟」只改掉那一項；隱藏回充倒數多一格「充能用完」：倒數照常（同 Core/Decorate.lua 的
+-- ApplyChargeLook——沒充能時暴雪餵的是一般冷卻，不算回充）。
+-- 樣本是自己畫的假格（同發光預覽），不套主題的邊框／字型：要看的只是三個開關的差別。
+-- 彈窗整個介面共用一塊（框刪不掉 ⇒ 第一次滑過才建）；主題頁／條頁（spec.demo，BuildForm 擺位置）與
+-- 逐法術小窗（TOGGLES 的 demo）都叫 Specs.ChargeDemoMark
+------------------------------------------------------------
+do
+    local SIZE, DUR, PAD, GAP = 40, 6, 10, 14
+    local BLIZZ = { edge = true, time = true, charges = 1 }
+    -- { 格子底下的字, 長相 }：swipe 暗色轉圈、edge 邊緣亮線、time 倒數、charges 角落的充能數
+    local DEMOS = {
+        swipe = { { L["Off"], BLIZZ }, { L["On"], { swipe = true, edge = true, time = true, charges = 1 } } },
+        edge  = { { L["Off"], BLIZZ }, { L["On"], { time = true, charges = 1 } } },
+        timer = { { L["Off"], BLIZZ }, { L["On"], { edge = true, charges = 1 } },
+                  { L["On (no charges)"], { swipe = true, time = true, charges = 0 } } },
+    }
+    local demo
+
+    local function Cell(parent)
+        local c = CreateFrame("Frame", nil, parent)
+        c:SetSize(SIZE, SIZE)
+        local bg = ns.P.NoSnap(c:CreateTexture(nil, "BACKGROUND"))
+        bg:SetAllPoints()
+        bg:SetColorTexture(0, 0, 0, 1)
+        c.icon = ns.P.NoSnap(c:CreateTexture(nil, "ARTWORK"))
+        c.icon:SetTexture(SAMPLE_ICON)
+        c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        local ok, cd = pcall(CreateFrame, "Cooldown", nil, c, "CooldownFrameTemplate")
+        if ok and cd then
+            cd:SetAllPoints(c.icon)
+            cd:SetHideCountdownNumbers(true)       -- 倒數自己寫（不受「顯示冷卻倒數」那個 CVar 影響）
+            cd:SetDrawBling(false)
+            pcall(cd.SetSwipeTexture, cd, "Interface\\BUTTONS\\WHITE8X8", 1, 1, 1, 1)
+            cd:SetSwipeColor(0, 0, 0, 0.8)         -- 主題預設的轉圈色（icon.swipeColor）
+            c.cd = cd
+        end
+        local ov = CreateFrame("Frame", nil, c)
+        ov:SetAllPoints()
+        ov:SetFrameLevel(c:GetFrameLevel() + 5)
+        c.time = ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.time, 16, "OUTLINE")
+        c.time:SetPoint("CENTER")
+        c.charges = ov:CreateFontString(nil, "OVERLAY")
+        ns.Media.SetFont(c.charges, 12, "OUTLINE")
+        c.charges:SetPoint("BOTTOMRIGHT", -2, 2)
+        c.cap = parent:CreateFontString(nil, "OVERLAY")
+        c.cap:SetFontObject(W.fontSmall)
+        c.cap:SetTextColor(0.65, 0.65, 0.65)
+        c.cap:SetPoint("TOP", c, "BOTTOM", 0, -4)
+        return c
+    end
+
+    local function Restart(d, now)
+        d.start, d.left = now, nil
+        for i = 1, d.n do
+            local cd = d.cells[i].cd
+            if cd then cd:SetCooldown(now, DUR) end
+        end
+    end
+
+    local function Demo()
+        if demo then return demo end
+        demo = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+        demo:SetFrameStrata("TOOLTIP")
+        demo:SetClampedToScreen(true)
+        demo:Hide()
+        demo.title = demo:CreateFontString(nil, "OVERLAY")
+        demo.title:SetFontObject(W.fontNormal)
+        demo.title:SetPoint("TOPLEFT", demo, "TOPLEFT", PAD, -PAD)
+        demo.cells, demo.n = {}, 0
+        demo:SetScript("OnUpdate", function(self)
+            -- 設定視窗在滑鼠還停著時被關掉：不一定等得到 OnLeave
+            if not (self.owner and self.owner:IsVisible()) then self:Hide() return end
+            local now = GetTime()
+            if now >= self.start + DUR then Restart(self, now) end
+            local left = math.ceil(self.start + DUR - now)
+            if left == self.left then return end
+            self.left = left
+            for i = 1, self.n do
+                local c = self.cells[i]
+                c.time:SetText(c.look.time and tostring(left) or "")
+            end
+        end)
+        return demo
+    end
+
+    -- 字寬字高在框顯示之後才量（第一次滑過時框還沒顯示過，量到的可能是 0）
+    local function Layout(d)
+        local px = ns.P.Pixel(1)
+        local top = PAD + math.ceil(d.title:GetStringHeight()) + 8
+        local x, capH = PAD, 0
+        for i = 1, d.n do
+            local c = d.cells[i]
+            local colW = math.max(SIZE, math.ceil(c.cap:GetStringWidth()))
+            c:ClearAllPoints()
+            c:SetPoint("TOPLEFT", d, "TOPLEFT", x + math.floor((colW - SIZE) / 2), -top)
+            x = x + colW + GAP
+            c.icon:ClearAllPoints()
+            c.icon:SetPoint("TOPLEFT", c, "TOPLEFT", px, -px)
+            c.icon:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -px, px)
+            capH = math.max(capH, math.ceil(c.cap:GetStringHeight()))
+        end
+        d:SetSize(math.max(x - GAP + PAD, math.ceil(d.title:GetStringWidth()) + PAD * 2),
+            top + SIZE + 4 + capH + PAD)
+    end
+
+    local function Show(owner, which, label)
+        local defs = DEMOS[which]
+        if not defs then return end
+        local d = Demo()
+        ns.Style.ApplyTooltipPanel(d)              -- 1px 邊在顯示時換算（1px 規則 ③）
+        d.title:SetText(label or "")
+        for i, def in ipairs(defs) do
+            local c = d.cells[i]
+            if not c then c = Cell(d); d.cells[i] = c end
+            local look = def[2]
+            c.look = look
+            c.cap:SetText(def[1])
+            c.icon:SetDesaturated(look.charges == 0)     -- 主題預設冷卻中去飽和
+            c.charges:SetText(tostring(look.charges))
+            c.time:SetText("")
+            if c.cd then
+                c.cd:SetDrawSwipe(look.swipe and true or false)
+                c.cd:SetDrawEdge(look.edge and true or false)
+            end
+            c:Show()
+            c.cap:Show()
+        end
+        for i = #defs + 1, #d.cells do
+            d.cells[i]:Hide()
+            d.cells[i].cap:Hide()
+        end
+        d.n = #defs
+        d:ClearAllPoints()
+        d:SetPoint("BOTTOMLEFT", owner, "TOPRIGHT", 4, 4)   -- 同 GameTooltip 的 ANCHOR_RIGHT
+        d.owner = owner
+        Restart(d, GetTime())
+        d:Show()
+        Layout(d)
+    end
+
+    -- which："swipe"｜"edge"｜"timer"；label：彈窗標題（那一列的名字）。位置由呼叫端錨
+    function Specs.ChargeDemoMark(parent, which, label)
+        local m = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+        ns.P.Size(m, 16, 16)
+        W.Stylize(m, { 0.1, 0.1, 0.1, 0.9 }, { 0.4, 0.4, 0.4, 1 })
+        local q = m:CreateFontString(nil, "OVERLAY")
+        q:SetFontObject(W.fontSmall)
+        q:SetPoint("CENTER", m, "CENTER", 0, 0)
+        q:SetText("!")
+        q:SetTextColor(0.6, 0.6, 0.6)
+        m:EnableMouse(true)
+        m:SetScript("OnEnter", function(self)
+            q:SetTextColor(1, 1, 1)
+            Show(self, which, label)
+        end)
+        m:SetScript("OnLeave", function()
+            q:SetTextColor(0.6, 0.6, 0.6)
+            if demo then demo:Hide() end
+        end)
+        return m
+    end
+end
 
 ------------------------------------------------------------
 -- 版面（條自己的欄位）
@@ -2204,6 +2373,11 @@ function Specs.BuildForm(parent, controls, ctx, width)
     end
     for _, row in ipairs(rows) do
         if (RESETTABLE[row.spec.type] or row.spec.resettable) and not row.spec.noReset then ResetCatcher(content, row, ctx, x0) end
+        -- 示意「!」（spec.demo）：勾選框（18px）右邊，跟它垂直置中。層級在兩種遮罩之下：整節跟隨／停用時一起暗、滑不到
+        if row.spec.demo then
+            local m = Specs.ChargeDemoMark(content, row.spec.demo, row.spec.label)
+            m:SetPoint("LEFT", content, "TOPLEFT", x0 + LABEL_W + CARD_GAP + 18 + 12, (row.top + row.bottom) / 2)
+        end
     end
 
     -- 停用的列：暗色遮罩蓋整列（層級在右鍵重設的接收框之上、跟隨遮罩之下）

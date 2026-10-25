@@ -279,9 +279,10 @@ local TOGGLES = {
       tab = "icon", tip = L["Only the time and stack count stay. The border, shape, shadow and swipe go with the icon."] },
     -- 回充的長相（Core/Decorate.lua）：只在這招現在有充能時出現；長條類的條不適用。隱藏倒數只給暴雪的冷卻格
     -- （自訂法術的回充本來就不顯示倒數，Modules/Custom.lua 的 ApplyChargeLook）
-    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true },
-    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true },
-    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true },
+    -- demo：勾選框右邊的「!」，滑過演開與關的差別（ns.Specs.ChargeDemoMark，同主題頁）
+    { field = "chargeSwipe",      label = L["Show cooldown swipe"],    noAura = true, noBar = true, tab = "look", charge = true, demo = "swipe" },
+    { field = "chargeHideEdge",   label = L["Hide edge line"],         noAura = true, noBar = true, tab = "look", charge = true, demo = "edge" },
+    { field = "chargeHideTimer",  label = L["Hide recharge countdown"], when = ChargeTimerWhen, tab = "look", charge = true, demo = "timer" },
     -- 效果不在時變暗：只有暴雪的冷卻格有訊號（Core/Decorate.lua 的 dimNoAura）；下一列灰字說明
     { field = "dimNoAura",        label = L["Dim while its effect is missing"], when = BlizzCooldownSound, tab = "look",
       tip = L["Dims the icon while it isn't counting down your buff or debuff. For example, a Warlock's damage-over-time spells on Essential Cooldowns: the icon dims while your current target doesn't have your debuff (or you have no target)."] },
@@ -1113,7 +1114,14 @@ local function Build()
         end)
         cb:SetPoint("LEFT", tr, "LEFT", CTRL_X, 0)
         local note = Note(tr)
-        note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+        if t.demo then
+            -- 「!」夾在勾選框與「值從哪來」的灰字之間
+            local mark = ns.Specs.ChargeDemoMark(tr, t.demo, t.label)
+            mark:SetPoint("LEFT", cb, "RIGHT", 12, 0)
+            note:SetPoint("LEFT", mark, "RIGHT", 8, 0)
+        else
+            note:SetPoint("LEFT", cb, "RIGHT", 8, 0)
+        end
         note:SetPoint("RIGHT", tr, "RIGHT", 0, 0)
         note:SetWordWrap(false)
         toggles[#toggles + 1] = { field = t.field, cb = cb, note = note, row = tr }
