@@ -1060,6 +1060,8 @@ L["Hides the seconds until the next charge only while you still have one left. W
 L["Off"] = "Выкл."
 L["On"] = "Вкл."
 L["On (no charges)"] = "Вкл. (нет зарядов)"
+L["Your debuff is on the target"] = "Ваш дебафф на цели"
+L["No debuff on the target"] = "На цели нет дебаффа"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Рамка игрока"

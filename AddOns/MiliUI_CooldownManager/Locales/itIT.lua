@@ -1060,6 +1060,8 @@ L["Hides the seconds until the next charge only while you still have one left. W
 L["Off"] = "Disattivato"
 L["On"] = "Attivato"
 L["On (no charges)"] = "Attivato (nessuna carica)"
+L["Your debuff is on the target"] = "Il tuo debuff è sul bersaglio"
+L["No debuff on the target"] = "Nessun debuff sul bersaglio"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Riquadro del giocatore"

@@ -1060,6 +1060,8 @@ L["Hides the seconds until the next charge only while you still have one left. W
 L["Off"] = "Aus"
 L["On"] = "An"
 L["On (no charges)"] = "An (keine Aufladung)"
+L["Your debuff is on the target"] = "Dein Schwächungszauber liegt auf dem Ziel"
+L["No debuff on the target"] = "Kein Schwächungszauber auf dem Ziel"
 
 -- 錨到單位框與具名框（H4，2026-10-10）
 L["Player frame"] = "Spielerrahmen"
