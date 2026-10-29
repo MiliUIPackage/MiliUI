@@ -39,6 +39,8 @@ local ELEMENT_LIST = {
     { key = "hpbar",      label = L["Health bar"] },
     { key = "mpbar",      label = L["Power bar"] },
     { key = "manabar",    label = L["Mana bar"] },
+    -- 資源條（只有玩家框有這欄；表單內容在 Options/Tab_Resource.lua 的 ResourceForm）
+    { key = "classpower", label = L["Resource bars"] },
     { key = "castbar",    label = L["Cast bar"] },
     { key = "buffs",      label = L["Buffs"] },
     { key = "debuffs",    label = L["Debuffs"] },
@@ -75,6 +77,21 @@ local currentUnit, currentElement = "player", "frame"
 local elementChips = {}
 local chipHighlight
 local panels = {}          -- [unitKey .. "/" .. elementKey] = { frame, refreshers, height }
+
+-- 這個單位的這個元件要不要出現在 chip 列（RefreshChips、FocusUnitElement、設定搜尋共用）：
+--   DB 有這欄 且 這個職業真的有註冊該元件（職業資源條只對六個職業註冊，
+--   薩滿看到卻調了沒反應會很困惑）
+--   資源條另外要「這個專精（型態）有副資源可顯示」—— 沒有的話整顆 chip 不出現。
+--   候選清單會變（換專精／型態／天賦），變的時候 ClassPower.lua 的 Reevaluate 會
+--   Fire("ResourceCandidatesChanged")，見檔案底部的訂閱
+local function ElementVisible(els, key)
+    if key == "frame" then return true end
+    if not els or els[key] == nil or ns.Elements[key] == nil then return false end
+    if key == "classpower" then
+        return ns.ResourceCandidates ~= nil and #ns.ResourceCandidates() > 0
+    end
+    return true
+end
 
 ------------------------------------------------------------
 -- 各元件的表單 spec
@@ -887,6 +904,8 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "debuffs" then return AuraSpecs("debuffs", unitKey) end
     if elementKey == "icons" then return IconSpecs(els) end
     if elementKey == "inspect" then return InspectSpecs() end
+    -- 資源條的控件清單跟著專精走、每次現算（Options/Tab_Resource.lua）
+    if elementKey == "classpower" then return ns.Options.ResourceForm.Controls() end
     if elementKey == "texts" then return TextsSpecs(unitKey) end
     return {}
 end
@@ -928,6 +947,9 @@ local function BuildPanel(unitKey, elementKey)
         end,
         apply = function() ns.ApplySettings(unitKey) end,
     }
+    -- 資源條用自己的 ctx：三態的 followAyije、色塊自建表、apply 先 Reevaluate 與結構性重建
+    -- （見 Options/Tab_Resource.lua）。通用 ctx 少任何一件都會壞
+    if elementKey == "classpower" then ctx = ns.Options.ResourceForm.ctx end
 
     local height, refreshers, rows = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
@@ -959,10 +981,35 @@ local function InvalidatePanels(unitKey)
     end
 end
 
+-- 只丟單一面板（資源條換專精／條件編輯器增刪列時用，別的元件沒必要跟著重建）
+local function InvalidatePanel(unitKey, elementKey)
+    local id = unitKey .. "/" .. elementKey
+    local p = panels[id]
+    if p then
+        p.frame:Hide()         -- frame 無法銷毀，丟掉參照＋藏起來就好
+        panels[id] = nil
+    end
+end
+
+-- 資源條面板建表時記下的簽章還對不對（專精／型態／主資源／跟隨冷卻管理器，
+-- 見 Tab_Resource.lua 的 Signature）。其他面板一律當成新鮮的
+local function PanelStale(id)
+    local p = panels[id]
+    if not (p and p.sig) then return false end
+    return p.sig ~= ns.Options.ResourceForm.Signature()
+end
+
 local function ShowPanel(unitKey, elementKey)
     for _, p in pairs(panels) do p.frame:Hide() end
     local id = unitKey .. "/" .. elementKey
-    if not panels[id] then panels[id] = BuildPanel(unitKey, elementKey) end
+    -- 資源條：控件清單跟著專精走，簽章不同就丟掉重建（取代原本資源分頁的 specSig 比對）
+    if PanelStale(id) then InvalidatePanel(unitKey, elementKey) end
+    if not panels[id] then
+        -- 記下建表當下的簽章，之後顯示前比對（見 PanelStale）
+        local sig = elementKey == "classpower" and ns.Options.ResourceForm.Signature() or nil
+        panels[id] = BuildPanel(unitKey, elementKey)
+        panels[id].sig = sig
+    end
     local p = panels[id]
     for _, fn in ipairs(p.refreshers) do fn() end
     p.frame:Show()
@@ -984,11 +1031,10 @@ end
 local function RefreshChips(unitKey)
     local els = ns.GetUnitDB(unitKey).elements
     for _, chip in ipairs(elementChips) do
-        -- DB 有這欄 且 這個職業真的有註冊該元件（職業資源條只對六個職業註冊，
-        -- 薩滿看到卻調了沒反應會很困惑）
-        local visible = chip.id == "frame"
-            or (els[chip.id] ~= nil and ns.Elements[chip.id] ~= nil)
-        chip:SetShown(visible)
+        -- 規則見 ElementVisible（資源條另看這個專精有沒有副資源）。
+        -- ⚠ 每次都現算，不留「上次的可見狀態」：分頁關著時換專精，下次 ShowOptionsTab →
+        -- SelectUnit → 這裡拿到的就是新的候選清單（Reevaluate 已經清掉快取）
+        chip:SetShown(ElementVisible(els, chip.id))
     end
     -- 一排放不下就換到下一排。⚠ chipRow 的**高度不在這裡動** —— 它在 Init 就照
     -- 「全部 chip 都出現」需要的排數留好了。不同單位的 chip 數不一樣，高度跟著算
@@ -1035,11 +1081,8 @@ function ns.Options.FocusUnitElement(unitKey, elementKey)
     -- Options.Open 一定會派送 ShowOptionsTab，而本頁的處理器就是照 currentUnit /
     -- currentElement 把兩排高亮與表單一次擺好 —— 先開再改的話會多閃一次舊的那頁。
     -- 這個單位沒有該元件時就不換（RefreshChips 本來也會退回「框架」）。
-    if elementKey then
-        local els = udb.elements
-        if els and els[elementKey] and ns.Elements[elementKey] then
-            currentElement = elementKey
-        end
+    if elementKey and ElementVisible(udb.elements, elementKey) then
+        currentElement = elementKey
     end
     currentUnit = unitKey
 
@@ -1109,7 +1152,8 @@ local function Init()
     end
     chipHighlight = W.CreateButtonGroup(elementChips, SelectElement)
 
-    -- chipRow 的高度只算這一次，照「11 顆全部出現」需要的排數留。
+    -- chipRow 的高度只算這一次，照「12 顆全部出現」需要的排數留（FlowRows 吃的是
+    -- 整個 elementChips，這時還沒有任何一顆被 RefreshChips 藏起來）。
     -- 高度改跟著目前單位算的話，切單位時 chipLine 與底下整張表單會上下彈；
     -- chip 少的單位底下空一排，穩定比緊湊重要。單排時 20+2＝22，與原本相同。
     local chipRows = W.FlowRows(elementChips, ChipRowWidth(), CHIP_GAP_X)
@@ -1193,13 +1237,101 @@ ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
 end)
 
 ------------------------------------------------------------
+-- 資源條面板的重建與 chip 重算
+--
+-- 兩個來源，合併成**同一個延一幀的工作**：
+--   * ResourceCandidatesChanged（ClassPower.lua 的 Reevaluate 尾端）：換專精／型態／天賦，
+--     以及資源表單自己的 ctx.apply（它一定先跑 Reevaluate）。chip 要不要出現、
+--     面板簽章對不對，都在這裡重算。
+--   * ns.Options.RebuildUnitPanel：條件編輯器舉手的結構性重建（簽章看不出來）。
+-- 合併的理由：「還原預設」那種一次同時改到簽章又舉手的操作，分開排兩個 timer 會重建兩次
+-- （每次都留一個孤兒 frame）。
+--
+-- ⚠ 一定要延一幀：ctx.apply 是在控件自己的 OnClick 裡跑的，當場重建等於在處理器裡
+-- 把它的父框丟掉。
+-- 分頁關著時：chip 與簽章不必管 —— ShowOptionsTab → SelectUnit → RefreshChips／ShowPanel
+-- 本來就會現算、比對；只有「舉手要重建」的面板要先丟掉（規則列數變了，簽章比不出來）。
+------------------------------------------------------------
+local forcedPanels = {}       -- [id] = { unitKey, elementKey, keepScroll }
+local flushPending = false
+local candidatesChanged = false
+
+-- 丟掉面板快取並（若正顯示）立刻重建；keepScroll 時把捲動位置放回去
+local function RebuildNow(unitKey, elementKey, keepScroll)
+    local showing = tab and tab:IsShown() and currentUnit == unitKey and currentElement == elementKey
+    local offset = (showing and keepScroll and scroll) and scroll:GetVerticalScroll() or 0
+    InvalidatePanel(unitKey, elementKey)
+    if not showing then return end
+    ShowPanel(unitKey, elementKey)
+    -- ⚠ 要再延一幀才設得準：內容高度剛換過，這一幀 GetVerticalScrollRange 還是舊值，
+    -- 直接設會被舊的上限夾掉（新內容比較短時就會夾出一個看起來隨機的位置）
+    if offset > 0 then
+        C_Timer.After(0, function()
+            scroll:SetVerticalScroll(math.min(offset, scroll:GetVerticalScrollRange() or 0))
+        end)
+    end
+end
+
+local function Flush()
+    flushPending = false
+    local changed = candidatesChanged
+    candidatesChanged = false
+
+    local forced = forcedPanels
+    forcedPanels = {}
+
+    if changed and tab and tab:IsShown() and currentUnit == "player" then
+        -- chip 列：資源條那顆可能剛出現／消失。目前選的正是它而它被藏掉 ⇒ RefreshChips
+        -- 會退回「框架」，表單與預覽要跟著換（之後的 RebuildNow 看它已經不在顯示，只丟快取）
+        local before = currentElement
+        RefreshChips("player")
+        if currentElement ~= before then
+            ShowPanel("player", currentElement)
+            ns.Preview.SetElement(currentElement)
+        elseif currentElement == "classpower" and PanelStale("player/classpower") then
+            -- 簽章變了（換專精／型態、跟隨切換）：併進同一批重建，同一幀只建一次
+            forced["player/classpower"] = { "player", "classpower", true }
+        end
+    end
+
+    for _, req in pairs(forced) do
+        RebuildNow(req[1], req[2], req[3])
+    end
+end
+
+local function ScheduleFlush()
+    if flushPending then return end
+    flushPending = true
+    C_Timer.After(0, Flush)
+end
+
+-- 給 Tab_Resource 的結構性重建用（條件編輯器增刪列、還原預設、從冷卻管理器複製）
+function ns.Options.RebuildUnitPanel(unitKey, elementKey, keepScroll)
+    local id = unitKey .. "/" .. elementKey
+    local req = forcedPanels[id]
+    forcedPanels[id] = { unitKey, elementKey, keepScroll or (req and req[3]) or false }
+    ScheduleFlush()
+end
+
+ns.RegisterCallback("ResourceCandidatesChanged", "unitTabChips", function()
+    -- Reevaluate 在戰鬥中也會跑（UNIT_MAXPOWER、天賦），分頁沒開著就連 timer 都不排
+    if not (tab and tab:IsShown()) then return end
+    candidatesChanged = true
+    ScheduleFlush()
+end)
+
+------------------------------------------------------------
 -- 設定搜尋（Options/Search.lua）
 --
 -- 列舉的是 spec 表本身，所以「單位 × 元件」每一種組合都進得了索引，
 -- 不必先把那些分頁建出來（這一頁有 7 個單位 × 最多 11 個元件，
 -- 靠「開過才收得到」的做法等於幾乎搜不到東西）。
 --
--- 元件的可見性判斷跟 RefreshChips 同一套：DB 有這欄，而且這個職業真的有註冊該元件。
+-- 元件的可見性判斷跟 RefreshChips 同一套（ElementVisible）：DB 有這欄、這個職業真的有
+-- 註冊該元件，資源條另外要這個專精有副資源。
+-- 資源條的控件清單跟著專精走，所以每次列舉都現算（SpecsFor → ResourceForm.Controls，
+-- 不快取；索引本身會在 SettingsApplied／ProfileChanged 時失效重建）。跳過去時建出來的
+-- 面板 spec 是另一批 table，Search.Reveal 靠內容鍵（type/sub/sub2/key/label）對列。
 ------------------------------------------------------------
 ns.Search.Register("units", {
     label = L["Units"],
@@ -1209,7 +1341,7 @@ ns.Search.Register("units", {
             local els = udb and udb.elements
             if els then
                 for _, e in ipairs(ELEMENT_LIST) do
-                    if e.key == "frame" or (els[e.key] ~= nil and ns.Elements[e.key] ~= nil) then
+                    if ElementVisible(els, e.key) then
                         add(SpecsFor(u.key, e.key), u.label .. " › " .. e.label,
                             { unit = u.key, element = e.key })
                     end
