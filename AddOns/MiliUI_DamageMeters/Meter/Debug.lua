@@ -45,10 +45,12 @@ local function Points(lines, indent, f)
 end
 
 local function Rect(f)
-    return ("L=%s T=%s R=%s B=%s w=%s h=%s scale=%s shown=%s")
+    -- shown 是框自己的旗標、visible 連祖先一起算：暴雪內建統計關掉時只藏父框 DamageMeter，
+    -- 三個 DamageMeterSessionWindow 的 shown 照樣是 true，只看 shown 會誤判成「沒關掉」
+    return ("L=%s T=%s R=%s B=%s w=%s h=%s scale=%s shown=%s visible=%s")
         :format(Num(f:GetLeft()), Num(f:GetTop()), Num(f:GetRight()), Num(f:GetBottom()),
                 Num(f:GetWidth()), Num(f:GetHeight()), Num(f:GetEffectiveScale()),
-                tostring(f:IsShown()))
+                tostring(f:IsShown()), tostring(f:IsVisible()))
 end
 
 local function SnapToText(st)
