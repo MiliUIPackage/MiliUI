@@ -43,7 +43,7 @@ local function Apply()
         W._barCacheKey = nil
         W._timerSec = nil
         W._segDur = nil
-        W.timerText:SetShown(not W.wdb.hideTimer)
+        ns.Window.ApplyTimerShown(W)
         ns.Window.UpdateTitle(W)
         ns.Window.UpdateVisibility(W)
         W.Refresh()

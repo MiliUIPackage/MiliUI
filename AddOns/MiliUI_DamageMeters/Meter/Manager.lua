@@ -550,7 +550,7 @@ function Windows.ShowContextMenu(W, btn, redraw)
             text = L["Hide the timer"], isActive = wdb.hideTimer, keepOpen = true,
             onClick = function()
                 wdb.hideTimer = not wdb.hideTimer
-                W.timerText:SetShown(not wdb.hideTimer)
+                Win.ApplyTimerShown(W)
                 W._timerSec = nil
                 Win.UpdateTimerText(W)
                 Win.FitTitle(W)   -- 計時器佔的寬度讓出來／收回去

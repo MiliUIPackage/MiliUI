@@ -392,6 +392,17 @@ local function HiddenByOption(btn)
     return not (cfg and cfg.enabled)
 end
 
+-- 按鈕顯不顯示是三個條件的交集：設定裡有開（HiddenByOption）、「滑過才顯示按鈕」
+-- 現在算顯示（W._hdrIconsShown）、整條標題列現在算顯示（W._hdrContentShown，
+-- 見 Win.ApplyHeaderMouseover）。四個會動到按鈕顯示的地方都走這一支，
+-- 兩個滑過選項各自改旗標再叫它，誰先誰後結果都一樣。nil 當顯示（還沒套過樣式）。
+local function ApplyButtonsShown(W)
+    local shown = W._hdrIconsShown ~= false and W._hdrContentShown ~= false
+    for _, btn in ipairs(W.hdrButtons) do
+        if shown and not HiddenByOption(btn) then btn:Show() else btn:Hide() end
+    end
+end
+
 -- 排序緩衝：Layout 只走設定變動路徑（不在刷新迴圈裡），但沒必要每次配一張新表。
 -- 整支是同步的，兩個視窗不會同時用到它。
 local _laySeq = {}
@@ -426,9 +437,9 @@ function Win.LayoutHeaderButtons(W)
         btn:SetSize(size, size)
         btn:ClearAllPoints()
         btn:SetPoint("RIGHT", W.header, "RIGHT", x, 0)
-        btn:Show()
         x = x - size - BTN_GAP
     end
+    ApplyButtonsShown(W)   -- 顯不顯示另外看兩個滑過選項，這裡只排位置
 
     local n = #seq
     W._hdrButtonCount = n
@@ -477,10 +488,7 @@ function SetHeaderIconsShown(W, shown)
     if shown then StartHeaderHoverPoll(W) else StopHeaderHoverPoll(W) end
     if W._hdrIconsShown == shown then return end
     W._hdrIconsShown = shown
-    for _, btn in ipairs(W.hdrButtons) do
-        if shown and not HiddenByOption(btn) then btn:Show()
-        else btn:Hide() end
-    end
+    ApplyButtonsShown(W)
     Win.FitTitle(W)
 end
 
@@ -490,15 +498,101 @@ function Win.ApplyHeaderHoverIcons(W)
     StopHeaderHoverPoll(W)   -- 換模式時把上一輪的輪詢收掉
     if not s.hdrMouseoverIcons then
         W._hdrIconsShown = true
-        for _, btn in ipairs(W.hdrButtons) do
-            if not HiddenByOption(btn) then btn:Show() end
-        end
+        ApplyButtonsShown(W)
         Win.FitTitle(W)
         return
     end
     W._hdrIconsShown = false
-    for _, btn in ipairs(W.hdrButtons) do btn:Hide() end
+    ApplyButtonsShown(W)
     Win.FitTitle(W)
+end
+
+------------------------------------------------------------
+-- 選項：整條標題列只在滑過時顯示（style.hdrMouseover）
+--
+-- NGA 回報：四個視窗脫戰沒資料時，畫面上只剩四行「圖示＋傷害輸出 當前▾」飄在場景上。
+-- 開了這個，游標不在**視窗**上（整個內容框的矩形：標題列、長條、展開頁；收合時就是
+-- 標題列那一截）就把標題列的內容全藏掉 —— 類型圖示、類型名、狀態標籤、箭頭、
+-- 計時器、右側按鈕一起。滑上去才全部出現。
+--
+-- 只藏內容，**不藏 header 這顆 Button 本身**，也不動它的底色與下緣線：
+--   * 拖曳、右鍵選單、收合中點標題都掛在 header 上，藏掉它就沒地方拖了。
+--   * 底色照玩家的 hdrBgColor —— 要整條消失的人把底色調成透明就好，兩件事分開設。
+--
+-- 偵測一律走輪詢、不掛 OnEnter／OnLeave，理由比右側圖示那組還多一條：
+--   * 長條、釘住的列、首頁、展開頁都是會搶焦點的子框，游標從長條進來內容框收不到
+--     OnEnter；要每個子框各掛一份就會漏（新加一種子框就壞）。
+--   * 點擊穿透把內容框的 EnableMouse 關掉之後根本沒有 OnEnter，IsMouseOver 是
+--     純矩形判斷，不受影響。
+--   成本：選項開著、視窗顯示中、不在強制顯示時，每視窗一支 0.1 秒的 ticker 做一次
+--   IsMouseOver，其餘時間沒有 ticker。
+--
+-- 設定視窗或編輯模式開著時強制顯示（跟收合、點擊穿透、顯示條件同一條規矩）：
+-- 玩家要看得到自己在調什麼。
+--
+-- 跟其他三件事的關係：
+--   * 「只在滑過時顯示按鈕」：按鈕的顯示是兩個旗標的交集（ApplyButtonsShown），
+--     游標在長條上時標題出現、按鈕要再滑到標題列上才出現，各自照各自的規矩。
+--   * 收合：內容框只剩標題列那一截，IsMouseOver 自然只看那一截。
+--   * 反轉顯示：所有東西都錨在 header 上，翻面不影響。
+------------------------------------------------------------
+-- 計時器顯不顯示：每視窗的 hideTimer ＋ 整條標題列現在算不算顯示。
+-- 三個改 hideTimer 的地方（ApplyStyle、右鍵選單、各視窗分頁）都走這一支。
+function Win.ApplyTimerShown(W)
+    if not W.timerText then return end
+    W.timerText:SetShown(not W.wdb.hideTimer and W._hdrContentShown ~= false)
+end
+
+local function StopHeaderMouseoverPoll(W)
+    if W._hdrMouseoverTicker then
+        W._hdrMouseoverTicker:Cancel()
+        W._hdrMouseoverTicker = nil
+    end
+end
+
+local function SetHeaderContentShown(W, shown)
+    shown = shown and true or false
+    if W._hdrContentShown == shown then return end
+    W._hdrContentShown = shown
+    W.typeIcon:SetShown(shown)
+    W.titleText:SetShown(shown)
+    Win.ApplyTimerShown(W)
+    -- 狀態標籤、箭頭、狀態鈕的顯示在 UpdateTitle 裡一起算（還要看兩欄是否都釘住），順手 FitTitle
+    Win.UpdateTitle(W)
+    ApplyButtonsShown(W)
+    if shown then
+        -- 藏著的期間 UpdateTimerText 看計時器沒顯示就早退，字可能停在藏起來那一秒
+        W._timerSec = nil
+        Win.UpdateTimerText(W)
+    end
+end
+
+local function StartHeaderMouseoverPoll(W)
+    if W._hdrMouseoverTicker then return end
+    W._hdrMouseoverTicker = C_Timer.NewTicker(0.1, function()
+        local f = W.frame
+        if not f or not f:IsShown() then
+            -- 視窗被顯示條件藏掉了：停下來，重新顯示時 UpdateVisibility 會再叫 ApplyHeaderMouseover
+            StopHeaderMouseoverPoll(W)
+            return
+        end
+        SetHeaderContentShown(W, f:IsMouseOver())
+    end)
+end
+
+-- 入口：ApplyStyle（換選項）、UpdateVisibility（設定視窗開關、編輯模式關閉、顯示條件變動）、
+-- Move.UpdateEditState（編輯模式打開）。值沒變的呼叫是零成本。
+function Win.ApplyHeaderMouseover(W)
+    if not W.frame then return end
+    local s = ns.DB.Style()
+    local forced = ns.Move.IsEditing() or ns._optionsOpen
+    if not s.hdrMouseover or forced or not W.frame:IsShown() then
+        StopHeaderMouseoverPoll(W)
+        SetHeaderContentShown(W, true)
+        return
+    end
+    SetHeaderContentShown(W, W.frame:IsMouseOver())
+    StartHeaderMouseoverPoll(W)
 end
 
 ------------------------------------------------------------
@@ -624,9 +718,11 @@ function Win.UpdateTitle(W)
     W._statusHidden = hidden
     W._fullStatus = hidden and "" or (preview and ns.L["Preview"]) or Win.SegmentLabel(W)
     if W.segText then
-        W.segText:SetShown(not hidden)
-        W.segArrow:SetShown(not hidden)
-        W.segBtn:SetShown(not hidden)
+        -- 整條標題列藏著（hdrMouseover，見 Win.ApplyHeaderMouseover）時這三個也跟著藏
+        local show = not hidden and W._hdrContentShown ~= false
+        W.segText:SetShown(show)
+        W.segArrow:SetShown(show)
+        W.segBtn:SetShown(show)
     end
     Win.FitTitle(W)
 end
@@ -881,6 +977,7 @@ function Win.UpdateVisibility(W)
     -- 戰鬥進出也是（Manager 的 visFrame）—— 收在這裡一起重算，值沒變兩支都是零成本。
     ns.Collapse.Apply(W)
     ns.ClickThrough.Apply(W)
+    Win.ApplyHeaderMouseover(W)   -- 同一條規矩的第三件：標題列只在滑過時顯示，開著設定時一律顯示
 
     if shown and not was then
         W._barCacheKey = nil
@@ -1526,7 +1623,6 @@ end
 ------------------------------------------------------------
 function Win.ApplyStyle(W)
     local s = ns.DB.Style()
-    local wdb = W.wdb
     local frame, header = W.frame, W.header
     W._hairPx = D.Hair(1)   -- 套用當下的 1 像素換算值（Windows.CheckPixel 比對用）
 
@@ -1580,7 +1676,7 @@ function Win.ApplyStyle(W)
     W.segBtn.hl:SetColorTexture(M.Accent())
     W.segBtn.hl:SetAlpha(0.12)
 
-    W.timerText:SetShown(not wdb.hideTimer)
+    Win.ApplyTimerShown(W)
 
     -- 視窗邊框
     local sz = s.borderSize or 0
@@ -1605,6 +1701,7 @@ function Win.ApplyStyle(W)
     Win.UpdatePublishState(W)
     Win.LayoutHeaderButtons(W)
     Win.ApplyHeaderHoverIcons(W)
+    Win.ApplyHeaderMouseover(W)
 
     -- 長條：外觀改了就把版面快取作廢，下一次刷新整批重建
     W._barCacheKey = nil

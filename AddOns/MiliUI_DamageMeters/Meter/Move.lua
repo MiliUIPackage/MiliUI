@@ -480,9 +480,10 @@ local function UpdateEditState()
             local was = W.frame:IsShown()
             W.frame:Show()
             ns.Window.SyncAnchor(W)
-            -- 同一條規矩的另外兩件：編輯模式中一律展開、一律可點
+            -- 同一條規矩的另外三件：編輯模式中一律展開、一律可點、標題列一律顯示
             ns.Collapse.Apply(W)
             ns.ClickThrough.Apply(W)
+            ns.Window.ApplyHeaderMouseover(W)
             if not was then
                 W._barCacheKey = nil
                 W.Refresh()

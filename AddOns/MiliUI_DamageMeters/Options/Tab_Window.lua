@@ -38,6 +38,8 @@ local CONTROLS = {
     { type = "color",  key = "hdrBgColor", label = L["Title bar background"], hasAlpha = true },
     { type = "slider", key = "hdrBottomBorderSize", label = L["Bottom line thickness"], min = 0, max = 4, step = 1 },
     { type = "color",  key = "hdrBottomBorderColor", label = L["Bottom line color"], hasAlpha = true },
+    { type = "toggle", key = "hdrMouseover", label = L["Only show the title bar on mouseover"] },
+    { type = "text",   label = L["Hides the title, status, timer and buttons until the mouse is over the window. The title bar background stays — set it to transparent above if you want the whole bar gone. Always shown while the settings panel or Edit Mode is open."] },
 
     { type = "header", label = L["Title bar buttons"] },
     { type = "slider", key = "hdrIconSize", label = L["Button size"], min = 12, max = 32, step = 1 },

@@ -267,6 +267,10 @@ local function BuildDefaults()
             hdrBgColor  = Color(DARK_BG, DARK_BG, DARK_BG, 1),
             hdrBottomBorderSize = 0,
             hdrBottomBorderColor = Color(0, 0, 0, 1),
+            -- 整條標題列（類型名、狀態、箭頭、計時器、按鈕）只在游標在視窗上時顯示。
+            -- 預設關：底色與下緣線不受影響，玩家多半會把底色一起調成透明
+            -- （見 Win.ApplyHeaderMouseover）。
+            hdrMouseover = false,
             -- 標題文字職業色：預設用玩家自己的職業色（跟 MiliUI 其他插件的
             -- 強調色同一個來源）。關掉就用下面的自訂色。
             hdrTextUseClassColor = true,
