@@ -281,10 +281,9 @@ Preview.EachTwin = EachTwin
 ------------------------------------------------------------
 -- 錨在框**外面**的元件：它們是框的子物件，但畫在框體之外（資源條與魔力小條掛在
 -- 框底下），所以父層的 EnableMouse 管不到它們，要一個一個開。
---   tab     ＝ 點下去跳到主視窗的哪個分頁（資源條有自己的分頁，不在單位分頁的切換列裡）
---   element ＝ 跳到單位分頁的哪個元件
+--   element ＝ 點下去跳到單位分頁的哪個元件（資源條也是玩家框的一顆 chip，不再有自己的分頁）
 local OUTSIDE_ELEMENTS = {
-    classpower = { tab = "resource" },
+    classpower = { element = "classpower" },
     manabar    = { element = "manabar" },
 }
 
@@ -294,9 +293,7 @@ local function HookOutsideElement(uf, unitKey, region, target)
     -- 這兩個是 Frame 不是 Button，沒有 OnClick 可用
     region:SetScript("OnMouseUp", function(self, button)
         if button ~= "LeftButton" or ns.WasDragging(self) then return end
-        if target.tab then
-            ns.Options.Open(target.tab)
-        elseif ns.Options.FocusUnitElement then
+        if ns.Options.FocusUnitElement then
             ns.Options.FocusUnitElement(unitKey, target.element)
         end
     end)

@@ -1,6 +1,6 @@
 ---
 name: wow-1px-border-rules
-description: 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的五個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單
+description: 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的六個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、池化框回池 SetToDefaults 會重設縮放要每次顯示重排、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單
 metadata:
   node_type: memory
   type: reference
@@ -20,9 +20,10 @@ metadata:
 | ② | 框（或祖先）`SetScale` ≠ 1，粗細仍照 UIParent 換算 | 實際粗細 = scale 個像素，不是整數 ⇒ 時有時無 | 換算基準用**框自己的** `GetEffectiveScale()`：`n * PixelUtil.GetPixelToUIUnitFactor() / frame:GetEffectiveScale()`（Tooltip `SkinPixel`、Panel.Pixel 是範本） |
 | ③ | 在 `ADDON_LOADED`／`PLAYER_LOGIN`／檔案載入時算一次 `P.Pixel` 存起來 | 登入／reload 後就不到 1px，改了 UI 縮放也不更新 | **在顯示／排版時換算、跟上次不同才重排**（Tooltip skin `OnShow` → `LayoutBorder`、ContextMenu `Layout`）；常駐 HUD 掛 `UI_SCALE_CHANGED`／`DISPLAY_SIZE_CHANGED` 重排（[[wow-login-screen-size-not-final]]）。UIParent 被別人 `SetScale` 不發事件：用自己的框貼滿 UIParent 收 `OnSizeChanged`（MiliUI_Skin `Engine.lua` 的 `sizeProbe`） |
 | ⑤ | 換算當下框**還沒有 parent**（暴雪 XML 頂層框沒寫 `parent`，顯示時才 `SetParent`）| 登入時有效縮放是 1，掛到 UIParent（0.64）底下只剩 0.64px ⇒ 每顆缺的邊不一樣；UIParent 沒變，③ 的事件全部救不到 | 在顯示時換算；做不到（零 hook）就照「認養後」換算：MiliUI_Skin `Engine.DisplayParent(框, UIParent)`。名單與掃法見 [[wow-xml-frame-no-parent]] |
+| ⑥ | 皮掛在**池化、回池時 `SetToDefaults()` 的框**上（暴雪 `Blizzard_Menu` 的選單框），粗細只在建立時算 | `SetToDefaults` 把縮放打回 1、開啟時才 `SetScale(UIParent:GetScale())`；進副本／改縮放的重排碰到休眠中的框是照 1 算，下次開就剩 0.64px ⇒ 跟著游標的選單缺一邊（2026-10-29 右鍵選單缺上邊；`/mskin debug` 的 stale 看不到，登出時框又在重設狀態） | 每次顯示的掛點裡重排：MiliUI_Skin `Engine.RelayoutRec(ov)`，回傳的單位同時拿去做底的內縮 |
 | ④ | 自己建的貼圖保留引擎預設的**像素貼齊** | 框停在小數座標（跟隨游標、拖曳、置中、寬高非整數像素）時 1px 邊整條捨入成 0px；相鄰貼圖捨入方向不同 ⇒ 2px／露縫／圖示跟邊框差一格 | 邊框四條、細線、**跟邊框相接的底與填充**、圖示貼圖、StatusBar 填充一律 **`P.NoSnap(tex)`**；BackdropTemplate 在 `SetBackdrop` 之後 **`P.NoSnapBackdrop(frame)`** |
 
-①②③⑤ 讓粗細不是剛好整數像素，④ 讓不是整數像素的粗細被捨入成 0 或 2——每一條都要做。
+①②③⑤⑥ 讓粗細不是剛好整數像素，④ 讓不是整數像素的粗細被捨入成 0 或 2——每一條都要做。
 （實測 2026-10-21：關了貼齊、粗細 0.64px 的純色邊**不是**糊線，而是有的整條在、有的整條沒有——
 白色貼圖沒有內插可言，只看像素中心有沒有落在矩形裡。）
 
@@ -57,6 +58,7 @@ metadata:
 4. `P.Pixel` 的結果有沒有被存在 upvalue／欄位裡、只在建立時算？常駐的框要在顯示或縮放事件時重算
 5. 框或祖先有 `SetScale` 的，換算基準是不是框自己的有效縮放
 5b. 對暴雪框換皮、而且在**登入時**就做的：那個框在暴雪 XML 有沒有 `parent`？沒有就看 [[wow-xml-frame-no-parent]]
+5c. 框是**池化**的（暴雪選單、物件池的列）、回池時 `SetToDefaults()`？縮放會被打回 1，每次顯示的掛點都要重排（⑥）
 6. 圖記（×、＋、chevron 這種會跟按鈕一起縮放的線）**不是**髮絲線，線粗留 `P.Scale`（[[wow-hairline-p-pixel-not-p-scale]]）
 
 相關：[[wow-hairline-p-pixel-not-p-scale]]、[[wow-login-screen-size-not-final]]、[[project-miliui-pixel-snapping]]、[[wow-setscale-offset-units]]、[[project-miliui-widgets-vendor]]、[[project-miliui-hud-skin]]

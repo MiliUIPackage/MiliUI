@@ -1609,6 +1609,9 @@ Reevaluate = function()
             Update(uf, edb, "powertype")
         end
     end
+    -- 候選清單可能變了（快取剛清掉）⇒ 設定面板「單位 → 玩家」的資源條 chip 要不要出現、
+    -- 表單要不要重建，由 Options/Tab_Unit.lua 訂這個事件自己判斷（分頁沒開著時它直接 return）
+    ns.Fire("ResourceCandidatesChanged")
 end
 ns.ResourceReevaluate = Reevaluate
 HookMCDM()

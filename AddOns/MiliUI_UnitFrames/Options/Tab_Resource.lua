@@ -1,35 +1,99 @@
 ------------------------------------------------------------
--- 「資源」分頁
+-- 「單位 → 玩家 → 資源條」面板的內容
 --
--- 資源清單是**跟著專精走的**（Ayije_CDM 的做法），所以控制項不能像其他分頁那樣
--- 在 Init 時建一次就算了 —— 換專精之後可選項目會整個換掉。用 specSig 比對，
--- 變了就把內容框整個丟掉重建。
+-- 資源條是玩家框的元件（classpower），表單掛在單位分頁的 chip 列裡
+-- （Options/Tab_Unit.lua），不再是頂層分頁。這一支只負責**內容**；面板本身
+-- （content frame、捲軸、快取、重建、捲動位置）歸 Tab_Unit 管。分工：
+--
+--   ResourceForm.Controls()   現算的控件清單（Tab_Unit 的 SpecsFor 與設定搜尋都走這支）
+--   ResourceForm.ctx          這個面板專用的 ctx（三件 Tab_Unit 通用 ctx 沒有的語意，見下）
+--   ResourceForm.Signature()  控件清單「長相」的簽章；Tab_Unit 建表時記下、顯示前比對，
+--                             不同就丟掉重建
+--
+-- 資源清單是**跟著專精（德魯伊是型態）走的**（Ayije_CDM 的做法），所以控件不能像其他
+-- 元件那樣建一次就一直重用 —— 換專精之後可選項目會整個換掉。
 ------------------------------------------------------------
 local _, ns = ...
 
 local L = ns.L
 
-local W, Controls = ns.W, ns.Controls
+local Controls = ns.Controls
 
--- ⚠ ctx 與 Rebuild 都要**前置宣告**：BuildControls 的「還原預設」按鈕要呼叫 ctx.apply，
--- 而 ctx.apply 要呼叫 Rebuild —— 兩邊都是「用在定義之前」。不先宣告成 local 的話，
--- 那兩個名字在函式體裡會編成全域查表、執行時抓到 nil 而靜默失效
--- （這個 repo 已經踩過兩次，見 Elements/ClassPower.lua 的 LayoutMatches 那段）。
-local tab, scroll, content, refreshers, specSig, rows, ctx, Rebuild
--- 上一次建表時「跟隨冷卻管理器」是不是生效中。切換之後控件清單會整個換掉 ⇒ 要重建
-local builtFollow
+-- ⚠ ctx 要**前置宣告**：BuildControls 的「還原預設」「從冷卻管理器複製」按鈕要呼叫
+-- ctx.apply，而 ctx 定義在它下面 —— 不先宣告成 local 的話，那個名字在函式體裡會編成
+-- 全域查表、執行時抓到 nil 而靜默失效（這個 repo 已經踩過兩次，見
+-- Elements/ClassPower.lua 的 LayoutMatches 那段）。
+local ctx
 
 local function EDB()
     local u = ns.db.units.player
     return u and u.elements and u.elements.classpower
 end
 
--- 回傳 控件清單, 專精ID, 這次是不是「跟隨冷卻管理器」
+-- 目前專精的在地化名稱（GetSpecializationInfo 的第二個回傳值）。拿不到回 nil
+local function SpecName()
+    local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization) or GetSpecialization
+    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo) or GetSpecializationInfo
+    if not (getSpec and getInfo) then return nil end
+    local ok, idx = pcall(getSpec)
+    if not ok or not idx then return nil end
+    local ok2, _, name = pcall(getInfo, idx)
+    if not ok2 then return nil end
+    name = ns.Desecret(name, nil)
+    if type(name) ~= "string" or name == "" then return nil end
+    return name
+end
+
+-- 主資源的 token（"INSANITY"、"RAGE"…，UnitPowerType 的第二個回傳值）。
+-- UnitPowerType 對玩家自己是明文，但照 ClassPower.lua 的慣例一律過 pcall／Desecret
+-- （進載具、被控時來源會變）。拿不到回 nil
+local function PrimaryToken()
+    local ok, _, token = pcall(UnitPowerType, "player")
+    if not ok then return nil end
+    token = ns.Desecret(token, nil)
+    if type(token) ~= "string" or token == "" then return nil end
+    return token
+end
+
+-- 主資源的在地化名稱：暴雪全域字串（_G.INSANITY ＝「瘋狂值」之類，官方譯名）。拿不到回 nil
+local function PrimaryName()
+    local token = PrimaryToken()
+    local name = token and _G[token]
+    if type(name) ~= "string" or name == "" then return nil end
+    return name
+end
+
+-- 回傳控件清單（每次現算：清單跟著專精／型態／跟隨狀態走）
 local function BuildControls()
-    local cand, specID = ns.ResourceCandidates()
+    local cand = ns.ResourceCandidates()
     local followActive, cdmAvail = ns.ResourceFollowsCDM(EDB())
     local list = {
         { type = "toggle", key = "enabled", label = L["Show resource bars"] },
+    }
+
+    -- 頁首：這個專精（型態）顯示的是哪些資源、主資源在哪裡設定。
+    -- 資源名用暴雪的官方譯名（ResourceInfo.name，見 ClassPower.lua 的 PowerName）。
+    -- ⚠ text 是建表當下定死的字串 ⇒ 會讓這兩行變的東西（專精、候選、主資源）都在
+    -- Signature 裡，換專精／型態之後 Tab_Unit 會重建，不會停在舊的
+    local names = {}
+    for _, key in ipairs(cand) do
+        local info = ns.ResourceInfo(key)
+        names[#names + 1] = (info and info.name) or key
+    end
+    local specName = SpecName()
+    if specName and #names > 0 then
+        list[#list + 1] = { type = "text",
+            label = L["Current specialization %s: shows %s"]:format(specName,
+                table.concat(names, LIST_DELIMITER or ", ")) }
+    end
+    local primary = PrimaryName()
+    if primary then
+        list[#list + 1] = { type = "text",
+            label = L["The main resource (%s) is shown by the player frame's \"%s\"; set it up there."]
+                :format(primary, L["Power bar"]) }
+    end
+
+    local layout = {
         { type = "text",   label = L["Anchored below the player frame, stacking downward. Which resources appear follows your specialization and switches automatically."] },
         { type = "header", label = L["Position and size"] },
         { type = "numbers", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
@@ -46,6 +110,8 @@ local function BuildControls()
         { type = "slider", key = "barAlpha", label = L["Fill opacity"], min = 0.1, max = 1, step = 0.05 },
         { type = "toggle", key = "showText", label = L["Show value on the bar"] },
     }
+    for _, spec in ipairs(layout) do list[#list + 1] = spec end
+
     if ns.playerClass == "DEATHKNIGHT" then
         list[#list + 1] = { type = "dropdown", key = "runeText", label = L["Numbers on runes"], items = {
             { text = L["Seconds left on each rune"], value = "countdown" },
@@ -76,7 +142,7 @@ local function BuildControls()
         list[#list + 1] = { type = "text",
             label = L["Colors and condition rules both come from the cooldown manager addon's resource bar settings. Uncheck this to set your own here."] }
         -- 條件沒成立時畫面跟「沒設條件」長得一模一樣 ⇒ 光看框看不出有沒有吃到。
-        -- 列一行「那邊各有幾條」讓玩家確認得了（那一列每次開分頁都會自己重算，
+        -- 列一行「那邊各有幾條」讓玩家確認得了（那一列每次顯示面板都會自己重算，
         -- 玩家在關著這一頁的時候去冷卻管理器改規則也不會停在舊數字）
         local summary = ns.ResourceConditions.SummarySpec(cand)
         if summary then list[#list + 1] = summary end
@@ -118,19 +184,15 @@ local function BuildControls()
     end
 
     list[#list + 1] = { type = "header", label = L["Show for this specialization"] }
-
-    if #cand == 0 then
-        list[#list + 1] = { type = "text",
-            label = L["This specialization has no extra resource to show, so the whole row collapses. Mana is deliberately not listed here: the unit frame's own power bar already shows it."] }
-    else
-        for _, key in ipairs(cand) do
-            local info = ns.ResourceInfo(key)
-            list[#list + 1] = { type = "toggle", sub = "resources", key = key,
-                                label = info and info.name or key, default = true }
-        end
-        list[#list + 1] = { type = "text",
-            label = L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] }
+    -- 候選是空的時候這個面板根本不會出現（Tab_Unit 的 chip 會藏起來），
+    -- 所以不再留「這個專精沒有資源」那個分支
+    for _, key in ipairs(cand) do
+        local info = ns.ResourceInfo(key)
+        list[#list + 1] = { type = "toggle", sub = "resources", key = key,
+                            label = info and info.name or key, default = true }
     end
+    list[#list + 1] = { type = "text",
+        label = L["Absorb-style resources (Stagger, Ironfur, Ignore Pain) are secret values in 12.1 — addons can't read the numbers, so they aren't listed."] }
 
     list[#list + 1] = { type = "header", label = L["Reset"] }
     list[#list + 1] = { type = "button", label = L["Restore defaults"], text = L["Restore resource defaults"], color = "red",
@@ -143,16 +205,23 @@ local function BuildControls()
             for k, v in pairs(def) do edb[k] = v end
             -- ⚠ 走 ctx.apply 不是直接 ApplySettings：還原之後 followAyije 回到 nil
             -- （冷卻管理器有載入就等於重新跟隨）⇒ 色塊那幾列要跟著消失，
-            -- 而「該不該重建控件」的判斷在 apply 裡。
+            -- 而「該不該重建控件」的判斷在 apply（與 Tab_Unit 的簽章比對）裡。
             -- 條件規則也被清光了，列數一定變 ⇒ 直接舉手要重建（冷卻管理器沒載入時
-            -- followAyije 前後都是 false，光靠它比不出來）
+            -- followAyije 前後都是 false，光靠簽章比不出來）
             ns.ResourceConditions.MarkRebuild()
             ctx.apply()
         end }
 
-    return list, specID, followActive
+    return list
 end
 
+------------------------------------------------------------
+-- ctx：Tab_Unit 的通用 ctx 沒有的三件事，缺一不可
+--   1. followAyije 是三態，get 回**生效值**
+--   2. 色塊（sub = "colors", sub2 = key）的 get 在 edb 裡自動建自己的表，
+--      絕不回共用預設表或冷卻管理器的表
+--   3. apply 先 Reevaluate 再 ApplySettings，並處理條件編輯器舉手的結構性重建
+------------------------------------------------------------
 ctx = {
     get = function(spec)
         local edb = EDB()
@@ -198,103 +267,46 @@ ctx = {
         if t then t[spec.key] = v end
     end,
     apply = function()
-        -- 資源清單／格數可能一起變 → 逼引擎重排，不只是重畫
+        -- 資源清單／格數可能一起變 → 逼引擎重排，不只是重畫。
+        -- Reevaluate 尾端會 Fire("ResourceCandidatesChanged")，Tab_Unit 收到後延一幀比對
+        -- Signature —— 「跟隨冷卻管理器」切換（跟隨狀態在簽章裡）造成的控件清單變動
+        -- 走那一條重建，這裡不必再比一次。
         if ns.ResourceReevaluate then ns.ResourceReevaluate() end
         ns.ApplySettings("player")
-        -- 「跟隨冷卻管理器」切掉之後控件清單整個換掉（色塊與條件編輯器出現／消失）⇒ 要重建。
-        -- ⚠ 不能在 toggle 自己的 OnClick 裡當場重建 —— 那是在按鈕的處理器裡把它的
-        -- 父框丟掉。延一幀讓這一輪點擊跑完再換。
+        -- 條件編輯器的列數也會變（增刪規則／檢查、上移、換編輯對象、換目標），但簽章
+        -- 看不出來 ⇒ 那邊自己舉手（MarkRebuild）。⚠ 一定要無條件 Consume，不然旗標會留到
+        -- 下一次改滑桿時才被讀到，變成「拖個透明度整頁突然重建」。
+        -- ⚠ 不能在按鈕自己的 OnClick 裡當場重建 —— 那是在處理器裡把它的父框丟掉。
+        -- RebuildUnitPanel 自己延一幀，同一幀的多次請求（含簽章那條）合併成一次重建。
+        -- keepScroll：「跟隨」勾選框與條件編輯器都在頁面中段，每按一次就被彈回頂端
+        -- 等於把使用者踢走。
         -- ⚠ 共用層（Libs/MiliUIWidgets）沒有 onChange 也沒有 disabled 機制，
-        -- **不要為了這一個需求去改共用層** —— 那是十個插件共用的 vendor 複製。
-        -- 比對「上次建表時的跟隨狀態」就夠了。
-        --
-        -- 條件編輯器的列數也會變（增刪規則／檢查、上移、換編輯對象、換目標），
-        -- 那邊自己舉手（MarkRebuild）。⚠ 一定要無條件 Consume，不然旗標會留到下一次
-        -- 改滑桿時才被讀到，變成「拖個透明度整頁突然重建」。
+        -- **不要為了這個需求去改共用層** —— 那是十幾個插件共用的 vendor 複製。
         local structural = ns.ResourceConditions.ConsumeRebuild()
-        local followNow = ns.ResourceFollowsCDM(EDB())
-        if tab and (structural or builtFollow ~= followNow) then
-            C_Timer.After(0, function()
-                Rebuild(true)
-                for _, fn in ipairs(refreshers) do fn() end
-            end)
+        if structural and ns.Options.RebuildUnitPanel then
+            ns.Options.RebuildUnitPanel("player", "classpower", true)
         end
     end,
 }
 
--- ⚠ 一定要放在卷軸裡：這一頁的長度跟著專精走（資源多的專精會多好幾列開關），
--- 直接鋪在 tab 上的話，內容一長就會整段掉出面板外面
---
--- keepScroll：重建之後把捲動位置放回去。「跟隨冷卻管理器」那個勾選框在頁面中段，
--- 每按一次就被彈回頂端的話等於把使用者踢走。
-function Rebuild(keepScroll)
-    local offset = (keepScroll and scroll) and scroll:GetVerticalScroll() or 0
-    local controls, specID, followActive = BuildControls()
-    -- 舊的內容框留著（frame 刪不掉），藏起來就好
-    if content then content:Hide() end
-    content, rows, refreshers = ns.Options.BuildScrollBody(scroll, controls, ctx, 620)
-    scroll:SetVerticalScroll(0)
-    specSig = specID or 0
-    builtFollow = followActive
-    -- ⚠ 要延一幀才設得準：內容高度剛換過，這一幀 GetVerticalScrollRange 還是舊值，
-    -- 直接設會被舊的上限夾掉（新內容比較短時就會夾出一個看起來隨機的位置）
-    if offset > 0 then
-        C_Timer.After(0, function()
-            scroll:SetVerticalScroll(math.min(offset, scroll:GetVerticalScrollRange() or 0))
-        end)
-    end
+-- 控件清單長相的簽章。會改變 BuildControls 結果的東西都要在這裡：
+--   專精          頁首的專精名、候選清單
+--   候選清單      德魯伊換型態時專精不變、清單會變；天賦也會讓某些資源出現／消失
+--   主資源 token  頁首「主資源由能量條顯示」那一行
+--   跟隨狀態      色塊與條件編輯器整段出現／消失（玩家可能在關著這一頁時才啟用／停用
+--                 冷卻管理器插件）
+-- 條件規則的條數不在這裡 —— 那邊走 MarkRebuild 舉手；換設定檔由 Tab_Unit 整批丟掉重建。
+local function Signature()
+    local cand, specID = ns.ResourceCandidates()
+    local follow = ns.ResourceFollowsCDM(EDB())
+    return table.concat({
+        tostring(specID or 0), table.concat(cand, ","), tostring(PrimaryToken()),
+        follow and "follow" or "own",
+    }, "|")
 end
 
-local function Init()
-    if tab then return end
-    tab, scroll = ns.Options.MakeFormTab(L["Resource bars"])
-    Rebuild()
-end
-
--- 換設定檔時，正開著的這一頁要重整。
--- ⚠ ctx 是現查 ns.db 所以**寫入**一直都正確，錯的是**控件顯示值** —— 那是 refresher
--- 推上去的，而 refresher 只在 ShowOptionsTab 跑。原本只有「單位」分頁訂了這個事件，
--- 所以停在這一頁換設定檔會看到顏色與滑桿全停在舊值，切走再切回來才對。
-ns.RegisterCallback("ProfileChanged", "resourceTabProfile", function()
-    if tab and tab:IsShown() then
-        -- ⚠ 一律重建，不是只在 followAyije 變了的時候：別份設定檔的**條件規則**
-        -- 條數也不一樣，而規則的列數決定整頁的長相，只推值推不出來。
-        -- 換設定檔很罕見，一次重建的孤兒 frame 換掉「換檔之後這一頁是錯的」划算
-        Rebuild()
-        for _, fn in ipairs(refreshers) do fn() end
-    elseif tab then
-        -- 這一頁關著的時候換設定檔：規則列數一樣可能不同，但現在重建沒人看。
-        -- 把專精簽章作廢，下次 ShowOptionsTab 比對不上就會重建
-        specSig = nil
-    end
-end)
-
-ns.RegisterCallback("ShowOptionsTab", "resourceTab", function(id)
-    if id ~= "resource" then
-        if tab then tab:Hide() end
-        return
-    end
-    Init()
-    local _, specID = ns.ResourceCandidates()
-    -- 跟隨狀態也要比：玩家可能在關著這一頁的時候才啟用／停用冷卻管理器插件
-    if specSig ~= (specID or 0) or builtFollow ~= ns.ResourceFollowsCDM(EDB()) then
-        Rebuild()
-    end
-    for _, fn in ipairs(refreshers) do fn() end
-    tab:Show()
-end)
-
-------------------------------------------------------------
--- 設定搜尋（Options/Search.lua）
---
--- ⚠ 這一頁的內容跟著目前專精走（資源清單不一樣），所以列舉時**現算**一次，
--- 不快取。索引本身會在 SettingsApplied／ProfileChanged 時失效重建。
-------------------------------------------------------------
-ns.Search.Register("resource", {
-    label = L["Resources"],
-    enumerate = function(add) add((BuildControls()), L["Resources"]) end,
-    jump = function(_, spec)
-        Init()
-        ns.Search.Reveal(scroll, content, rows, spec)
-    end,
-})
+ns.Options.ResourceForm = {
+    Controls  = BuildControls,
+    ctx       = ctx,
+    Signature = Signature,
+}
