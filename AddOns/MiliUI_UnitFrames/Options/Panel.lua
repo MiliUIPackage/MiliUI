@@ -39,8 +39,8 @@ local TABS = {
     { id = "units",    label = L["Units"] },
     -- 資源條沒有自己的分頁：它是玩家框的元件，在「單位 → 玩家」的 chip 列裡
     -- （Options/Tab_Unit.lua 的 ELEMENT_LIST，表單內容在 Options/Tab_Resource.lua）
-    -- 沒有東西會進圖騰欄位的職業，這頁調什麼都不會有反應 → 直接不顯示
-    { id = "totem",    label = L["Summons"], class = ns.TOTEM_CLASSES },
+    -- 召喚物也沒有自己的分頁：同樣是掛在玩家框底下的東西，跟資源條一起在玩家的 chip 列裡
+    -- （只有會放召喚物的職業看得到，見 Tab_Unit.lua 的 ElementVisible）
     { id = "share",    label = L["Profile"] },
     { id = "about",    label = L["About"] },
 }
@@ -64,9 +64,9 @@ end
 ------------------------------------------------------------
 -- 分頁骨架（各分頁的 Init 本來逐字重複這幾段）
 --
--- 拆成兩支是照實情走的：「一般／召喚物」兩頁是單純的表單，骨架完全一樣；
+-- 拆成兩支是照實情走的：「一般」是單純的表單（召喚物以前也是，現在併進單位分頁）；
 -- 而 Tab_Unit（左欄選單位＋上方 chip＋逐元件面板）與 Tab_Share（多個獨立區塊、
--- 沒有單一捲軸）只共用最外層那個蓋滿面板的 frame。硬把四頁塞進同一支會綁死版面。
+-- 沒有單一捲軸）只共用最外層那個蓋滿面板的 frame。硬把幾頁塞進同一支會綁死版面。
 ------------------------------------------------------------
 function Options.NewTabFrame()
     local tab = CreateFrame("Frame", nil, Options.panel)

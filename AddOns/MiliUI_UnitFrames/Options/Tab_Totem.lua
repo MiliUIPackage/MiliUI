@@ -1,14 +1,19 @@
 ------------------------------------------------------------
--- 「召喚物」分頁
+-- 「單位 → 玩家 → 召喚物」面板的內容
+--
+-- 召喚物框（Elements/Totems.lua）掛在玩家框底下、跟資源條同一組座標，所以設定跟著
+-- 資源條一樣放在玩家單位的 chip 列裡（Options/Tab_Unit.lua），不再是頂層分頁。
+-- 這一支只負責**內容**（控件清單與 ctx）；面板本身（frame、快取、捲動、重建）歸 Tab_Unit 管，
+-- 「選到這顆 chip 就填四個示範召喚物、離開就收」也由 Tab_Unit 在 ShowPanel 裡切。
+--
+-- 資料在 ns.db.units.totem（一個獨立的偽單位，不是玩家的元件），所以 ctx 的 root 是它；
+-- 而 chip 要不要出現看 ns.TOTEM_CLASSES（Elements/Totems.lua 是唯一來源）。
 ------------------------------------------------------------
 local _, ns = ...
 
 local L = ns.L
 
-local W, Controls = ns.W, ns.Controls
-
-local tab, scroll, content, rows
-local refreshers
+local Controls = ns.Controls
 
 local CONTROLS = {
     { type = "toggle", key = "enabled", label = L["Show summons frame"] },
@@ -34,57 +39,18 @@ local CONTROLS = {
       onClick = function()
           ns.DB.ResetUnit("totem")
           if ns.TotemsApplySettings then ns.TotemsApplySettings() end
+          -- 控件顯示值是 refresher 推上去的，只在面板顯示時跑 ⇒ 丟掉面板重建，
+          -- 不然滑桿會停在還原前的數字（以前的頂層分頁也有這個毛病）
+          if ns.Options.RebuildUnitPanel then ns.Options.RebuildUnitPanel("player", "totem", true) end
       end },
 }
 
-local function Init()
-    if tab then return end
-    -- 內容比面板高就會掉出去，一律走卷軸
-    tab, scroll = ns.Options.MakeFormTab(L["Summons"])
-
-    local ctx = Controls.MakeCtx(function() return ns.db.units.totem end, function()
-        if ns.TotemsApplySettings then ns.TotemsApplySettings() end
-    end)
-
-    content, rows, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx, 620)
-end
-
--- 換設定檔時，正開著的這一頁要重整。
--- ⚠ ctx 是現查 ns.db 所以**寫入**一直都正確，錯的是**控件顯示值** —— 那是 refresher
--- 推上去的，而 refresher 只在 ShowOptionsTab 跑。原本只有「單位」分頁訂了這個事件，
--- 所以停在這一頁換設定檔會看到顏色與滑桿全停在舊值，切走再切回來才對。
-ns.RegisterCallback("ProfileChanged", "totemTabProfile", function()
-    if tab and tab:IsShown() then
-        for _, fn in ipairs(refreshers) do fn() end
-    end
+-- root 每次現查 ns.db：換設定檔之後 ns.db 會被重指，抓著舊表的 closure 會寫到舊設定檔
+local ctx = Controls.MakeCtx(function() return ns.db.units.totem end, function()
+    if ns.TotemsApplySettings then ns.TotemsApplySettings() end
 end)
 
-ns.RegisterCallback("ShowOptionsTab", "totemTab", function(id)
-    -- 沒放召喚物時框是空的，調位置等於對著空氣調 → 進這一頁就填示範內容
-    if ns.TotemsSetPreview then ns.TotemsSetPreview(id == "totem") end
-    if id ~= "totem" then
-        if tab then tab:Hide() end
-        return
-    end
-    Init()
-    for _, fn in ipairs(refreshers) do fn() end
-    tab:Show()
-end)
-
-------------------------------------------------------------
--- 設定搜尋（Options/Search.lua）
-------------------------------------------------------------
--- ⚠ 職業判斷要跟 Options/Panel.lua 的分頁清單同一套（兩邊都讀 ns.TOTEM_CLASSES）。
--- 無條件註冊的話，法師搜「召喚物」會跳到一個根本沒有按鈕的分頁：高亮停在別的鈕上，
--- 而 ShowOptionsTab 照樣把它叫出來，還順手替一個用不到的職業建出召喚物框、
--- 鋪四個示範圖示。
-if ns.TOTEM_CLASSES[ns.playerClass] then
-ns.Search.Register("totem", {
-    label = L["Summons"],
-    enumerate = function(add) add(CONTROLS, L["Summons"]) end,
-    jump = function(_, spec)
-        Init()
-        ns.Search.Reveal(scroll, content, rows, spec)
-    end,
-})
-end
+ns.Options.TotemForm = {
+    Controls = CONTROLS,
+    ctx      = ctx,
+}

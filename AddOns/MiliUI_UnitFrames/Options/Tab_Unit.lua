@@ -41,6 +41,9 @@ local ELEMENT_LIST = {
     { key = "manabar",    label = L["Mana bar"] },
     -- 資源條（只有玩家框有這欄；表單內容在 Options/Tab_Resource.lua 的 ResourceForm）
     { key = "classpower", label = L["Resource bars"] },
+    -- 召喚物（圖騰／雕像／生命綻放）：資料在 ns.db.units.totem，不是玩家的元件，但框掛在
+    -- 玩家框底下、跟資源條同一組座標，所以一樣擺在玩家的 chip 列（內容在 Options/Tab_Totem.lua）
+    { key = "totem",      label = L["Summons"] },
     { key = "castbar",    label = L["Cast bar"] },
     { key = "buffs",      label = L["Buffs"] },
     { key = "debuffs",    label = L["Debuffs"] },
@@ -84,8 +87,14 @@ local panels = {}          -- [unitKey .. "/" .. elementKey] = { frame, refreshe
 --   資源條另外要「這個專精（型態）有副資源可顯示」—— 沒有的話整顆 chip 不出現。
 --   候選清單會變（換專精／型態／天賦），變的時候 ClassPower.lua 的 Reevaluate 會
 --   Fire("ResourceCandidatesChanged")，見檔案底部的訂閱
-local function ElementVisible(els, key)
+--   召喚物不是元件（資料在 units.totem）：只在玩家單位、而且這個職業會放東西進圖騰欄位
+--   （ns.TOTEM_CLASSES，Elements/Totems.lua 是唯一來源；別的職業調了沒反應）才出現
+local function ElementVisible(els, key, unitKey)
     if key == "frame" then return true end
+    if key == "totem" then
+        return unitKey == "player" and ns.TOTEM_CLASSES ~= nil and ns.TOTEM_CLASSES[ns.playerClass] == true
+               and type(ns.db.units.totem) == "table"
+    end
     if not els or els[key] == nil or ns.Elements[key] == nil then return false end
     if key == "classpower" then
         return ns.ResourceCandidates ~= nil and #ns.ResourceCandidates() > 0
@@ -906,6 +915,7 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "inspect" then return InspectSpecs() end
     -- 資源條的控件清單跟著專精走、每次現算（Options/Tab_Resource.lua）
     if elementKey == "classpower" then return ns.Options.ResourceForm.Controls() end
+    if elementKey == "totem" then return ns.Options.TotemForm.Controls end
     if elementKey == "texts" then return TextsSpecs(unitKey) end
     return {}
 end
@@ -950,6 +960,8 @@ local function BuildPanel(unitKey, elementKey)
     -- 資源條用自己的 ctx：三態的 followAyije、色塊自建表、apply 先 Reevaluate 與結構性重建
     -- （見 Options/Tab_Resource.lua）。通用 ctx 少任何一件都會壞
     if elementKey == "classpower" then ctx = ns.Options.ResourceForm.ctx end
+    -- 召喚物的 root 是 ns.db.units.totem，不在這個單位的 udb 底下（見 Options/Tab_Totem.lua）
+    if elementKey == "totem" then ctx = ns.Options.TotemForm.ctx end
 
     local height, refreshers, rows = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
@@ -1015,6 +1027,11 @@ local function ShowPanel(unitKey, elementKey)
     p.frame:Show()
     scroll:SetContentHeight(p.height)
     scroll:SetVerticalScroll(0)
+    -- 召喚物：沒放東西時框是空的，調位置等於對著空氣調 → 選到這顆 chip 就填四個示範召喚物，
+    -- 選別的就收（分頁切走、關窗分別在底部的 ShowOptionsTab 與 Panel.lua 的 OnHide 收）
+    if ns.TotemsSetPreview then
+        ns.TotemsSetPreview(unitKey == "player" and elementKey == "totem")
+    end
 end
 
 -- chip 列換排的門檻寬度（含 CHIP_ROW_SLACK）。chipRow 是左右兩個錨點夾出來的 ⇒ 版面還沒解析時 GetWidth()
@@ -1034,7 +1051,7 @@ local function RefreshChips(unitKey)
         -- 規則見 ElementVisible（資源條另看這個專精有沒有副資源）。
         -- ⚠ 每次都現算，不留「上次的可見狀態」：分頁關著時換專精，下次 ShowOptionsTab →
         -- SelectUnit → 這裡拿到的就是新的候選清單（Reevaluate 已經清掉快取）
-        chip:SetShown(ElementVisible(els, chip.id))
+        chip:SetShown(ElementVisible(els, chip.id, unitKey))
     end
     -- 一排放不下就換到下一排。⚠ chipRow 的**高度不在這裡動** —— 它在 Init 就照
     -- 「全部 chip 都出現」需要的排數留好了。不同單位的 chip 數不一樣，高度跟著算
@@ -1081,7 +1098,7 @@ function ns.Options.FocusUnitElement(unitKey, elementKey)
     -- Options.Open 一定會派送 ShowOptionsTab，而本頁的處理器就是照 currentUnit /
     -- currentElement 把兩排高亮與表單一次擺好 —— 先開再改的話會多閃一次舊的那頁。
     -- 這個單位沒有該元件時就不換（RefreshChips 本來也會退回「框架」）。
-    if elementKey and ElementVisible(udb.elements, elementKey) then
+    if elementKey and ElementVisible(udb.elements, elementKey, unitKey) then
         currentElement = elementKey
     end
     currentUnit = unitKey
@@ -1152,7 +1169,7 @@ local function Init()
     end
     chipHighlight = W.CreateButtonGroup(elementChips, SelectElement)
 
-    -- chipRow 的高度只算這一次，照「12 顆全部出現」需要的排數留（FlowRows 吃的是
+    -- chipRow 的高度只算這一次，照「13 顆全部出現」需要的排數留（FlowRows 吃的是
     -- 整個 elementChips，這時還沒有任何一顆被 RefreshChips 藏起來）。
     -- 高度改跟著目前單位算的話，切單位時 chipLine 與底下整張表單會上下彈；
     -- chip 少的單位底下空一排，穩定比緊湊重要。單排時 20+2＝22，與原本相同。
@@ -1224,6 +1241,7 @@ end)
 ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
     if id ~= "units" then
         if tab then tab:Hide() end
+        if ns.TotemsSetPreview then ns.TotemsSetPreview(false) end   -- 停在召喚物時切走分頁
         return
     end
     Init()
@@ -1341,7 +1359,7 @@ ns.Search.Register("units", {
             local els = udb and udb.elements
             if els then
                 for _, e in ipairs(ELEMENT_LIST) do
-                    if ElementVisible(els, e.key) then
+                    if ElementVisible(els, e.key, u.key) then
                         add(SpecsFor(u.key, e.key), u.label .. " › " .. e.label,
                             { unit = u.key, element = e.key })
                     end
