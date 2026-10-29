@@ -53,6 +53,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-duration-objects.md](wow-121-duration-objects.md) | 秘密值倒數用 duration 物件：自己建的餵不進秘密值，但 arm 過就由引擎跑；getter 取得可以、測試不行；「剩 N 秒」Lua 訊號戰鬥中拿不到（六條路全封），能做的只有「施放後固定秒數」並照實標示；要精確秘密計時就鏡射或寄生暴雪的框 |
 | [wow-121-absorb-shield-secret.md](wow-121-absorb-shield-secret.md) | 吸收盾／溢盾：`isClamped`、`SetAlphaFromBoolean`；**`UnitGetDetailedHealPrediction` 的 healer 參數不能傳 nil**；敵方的盾只能走 `UnitGetTotalAbsorbs` |
 | [wow-121-identity-gate-failopen.md](wow-121-identity-gate-failopen.md) | 身分閘 fail-open：白名單 buff 變成顯示全部、且只有 `/reload` 有效；⚠ 09-05 原始碼核對說機制不是 `UnitCanAssist`，未定案 |
+| [wow-121-spell-target-apis.md](wow-121-spell-target-apis.md) | 12.x 施法目標 API：`UnitSpellTargetName` 系列、**`PlayerIsSpellTarget` 受限時是秘密布林**、`UnitIsSpellTarget` 12.0.1 已移除；「只列對我施法的敵人」做不到 Lua 過濾，只剩 `SetShown`／`SetAlphaFromBoolean` 引擎端閘；EUI Cast Bars 不過濾對我 |
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
 | [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5：相容層全拔（`GetItemInfo` 等舊全域變 nil、`X and X()` 靜默失效）、`SetAuraBorder` 刪除→`AddDispelTypeTexture`、小地圖新座標框要 Hide、`GetInventoryItemCooldown` 第 4 回傳、保護 Cooldown 不能 SetCooldown；Cell 本來就走 AddDispelTypeTexture；Ketho＋wow-ui-source 比對步驟 |
@@ -250,7 +251,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 176 篇）
+## 全部筆記（自動產生，共 177 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -271,6 +272,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-percent-api-signature.md](wow-121-percent-api-signature.md) | UnitHealthPercent / UnitPowerPercent 的官方簽章，以及「別把其他插件註解裡的參數名當權威」 |
 | [wow-121-secret-values.md](wow-121-secret-values.md) | WoW 12.x Secret Values rules — what tainted addon code may/may not do with secrets, plus 12.1's new table-security APIs |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy |
+| [wow-121-spell-target-apis.md](wow-121-spell-target-apis.md) | 12.x「這個施法打向誰／是不是打我」的 API 全貌：UnitSpellTargetName 系列、PlayerIsSpellTarget（秘密布林）、UnitIsSpellTarget 已移除；「只列對我施法的敵人」在受限內容做不到 Lua 過濾；暴雪名條本來就有 CastTargetIndicator；EUI 的 Cast Bars 不過濾對我 |
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | Exact list of Unit APIs that started returning secret values in WoW 12.1.0 PTR 7 (build 68914) |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 12.1 右鍵單位選單的完整地雷圖——togglemenu 誤判、tainted 重開的代價、ClickBindings 閘、CopyToClipboard 是保護函式 |
 | [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5（120105）對插件有影響的 API 變動與 MiliUI 系列已修清單：相容層全拔（GetItemInfo 等舊全域變 nil）、SetAuraBorder 刪除、小地圖新座標框、GetInventoryItemCooldown 第 4 回傳、保護 Cooldown 不能 SetCooldown、ChatFrameTemplate 收件框要補 ScrollToBottomButton；怎麼用 Ketho＋wow-ui-source 比對 |
