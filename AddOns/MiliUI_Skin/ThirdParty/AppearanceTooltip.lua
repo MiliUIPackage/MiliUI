@@ -33,21 +33,17 @@
 --
 -- 跟 `ThirdParty/RaiderIO.lua` 同一套（STYLE.md ③ 特例二）。
 --
--- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true, ignoreParentAlpha = true, followPanel = true })`**：外觀跟旁邊那顆提示
+-- **首選 `MiliUITip_API.Adopt(tip, { keepScale = true })`**：外觀跟旁邊那顆提示
 -- 完全一致（底色、邊色、邊寬、頂部遮罩都跟著玩家的提示框設定走）。
 -- ⚠ **`keepScale` 一定要帶。** `Adopt` 預設會對接管的框 `SetScale(玩家設的提示縮放)`，
 --   而這顆每次顯示都掛在 `GameTooltip` 底下、有效縮放已經吃到那一份 ⇒ 不帶的話
 --   縮放 ≠ 1 的玩家會看到預覽變成平方倍（1.2 → 1.44）。
--- ⚠ **`ignoreParentAlpha` 也帶。** 提示插件的重繪面板會把 `GameTooltip` 壓 alpha 0（原生框當看不見的替身），
---   這顆掛在它底下就跟著透明：實機看到只剩 3D 模型浮在世界上（模型不吃父層 alpha），底、邊、兩行字全不見。
---   退回路徑不需要：沒有提示插件就沒人把 `GameTooltip` 壓 0。
---   **2026-10-29 起提示插件自己在 PLAYER_LOGIN 對這顆套這一項與 `followPanel`**（它的 `Panel.AdoptKnownSidecars`）：
---   透明是它壓原生造成的，不能靠這一份補——這一份只在 Skin 開著、「其他插件」那格開著時才跑，關掉的玩家預覽就透明了。
---   這裡照帶（兩項都冪等），是給「提示插件版本比較舊」的組合留退路。
--- ⚠ **`followPanel` 也帶。** 它的 positioner 每 0.2 秒照**原生**提示的幾何決定貼哪一邊、放不放得下，
---   再貼到原生（或最外側的比價框）旁邊。重繪面板接管期間原生跟面板一樣大、照暴雪的夾邊留在螢幕內，
---   它的判斷可信；提示插件後掛勾它的 `SetPoint`，對象有重繪面板顯示中時只把對象換成面板（點與位移原樣、
---   相鄰邊留一個縫）——比價面板跟它的原生差一個縫，貼原生會壓到面板邊上。
+-- ⚠ **這一份只管換皮，不管「看得見」。** 提示插件的重繪面板會把 `GameTooltip` 壓 alpha 0（原生框當看不見的替身），
+--   這顆掛在它底下就跟著透明（只剩不吃父層 alpha 的 3D 模型）、貼的對象也該換成面板——那是提示插件壓原生的副作用，
+--   由它自己在 PLAYER_LOGIN 對這顆補（`Panel.AdoptKnownSidecars`：`SetIgnoreParentAlpha(true)`＋貼面板）。
+--   2026-10-18～29 這兩件事曾經是這裡 `Adopt` 時帶 `ignoreParentAlpha`／`followPanel` 旗標做的，結果 Skin 沒開或
+--   「其他插件」那格關掉的玩家預覽就是透明的（玩家回報）；而用別的提示插件的玩家根本沒有這個副作用，
+--   Skin 帶著只是多一份要同步維護的知識 ⇒ 兩個旗標連同 `Adopt` 那邊的 opts 一起拿掉。
 -- 接管後的層級：提示插件的 skin 子框壓在本體 −1，而它的模型框每次重設都
 -- `SetFrameLevel(本體)` ⇒ 底在模型之下，模型與兩行字（`OVERLAY`）照常在上面。
 --
@@ -76,20 +72,18 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | `AppearanceTooltipTooltip` | `MiliUITip_API.Adopt`（有提示插件時）—— 動作記在那一支的接觸面清單；`keepScale` ⇒ 不寫 `SetScale` |
--- | 同一顆 | `SetIgnoreParentAlpha(true)`（經由 `Adopt` 的 `ignoreParentAlpha`；有提示插件時） |
--- | 同一顆 | `hooksecurefunc(frame, "SetPoint")`（經由 `Adopt` 的 `followPanel`；有提示插件時。對象是它自己的框，不是暴雪物件） |
 -- | 它的 `NineSlice` | `SetAlpha(0)`（退回路徑） |
 -- | 它自己 | `CreateTexture`（底 ＋ 四條邊，經由 `Engine.RegionBackdrop`；退回路徑） |
 --
--- hook：這一份自己**零**（沒有 `hooksecurefunc`、`HookScript`、`SetScript`，也沒有呼叫那支插件的任何函式）；
---   唯一的掛勾是上表那一列，由提示插件經 `followPanel` 掛、記在它的接觸面清單。
+-- hook：**零**（沒有 `hooksecurefunc`、`HookScript`、`SetScript`）。提示插件自己對這顆掛的 SetPoint 後掛勾
+--   與 `SetIgnoreParentAlpha` 不經過這一份，記在它的接觸面清單（#14／#18）。
 -- 寫入它的欄位：無（「接過了嗎」記在這一份自己的旗標裡）。
 -- 讀它的物件：只有 `_G[名字]` 在不在，以及 `NineSlice` 這個 parentKey —— 讀結構不是讀值。
 --
 -- ## 刻意不碰的東西
 --
 -- * **位置、尺寸、縮放、parent、strata** —— 全是它的 positioner 與 `ShowTooltip` 管的
---   （例外：有提示插件時 `followPanel` 把它要貼的對象從原生換成面板，點與位移不動）。
+--   （提示插件自己會把它要貼的對象從原生換成面板，點與位移不動；那不是這一份做的）。
 -- * **它的模型框**（`DressUpModel`／`ModelScene`）與滑鼠滾輪轉模型的那兩顆隱形按鈕。
 -- * **兩行字的顏色**（下方的收藏狀態淡藍、上方的「職業無法塑形」紅字）—— 那是它的資料。
 -- * **它的設定頁**（`config.lua`，自己的 `BackdropTemplate` 框）。
@@ -134,7 +128,7 @@ local function Sweep()
     --   不能因為早了一拍就退回我們自己畫的那一層。
     local ok
     if MiliUITip_API and type(MiliUITip_API.Adopt) == "function" then
-        ok = MiliUITip_API.Adopt(frame, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
+        ok = MiliUITip_API.Adopt(frame, { keepScale = true })
     else
         ok = PaintTipSkin(frame)
     end

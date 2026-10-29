@@ -229,5 +229,7 @@ Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.too
 補償（`SetIgnoreParentAlpha(true)`＋`followPanel`）10-18～19 時只寫在 **MiliUI_Skin 的委派**裡（`ThirdParty/AppearanceTooltip.lua` → `MiliUITip_API.Adopt`），
 而那條路只在 Skin 開著、「其他插件」的 AppearanceTooltip 那格開著時才跑 ⇒ 沒裝 Skin／關掉的玩家就是回報的樣子。
 修法：`Panel/Frame.lua` 的 `Panel.AdoptSidecar`／`AdoptKnownSidecars`（已知全域名單 `SIDECARS = { "AppearanceTooltipTooltip" }`），`Core/Hooks.lua` PLAYER_LOGIN 時自己套；接觸面 #18。
-Api 的兩個 opts 照收（冪等），Skin 那份照帶當舊版退路。
+同一天使用者追問「Skin 有需要存在這個修正嗎」：**沒有**——用別的提示插件的玩家沒有這個副作用，Skin 帶著只是多一份要同步維護的知識 ⇒
+`Adopt` 的 `ignoreParentAlpha`／`followPanel` 兩個 opts 連同 Skin 那邊的旗標一起拿掉，Skin 只剩 `keepScale`（那是換皮本身的事：Adopt 會 SetScale）。
+`Panel.Follow` 本身（留縫 N1、ReturnFollowers、秘密閘、每顆一次）一行沒動，只是入口從 Adopt 旗標換成 AdoptSidecar。
 規則：**換皮歸 Skin 去找，「看得見」不能歸 Skin 去找**——是我們壓原生 alpha 0 造成的副作用，補償就要在我們這邊、不能依賴另一支插件有沒有開。

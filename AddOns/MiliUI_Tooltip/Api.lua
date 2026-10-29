@@ -51,22 +51,10 @@ end
 --                      GameTooltip 底下」的框用（例如外觀預覽的模型框）：它的有效縮放
 --                      已經吃到父層那一份，我們再縮一次就變成平方。之後設定變更重跑
 --                      `ApplyBase` 也照樣跳過。
---   ignoreParentAlpha = true
---                      對這顆 `SetIgnoreParentAlpha(true)`（C 端 setter，不寫欄位；這顆是別的插件
---                      自己建的 Frame，不是暴雪物件）。給「自己 SetParent 到 GameTooltip 底下」的框用：
---                      重繪面板會把 GameTooltip 壓 alpha 0（Panel/Native.lua），子框跟著透明 ⇒
---                      實機看到外觀預覽只剩 3D 模型浮著（模型本來就不吃父層 alpha），底、邊、字全不見。
---                      這一項每次呼叫都會套（冪等的 setter），不受「接管過就直接回 true」影響。
---                      ⚠ 外觀預覽那顆（`AppearanceTooltipTooltip`）這支插件 PLAYER_LOGIN 時**自己**就套了
---                      （Panel/Frame.lua 的 AdoptKnownSidecars，followPanel 同）：透明是我們壓原生 alpha 0 造成的，
---                      不能靠換皮的那一支來補——玩家沒裝 Skin、或把那格關掉，預覽就只剩模型浮著（2026-10-29 回報）。
---                      這裡照收是給別的框用、也讓舊的呼叫端不用改。
---   followPanel = true
---                      這顆自己貼在某顆 tooltip 旁邊、而那顆 tooltip 正顯示重繪面板時，改貼面板（Panel/Frame.lua 的
---                      `Panel.Follow`：後掛勾這顆框的 SetPoint，同一幀把對象換成面板，點與位移原樣、相鄰邊留一個縫）。
---                      它自己照原生幾何做的判斷（貼哪一邊、放不放得下）照單全收——接管期間原生跟面板一樣大、
---                      照暴雪的夾邊留在螢幕內，幾何是真的。換對象只是因為比價面板跟它的原生差一個縫。
---                      只能給別的插件自己建的框用（不是暴雪物件）；每顆只掛一次，同樣不受「接管過」影響。
+--   （外觀預覽那顆掛在 GameTooltip 底下、原生被重繪面板壓 alpha 0 時跟著透明、貼的對象要換成面板——
+--   那是這支插件壓原生的副作用，由 Panel/Frame.lua 的 AdoptKnownSidecars 在 PLAYER_LOGIN 自己補，
+--   **不是 Adopt 的 opts**。2026-10-18～29 曾經是 `ignoreParentAlpha`／`followPanel` 兩個 opts 由 MiliUI_Skin 帶，
+--   Skin 沒開的玩家就沒吃到；換皮歸 Skin 找，看得見不能歸 Skin 找。）
 ------------------------------------------------------------
 MiliUITip_API = MiliUITip_API or {}
 
@@ -74,12 +62,6 @@ function MiliUITip_API.Adopt(tip, opts)
     if type(tip) ~= "table" then return false end
     -- 還沒初始化好（設定值還沒讀進來）⇒ 現在接管會畫出一顆沒有設定的框
     if not ns.db then return false end
-    if opts and opts.ignoreParentAlpha and tip.SetIgnoreParentAlpha then
-        pcall(tip.SetIgnoreParentAlpha, tip, true)
-    end
-    if opts and opts.followPanel and ns.Panel and ns.Panel.Follow then
-        ns.Panel.Follow(tip)
-    end
     if ns.Skin.Get(tip) then return true end
     ns.TrackTip(tip, nil, opts)
     ns.Skin.ApplyBase(tip)
