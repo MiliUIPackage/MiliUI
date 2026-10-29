@@ -299,6 +299,62 @@ local function TruncItemLevel(v)
     return floor(v * m) / m
 end
 
+-- 其他玩家的裝等：C_PaperDollInfo.GetInspectItemLevel 回的是暴雪已經四捨五入過的整數
+-- （329.6 → 330），上面的截斷對它沒有作用。所以觀察資料到貨時照暴雪角色面板的算法
+-- 自己平均：16 格（1～17 扣掉 4 襯衣；19 徽章不算），空格算 0，只拿一把雙手武器
+-- （或遠程）時那把算兩格，雙持（含泰坦之握的兩把雙手）各算各的。
+-- 哪一格的物品資料還沒同步到（有 ID 沒 link、或 GetDetailedItemLevelInfo 回 nil）、
+-- 或 12.1 把 link 變成秘密，就整個放棄，退回暴雪那個整數——寧可少一位小數也不要算錯。
+local ILVL_SLOTS = { 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }
+local TWO_HAND = { INVTYPE_2HWEAPON = true, INVTYPE_RANGED = true, INVTYPE_RANGEDRIGHT = true }
+
+-- 回 (裝等, 部位)；nil ＝ 這格算不出來
+local function SlotItemLevel(unit, slot)
+    local link = S.SafeCall(GetInventoryItemLink, unit, slot)
+    if S.IsSecret(link) then return end
+    if not link or link == "" then
+        local id = S.SafeCall(GetInventoryItemID, unit, slot)
+        if S.IsSecret(id) or id then return end   -- 有物品但 link 還沒到
+        return 0                                   -- 真的空格
+    end
+    local lv = S.PlainNumber(S.SafeCall(C_Item.GetDetailedItemLevelInfo, link))
+    if not lv or lv <= 0 then return end
+    local equipLoc = select(9, S.SafeCall(C_Item.GetItemInfo, link))
+    return lv, S.PlainText(equipLoc)
+end
+
+local function PreciseInspectItemLevel(unit)
+    if not (GetInventoryItemLink and GetInventoryItemID and C_Item
+        and C_Item.GetDetailedItemLevelInfo and C_Item.GetItemInfo) then return end
+    local total = 0
+    for _, slot in ipairs(ILVL_SLOTS) do
+        local lv = SlotItemLevel(unit, slot)
+        if not lv then return end
+        total = total + lv
+    end
+    local mh, mhLoc = SlotItemLevel(unit, 16)
+    local oh, ohLoc = SlotItemLevel(unit, 17)
+    if not mh or not oh then return end
+    if mh > 0 and oh > 0 then
+        total = total + mh + oh
+    elseif TWO_HAND[mhLoc] or TWO_HAND[ohLoc] then
+        total = total + max(mh, oh) * 2
+    else
+        total = total + mh + oh
+    end
+    return total / 16
+end
+
+-- 觀察中的單位目前能拿到的裝等：自己算的優先，退回暴雪的整數
+local function InspectedItemLevel(unit)
+    local precise = PreciseInspectItemLevel(unit)
+    if precise and precise > 0 then return precise end
+    if C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
+        local lv = S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
+        if lv and lv > 0 then return lv end
+    end
+end
+
 local function GetUnitItemLevel(unit)
     if not S.SafeBool(UnitIsPlayer, unit) then return end
     if S.SafeBool(UnitIsUnit, unit, "player") and GetAverageItemLevel then
@@ -309,12 +365,10 @@ local function GetUnitItemLevel(unit)
     end
     local cached = CacheGet(inspect, unit, "level")
     if cached then return cached end
-    if C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
-        local lv = S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
-        if lv and lv > 0 then
-            CachePut(inspect, SafeGuid(unit), "level", lv)
-            return lv
-        end
+    local lv = InspectedItemLevel(unit)
+    if lv then
+        CachePut(inspect, SafeGuid(unit), "level", lv)
+        return lv
     end
 end
 
@@ -391,9 +445,9 @@ do
             elseif GuidEquals(SafeGuid("target"), guid) then
                 unit = "target"
             end
-            if unit and C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
-                local lv = S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
-                if lv and lv > 0 then CachePut(inspect, guid, "level", lv) end
+            if unit then
+                local lv = InspectedItemLevel(unit)
+                if lv then CachePut(inspect, guid, "level", lv) end
             end
             if ClearInspectPlayer and not (InspectFrame and InspectFrame.IsShown and InspectFrame:IsShown()) then
                 pcall(ClearInspectPlayer)
