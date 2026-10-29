@@ -2264,8 +2264,14 @@ function F.FindAuraByName(unit, type, name)
     if not (C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName) then return nil end
     local ok, aura = pcall(C_UnitAuras.GetAuraDataBySpellName, unit,
         name, type == "BUFF" and "HELPFUL" or "HARMFUL")
-    if ok then return aura end
-    return nil
+    if not ok or aura == nil then return nil end
+    --! 12.1: GetAuraDataBySpellName is SecretWhenUnitAuraRestricted -- while restricted it
+    --! answers with a SECRET table rather than nil, and a secret is truthy, so every name
+    --! "exists". That is how DRINKING survived a whole fight on 2026-10-29: the restricted
+    --! gate above was dead (see F.IsAuraRestricted) and this read as "still drinking".
+    --! The gate now works; this catches the per-aura case (spells flagged always-secret).
+    if F.IsSecretTable(aura) or not F.IsAuraNonSecret(aura) then return nil end
+    return aura
 end
 
 function F.FindAuraById(unit, type, spellId)
@@ -2818,21 +2824,23 @@ function F.HasAnySecretValues(...)
     return hasanysecretvalues(...)
 end
 
--- GetRestrictedActionStatus() returns non-secret boolean
--- Enum.RestrictedActionType.SecretAuras = 0
--- Enum.RestrictedActionType.SecretCooldowns = 1
+--! fix from MiliUI: `GetRestrictedActionStatus` / `Enum.RestrictedActionType` do not exist
+--! in the shipped client (Blizzard_APIDocumentationGenerated has neither), so the guard
+--! below used to be DEAD -- it answered false in every boss fight, and every caller
+--! believed auras were readable exactly when they were not. The real predicate is
+--! C_Secrets.ShouldAurasBeSecret, the same gate UnitButton_UpdateAuras bails on, so
+--! "restricted" now means one thing everywhere. (C_RestrictedActions.IsAddOnRestrictionActive
+--! is the per-type form; auras go secret for Combat / Encounter / ChallengeMode / PvPMatch.)
 function F.IsAuraRestricted()
-    if GetRestrictedActionStatus and Enum and Enum.RestrictedActionType then
-        local isRestricted = GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras)
-        return isRestricted == true
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret then
+        return C_Secrets.ShouldAurasBeSecret() == true
     end
     return false
 end
 
 function F.IsCooldownRestricted()
-    if GetRestrictedActionStatus and Enum and Enum.RestrictedActionType then
-        local isRestricted = GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns)
-        return isRestricted == true
+    if C_Secrets and C_Secrets.ShouldCooldownsBeSecret then
+        return C_Secrets.ShouldCooldownsBeSecret() == true
     end
     return false
 end

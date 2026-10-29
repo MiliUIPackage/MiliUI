@@ -907,6 +907,10 @@ end
 --! the fight. One call per name, and only ever while that status is actually up.
 --! Returns nil (not false) when the answer cannot be had -- restricted auras are "unknown",
 --! and the caller decides what to do with unknown.
+--! ⚠ "cannot be had" has to be decided HERE, before asking: F.IsAuraRestricted was a dead
+--! check until 2026-10-30 (it polled an API that does not exist), and the name lookup it
+--! was meant to guard returns a truthy secret table under restriction -- so this said
+--! "true" for anyone wearing the status, and the status never came off during a fight.
 function I.HasDrinkAura(unit)
     if not unit then return nil end
     if Cell.isMidnight and F.IsAuraRestricted() then return nil end

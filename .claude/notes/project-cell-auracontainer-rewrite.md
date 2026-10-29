@@ -423,6 +423,16 @@ Rebuild 已是既定合法路徑。若實測（`/console taintLog 2`，野外戰
 StatusIcon 的靈魂石移除偵測等於一直沒在跑。**用 `and` 守衛一個不存在的函式，
 會讓「功能沒做」看起來像「功能有做」**，靜默到只能靠全域掃描或讀原始碼發現。
 
+**2026-10-30 第二次卡住（自己的框、戰鬥中喝完水整場掛著）——上面那條清除路徑其實沒在跑**：
+`F.IsAuraRestricted()` 靠的 `GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras)`
+**根本不存在**（API 文件裡沒有這支，也沒有這個 Enum；Cell 上游留下的假 API），`if GetRestrictedActionStatus and …`
+守衛永遠 false ⇒ 「受限」判定永遠是「可讀」。接著 `F.FindAuraByName` 真的去問 `GetAuraDataBySpellName`，
+它標 `SecretWhenUnitAuraRestricted`：受限時回的是**秘密 table 不是 nil**，秘密值 truthy ⇒ 每個名字都「找到」⇒
+`HasDrinkAura` 回 true ⇒ `ClearStaleDrinking` 以為還在喝。修法：`F.IsAuraRestricted`／`F.IsCooldownRestricted`
+改問 `C_Secrets.ShouldAurasBeSecret()`／`ShouldCooldownsBeSecret()`（跟 `UnitButton_UpdateAuras` 同一道閘），
+`F.FindAuraByName` 另外把 `F.IsSecretTable(aura)`／spellId 秘密的回傳當 nil。**同一個守衛的兩種死法**：
+守不存在的函式、守存在但回秘密的函式——後者更陰，因為「有拿到東西」看起來像「有找到」。
+
 ## 矩形（rect）的三層時間效果，全部引擎驅動（2026-09-28／29，c4fa912ea＋2c951f359，未實機驗證）
 
 buff 矩形走效果槽後，「剩 N%／N 秒換色」一度被拿掉，現在三層都補回且都不讀秒：
