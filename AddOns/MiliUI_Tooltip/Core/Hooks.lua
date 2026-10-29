@@ -32,7 +32,8 @@
 --  13. tip:SetClampRectInsets／還原（Panel/Native.lua 的 UpdateClamp）：接管期間原生**照暴雪的夾邊**，我們只替它
 --      設夾邊範圍（四邊呼吸、上緣多留比價標籤）。C 端 setter，第一次藏原生時 GetClampRectInsets 記原值、Restore 寫回。
 --      （2026-10-18～19 曾改成 SetClampedToScreen(false) 由面板自己夾：原生幾何變假、下游全被誤導，已改回）
---  14. hooksecurefunc(frame, "SetPoint")（Panel/Frame.lua 的 Panel.Follow，經 MiliUITip_API.Adopt 的 followPanel）：
+--  14. hooksecurefunc(frame, "SetPoint")（Panel/Frame.lua 的 Panel.Follow；PLAYER_LOGIN 時對已知的隨行框自己掛，
+--      MiliUITip_API.Adopt 的 followPanel 也會掛）：
 --      **對象是別的插件自己建的框，不是暴雪物件**（外觀預覽）。它貼到有面板顯示中的 tooltip 時，掛勾裡把對象換成面板、
 --      點與位移原樣、相鄰邊留縫；讀到的參數先過 S.IsSecret，重入旗標擋自己的 SetPoint，暴雪物件一個都不碰
 --  15. hooksecurefunc(tip, "FadeOut")（下面的 OnFadeOut，TrackTip 時掛）：暴雪的 FadeOut＝原生全不透明停 1 秒、再花 1 秒淡掉，
@@ -46,6 +47,9 @@
 --      也能安全顯示含秘密值的內容（世界單位不能改叫 SetWorldCursor：一般 mixin，整段 ProcessInfo 帶污染）。
 --      tip:GetPrimaryTooltipInfo() 只拿那張表比身分（內容換過沒），不讀寫它的欄位；滑鼠離開時照 SetWorldCursor 的規則
 --      tip:FadeOut()／Hide()（#8）
+--  18. frame:SetIgnoreParentAlpha(true)（Panel/Frame.lua 的 Panel.AdoptSidecar；PLAYER_LOGIN 對已知的隨行框、
+--      MiliUITip_API.Adopt 的 ignoreParentAlpha）：**對象是別的插件自己建的框**（外觀預覽每次顯示都 SetParent 到
+--      我們接管的 tooltip 底下），原生被 #10 壓 0 時它才不會跟著透明。C 端 setter、冪等、暴雪物件一個都不碰
 --
 -- 不碰的：EmbeddedItemTooltip（UIWidget 會借走 → forbidden 大宗）、
 -- 任何暴雪函式替換、SetScript。所有入口先 IsForbidden 閘，
@@ -386,6 +390,8 @@ init:SetScript("OnEvent", function(self, event, name)
         for _, tipName in ipairs(TRACKED) do
             TrackTip(_G[tipName])
         end
+        -- 掛在我們的 tooltip 底下的別家框（外觀預覽）：原生壓 alpha 0 時不跟著透明、貼面板（#14／#18）
+        ns.Panel.AdoptKnownSidecars()
         if C_AddOns.IsAddOnLoaded("TinyTooltip-Remake") then
             print("|cff4DD2FF[米利的滑鼠提示]|r |cffff5555偵測到 TinyTooltip-Remake 同時啟用——兩邊會重複改寫工具提示，請停用其中一個。|r")
         end

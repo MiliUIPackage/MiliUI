@@ -57,6 +57,10 @@ end
 --                      重繪面板會把 GameTooltip 壓 alpha 0（Panel/Native.lua），子框跟著透明 ⇒
 --                      實機看到外觀預覽只剩 3D 模型浮著（模型本來就不吃父層 alpha），底、邊、字全不見。
 --                      這一項每次呼叫都會套（冪等的 setter），不受「接管過就直接回 true」影響。
+--                      ⚠ 外觀預覽那顆（`AppearanceTooltipTooltip`）這支插件 PLAYER_LOGIN 時**自己**就套了
+--                      （Panel/Frame.lua 的 AdoptKnownSidecars，followPanel 同）：透明是我們壓原生 alpha 0 造成的，
+--                      不能靠換皮的那一支來補——玩家沒裝 Skin、或把那格關掉，預覽就只剩模型浮著（2026-10-29 回報）。
+--                      這裡照收是給別的框用、也讓舊的呼叫端不用改。
 --   followPanel = true
 --                      這顆自己貼在某顆 tooltip 旁邊、而那顆 tooltip 正顯示重繪面板時，改貼面板（Panel/Frame.lua 的
 --                      `Panel.Follow`：後掛勾這顆框的 SetPoint，同一幀把對象換成面板，點與位移原樣、相鄰邊留一個縫）。

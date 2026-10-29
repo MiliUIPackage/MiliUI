@@ -667,6 +667,34 @@ function Panel.ReturnFollowers(gone)
 end
 
 ------------------------------------------------------------
+-- 隨行框：別的插件自己建、每次顯示都 SetParent 到我們接管的 tooltip 底下、再貼在旁邊的框（外觀預覽）。
+-- 原生被面板壓到 alpha 0 時它跟著透明——底、邊、「已收藏／未收藏」那兩行全不見，只剩不吃父層 alpha 的 3D 模型
+-- 浮在世界上；貼的對象也該換成面板（上面的 Follow）。
+-- ⚠ **這是我們把原生壓 0 造成的，補償由我們自己做。** 2026-10-18～19 這兩件事只掛在 MiliUI_Skin 的委派裡
+--   （MiliUITip_API.Adopt 的 ignoreParentAlpha／followPanel），玩家沒裝 Skin、Skin 總開關關著、或把「其他插件」裡的
+--   AppearanceTooltip 那格關掉，預覽就是透明的（2026-10-29 玩家回報）。換皮歸 Skin 找，看得見不能歸 Skin 找。
+-- SetIgnoreParentAlpha 是 C 端 setter、對象是別的插件自己建的 Frame（接觸面 #18）；冪等，Adopt 再套一次也沒差。
+------------------------------------------------------------
+local SIDECARS = { "AppearanceTooltipTooltip" }   -- 都是檔案層建的全域框
+
+function Panel.AdoptSidecar(frame)
+    if type(frame) ~= "table" then return false end
+    if type(frame.SetIgnoreParentAlpha) == "function" then
+        pcall(frame.SetIgnoreParentAlpha, frame, true)
+    end
+    Panel.Follow(frame)
+    return true
+end
+
+-- PLAYER_LOGIN 時找一次：載入順序不保證，自己的 ADDON_LOADED 時那支插件不一定載了
+function Panel.AdoptKnownSidecars()
+    for _, name in ipairs(SIDECARS) do
+        local frame = _G[name]
+        if frame then Panel.AdoptSidecar(frame) end
+    end
+end
+
+------------------------------------------------------------
 -- 拆圈（2026-10-21 實機：「Cannot anchor to a region dependent on it」）：每顆面板照自己原生**當下**的點貼、
 -- 在自己的時機重算（post-call／對帳／輪詢的 Fit）⇒ 面板之間的錨點圖裡同時有新邊與還沒重算的舊邊。
 -- 比價框換邊時暴雪把 ShoppingTooltip1→2 改成 2→1：第二顆先重算、照新的點要貼第一顆的面板，第一顆的面板卻還照

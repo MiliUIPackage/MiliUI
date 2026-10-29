@@ -222,3 +222,12 @@ Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.too
 修法：`hooksecurefunc(GameTooltip, "SetWorldCursor")` 後掛勾，anchorType＝Cursor、顯示中、錨點型別還是暴雪設的那兩個才動，照同一套 `AnchorFrame` 重新定位。這時 ProcessInfo 已跑完（內容、面板都在）⇒ **不再 SetOwner，改 `SetAnchorType`**（`keepOwner` 旗標讓 AnchorFrame 的 SetOwner 換成 SetAnchorType、AnchorStatic 先換 `ANCHOR_NONE` 再 SetPoint、略過「還錨在預設容器上」檢查）——錨點型別不換掉，引擎每幀把框拉回游標，SetPoint 留不住。面板錨在原生的角上，原生搬了就跟著。「暴雪預設」照舊不動。`Tests/Anchor_test.lua` #6。未實機：`SetAnchorType("ANCHOR_NONE")` 是否真的停掉引擎的游標跟隨（`/mtip log` 會印「世界游標 Cursor 分支 重新定位 X → Y」）。
 
 相關：[[project-miliui-unit-frame]]、[[wow-121-secret-values]]、[[project-121-addon-migration]]、[[project-tinytooltip-perf]]、[[project-local-addon-forks]]、[[project-miliui-hud-skin]]
+
+## 隨行框的補償歸提示插件自己（2026-10-29，玩家回報「搭配 AppearanceTooltip 背景全透明、看不到是否已收藏」）
+
+成因：外觀預覽框每次顯示都 `SetParent(GameTooltip)`，重繪面板把原生壓 alpha 0 ⇒ 它跟著透明（只剩不吃父層 alpha 的 3D 模型；底、邊、「已收藏／未收藏」兩行全不見）。
+補償（`SetIgnoreParentAlpha(true)`＋`followPanel`）10-18～19 時只寫在 **MiliUI_Skin 的委派**裡（`ThirdParty/AppearanceTooltip.lua` → `MiliUITip_API.Adopt`），
+而那條路只在 Skin 開著、「其他插件」的 AppearanceTooltip 那格開著時才跑 ⇒ 沒裝 Skin／關掉的玩家就是回報的樣子。
+修法：`Panel/Frame.lua` 的 `Panel.AdoptSidecar`／`AdoptKnownSidecars`（已知全域名單 `SIDECARS = { "AppearanceTooltipTooltip" }`），`Core/Hooks.lua` PLAYER_LOGIN 時自己套；接觸面 #18。
+Api 的兩個 opts 照收（冪等），Skin 那份照帶當舊版退路。
+規則：**換皮歸 Skin 去找，「看得見」不能歸 Skin 去找**——是我們壓原生 alpha 0 造成的副作用，補償就要在我們這邊、不能依賴另一支插件有沒有開。

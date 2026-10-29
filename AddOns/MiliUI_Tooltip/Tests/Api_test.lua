@@ -150,4 +150,42 @@ do
     eq("不帶 followPanel：不改貼", g.points[1][2], tip)
 end
 
+------------------------------------------------------------
+-- 隨行框（Panel.AdoptSidecar／AdoptKnownSidecars，2026-10-29）：不靠 Adopt、PLAYER_LOGIN 時自己認已知的全域框
+-- ⇒ SetIgnoreParentAlpha(true)＋跟隨面板；沒裝那支插件就什麼都不做；Adopt 再套一次不會多掛一層
+------------------------------------------------------------
+do
+    local env, ns, _, State = Setup()
+    local api = env.MiliUITip_API
+    ns.Panel.AdoptKnownSidecars()
+    check("沒裝外觀預覽：不炸、沒登記", next(ns.Panel.followers) == nil)
+
+    local f = Frame()
+    env.AppearanceTooltipTooltip = f
+    local setCalls = 0
+    local raw = f.SetPoint
+    f.SetPoint = function(...) setCalls = setCalls + 1; return raw(...) end
+    ns.Panel.AdoptKnownSidecars()
+    eq("已知的隨行框：SetIgnoreParentAlpha(true)", f.ignoreParentAlpha, true)
+    check("已知的隨行框：登記跟隨", ns.Panel.followers[f] ~= nil)
+
+    local tip = H.Tip(env, "GameTooltip", {})
+    local panel = H.Region("Frame")
+    panel:Show()
+    State[tip] = { panel = panel }
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    eq("已知的隨行框：貼到有面板的 tooltip ⇒ 改貼面板", f.points[1][2], panel)
+
+    api.Adopt(f, { keepScale = true, ignoreParentAlpha = true, followPanel = true })   -- Skin 的委派再來一次
+    eq("Adopt 再套：setter 又一次（冪等）", f.ignoreCalls, 2)
+    setCalls = 0
+    f:ClearAllPoints()
+    f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
+    eq("Adopt 再套：掛勾沒多一層（呼叫 1 次＋改貼 1 次）", setCalls, 2)
+
+    eq("AdoptSidecar：不是框 ⇒ false", ns.Panel.AdoptSidecar("x"), false)
+    check("AdoptSidecar：框沒有 SetIgnoreParentAlpha ⇒ 不炸、仍登記跟隨", ns.Panel.AdoptSidecar(H.Region("Frame")))
+end
+
 H.finish("Api_test")

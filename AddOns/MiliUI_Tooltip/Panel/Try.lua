@@ -620,7 +620,7 @@ function Panel.DebugDump(out)
         end
     end
     if not any then
-        out(_G.AppearanceTooltipTooltip and "外觀預覽框存在，但沒有登記跟隨（Adopt 沒帶 followPanel，或 MiliUI_Skin 沒委派成功）"
+        out(_G.AppearanceTooltipTooltip and "外觀預覽框存在，但沒有登記跟隨（PLAYER_LOGIN 的 AdoptKnownSidecars 沒跑到？）"
             or "沒有登記的跟隨框")
     end
     return count
