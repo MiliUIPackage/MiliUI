@@ -69,10 +69,26 @@ local function SkinMenu(frame)
     local okLvl, level = pcall(frame.GetFrameLevel, frame)
     if not okLvl or type(level) ~= "number" then return end
 
+    -- ⚠ parent 一定要明確給選單框本身：選單框**沒有 parent**（根選單與子選單都是
+    --   無父的頂層框，自己設 strata），交給 SafeParent 往上找不到就會退回 UIParent（MEDIUM）
+    --   ⇒ 邊跑到拍賣場這類視窗後面（2026-09-24 實機）。
+    local ov = E.Overlay(frame, { key = KEY, parent = frame, levelOffset = 4 })
+    local b
+    if ov then
+        ov:SetFrameLevel(level + 4) -- skin-lint: own-frame（池化框的層級每次開都會變）
+        -- ⚠ 邊寬每次開都重算（規則 ③「顯示時換算」）：選單框回池時 `SetToDefaults()`
+        --   把縮放打回 1，Engine 的重排（進副本、改縮放）跑到休眠中的框算的是縮放 1
+        --   的「1px」；開選單時暴雪才 `SetScale(UIParent:GetScale())`，邊就剩不到 1 個
+        --   像素、落在小數座標（跟著游標）的那條整條不見（2026-10-29 實機：缺上邊）。
+        --   我們是在 Generate 的下一幀跑，那時縮放已經設好。底的內縮用同一個值。
+        b = E.RelayoutRec(ov)
+        E.Paint(ov, { 0, 0, 0, 0 }, { T.Accent() })
+    end
+    b = b or T.BorderSize()   -- 縮在邊（1 實體像素）裡面
+
     local okR, regions = pcall(function() return { frame:GetRegions() } end)
     if okR then
         local fill = T.tipFill
-        local b = T.BorderSize()   -- 縮在邊（1 實體像素）裡面
         for _, r in ipairs(regions) do
             if type(r) == "table" and r.IsObjectType and r:IsObjectType("Texture") then
                 r:SetColorTexture(fill[1], fill[2], fill[3], fill[4] or 1)
@@ -82,15 +98,6 @@ local function SkinMenu(frame)
                 r:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -b, b) -- skin-lint: own-frame
             end
         end
-    end
-
-    -- ⚠ parent 一定要明確給選單框本身：選單框**沒有 parent**（根選單與子選單都是
-    --   無父的頂層框，自己設 strata），交給 SafeParent 往上找不到就會退回 UIParent（MEDIUM）
-    --   ⇒ 邊跑到拍賣場這類視窗後面（2026-09-24 實機）。
-    local ov = E.Overlay(frame, { key = KEY, parent = frame, levelOffset = 4 })
-    if ov then
-        ov:SetFrameLevel(level + 4) -- skin-lint: own-frame（池化框的層級每次開都會變）
-        E.Paint(ov, { 0, 0, 0, 0 }, { T.Accent() })
     end
 end
 

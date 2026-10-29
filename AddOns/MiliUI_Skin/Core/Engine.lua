@@ -1451,6 +1451,19 @@ local function RelayoutPixels()
 end
 Engine.RelayoutPixels = RelayoutPixels
 
+-- 單一筆照**現在**的縮放重排：給「同一個框每次顯示前縮放都會被重設」的配方用。
+-- 暴雪的池化選單框（`Blizzard_Menu`）回池時 `SetToDefaults()` 把縮放打回 1、
+-- 開選單時才 `SetScale(UIParent:GetScale())`；上面那幾條重排路（進副本、改縮放、
+-- UIParent 尺寸變動）跑到休眠中的選單框時算的是縮放 1 的「1px」，下次開選單縮回 0.64
+-- 就只剩不到 1 個像素，落在小數座標的那條邊整條消失（2026-10-29 實機：右鍵選單缺上邊）。
+-- 配方在每次顯示的掛點裡呼叫這一支，就是規則 ③「顯示時換算」。
+-- 回傳這次用的「1px ＝ 幾個框架單位」，配方的內縮量要跟邊同一個值。
+function Engine.RelayoutRec(rec)
+    if not rec or not pixelRecs[rec] then return nil end
+    local ok = pcall(RelayoutOne, rec)
+    return ok and rec.pxUnit or nil
+end
+
 -- 逐筆比對：現在換算的 1px 跟排的時候不一樣才重排那一筆。
 -- 給沒有縮放事件的那幾條路（UIParent 被別人 SetScale、框被換 parent／換 scale）。
 local function Stale(rec)

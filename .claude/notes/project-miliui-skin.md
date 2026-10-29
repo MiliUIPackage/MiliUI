@@ -93,6 +93,7 @@ metadata:
 - `useParentLevel` 的 sublevel 平手：inset 跟視窗本體同 frame level，大家都在 −8 就被本體蓋掉 ⇒ 冒險指南內嵌底墊到 −4（邊 −3）；其他視窗的 `Skin.Inset` 可能同病，未逐一比對。
 - **右鍵／下拉選單**（2026-09-24 實機 `8d82ea497`、`18d783f49`）：選單框池化、每次開都 `SetToDefaults`＋重設層級，列是 `menuFrame +20` ⇒ 我們建立時算一次的子框層級換手幾次就漂到列上面、整片底把內容蓋掉。**實心底不能是子框**，只能畫在選單框自己那張 `common-dropdown-bg` 貼圖上（compositor 每次 Generate 重新 Attach、關選單就收回，所以准重錨）；邊走子框、內部透明、層級每次重算 +4。
   而且**選單框沒有 parent** ⇒ `opts.parent` 一定要給選單框本身，交給 SafeParent 會退回 UIParent（MEDIUM）、邊跑到拍賣場後面。
+  **邊寬每次開都重算**（2026-10-29，右鍵選單缺上邊）：選單框回池 `SetToDefaults()` 把縮放打回 1，Engine 的重排碰到休眠中的框算錯，開選單才 `SetScale(UIParent:GetScale())` ⇒ 邊剩 0.64px。`SkinMenu` 在 Generate 的下一幀呼叫 `Engine.RelayoutRec(ov)`，底的內縮用它回傳的單位（[[wow-1px-border-rules]] 成因 ⑥）。
 - 收件匣列底的 parent 設成會被暴雪 Hide 的那顆信件鈕、錨點仍錨在列上 ⇒ 空列自動沒底，零讀取零 hook。商人每格底框同招（空格暴雪 Hide 的是 `ItemButton`）。
 - 收藏清單的圖示方框改成**列自己的 ARTWORK 貼圖**而不是子框（2026-09-24 `04f432bd9`）：子框永遠在列的所有貼圖之上，會壓住 OVERLAY 層的我的最愛星號。
 - 物品格：`IconBorder` alpha 0、自己畫 1px 方框、顏色轉交 `Engine.PassBorderColor`（`GetVertexColor` → `SetVertexColor`，不比較不算術）；全域 `SetItemButtonQuality/SetItemButtonTexture` 後置勾、`SetItemButtonBorder`（Baganator 呼叫格子方法）；商人視窗品質更新走方法 ⇒ 另勾 `MerchantFrame_UpdateMerchantInfo/_UpdateBuybackInfo`（第一行 `MerchantFrame:IsShown()`）。

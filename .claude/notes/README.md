@@ -280,7 +280,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 
 | 檔案 | description |
 |---|---|
-| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的五個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單 |
+| [wow-1px-border-rules.md](wow-1px-border-rules.md) | 自己畫的 1px 邊框／髮絲線「整條不見」或「變 2px、跟隔壁重疊」的六個成因與全套組規則——粗細走 P.Pixel、基準用框自己的有效縮放、顯示時才換算、框登入時沒 parent 要照認養後換算、池化框回池 SetToDefaults 會重設縮放要每次顯示重排、貼圖關像素貼齊（P.NoSnap）；Cell／ElvUI 會把這類 bug 遮掉；指紋與交件前檢查清單 |
 | [wow-3d-model-ignores-strata.md](wow-3d-model-ignores-strata.md) | 3D 模型（PlayerModel／ModelScene）不吃 frame strata 與 frame level，LOW 的頭像會疊在 HIGH 的官方視窗模型上；SetModelDrawLayer 無效，只有 alpha 歸零有用 |
 | [wow-actionbar-taint-blame.md](wow-actionbar-taint-blame.md) | MultiBar 按鈕 SetAttribute 被封鎖、牽拖到不碰快捷列的插件——共用表汙染的指紋與 taintLog 診斷法 |
 | [wow-actionbar-text-overlay-level-500.md](wow-actionbar-text-overlay-level-500.md) | 自訂 HUD 被快捷鍵文字蓋住的真正原因——ActionButton 的文字層在 MEDIUM level 500，按鈕本體只有 3 |
