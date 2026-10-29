@@ -293,3 +293,10 @@ while execution tainted by 'MiliUI_AuraEnhance')`。錯誤指向的檔案跟我�
   子貼圖 `GetAlpha()` 回秘密數字；第三方（Masque 套皮）拿它跟 0 比大小當場炸，錯誤指向對方檔案
   （2026-10-13，MiliUI_CooldownManager a3fa91923）。把自己的框交給別的函式庫前先 `issecretvalue(GetAlpha())`，
   秘密就這一輪不交、下次排版再試。
+- **判「現在受不受限」只有這幾支是真的**：`C_Secrets.ShouldAurasBeSecret()`／`ShouldCooldownsBeSecret()`／
+  `ShouldUnitIdentityBeSecret(unit)`，以及逐型別的 `C_RestrictedActions.IsAddOnRestrictionActive(Enum.AddOnRestrictionType.Combat|Encounter|ChallengeMode|PvPMatch|Map|Chat)`
+  （文件 `RestrictedActionsDocumentation.lua`）。**`GetRestrictedActionStatus` 與 `Enum.RestrictedActionType` 不存在**——
+  Cell 上游留下的假 API，`if GetRestrictedActionStatus and …` 守衛讓它永遠回「不受限」（2026-10-30，喝水狀態整場掛著的根因）。
+- **按名字／ID 查光環的 API（`C_UnitAuras.GetAuraDataBySpellName` 等，標 `SecretWhenUnitAuraRestricted`）受限時回的是秘密 table，不是 nil**：
+  「有拿到東西」不等於「有找到」，秘密值又 truthy，`if aura then` 對每個名字都成立。拿回傳當存在性判斷前先閘
+  `ShouldAurasBeSecret()`，再過 `issecrettable`／spellId 秘密就當查不到。

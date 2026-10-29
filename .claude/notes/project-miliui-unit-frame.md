@@ -31,9 +31,36 @@ Boss1-5Target/Totem`），namespace `_G.MiliUIUF`。
   單位分頁「左欄選單位 → 上方 chip 選元件 → 只看該元件表單」。**預覽＝畫面實地孿生**（非 Secure、
   假明文資料、與真實框共用 builder，開面板時真實框 UnregisterUnitWatch+Hide；引用計數 options／editmode
   兩個使用者，最後一個關閉才 `RestoreReal`）、匯入匯出 `MILIUF!1!`＋C_EncodingUtil、小地圖鈕純手刻。
+  頂層分頁：一般／單位／召喚物／設定檔／關於。**資源條不是頂層分頁**（2026-10-30 起）：它是玩家框的元件
+  （`classpower`），在「單位 → 玩家」chip 列的「魔力條」與「施法條」之間（標籤「資源條」）。
+  - chip 可見規則（`Tab_Unit.lua` 的 `ElementVisible`，chip 列／`FocusUnitElement`／設定搜尋共用）：
+    DB 有這欄＋`ns.Elements` 有註冊；classpower 另要 `#ns.ResourceCandidates() > 0`（這個專精／型態沒有
+    副資源就整顆不出現，所以表單裡不再有「沒有資源」的分支）。每次現算、不留舊的可見狀態。
+  - 候選清單會變 ⇒ `ClassPower.lua` 的 `Reevaluate` 尾端 `ns.Fire("ResourceCandidatesChanged")`；
+    Tab_Unit 訂它（分頁沒開直接 return），**延一幀**重算 chip（選中的 classpower 被藏 → 退回框架並換表單）。
+  - 分工：`Options/Tab_Resource.lua` 不再建 tab，只匯出 `ns.Options.ResourceForm = { Controls, ctx, Signature }`；
+    面板（frame、快取、捲動、重建）全歸 Tab_Unit。classpower 面板**必須用 ResourceForm.ctx**（三態
+    `followAyije` 回生效值／色塊在 edb 自建表、絕不回共用或冷卻管理器的表／apply 先 `ResourceReevaluate`）。
+  - 重建：建表時記 `Signature()`（專精＋候選清單＋主資源 token＋是否跟隨冷卻管理器），`ShowPanel` 比對不同就
+    丟掉重建；條件編輯器舉手（`ConsumeRebuild`）走 `ns.Options.RebuildUnitPanel(unit, el, keepScroll)`。
+    兩條來源（簽章變、舉手）併進同一個延一幀的 Flush，同一幀只建一次（「還原預設」會同時觸發兩條）。
+  - 面板寬 520（原資源頁 620）：條件編輯器最寬那列（變數 116＋比較 58＋數值 62＋移除 76，止於 x+332）
+    在控件欄可用寬 346（LABEL_W 148）內放得下。
+  - 頁首兩行說明：「目前專精 X：顯示 A、B」（專精名取 `GetSpecializationInfo` 第二個回傳值、資源名用
+    `ResourceInfo(key).name`、分隔用暴雪 `LIST_DELIMITER`）與「主資源（`_G[UnitPowerType 的 token]`）由
+    玩家框的能量條顯示」。都是建表時定死的 text ⇒ 會讓它們變的東西都在簽章裡。
   EditMode：進編輯模式＝開預覽孿生＋選取框，拖曳用**游標差值**（不讀框架幾何）。
 - 座標：frame.x/y = CENTER 對 UIParent CENTER 偏移；元件 x/y = 相對框 TOPLEFT（Stuf 語意）。像素對齊見
   [[project-miliui-pixel-snapping]]。
+- **Texts 是三個清單**（v22，2026-10-30）：`elements.texts`＝框層文字（名字／等級／狀態／種族職業），
+  座標相對框 TOPLEFT；`elements.hpbar.texts`／`elements.mpbar.texts`＝條自己的文字，座標相對**該條元件框**
+  （`ApplyElementBase` 擺的那個 frame，含邊框）TOPLEFT，條搬到哪文字跟到哪；條停用或元件框不存在 ⇒ 那條的文字一起藏。
+  三個清單的文字框**全掛在覆蓋層 holder `uf.elements.texts` 底下**、只改錨點（不改 parent：層級要走
+  `ns.OverlayLevel`、不吃條的 alpha）。存放 `uf.textFrames`（框層）／`uf.barTextFrames.hpbar|mpbar`，外部一律
+  經 `ns.TextFramesOf(uf, list)`／`ns.TextListDB(els, list)`、清單名走 `ns.TEXT_LISTS`。接觸面：施法條遮字
+  （`coveredTextIdx` 存 `{ list, i }`）、`ApplyHitArea`、`/muf debug`，條的文字座標都先加回條的 x/y 換成框座標。
+  設定頁：血條／能量條分頁尾端各一節「文字」，每條有刪除、清單尾端有「新增文字」；面板快取各記自己清單的條數，
+  `SettingsApplied` 三個比一遍、變了才重建。
 
 **MiliUI 本體側只剩兩處**：`Options/Roster.lua` 的 `menuKey = "unitframes"`（入口由 `Api.lua` 塞
 `MiliUI_MenuEntries`），`Enhance/LegacyAddons.lua` 的 replacement。Focuser 住在
@@ -42,8 +69,14 @@ targettargettarget 都沒加**，要加就三個一起）。
 
 ## DB 遷移
 
-`Core/Init.lua` 的 `DB_VERSION = 19`（v19＝顯示條件，見 [[project-miliui-uf-visibility-gate]]），遷移表在
-`Core/DB.lua` 的 `PROFILE_MIGRATIONS`。`DB.Init` 有 downgrade clamp，`DB.EachElement(db, name, fn)` 是走訪工具。
+`Core/Init.lua` 的 `DB_VERSION = 22`（v19＝顯示條件，見 [[project-miliui-uf-visibility-gate]]；v22＝文字搬進條），
+遷移表在 `Core/DB.lua` 的 `PROFILE_MIGRATIONS`。`DB.Init` 有 downgrade clamp，`DB.EachElement(db, name, fn)` 是走訪工具。
+- **v22 文字搬家**：每條框層文字用 `Tags.GetBuckets(pattern)` 分類（**不比字面**——會被改過、翻譯過、帶色），
+  只有 health 桶 → `hpbar.texts`、只有 power 桶 → `mpbar.texts`、兩個都有或都沒有 → 留在框層；x/y 扣條的 x/y，
+  保持相對順序，停用的照搬。結構轉換不套值閘。條的表在就一定建 `texts`（可以空）；`ns.Tags` 為 nil 整步不做。
+- **`USER_SIZED_ARRAYS`（鍵名 `texts`，不分深度）v22 起連空表也不補**：只有表不存在才整串補預設。
+  以前 `cur[1] ~= nil` 才算 ⇒ 刪光的清單下次登入被補回來；v22 也靠這條（沒有血量文字的舊設定檔建空表，
+  不能被補成預設那兩條）。
 
 ⚠⚠ **「改了預設值卻沒生效」的根因：`MergeDefaults` 只補 `nil`。** 舊設定檔裡那個鍵早就有值，改
 `BuildDefaults` 對已經玩過的人等於白改。**發佈後**改任何預設值都要配一條遷移；發佈前才可以直接改、

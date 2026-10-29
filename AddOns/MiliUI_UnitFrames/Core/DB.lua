@@ -9,6 +9,7 @@
 --   global.scale          = 全域縮放百分比，**乘**在每個框自己的 scale 上
 --                           （見 ns.FrameScale；全域拉動不會改寫任何一個框的值）
 --   元件 x/y             = 相對單位框 TOPLEFT 的偏移（跟著整框縮放）
+--   hpbar.texts／mpbar.texts 的 x/y = 相對**該條元件框** TOPLEFT（v22 起；條搬文字跟著搬）
 --
 -- 合併規則（堵死 boolean 預設值陷阱）：
 --   * defaults 每個 boolean 都明寫 true/false，一律正向 enabled（廢除 hide）
@@ -115,6 +116,8 @@ local function textDef(o)
     o.color    = o.color or white(1)
     return o
 end
+-- 設定頁「新增文字」用同一支補欄位，新條目跟預設條目長得一樣
+DB.TextDef = textDef
 
 -- 大框（player/target 200×50）的 castbar 預設
 -- own = 自己的施法條：單一顏色、不畫「不可打斷」的灰（只有敵方才需要標示）
@@ -349,6 +352,13 @@ function DB.BuildDefaults()
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE",
+                                           color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
+                                  textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "class", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
@@ -375,6 +385,12 @@ function DB.BuildDefaults()
                               threatSkipTank = true,
                               threatFlash = true, threatColor = { r = 1, g = 0.1, b = 0.1, a = 0.8 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 8,-8）
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -6, w = 200, h = 50,
+                                           justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
+                                  textDef{ pattern = "[percmp]%", x = 2, y = -43, w = 200, h = 10, size = 10,
+                                           justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
@@ -404,21 +420,13 @@ function DB.BuildDefaults()
                     manabar = { enabled = true, x = 8, y = -6, w = 200, h = 6, level = 6,
                                 color = { r = 0.2, g = 0.5, b = 1, a = 1 },   -- 法力藍
                                 barAlpha = 1, bgAlpha = 0.8, border = true },
+                    -- 框層文字（名字／等級／狀態）。血量、能量數字在各自的條底下（hpbar.texts／mpbar.texts）
                     texts = {
                         textDef{ pattern = "[name]",   x = 3,   y = -3,  w = 200, h = 50, size = 15 },
                         textDef{ pattern = "[level]",  x = 3,   y = -21, w = 140, h = 12 },
-                        textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE",
-                                 color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = 8, y = -14, w = 200, h = 50,
-                                 justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[percmp]%", x = 10, y = -51, w = 200, h = 10, size = 10,
-                                 justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = L["[gray_if_dead:Dead][gray_if_ghost:Ghost]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
-                        textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                     },
                     castbar = bigCastbar(true),
                     -- 版面比照目標框（見那邊的說明），差別只在左右相反：玩家的魔力條
@@ -468,6 +476,13 @@ function DB.BuildDefaults()
                                  modelOffsetX = 0, modelOffsetY = 0,      -- 設定面板顯示 ×100
                                  fallback2D = false },   -- 副本小怪 3D 取不到時是否退 2D
                     hpbar = { enabled = true, x = 0, y = 0, w = 200, h = 50, level = 4, bgLevel = 2, lossAlpha = 0.9,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE",
+                                           color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
+                                  textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
@@ -485,25 +500,23 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 -8,-8）
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -6, w = 200, h = 50,
+                                           justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
+                                  textDef{ pattern = "[percmp]%", x = 8, y = -43, w = 200, h = 10, size = 10,
+                                           justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
+                    -- 框層文字（名字／等級／狀態／種族職業）。血量、能量數字在各自的條底下
                     texts = {
                         textDef{ pattern = "[name]",   x = 3, y = -3,  w = 200, h = 50, size = 15 },
                         textDef{ pattern = "[difficulty:level][difficulty:classification]",
                                  x = 3, y = -21, w = 200, h = 14 },
-                        textDef{ pattern = "[curhp] || ", x = -42, y = -2, w = 200, h = 50, size = 10,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE",
-                                 color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = -8, y = -14, w = 200, h = 50,
-                                 justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[percmp]%", x = 0, y = -51, w = 200, h = 10, size = 10,
-                                 justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
                         textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
                                  x = 0, y = 3, w = 200, h = 50, size = 14,
                                  justifyH = "CENTER", justifyV = "BOTTOM", level = 10 },
-                        textDef{ pattern = "[perchp]%", x = -2, y = -2, w = 200, h = 50, size = 13,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                         textDef{ pattern = "[class_if_pc:race][class_if_pc:class][class_if_npc:creaturetype]",
                                  x = 3, y = -16, w = 195, h = 50, size = 10, justifyV = "MIDDLE",
                                  color = { r = 0.984, g = 1, b = 0.953, a = 0.861 } },
@@ -558,6 +571,10 @@ function DB.BuildDefaults()
                     -- 條寬 119 不是 120：底下那排光環 6 顆 × 19 ＋ 5 個 1px 間距 = 119，
                     -- 條跟光環整排等寬（使用者定案，見 v6 遷移）
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
+                                           justifyH = "LEFT", justifyV = "TOP" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
@@ -576,14 +593,13 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
+                              texts = {},
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 0.6, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = 1, w = 120, h = 20,
                                  justifyH = "CENTER", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
-                                 justifyH = "LEFT", justifyV = "TOP" },
                     },
                     -- 光環 19×19、上下各離框體 1（框體底緣 = 血條 20 ＋ 魔力條 10 = -30）
                     buffs  = { enabled = true, x = 0, y = -31, w = 19, h = 19,
@@ -629,6 +645,10 @@ function DB.BuildDefaults()
                 frame = frameDef{ x = 470, y = -102, w = 120, h = 28, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
+                                           justifyH = "LEFT", justifyV = "TOP" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
@@ -643,14 +663,13 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
+                              texts = {},
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 0.6, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = 1, w = 120, h = 20,
                                  justifyH = "CENTER", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[perchp]%", x = 122, y = -2, w = 60, h = 10,
-                                 justifyH = "LEFT", justifyV = "TOP" },
                     },
                     buffs  = { enabled = true, x = 0, y = -31, w = 19, h = 19,
                                maxCount = 12, perRow = 6, growth = "LRTB", spacing = 1,
@@ -675,6 +694,10 @@ function DB.BuildDefaults()
                 frame = frameDef{ x = 260, y = -115, w = 120, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 120, h = 20, level = 5,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 44, y = 6, w = 120, h = 10, size = 11,
+                                           justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,      -- 跟目標框同款（0.4）
@@ -693,16 +716,16 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 120, h = 10, level = 5,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 0,-20）
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -1, w = 120, h = 10,
+                                           size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = -4, w = 120, h = 12,
                                  justifyH = "CENTER", justifyV = "TOP" },
-                        textDef{ pattern = "[perchp]%", x = 44, y = 6, w = 120, h = 10, size = 11,
-                                 justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -21, w = 120, h = 10,
-                                 size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     castbar = {
                         enabled = true, x = -20, y = 20, w = 160, h = 10, level = 12, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
@@ -744,6 +767,10 @@ function DB.BuildDefaults()
                 frame = frameDef{ x = 360, y = -115, w = 70, h = 30, fadeOutOfRange = true },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 70, h = 20, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 17, y = 14, w = 70, h = 50, size = 8,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.4, bgAlpha = 1, border = true,
@@ -762,16 +789,16 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 70, h = 10, level = 0,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 0,-20）
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -1, w = 70, h = 10,
+                                           size = 8, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 0.6, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 0, y = 14, w = 70, h = 50, size = 10,
                                  justifyH = "CENTER", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[perchp]%", x = 17, y = 14, w = 70, h = 50, size = 8,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -21, w = 70, h = 10,
-                                 size = 8, justifyH = "CENTER", justifyV = "MIDDLE", level = 10 },
                     },
                     -- 光環預設關。排法跟旁邊的專注目標一樣（兩排都在框下方），兩個框的光環才會對齊；
                     -- 框寬 70 ⇒ 一排 3 顆，減益限一排免得壓到增益。
@@ -810,6 +837,13 @@ function DB.BuildDefaults()
                                  modelOffsetX = 0, modelOffsetY = 0,
                                  fallback2D = false },
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 40, level = 4, bgLevel = 2, lossAlpha = 0.9,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 0, y = 15, w = 120, h = 40,
+                                           justifyH = "RIGHT", justifyV = "BOTTOM" },
+                                  textDef{ pattern = "[curhp]/[maxhp]", x = -1, y = 2, w = 120, h = 40, size = 10,
+                                           justifyH = "RIGHT", justifyV = "BOTTOM",
+                                           color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
@@ -828,19 +862,16 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -40, w = 119, h = 10, level = 0,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 0,-40）
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = 40, w = 120, h = 50, size = 10,
+                                           justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
+                              },
                               colorMethod = "class", bgColorMethod = "classreactiondark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 3, y = -3, w = 120, h = 12, size = 13 },
                         textDef{ pattern = "[level] [class:creaturetype]", x = 3, y = -18, w = 108, h = 10, size = 10 },
-                        textDef{ pattern = "[perchp]%", x = 0, y = 15, w = 120, h = 40,
-                                 justifyH = "RIGHT", justifyV = "BOTTOM" },
-                        textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = 0, w = 120, h = 50, size = 10,
-                                 justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
-                        textDef{ pattern = "[curhp]/[maxhp]", x = -1, y = 2, w = 120, h = 40, size = 10,
-                                 justifyH = "RIGHT", justifyV = "BOTTOM",
-                                 color = { r = 0.851, g = 0.851, b = 0.851, a = 1 } },
                         textDef{ pattern = L["[gray_if_dead:Dead]"], x = 0, y = -2, w = 120, h = 40, size = 10,
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
@@ -901,6 +932,10 @@ function DB.BuildDefaults()
                     -- 條寬 119 不是 120：跟寵物框同一個理由——底下那排光環
                     -- 6 顆 × 19 ＋ 5 個 1px 間距 = 119，條跟光環整排等寬
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 20, level = 4, lossAlpha = 0.9,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 20, size = 11,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 0.5, bgAlpha = 1, border = true,
@@ -917,14 +952,13 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -20, w = 119, h = 10, level = 0,
+                              texts = {},
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 3, y = 0, w = 90, h = 20, size = 11,
                                  justifyH = "LEFT", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 20, size = 11,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                     },
                     -- 光環預設關（列表在這裡是為了讓設定面板長出那兩個切換鈕）。
                     -- ⚠ 增益列往下長（y = -31），開起來會跟**寵物框自己的減益列**
@@ -959,6 +993,10 @@ function DB.BuildDefaults()
                                  bg = { r = 0, g = 0, b = 0, a = 0 },
                                  modelAlpha = 1, zoom = 1, rotation = 0, level = 0, fallback2D = false },
                     hpbar = { enabled = true, x = 36, y = 0, w = 184, h = 14, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 36,0）
+                                  textDef{ pattern = "[perchp]%", x = 0, y = 10, w = 184, h = 22, size = 16,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
@@ -994,16 +1032,16 @@ function DB.BuildDefaults()
                                 stackAnchor = "TOP", stackX = 0, stackY = 4,
                                 durationText = true, durationThreshold = 60 },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 36,-13）
+                                  textDef{ pattern = "[percmp]%", x = 0, y = -1, w = 184, h = 10, size = 10,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 40, y = 13, w = 160, h = 14, size = 18,
                                  justifyH = "LEFT", justifyV = "MIDDLE", level = 10 },
-                        textDef{ pattern = "[perchp]%", x = 36, y = 10, w = 184, h = 22, size = 16,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[percmp]%", x = 36, y = -14, w = 184, h = 10, size = 10,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                         -- 狀態（超出距離／已標記／離線／死亡／靈魂）。置中壓在血條上，
                         -- 跟目標框同一套寫法 —— key 也是同一條，9 個語系早就有翻譯了
                         textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
@@ -1067,6 +1105,10 @@ function DB.BuildDefaults()
                 elements = {
                     -- 條寬 119 不是 120：底下那排光環 6 顆 × 19 ＋ 5 個 1px 間距 = 119
                     hpbar = { enabled = true, x = 0, y = 0, w = 119, h = 14, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）
+                                  textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 14, size = 11,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "classreaction", bgColorMethod = "solid",
                               bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
@@ -1084,16 +1126,16 @@ function DB.BuildDefaults()
                               showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = 0, y = -14, w = 119, h = 10, level = 0,
+                              texts = {   -- 座標相對能量條 TOPLEFT（能量條在 0,-14）
+                                  textDef{ pattern = "[percmp]%", x = 0, y = 0, w = 116, h = 10, size = 9,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
                     texts = {
                         textDef{ pattern = "[name]", x = 3, y = 0, w = 80, h = 14, size = 11,
                                  justifyH = "LEFT", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[perchp]%", x = 0, y = 0, w = 116, h = 14, size = 11,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
-                        textDef{ pattern = "[percmp]%", x = 0, y = -14, w = 116, h = 10, size = 9,
-                                 justifyH = "RIGHT", justifyV = "MIDDLE" },
                         -- 狀態（超出距離／已標記／離線／死亡／靈魂）。跟首領框同一條 key，
                         -- 九個語系早就有翻譯了
                         textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
@@ -1170,12 +1212,18 @@ end
 -- 多出幾行他沒設定過的文字 ⇒ 匯入的版面重現不出來。
 -- 只列真正可變長度的鍵 —— 色票（reaction[1..10] 之類）是固定長度的陣列，仍要照補，
 -- 否則缺項就永遠補不回來。
+-- 判斷只看鍵名、不看深度：elements.texts（框層）與 v22 起的 elements.hpbar.texts／
+-- elements.mpbar.texts（條自己的文字）都叫 texts，三個一起享有「不補洞」。
+-- ⚠ **空表也算玩家的選擇**（v22 起）：設定頁可以刪條目，刪光的清單是 {}，以前的寫法
+-- （cur[1] ~= nil 才算）會在下次載入把整串預設補回來 ⇒ 刪不掉。v22 遷移也靠這條：
+-- 舊設定檔沒有任何血量文字時，它替 hpbar 建一張空的 texts，不能被補成預設那兩條。
+-- 只有表**不存在**（新設定檔、加這個鍵之前的設定檔）才整串補預設。
 local USER_SIZED_ARRAYS = { texts = true }
 
 local function MergeDefaults(dst, src)
     for k, v in pairs(src) do
         local cur = dst[k]
-        if USER_SIZED_ARRAYS[k] and type(cur) == "table" and cur[1] ~= nil then
+        if USER_SIZED_ARRAYS[k] and type(cur) == "table" then
             -- 條目數以現有的為準：只補既有條目缺的鍵，不新增、不刪除
             for i = 1, #cur do
                 if type(cur[i]) == "table" and type(v[i]) == "table" then
@@ -1664,6 +1712,64 @@ local PROFILE_MIGRATIONS = {
         local boss = type(units.boss) == "table" and units.boss.elements
         local cb = type(boss) == "table" and boss.castbar
         if type(cb) == "table" and cb.y == -22 then cb.y = -24 end
+    end,
+
+    -- v22（2026-10-30）：血量／能量文字改成「屬於條」。elements.texts 只留框層文字（名字、
+    -- 等級、狀態、種族職業），血條、能量條各自有 texts，座標相對條的元件框 TOPLEFT ——
+    -- 條搬到哪，文字跟到哪（以前搬條要再一條一條搬文字）。
+    --
+    -- 分類用 tag 引擎的依賴桶（Tags.GetBuckets），**不比字面**：pattern 可能被玩家改過、
+    -- 被翻譯過（狀態文字的 key 帶在地化字樣），還可能是 [class:curhp] 這種帶色的寫法 ——
+    -- 比字面只認得預設那幾條。桶是渲染本來就在用的同一份解析，判斷跟「這條字什麼時候
+    -- 會重畫」一致：
+    --   只有 health 桶 → 血條；只有 power 桶 → 能量條；
+    --   兩個都有（[curhp] / [curmp] 寫在同一條）或都沒有 → 留在框層，不替玩家拆。
+    -- 搬家時座標扣掉條的 x/y，畫面位置不變。停用的條目照搬（它的 pattern 一樣說明它屬於誰）。
+    --
+    -- ⚠ 這是**結構轉換**，不套值閘：每一條都要分類，不管值是不是預設。
+    -- ⚠ 條有表就一定替它建 texts（可以是空表）：MergeDefaults 對**不存在**的 texts 會整串補
+    -- 預設，玩家原本沒有血量文字的話，不建空表就會憑空多出預設那兩條（見 USER_SIZED_ARRAYS）。
+    -- 條的表不存在就不搬（留在框層）—— 沒有地方可以錨。
+    -- ns.Tags 為 nil（載入順序出錯）就整步不做：留在原地至少畫得出來，搬錯就是位置跑掉。
+    -- 匯入舊字串走同一支（DB.MigrateProfile），不必另寫。
+    [22] = function(profile)
+        local Tags = ns.Tags
+        if not (Tags and Tags.GetBuckets) then return end
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        for _, udb in pairs(units) do
+            local els = type(udb) == "table" and udb.elements
+            local texts = type(els) == "table" and els.texts
+            if type(texts) == "table" then
+                local hp = type(els.hpbar) == "table" and els.hpbar or nil
+                local mp = type(els.mpbar) == "table" and els.mpbar or nil
+                if hp and type(hp.texts) ~= "table" then hp.texts = {} end
+                if mp and type(mp.texts) ~= "table" then mp.texts = {} end
+                local keep = {}
+                for _, t in ipairs(texts) do
+                    local dest
+                    if type(t) == "table" then
+                        local ok, b = pcall(Tags.GetBuckets, type(t.pattern) == "string" and t.pattern or "")
+                        b = ok and type(b) == "table" and b or {}
+                        if b.health and not b.power then
+                            dest = hp
+                        elseif b.power and not b.health then
+                            dest = mp
+                        end
+                    end
+                    if dest then
+                        t.x = (tonumber(t.x) or 0) - (tonumber(dest.x) or 0)
+                        t.y = (tonumber(t.y) or 0) - (tonumber(dest.y) or 0)
+                        dest.texts[#dest.texts + 1] = t
+                    else
+                        keep[#keep + 1] = t
+                    end
+                end
+                -- 原地改寫（不換表）：保持相對順序，也不留洞
+                wipe(texts)
+                for i, t in ipairs(keep) do texts[i] = t end
+            end
+        end
     end,
 }
 

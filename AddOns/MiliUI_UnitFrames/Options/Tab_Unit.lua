@@ -241,6 +241,90 @@ local function FrameSpecs(unitKey)
     return list
 end
 
+------------------------------------------------------------
+-- 文字清單（框層 elements.texts／血條 hpbar.texts／能量條 mpbar.texts，見 Elements/Texts.lua）
+--
+-- 三個清單同一套表單：每條八個控件＋「刪除」，清單尾端一顆「新增文字」。
+-- spec 的定址：框層 sub = "texts", index = i；條 sub = 條名, sub2 = "texts", index = i
+-- （Controls.Resolve 照 sub → sub2 → index 一層層往下取，見 BuildPanel 的 ctx）。
+--
+-- 新增／刪除改的是條目**數**，表單結構跟著變 ⇒ 走 ApplySettings，由底部的
+-- SettingsApplied 比對條數、丟掉快取重建（見 TextCountOf）。
+------------------------------------------------------------
+-- 清單的設定陣列。create：條的表在但 texts 缺 → 建一張空的
+local function TextArray(unitKey, listName, create)
+    local udb = ns.GetUnitDB(unitKey)
+    local els = udb and udb.elements
+    if type(els) ~= "table" then return nil end
+    local owner = els
+    if listName ~= "texts" then
+        owner = els[listName]
+        if type(owner) ~= "table" then return nil end
+    end
+    if type(owner.texts) ~= "table" then
+        if not create then return nil end
+        owner.texts = {}
+    end
+    return owner.texts
+end
+
+-- 面板快取記的條數：每個面板只記**自己那個清單**的（其他元件的面板不記）
+local TEXT_PANEL_LISTS = { texts = true, hpbar = true, mpbar = true }
+local function TextCountOf(unitKey, listName)
+    local arr = TextArray(unitKey, listName)
+    return arr and #arr or 0
+end
+
+local function TextListSpecs(list, unitKey, listName)
+    local sub, sub2 = listName, nil
+    if listName ~= "texts" then sub2 = "texts" end
+    local count = TextCountOf(unitKey, listName)
+    for i = 1, count do
+        tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
+        tinsert(list, { type = "toggle", sub = sub, sub2 = sub2, index = i, key = "enabled", label = L["Show"] })
+        tinsert(list, { type = "input", sub = sub, sub2 = sub2, index = i, key = "pattern", label = L["Content"] })
+        tinsert(list, { type = "numbers", sub = sub, sub2 = sub2, index = i, label = L["Position and size"],
+                        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } })
+        tinsert(list, { type = "slider", sub = sub, sub2 = sub2, index = i, key = "size", label = L["Font size"], min = 6, max = 32 })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
+        tinsert(list, { type = "color", sub = sub, sub2 = sub2, index = i, key = "color", label = L["Color"] })
+        tinsert(list, { type = "button", label = "", text = L["Delete"], color = "red",
+                        confirm = L["Delete text %d?"]:format(i),
+                        onClick = function()
+                            -- 點下去當下重拿陣列：面板快取的是 spec，不是那張表
+                            local arr = TextArray(unitKey, listName)
+                            if arr and arr[i] then
+                                tremove(arr, i)
+                                ns.ApplySettings(unitKey)
+                            end
+                        end })
+    end
+    tinsert(list, { type = "button", label = "", text = L["Add text"],
+                    onClick = function()
+                        local arr = TextArray(unitKey, listName, true)
+                        if not arr then return end
+                        -- 新條目蓋滿它所屬的那塊（框層＝整個框、條＝那條），置中，內容留空給玩家填
+                        local udb = ns.GetUnitDB(unitKey)
+                        local box = (listName == "texts") and udb.frame or udb.elements[listName]
+                        arr[#arr + 1] = ns.DB.TextDef{
+                            pattern = "", x = 0, y = 0,
+                            w = (box and tonumber(box.w)) or 100, h = (box and tonumber(box.h)) or 12,
+                            size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 10,
+                        }
+                        ns.ApplySettings(unitKey)
+                    end })
+end
+
+-- 條自己的文字：接在 BarSpecs 尾端
+local function BarTextSpecs(list, name, unitKey)
+    tinsert(list, { type = "header", label = L["Text"] })
+    tinsert(list, { type = "text", label = TAG_SYNTAX_HELP })
+    tinsert(list, { type = "text", label = L["Coordinates are relative to this bar's top-left corner; the text moves with the bar."] })
+    TextListSpecs(list, unitKey, name)
+end
+
 -- 閾值上色那一整區的插入點。它只有血條有，但位置要緊接在「顏色」小節之後
 -- （語意上它就是上色的一部分），而那一段在 BarSpecs 的共用清單裡 ——
 -- 所以先擺一個佔位符，收尾時再依 isHP 換成真的或拿掉。
@@ -523,6 +607,8 @@ local function BarSpecs(name, isHP, unitKey)
             end
         end
     end
+    -- 這條自己的文字（血量／能量數字），放最後：條目數不定，擺中間會把後面的小節推得忽上忽下
+    BarTextSpecs(list, name, unitKey)
     return list
 end
 
@@ -778,22 +864,13 @@ local function InspectSpecs()
     }
 end
 
-local function TextsSpecs(els)
+-- 框層文字（名字／等級／狀態…）。血量與能量數字從 v22 起屬於各自的條（BarTextSpecs）
+local function TextsSpecs(unitKey)
     local list = {
+        { type = "text", label = L["Health and power numbers are set under their own bars (Health bar / Power bar)."] },
         { type = "text", label = TAG_SYNTAX_HELP },
     }
-    for i = 1, #els.texts do
-        tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
-        tinsert(list, { type = "toggle", sub = "texts", index = i, key = "enabled", label = L["Show"] })
-        tinsert(list, { type = "input", sub = "texts", index = i, key = "pattern", label = L["Content"] })
-        tinsert(list, { type = "numbers", sub = "texts", index = i, label = L["Position and size"],
-                        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } })
-        tinsert(list, { type = "slider", sub = "texts", index = i, key = "size", label = L["Font size"], min = 6, max = 32 })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
-        tinsert(list, { type = "color", sub = "texts", index = i, key = "color", label = L["Color"] })
-    end
+    TextListSpecs(list, unitKey, "texts")
     return list
 end
 
@@ -810,13 +887,24 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "debuffs" then return AuraSpecs("debuffs", unitKey) end
     if elementKey == "icons" then return IconSpecs(els) end
     if elementKey == "inspect" then return InspectSpecs() end
-    if elementKey == "texts" then return TextsSpecs(els) end
+    if elementKey == "texts" then return TextsSpecs(unitKey) end
     return {}
 end
 
 ------------------------------------------------------------
 -- 面板生成
 ------------------------------------------------------------
+-- Controls.Resolve 的 nil 安全版（共用層那支假設每一層都在）。
+-- 文字條目是 sub → sub2 → index 三層：刪掉條目之後，按鈕會對**舊的**（已藏起來的）
+-- 面板再跑一次 refreshers，那時 texts[i] 已經不在；條的 texts 表也可能還沒建。
+-- 缺哪一層就回 nil（get 回 nil、set 不寫），不替玩家建表 —— 建表只走「新增文字」。
+local function SafeResolve(tbl, spec)
+    if spec.sub then tbl = type(tbl) == "table" and tbl[spec.sub] or nil end
+    if spec.sub2 then tbl = type(tbl) == "table" and tbl[spec.sub2] or nil end
+    if spec.index then tbl = type(tbl) == "table" and tbl[spec.index] or nil end
+    return type(tbl) == "table" and tbl or nil
+end
+
 local function BuildPanel(unitKey, elementKey)
     local udb = ns.GetUnitDB(unitKey)
     local content = CreateFrame("Frame", nil, scroll.child)
@@ -828,14 +916,14 @@ local function BuildPanel(unitKey, elementKey)
             local root = (spec.root == "unit" and udb)
                 or (spec.root == "frame" and udb.frame)
                 or udb.elements
-            local t = Controls.Resolve(root, spec)
+            local t = SafeResolve(root, spec)
             return t and t[spec.key]
         end,
         set = function(spec, v)
             local root = (spec.root == "unit" and udb)
                 or (spec.root == "frame" and udb.frame)
                 or udb.elements
-            local t = Controls.Resolve(root, spec)
+            local t = SafeResolve(root, spec)
             if t then t[spec.key] = v end
         end,
         apply = function() ns.ApplySettings(unitKey) end,
@@ -844,18 +932,18 @@ local function BuildPanel(unitKey, elementKey)
     local height, refreshers, rows = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
     content:Hide()
-    -- textCount：表單的**結構**是 build 當下依 #els.texts 生的，記下來才比對得出
-    -- 「恢復預設之後條目數變了」（見底部的 SettingsApplied）
-    local texts = udb.elements and udb.elements.texts
+    -- textCount：文字表單的**結構**是 build 當下依條目數生的，記下來才比對得出
+    -- 「新增／刪除／恢復預設之後條目數變了」（見底部的 SettingsApplied）。
+    -- 每個面板只記自己的清單：框層文字面板記 texts、血條面板記 hpbar.texts、能量條記 mpbar.texts
     return { frame = content, refreshers = refreshers, height = height + 24,
              rows = rows,
-             textCount = texts and #texts or nil }
+             textCount = TEXT_PANEL_LISTS[elementKey] and TextCountOf(unitKey, elementKey) or nil }
 end
 
 ------------------------------------------------------------
 -- 表單快取失效
 --
--- 表單的**結構**是 build 當下依 DB 生出來的（文字分頁是 `for i = 1, #els.texts`），
+-- 表單的**結構**是 build 當下依 DB 生出來的（文字表單照條目數生，見 TextListSpecs），
 -- 之後就一直重用。所以「恢復預設」把文字條目數改掉之後，快取住的那份會停在舊的條數
 -- ——多的殘留、少的看不到。設定套用時把那個單位的表單全部丟掉，下次進去重建。
 --
@@ -1045,8 +1133,9 @@ end
 ------------------------------------------------------------
 -- 表單快取失效（E5）
 --
--- 文字分頁的表單是 `for i = 1, #els.texts` 生出來的，之後一直重用。「恢復預設」把
--- 條目數改掉之後，快取住的那份會停在舊的條數 —— 多的殘留、少的看不到。
+-- 文字表單（框層文字分頁、血條／能量條分頁尾端）是照條目數生出來的，之後一直重用。
+-- 「恢復預設」「新增文字」「刪除」把條目數改掉之後，快取住的那份會停在舊的條數
+-- —— 多的殘留、少的看不到。
 --
 -- ⚠ 只在條目數**真的變了**時丟。ApplySettings 是每動一個控件都會跑的，
 -- 無條件重建會把輸入焦點與捲動位置弄掉。
@@ -1067,15 +1156,24 @@ ns.RegisterCallback("ProfileChanged", "unitTabPanels", function()
 end)
 
 ns.RegisterCallback("SettingsApplied", "unitTabPanels", function(unitKey)
-    local p = panels[unitKey .. "/texts"]
-    if not p then return end
-    local udb = ns.GetUnitDB(unitKey)
-    local texts = udb and udb.elements and udb.elements.texts
-    if not texts or p.textCount == #texts then return end
+    -- 三個帶文字清單的面板（框層文字／血條／能量條）各比各的條數
+    local changed = false
+    for listName in pairs(TEXT_PANEL_LISTS) do
+        local p = panels[unitKey .. "/" .. listName]
+        if p and p.textCount ~= TextCountOf(unitKey, listName) then changed = true end
+    end
+    if not changed then return end
     InvalidatePanels(unitKey)
-    -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點
+    -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點。
+    -- 捲動位置要留著：「新增文字」在清單最底下，重建跳回頂端的話新條目就在畫面外。
+    -- 內容高度要等版面解析才更新，所以下一幀再捲回去
     if tab and tab:IsShown() and currentUnit == unitKey then
+        local pos = scroll:GetVerticalScroll()
         ShowPanel(currentUnit, currentElement)
+        C_Timer.After(0, function()
+            local range = scroll:GetVerticalScrollRange() or 0
+            scroll:SetVerticalScroll(math.min(pos, range))
+        end)
     end
 end)
 
