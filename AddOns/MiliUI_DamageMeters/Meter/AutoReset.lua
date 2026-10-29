@@ -27,8 +27,6 @@ ns.AutoReset = {}
 local A = ns.AutoReset
 local D = ns.Data
 
-local POPUP = "MILIUI_DAMAGEMETERS_AUTORESET"
-
 local _pending          -- 戰鬥中先押著的副本名，離開戰鬥再處理
 
 ------------------------------------------------------------
@@ -56,23 +54,79 @@ end
 ------------------------------------------------------------
 -- 確認視窗
 --
--- 用暴雪原生的 StaticPopup，不用我們設定面板那顆 —— 這個提示是「憑空冒出來」的，
--- 長得像遊戲原生對話框才不突兀，而且 ESC 關得掉、不必依賴設定視窗存在。
+-- ⚠ 自建，**不走暴雪的 StaticPopup**（2026-10-20 玩家回報、2026-10-29 再報一次）：
+-- 12.1.5 的 `StaticPopup_Hide(which)` 沒包 securecall，直接讀每個顯示中彈窗的
+-- `dialog.which`。我們用 StaticPopup_Show 開的彈窗，那些欄位是在插件 taint 下寫的
+-- ⇒ 彈窗掛在畫面上的期間，暴雪任何呼叫 StaticPopup_Hide 的路徑都被染成我們
+-- （實例：非會長收到 GUILD_RANKS_UPDATE_ACTIVE_PLAYER → GuildControlUI_Setup →
+-- StaticPopup_Hide("CONFIRM_RANK_AUTHENTICATOR_REMOVE") → 查 Discord 狀態 →
+-- FORBIDDEN: IsUserOAuthed() / GetGuildLinkStatus() 點名「米利的伤害统计」）。
+-- 這個提示 timeout 0、會一直掛到玩家回答，進副本那一刻又剛好撞上公會事件，中獎率很高。
+-- 通則在 .claude/notes/wow-staticpopup-addon-show-taint.md：憑空跳出來、等人回答的提示
+-- 一律自建框。
+--
+-- 也不用共用層的 W.CreateConfirmPopup：那顆有整片滑鼠遮罩（設計給設定視窗內用），
+-- 遊戲中途跳出來會把整個畫面鎖住。
+--
+-- 外觀走套組的「提示皮」（彈出來給人讀內容的表面：不透明 0.133 底 ＋ 1px 職業色邊 ＋ 直角），
+-- 按鈕照全套組規則：確認＝primary、否＝normal。位置照原本 StaticPopup 的習慣放畫面上緣。
+-- ESC 關得掉（W.CloseOnEscape）。
 ------------------------------------------------------------
-StaticPopupDialogs[POPUP] = {
-    text = "%s",
-    button1 = YES,
-    button2 = NO,
-    OnAccept = function() ns.Combat.ResetData() end,
-    timeout = 0,
-    whileDead = 1,
-    hideOnEscape = 1,
-    preferredIndex = 3,   -- 避開暴雪那個會 taint 的預設索引（老慣例）
-}
+local PROMPT_W = 320
+local PROMPT_Y = -135         -- 跟暴雪 StaticPopup 第一格同一個高度，玩家看慣的位置
+
+local _prompt                 -- 建一次重用（frame 刪不掉）
+
+local function GetPrompt()
+    if _prompt then return _prompt end
+    local W = ns.W
+    local f = W.CreateFrame("MiliUI_DamageMeters_AutoResetPrompt", UIParent, PROMPT_W, 80)
+    W.Stylize(f, { 0.133, 0.133, 0.133, 1 }, { W.Accent(1) })
+    f:SetFrameStrata("DIALOG")
+    f:SetPoint("TOP", UIParent, "TOP", 0, PROMPT_Y)
+    f:SetClampedToScreen(true)
+    W.CloseOnEscape(f)
+
+    local fs = f:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontNormal)
+    fs:SetPoint("TOP", 0, -14)
+    fs:SetWidth(PROMPT_W - 28)
+    fs:SetJustifyH("CENTER")
+    f.text = fs
+
+    local yes = W.CreateButton(f, YES or "Yes", "primary", 90, 22)
+    yes:SetPoint("BOTTOMRIGHT", f, "BOTTOM", -4, 12)
+    yes:SetScript("OnClick", function()
+        f:Hide()
+        ns.Combat.ResetData()
+    end)
+    local no = W.CreateButton(f, NO or "No", "normal", 90, 22)
+    no:SetPoint("BOTTOMLEFT", f, "BOTTOM", 4, 12)
+    no:SetScript("OnClick", function() f:Hide() end)
+
+    -- 高度貼著字長：上緣 14 ＋ 字高 ＋ 字與按鈕間距 14 ＋ 按鈕 22 ＋ 下緣 12。
+    -- 顯示時才量：建立當下字型可能還沒就緒、字高量成 0
+    f:SetScript("OnShow", function(self)
+        local h = fs:GetStringHeight() or 0
+        if h > 0 then ns.P.Height(self, 14 + h + 14 + 22 + 12) end
+    end)
+
+    -- 建完先關掉：CreateFrame 出來預設是顯示的，而且對已顯示的框 Show() 不會觸發 OnShow
+    f:Hide()
+    _prompt = f
+    return f
+end
 
 local function Ask(instanceName)
+    local f = GetPrompt()
     local text = ns.L["Entering %s. Reset the damage meter?"]
-    StaticPopup_Show(POPUP, text:format(instanceName or "?"))
+    f.text:SetText(text:format(instanceName or "?"))
+    f:Hide()          -- 已經開著（連進兩個副本）就重開，讓 OnShow 重新量高
+    f:Show()
+end
+
+local function HidePrompt()
+    if _prompt then _prompt:Hide() end
 end
 
 ------------------------------------------------------------
@@ -119,7 +173,7 @@ local function OnEvent(_, event, isInitialLogin, isReloadingUi)
 
     if event == "PLAYER_REGEN_DISABLED" then
         -- 開打了，還掛著的確認已經沒有意義 —— 留著只會變成一個過期的彈窗
-        StaticPopup_Hide(POPUP)
+        HidePrompt()
         return
     end
 
