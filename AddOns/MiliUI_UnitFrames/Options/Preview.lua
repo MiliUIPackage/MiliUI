@@ -6,6 +6,8 @@
 local _, ns = ...
 
 local L = ns.L
+local UnitPowerType, UnitPowerMax = UnitPowerType, UnitPowerMax
+local IsSecret = ns.IsSecret
 
 ns.Preview = {}
 local Preview = ns.Preview
@@ -46,6 +48,30 @@ local FAKE_BASE = {
     bosstarget   = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
 }
 
+-- 玩家框的範例資源要跟本人一致：以前所有單位一律「魔力 15萬/25萬」，暗牧（瘋狂 0～100）
+-- 看到的範例就跟實際框對不上，顏色也是法力藍。玩家本人的資源型態與上限脫戰是明文
+-- （預覽開不了戰鬥），其他單位還是假魔力。上限讀不到（秘密／0）時非魔力一律退 100：
+-- 怒氣／能量／集中／瘋狂／惡魔之怒這些本來就是 100 刻度。
+local FAKE_MANA_MAX = 250000
+local function PlayerPowerFields()
+    local ptype = UnitPowerType("player")
+    if IsSecret(ptype) or type(ptype) ~= "number" then ptype = 0 end
+    local max = UnitPowerMax("player", ptype)
+    if IsSecret(max) or type(max) ~= "number" or max <= 0 then
+        max = (ptype == 0) and FAKE_MANA_MAX or 100
+    end
+    return ptype, max
+end
+
+local function ApplyPowerFields(cache, unitKey)
+    local ptype, max = 0, FAKE_MANA_MAX
+    if unitKey == "player" then ptype, max = PlayerPowerFields() end
+    cache.powertype = ptype
+    cache.previewValues.maxmp = max
+    cache.previewValues.curmp = math.floor(max * cache.previewMP / 100)
+    return ptype
+end
+
 local function BuildFakeCache(unitKey)
     local base = FAKE_BASE[unitKey] or FAKE_BASE.player
     local cls = ns.db.global.classification
@@ -70,7 +96,7 @@ local function BuildFakeCache(unitKey)
         -- [group] 走字串 tag 的預覽路徑（cache[tag] 直取）。不給值的話預覽一片空白，
         -- 玩家沒辦法對位置 —— 真實框只有在團隊裡才畫得出來
         group = "3", group_label = (GROUP or "Group") .. " 3",
-        powertype = 0,
+        powertype = 0,            -- 玩家框由下面 ApplyPowerFields 換成本人的資源
         dead = false, ghost = false, offline = false,
         afk = false, dnd = false, tapped = false,
         assist = base.pc, hostile = not base.pc, attackable = not base.pc,
@@ -79,11 +105,12 @@ local function BuildFakeCache(unitKey)
         previewHP = 75, previewMP = 60,
         previewValues = {
             curhp = 1234500, maxhp = 1650000,
-            curmp = 152000, maxmp = 250000,
+            curmp = 150000, maxmp = FAKE_MANA_MAX,
             perchp = 75, percmp = 60,
             shields = 186000, healabsorbs = 92000,
         },
     }
+    ApplyPowerFields(cache, unitKey)
     return cache
 end
 
@@ -426,7 +453,16 @@ local function Tick()
                     and Preview.selectedElement or nil
     if auraSel then auraDemoStep = auraDemoStep + 1 end
 
-    EachTwin(function(uf)
+    EachTwin(function(uf, unitKey)
+        -- 玩家換專精／變形（德魯伊熊→怒氣）資源型態就變，範例要跟著換：
+        -- 一支 UnitPowerType 很便宜，直接在 ticker 裡對，不另外接事件
+        if unitKey == "player" then
+            local was = uf.cache.powertype
+            if ApplyPowerFields(uf.cache, unitKey) ~= was then
+                ns.Refresh(uf, "powertype")
+                ns.Refresh(uf, "power")
+            end
+        end
         local hp = uf.cache.previewHP + STATES[stateIndex]
         if hp > 100 then hp = 100 elseif hp < 0 then hp = 0 end
         uf.cache.previewHP = hp
