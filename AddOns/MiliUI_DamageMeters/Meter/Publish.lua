@@ -347,6 +347,52 @@ end
 ------------------------------------------------------------
 local _lastSend = 0
 
+------------------------------------------------------------
+-- 兩種送法，照頻道分：
+--
+--   同步   「說」與自訂頻道在野外需要硬體事件（玩家剛按下的那一下），延後到
+--          下一幀就不算數了 —— 症狀是「隊伍貼得出去、說話貼不出去」。
+--          隊伍／團隊／副本也走這條：經的是遊戲伺服器，連送的順序會保留。
+--   間隔   公會與幹部頻道走的是社群（Club）服務，同一幀連送的訊息**到達順序
+--          不保證** —— 實測貼出去會變成「2、1、5、3、4、標題」。
+--          只能一條一條隔開送；0.5 秒是官方論壇上驗過有效的間隔。
+--
+-- 行數上限是硬的 10，因為同步那條一次要送 2~22 條訊息
+-- （合併檢視最多 2 個段標題 ＋ 2×10 列）。
+------------------------------------------------------------
+local SPACED = { GUILD = true, OFFICER = true }
+local SPACED_GAP = 0.5
+
+-- 間隔送的佇列。lines 是 BuildLines 的共用緩衝，**下一次 BuildLines 就會洗掉**，
+-- 所以排進佇列的是複本。兩份報告先後排進來就接著送，不互相打斷。
+local _queue = {}
+local _draining = false
+
+local function Drain()
+    local item = table.remove(_queue, 1)
+    if not item then _draining = false; return end
+    -- 排程期間可能進了首領戰／鑰石：12.x 被擋的時候不是回失敗碼，
+    -- 是直接彈封鎖對話框，所以每一條送之前都要再問一次
+    if ChatRestricted() then
+        wipe(_queue)
+        _draining = false
+        ns.Print("|cffff5555" .. ns.L["Blizzard blocks addon chat messages during Mythic+ runs, boss fights and PvP matches."] .. "|r")
+        return
+    end
+    SendChat(item.text, item.chatType, nil, item.channelId)
+    C_Timer.After(SPACED_GAP, Drain)
+end
+
+local function Enqueue(lines, chatType, channelId)
+    for i = 1, #lines do
+        _queue[#_queue + 1] = { text = lines[i], chatType = chatType, channelId = channelId }
+    end
+    if not _draining then
+        _draining = true
+        Drain()   -- 第一條立刻送：按下去要有回應
+    end
+end
+
 function Pub.Send(W, chatType, channelId)
     -- 第三道閘：從按下選單到這裡，玩家可能已經開打了
     local reason = Pub.BlockedReason()
@@ -367,14 +413,12 @@ function Pub.Send(W, chatType, channelId)
     if now - _lastSend < 1 then return end
     _lastSend = now
 
-    ------------------------------------------------------------
-    -- ⚠ **同步**逐列送完，不要排進 C_Timer。
-    --
-    -- 「說」與自訂頻道在野外需要硬體事件（玩家剛按下的那一下），延後到下一幀
-    -- 就不算數了 —— 症狀是「隊伍貼得出去、說話貼不出去」。
-    -- 代價是一次送 2~22 條訊息，所以行數上限只能是 10
-    -- （合併檢視最多 2 個段標題 ＋ 2×10 列）。
-    ------------------------------------------------------------
+    if SPACED[chatType] then
+        Enqueue(lines, chatType, channelId)
+        return
+    end
+
+    -- ⚠ **同步**逐列送完，不要排進 C_Timer（理由見上面「同步」那條）
     for i = 1, #lines do
         SendChat(lines[i], chatType, nil, channelId)
     end
