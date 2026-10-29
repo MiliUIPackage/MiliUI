@@ -608,7 +608,7 @@ local function PanelOf(rel, tip, panel)
 end
 
 ------------------------------------------------------------
--- 別的插件自己建的框貼在我們接管的 tooltip 旁邊（外觀預覽，經 MiliUITip_API.Adopt 的 followPanel）：
+-- 別的插件自己建的框貼在我們接管的 tooltip 旁邊（外觀預覽，下面 AdoptSidecar 登記的隨行框）：
 -- 它每 0.2 秒自己 ClearAllPoints＋SetPoint(點, 原生 tooltip, 對方點)，點是它照原生的幾何決定的（貼哪一邊、放不放得下）。
 -- 接管期間原生的幾何是**真實的**（跟面板一樣大、照暴雪的夾邊留在螢幕內，見 Native.lua）⇒ 它的判斷可信，
 -- 我們只做一件事：對象換成那顆 tooltip 的面板、點與位移原樣、相鄰邊留一個縫（N1）。
@@ -670,10 +670,11 @@ end
 -- 隨行框：別的插件自己建、每次顯示都 SetParent 到我們接管的 tooltip 底下、再貼在旁邊的框（外觀預覽）。
 -- 原生被面板壓到 alpha 0 時它跟著透明——底、邊、「已收藏／未收藏」那兩行全不見，只剩不吃父層 alpha 的 3D 模型
 -- 浮在世界上；貼的對象也該換成面板（上面的 Follow）。
--- ⚠ **這是我們把原生壓 0 造成的，補償由我們自己做。** 2026-10-18～19 這兩件事只掛在 MiliUI_Skin 的委派裡
---   （MiliUITip_API.Adopt 的 ignoreParentAlpha／followPanel），玩家沒裝 Skin、Skin 總開關關著、或把「其他插件」裡的
---   AppearanceTooltip 那格關掉，預覽就是透明的（2026-10-29 玩家回報）。換皮歸 Skin 找，看得見不能歸 Skin 找。
--- SetIgnoreParentAlpha 是 C 端 setter、對象是別的插件自己建的 Frame（接觸面 #18）；冪等，Adopt 再套一次也沒差。
+-- ⚠ **這是我們把原生壓 0 造成的，補償由我們自己做。** 2026-10-18～29 這兩件事是 MiliUI_Skin 委派換皮時用
+--   MiliUITip_API.Adopt 的 ignoreParentAlpha／followPanel 旗標帶進來的，玩家沒裝 Skin、Skin 總開關關著、或把「其他插件」裡的
+--   AppearanceTooltip 那格關掉，預覽就是透明的（2026-10-29 玩家回報）；用別的提示插件的玩家又根本沒有這個副作用。
+--   換皮歸 Skin 找，看得見不能歸 Skin 找 ⇒ 旗標連 opts 一起拿掉，這裡是唯一入口。
+-- SetIgnoreParentAlpha 是 C 端 setter、對象是別的插件自己建的 Frame（接觸面 #18）；冪等。
 ------------------------------------------------------------
 local SIDECARS = { "AppearanceTooltipTooltip" }   -- 都是檔案層建的全域框
 

@@ -3,9 +3,9 @@
 --
 --   lua AddOns/MiliUI_Tooltip/Tests/Api_test.lua
 --
--- 覆蓋：opts.ignoreParentAlpha 會 SetIgnoreParentAlpha(true)、不帶就不碰；已經接管過也照套；
--- 還沒初始化（ns.db 沒有）回 false 且什麼都不碰；keepScale 照原樣交給 TrackTip；
--- followPanel：貼到有面板顯示中的 tooltip 時改貼面板、點與位移原樣、相鄰邊留縫（L3）。
+-- 覆蓋：Adopt 只管換皮（keepScale 照原樣交給 TrackTip、已接管直接回 true、還沒初始化回 false 且什麼都不碰、
+-- 不碰 SetIgnoreParentAlpha 也不掛 SetPoint）；隨行框（Panel.AdoptSidecar／AdoptKnownSidecars）：
+-- SetIgnoreParentAlpha(true)、貼到有面板顯示中的 tooltip 時改貼面板、點與位移原樣、相鄰邊留縫（L3）。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local H = dofile(here .. "/helpers.lua")
@@ -47,38 +47,27 @@ do
     local env, ns, tracked = Setup()
     local api = env.MiliUITip_API
     local f = Frame()
-    eq("帶 ignoreParentAlpha：接管成功", api.Adopt(f, { keepScale = true, ignoreParentAlpha = true }), true)
-    eq("帶 ignoreParentAlpha：SetIgnoreParentAlpha(true)", f.ignoreParentAlpha, true)
+    eq("keepScale：接管成功", api.Adopt(f, { keepScale = true }), true)
     eq("keepScale 照原樣交給 TrackTip", tracked[1].opts.keepScale, true)
-    eq("再叫一次（已接管）：照樣套", api.Adopt(f, { ignoreParentAlpha = true }), true)
-    eq("再叫一次：setter 又呼叫一次（冪等）", f.ignoreCalls, 2)
+    eq("Adopt 只管換皮：不碰 SetIgnoreParentAlpha", f.ignoreCalls, 0)
+    eq("Adopt 只管換皮：不登記跟隨", ns.Panel.followers[f], nil)
+    eq("再叫一次（已接管）：回 true", api.Adopt(f, { keepScale = true }), true)
     eq("再叫一次：沒有第二層 skin", #tracked, 1)
-
-    local g = Frame()
-    api.Adopt(g, { keepScale = true })
-    eq("不帶：不碰 SetIgnoreParentAlpha", g.ignoreCalls, 0)
     local h = Frame()
     api.Adopt(h)
-    eq("沒有 opts：不碰", h.ignoreCalls, 0)
-
-    local noMethod = H.Region("Frame")
-    check("框沒有這個方法：不炸", api.Adopt(noMethod, { ignoreParentAlpha = true }))
+    eq("沒有 opts：也接管", ns.Skin.Get(h) ~= nil, true)
 
     ns.db = nil
     local k = Frame()
-    eq("還沒初始化：回 false", api.Adopt(k, { ignoreParentAlpha = true }), false)
-    eq("還沒初始化：什麼都不碰", k.ignoreCalls, 0)
+    eq("還沒初始化：回 false", api.Adopt(k, { keepScale = true }), false)
+    eq("還沒初始化：什麼都不碰", #tracked, 2)
     eq("不是框：回 false", api.Adopt("x"), false)
 end
 
 ------------------------------------------------------------
--- followPanel（L3／O1）：後掛勾 SetPoint，貼到有面板顯示中的 tooltip ⇒ 不照它的點，由我們定位
---   貼整條面板鏈外側、上緣對齊根、換邊有遲滯、跟隨期間夾邊
--- 座標：UIParent 縮放 1、螢幕寬 1600；根面板 left 400 寬 300 top 800；預覽框 280×380
-------------------------------------------------------------
-------------------------------------------------------------
--- followPanel（L3）：後掛勾 SetPoint，貼到有面板顯示中的 tooltip ⇒ 對象換成面板、點與位移原樣、相鄰邊留縫
+-- 隨行框的跟隨（L3）：後掛勾 SetPoint，貼到有面板顯示中的 tooltip ⇒ 對象換成面板、點與位移原樣、相鄰邊留縫
 -- （O1 那套「由我們決定左右、交棒、停在原地」2026-10-19 拿掉：原生幾何真實化之後它自己的判斷可信）
+-- 2026-10-29 起入口是 Panel.AdoptSidecar（以前是 Adopt 的 followPanel 旗標），行為同一份
 ------------------------------------------------------------
 do
     local env, ns, _, State = Setup()
@@ -92,8 +81,9 @@ do
     local setCalls = 0
     local raw = f.SetPoint
     f.SetPoint = function(...) setCalls = setCalls + 1; return raw(...) end
-    api.Adopt(f, { keepScale = true, ignoreParentAlpha = true, followPanel = true })
-    api.Adopt(f, { followPanel = true })                   -- 第二次：不再掛一層
+    ns.Panel.AdoptSidecar(f)
+    ns.Panel.AdoptSidecar(f)                               -- 第二次：不再掛一層
+    api.Adopt(f, { keepScale = true })                     -- Skin 的換皮委派：跟跟隨無關
 
     setCalls = 0
     f:ClearAllPoints()
@@ -147,12 +137,12 @@ do
     local g = Frame()
     api.Adopt(g, { keepScale = true })
     g:SetPoint("TOPRIGHT", tip, "TOPLEFT")
-    eq("不帶 followPanel：不改貼", g.points[1][2], tip)
+    eq("只 Adopt 沒登記隨行：不改貼", g.points[1][2], tip)
 end
 
 ------------------------------------------------------------
 -- 隨行框（Panel.AdoptSidecar／AdoptKnownSidecars，2026-10-29）：不靠 Adopt、PLAYER_LOGIN 時自己認已知的全域框
--- ⇒ SetIgnoreParentAlpha(true)＋跟隨面板；沒裝那支插件就什麼都不做；Adopt 再套一次不會多掛一層
+-- ⇒ SetIgnoreParentAlpha(true)＋跟隨面板；沒裝那支插件就什麼都不做；再認一次不會多掛一層
 ------------------------------------------------------------
 do
     local env, ns, _, State = Setup()
@@ -177,12 +167,14 @@ do
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
     eq("已知的隨行框：貼到有面板的 tooltip ⇒ 改貼面板", f.points[1][2], panel)
 
-    api.Adopt(f, { keepScale = true, ignoreParentAlpha = true, followPanel = true })   -- Skin 的委派再來一次
-    eq("Adopt 再套：setter 又一次（冪等）", f.ignoreCalls, 2)
+    ns.Panel.AdoptKnownSidecars()                        -- 再認一次（PLAYER_LOGIN 重跑之類）
+    eq("再認一次：setter 又一次（冪等）", f.ignoreCalls, 2)
+    api.Adopt(f, { keepScale = true })                   -- Skin 的換皮委派
+    eq("Adopt：不碰 setter", f.ignoreCalls, 2)
     setCalls = 0
     f:ClearAllPoints()
     f:SetPoint("TOPRIGHT", tip, "TOPLEFT")
-    eq("Adopt 再套：掛勾沒多一層（呼叫 1 次＋改貼 1 次）", setCalls, 2)
+    eq("再認一次：掛勾沒多一層（呼叫 1 次＋改貼 1 次）", setCalls, 2)
 
     eq("AdoptSidecar：不是框 ⇒ false", ns.Panel.AdoptSidecar("x"), false)
     check("AdoptSidecar：框沒有 SetIgnoreParentAlpha ⇒ 不炸、仍登記跟隨", ns.Panel.AdoptSidecar(H.Region("Frame")))
