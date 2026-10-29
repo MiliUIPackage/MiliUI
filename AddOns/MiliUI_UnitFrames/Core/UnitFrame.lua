@@ -658,9 +658,10 @@ function ns.ApplyHitArea(uf)
     if InCombatLockdown() then return end
     local fw, fh = uf.db.frame.w or 0, uf.db.frame.h or 0
     local l, t, r, b = 0, 0, fw, -fh
-    local function add(e)
+    -- ox/oy：條的文字座標相對條（見 Elements/Texts.lua），加回條的 x/y 換成框座標
+    local function add(e, ox, oy)
         if type(e) ~= "table" or e.enabled == false then return end
-        local x1, y1 = e.x or 0, e.y or 0
+        local x1, y1 = (ox or 0) + (e.x or 0), (oy or 0) + (e.y or 0)
         local x2, y2 = x1 + (e.w or 0), y1 - (e.h or 0)
         if x1 < l then l = x1 end
         if y1 > t then t = y1 end
@@ -669,8 +670,14 @@ function ns.ApplyHitArea(uf)
     end
     local els = uf.db.elements or {}
     for _, name in ipairs(HIT_ELEMENTS) do add(els[name]) end
-    if type(els.texts) == "table" then
-        for _, e in ipairs(els.texts) do add(e) end
+    for _, list in ipairs(ns.TEXT_LISTS) do
+        local texts, bar = ns.TextListDB(els, list)
+        -- 條停用時它的文字整個藏著，不算進感應範圍
+        if texts and not (bar and bar.enabled == false) then
+            local ox, oy = 0, 0
+            if bar then ox, oy = bar.x or 0, bar.y or 0 end
+            for _, e in ipairs(texts) do add(e, ox, oy) end
+        end
     end
     uf:SetHitRectInsets(Scale(l), Scale(fw - r), Scale(-t), Scale(fh + b))
 end

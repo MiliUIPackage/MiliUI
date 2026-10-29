@@ -39,7 +39,7 @@ local CONTROLS = {
 
 local function Init()
     if tab then return end
-    -- 內容比面板高就會掉出去，一律走卷軸（同資源分頁）
+    -- 內容比面板高就會掉出去，一律走卷軸
     tab, scroll = ns.Options.MakeFormTab(L["Summons"])
 
     local ctx = Controls.MakeCtx(function() return ns.db.units.totem end, function()

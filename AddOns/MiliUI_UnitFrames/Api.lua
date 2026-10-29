@@ -393,17 +393,26 @@ local function Debug()
         end
     end
 
+    -- 三個清單（框層 texts／血條 hpbar／能量條 mpbar，見 Elements/Texts.lua）各印一段。
+    -- ⚠ 用 pairs 不用 ipairs：停用第 1 條時 frames[1] 是 nil，ipairs 一格都不印
     local uf = ns.frames.player
-    if uf and uf.textFrames then
-        p("  玩家文字：")
-        for i, f in ipairs(uf.textFrames) do
-            local fs = f.fontstring
-            local path = fs:GetFont()
-            p(("   #%d shown=%s font=%s text=%s"):format(
-                i, tostring(f:IsShown()), SafeStr(path), SafeStr(fs:GetText())))
+    if uf then
+        for _, list in ipairs(ns.TEXT_LISTS) do
+            local frames = ns.TextFramesOf(uf, list)
+            if frames then
+                p(("  玩家文字［%s］："):format(list))
+                for i, f in pairs(frames) do
+                    local fs = f.fontstring
+                    local path = fs:GetFont()
+                    p(("   #%d shown=%s font=%s text=%s"):format(
+                        i, tostring(f:IsShown()), SafeStr(path), SafeStr(fs:GetText())))
+                end
+            else
+                p(("  玩家文字［%s］：沒有文字框"):format(list))
+            end
         end
     else
-        p("  玩家文字：textFrames 不存在")
+        p("  玩家文字：玩家框不存在")
     end
 
     -- 召喚物：倒數改由引擎跑（duration 物件）之後，「沒有數字」有好幾種斷法，
@@ -566,16 +575,18 @@ local function Debug()
                 tostring(t2ok), SafeStr(pf.tex2d and pf.tex2d:GetTexture())))
         end
         local tuf = ns.frames.target
-        if tuf and tuf.textFrames then
-            for i, f in ipairs(tuf.textFrames) do
-                if f:IsShown() then
-                    -- 後面那三欄是「畫這行字的當下看的是誰」：
-                    -- 畫面上的字跟現在的目標對不起來時，看 u= 與 isPlayer=
-                    -- 就知道是渲染時讀錯單位，還是那次刷新根本沒發生（bucket 停在舊的）
-                    Probe(("target text#%d [u=%s isPlayer=%s bucket=%s t=%s gen=%s]"):format(
-                        i, tostring(f.lastUnit), tostring(f.lastIsPlayer), tostring(f.lastBucket),
-                        f.lastT and ("%.2f"):format(f.lastT % 1000) or "?", tostring(f.lastGen)),
-                        f.fontstring:GetText())
+        if tuf then
+            for _, list in ipairs(ns.TEXT_LISTS) do
+                for i, f in pairs(ns.TextFramesOf(tuf, list) or {}) do
+                    if f:IsShown() then
+                        -- 後面那三欄是「畫這行字的當下看的是誰」：
+                        -- 畫面上的字跟現在的目標對不起來時，看 u= 與 isPlayer=
+                        -- 就知道是渲染時讀錯單位，還是那次刷新根本沒發生（bucket 停在舊的）
+                        Probe(("target %s#%d [u=%s isPlayer=%s bucket=%s t=%s gen=%s]"):format(
+                            list, i, tostring(f.lastUnit), tostring(f.lastIsPlayer), tostring(f.lastBucket),
+                            f.lastT and ("%.2f"):format(f.lastT % 1000) or "?", tostring(f.lastGen)),
+                            f.fontstring:GetText())
+                    end
                 end
             end
         end

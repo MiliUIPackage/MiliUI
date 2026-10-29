@@ -67,38 +67,55 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 -- 定案 2026-10-18：不能接受）。所以施法條留在邊框底下，改由它自己把蓋到的文字調成透明。
 -- 哪幾條算「蓋到」在 Build 時用版面矩形算一次（coveredTextIdx），顯示時只掃那幾條。
 -- 用 alpha 不用 Hide：名字文字上掛著玩家框的 ping 接收器，藏起來它就從 frame stack 消失。
+--
+-- 文字分三個清單（框層／血條／能量條，見 Elements/Texts.lua）。coveredTextIdx 的每一項是
+-- { list = 清單名, i = 索引 }，框一律經 ns.TextFramesOf 現查，不存框的參照：
+-- 新增條目之後那條的框要等文字元件下一次 Build 才生得出來。
 ------------------------------------------------------------
 local function SetCoveredAlpha(f, a)
     local uf, idx = f.uf, f.coveredTextIdx
-    local frames = uf and uf.textFrames
-    if not (idx and frames) then return end
-    for i = 1, #idx do
-        local t = frames[idx[i]]
+    if not (uf and idx) then return end
+    for k = 1, #idx do
+        local ref = idx[k]
+        local frames = ns.TextFramesOf(uf, ref.list)
+        local t = frames and frames[ref.i]
         if t then t:SetAlpha(a) end
     end
 end
 
 -- 收條：全部還原，不只 coveredTextIdx —— 顯示期間版面可能重算過，舊名單上的要一起放回來
 local function RestoreCoveredTexts(f)
-    local frames = f.uf and f.uf.textFrames
-    if not frames then return end
-    for _, t in pairs(frames) do t:SetAlpha(1) end
+    local uf = f.uf
+    if not uf then return end
+    for _, list in ipairs(ns.TEXT_LISTS) do
+        local frames = ns.TextFramesOf(uf, list)
+        if frames then
+            for _, t in pairs(frames) do t:SetAlpha(1) end
+        end
+    end
 end
 
 local function ComputeCoveredTexts(f, uf, edb)
     local list
-    local texts = uf.db.elements and uf.db.elements.texts
-    if type(texts) == "table" then
-        -- 兩邊都是「TOPLEFT 對框架 TOPLEFT，往下為負」的版面單位（同 BodyBounds）
-        local ax1, ay1 = edb.x or 0, edb.y or 0
-        local ax2, ay2 = ax1 + (edb.w or 200), ay1 - (edb.h or 20)
-        for i, t in ipairs(texts) do
-            if type(t) == "table" and t.enabled ~= false then
-                local bx1, by1 = t.x or 0, t.y or 0
-                local bx2, by2 = bx1 + (t.w or 100), by1 - (t.h or 12)
-                if bx1 < ax2 and ax1 < bx2 and by2 < ay1 and ay2 < by1 then
-                    list = list or {}
-                    list[#list + 1] = i
+    local els = uf.db.elements
+    -- 兩邊都是「TOPLEFT 對框架 TOPLEFT，往下為負」的版面單位（同 BodyBounds）
+    local ax1, ay1 = edb.x or 0, edb.y or 0
+    local ax2, ay2 = ax1 + (edb.w or 200), ay1 - (edb.h or 20)
+    for _, name in ipairs(ns.TEXT_LISTS) do
+        local texts, bar = ns.TextListDB(els, name)
+        -- 條停用時它的文字整個藏著，不算蓋到
+        if texts and not (bar and bar.enabled == false) then
+            -- 條的文字座標相對條 ⇒ 先加回條的 x/y 換成框座標再比
+            local ox, oy = 0, 0
+            if bar then ox, oy = bar.x or 0, bar.y or 0 end
+            for i, t in ipairs(texts) do
+                if type(t) == "table" and t.enabled ~= false then
+                    local bx1, by1 = ox + (t.x or 0), oy + (t.y or 0)
+                    local bx2, by2 = bx1 + (t.w or 100), by1 - (t.h or 12)
+                    if bx1 < ax2 and ax1 < bx2 and by2 < ay1 and ay2 < by1 then
+                        list = list or {}
+                        list[#list + 1] = { list = name, i = i }
+                    end
                 end
             end
         end

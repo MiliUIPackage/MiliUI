@@ -84,6 +84,8 @@ end
 local function Invalidate() indexValid = false end
 ns.RegisterCallback("SettingsApplied", "search", Invalidate)
 ns.RegisterCallback("ProfileChanged", "search", Invalidate)
+-- 換專精／型態／天賦：資源條的控件清單（與那顆 chip 出不出現）跟著變，但不會走 SettingsApplied
+ns.RegisterCallback("ResourceCandidatesChanged", "search", Invalidate)
 
 ------------------------------------------------------------
 -- 比對
@@ -151,7 +153,7 @@ local function Flash(content, row)
     hl.ag:Play()
 end
 
--- ⚠ 不能只靠 table 身分比對。「單位」「資源」兩頁的 spec 是每次現生的：列舉索引時
+-- ⚠ 不能只靠 table 身分比對。「單位」頁（含資源條面板）的 spec 是每次現生的：列舉索引時
 -- SpecsFor() 生一份、建表單時 BuildPanel 又生另一份 ⇒ 兩邊永遠不是同一張表，
 -- 於是跳得到分頁卻捲不到那一行。而「一般」「召喚物」兩頁的 spec 是模組層級常數、
 -- 身分剛好成立 —— 所以症狀是「有時候會動有時候不會」，特別難聯想。

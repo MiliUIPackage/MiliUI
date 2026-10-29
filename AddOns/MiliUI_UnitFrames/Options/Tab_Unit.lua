@@ -39,6 +39,8 @@ local ELEMENT_LIST = {
     { key = "hpbar",      label = L["Health bar"] },
     { key = "mpbar",      label = L["Power bar"] },
     { key = "manabar",    label = L["Mana bar"] },
+    -- 資源條（只有玩家框有這欄；表單內容在 Options/Tab_Resource.lua 的 ResourceForm）
+    { key = "classpower", label = L["Resource bars"] },
     { key = "castbar",    label = L["Cast bar"] },
     { key = "buffs",      label = L["Buffs"] },
     { key = "debuffs",    label = L["Debuffs"] },
@@ -75,6 +77,21 @@ local currentUnit, currentElement = "player", "frame"
 local elementChips = {}
 local chipHighlight
 local panels = {}          -- [unitKey .. "/" .. elementKey] = { frame, refreshers, height }
+
+-- 這個單位的這個元件要不要出現在 chip 列（RefreshChips、FocusUnitElement、設定搜尋共用）：
+--   DB 有這欄 且 這個職業真的有註冊該元件（職業資源條只對六個職業註冊，
+--   薩滿看到卻調了沒反應會很困惑）
+--   資源條另外要「這個專精（型態）有副資源可顯示」—— 沒有的話整顆 chip 不出現。
+--   候選清單會變（換專精／型態／天賦），變的時候 ClassPower.lua 的 Reevaluate 會
+--   Fire("ResourceCandidatesChanged")，見檔案底部的訂閱
+local function ElementVisible(els, key)
+    if key == "frame" then return true end
+    if not els or els[key] == nil or ns.Elements[key] == nil then return false end
+    if key == "classpower" then
+        return ns.ResourceCandidates ~= nil and #ns.ResourceCandidates() > 0
+    end
+    return true
+end
 
 ------------------------------------------------------------
 -- 各元件的表單 spec
@@ -239,6 +256,90 @@ local function FrameSpecs(unitKey)
                     end })
     tinsert(list, { type = "text", label = L["Resets only this unit (position, elements, text). Other units and global styling are untouched."] })
     return list
+end
+
+------------------------------------------------------------
+-- 文字清單（框層 elements.texts／血條 hpbar.texts／能量條 mpbar.texts，見 Elements/Texts.lua）
+--
+-- 三個清單同一套表單：每條八個控件＋「刪除」，清單尾端一顆「新增文字」。
+-- spec 的定址：框層 sub = "texts", index = i；條 sub = 條名, sub2 = "texts", index = i
+-- （Controls.Resolve 照 sub → sub2 → index 一層層往下取，見 BuildPanel 的 ctx）。
+--
+-- 新增／刪除改的是條目**數**，表單結構跟著變 ⇒ 走 ApplySettings，由底部的
+-- SettingsApplied 比對條數、丟掉快取重建（見 TextCountOf）。
+------------------------------------------------------------
+-- 清單的設定陣列。create：條的表在但 texts 缺 → 建一張空的
+local function TextArray(unitKey, listName, create)
+    local udb = ns.GetUnitDB(unitKey)
+    local els = udb and udb.elements
+    if type(els) ~= "table" then return nil end
+    local owner = els
+    if listName ~= "texts" then
+        owner = els[listName]
+        if type(owner) ~= "table" then return nil end
+    end
+    if type(owner.texts) ~= "table" then
+        if not create then return nil end
+        owner.texts = {}
+    end
+    return owner.texts
+end
+
+-- 面板快取記的條數：每個面板只記**自己那個清單**的（其他元件的面板不記）
+local TEXT_PANEL_LISTS = { texts = true, hpbar = true, mpbar = true }
+local function TextCountOf(unitKey, listName)
+    local arr = TextArray(unitKey, listName)
+    return arr and #arr or 0
+end
+
+local function TextListSpecs(list, unitKey, listName)
+    local sub, sub2 = listName, nil
+    if listName ~= "texts" then sub2 = "texts" end
+    local count = TextCountOf(unitKey, listName)
+    for i = 1, count do
+        tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
+        tinsert(list, { type = "toggle", sub = sub, sub2 = sub2, index = i, key = "enabled", label = L["Show"] })
+        tinsert(list, { type = "input", sub = sub, sub2 = sub2, index = i, key = "pattern", label = L["Content"] })
+        tinsert(list, { type = "numbers", sub = sub, sub2 = sub2, index = i, label = L["Position and size"],
+                        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } })
+        tinsert(list, { type = "slider", sub = sub, sub2 = sub2, index = i, key = "size", label = L["Font size"], min = 6, max = 32 })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
+        tinsert(list, { type = "dropdown", sub = sub, sub2 = sub2, index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
+        tinsert(list, { type = "color", sub = sub, sub2 = sub2, index = i, key = "color", label = L["Color"] })
+        tinsert(list, { type = "button", label = "", text = L["Delete"], color = "red",
+                        confirm = L["Delete text %d?"]:format(i),
+                        onClick = function()
+                            -- 點下去當下重拿陣列：面板快取的是 spec，不是那張表
+                            local arr = TextArray(unitKey, listName)
+                            if arr and arr[i] then
+                                tremove(arr, i)
+                                ns.ApplySettings(unitKey)
+                            end
+                        end })
+    end
+    tinsert(list, { type = "button", label = "", text = L["Add text"],
+                    onClick = function()
+                        local arr = TextArray(unitKey, listName, true)
+                        if not arr then return end
+                        -- 新條目蓋滿它所屬的那塊（框層＝整個框、條＝那條），置中，內容留空給玩家填
+                        local udb = ns.GetUnitDB(unitKey)
+                        local box = (listName == "texts") and udb.frame or udb.elements[listName]
+                        arr[#arr + 1] = ns.DB.TextDef{
+                            pattern = "", x = 0, y = 0,
+                            w = (box and tonumber(box.w)) or 100, h = (box and tonumber(box.h)) or 12,
+                            size = 10, justifyH = "CENTER", justifyV = "MIDDLE", level = 10,
+                        }
+                        ns.ApplySettings(unitKey)
+                    end })
+end
+
+-- 條自己的文字：接在 BarSpecs 尾端
+local function BarTextSpecs(list, name, unitKey)
+    tinsert(list, { type = "header", label = L["Text"] })
+    tinsert(list, { type = "text", label = TAG_SYNTAX_HELP })
+    tinsert(list, { type = "text", label = L["Coordinates are relative to this bar's top-left corner; the text moves with the bar."] })
+    TextListSpecs(list, unitKey, name)
 end
 
 -- 閾值上色那一整區的插入點。它只有血條有，但位置要緊接在「顏色」小節之後
@@ -523,6 +624,8 @@ local function BarSpecs(name, isHP, unitKey)
             end
         end
     end
+    -- 這條自己的文字（血量／能量數字），放最後：條目數不定，擺中間會把後面的小節推得忽上忽下
+    BarTextSpecs(list, name, unitKey)
     return list
 end
 
@@ -778,22 +881,13 @@ local function InspectSpecs()
     }
 end
 
-local function TextsSpecs(els)
+-- 框層文字（名字／等級／狀態…）。血量與能量數字從 v22 起屬於各自的條（BarTextSpecs）
+local function TextsSpecs(unitKey)
     local list = {
+        { type = "text", label = L["Health and power numbers are set under their own bars (Health bar / Power bar)."] },
         { type = "text", label = TAG_SYNTAX_HELP },
     }
-    for i = 1, #els.texts do
-        tinsert(list, { type = "header", label = L["Text %d"]:format(i) })
-        tinsert(list, { type = "toggle", sub = "texts", index = i, key = "enabled", label = L["Show"] })
-        tinsert(list, { type = "input", sub = "texts", index = i, key = "pattern", label = L["Content"] })
-        tinsert(list, { type = "numbers", sub = "texts", index = i, label = L["Position and size"],
-                        fields = { { key = "x", label = "X" }, { key = "y", label = "Y" }, { key = "w", label = L["Width"] }, { key = "h", label = L["Height"] } } })
-        tinsert(list, { type = "slider", sub = "texts", index = i, key = "size", label = L["Font size"], min = 6, max = 32 })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "flags", label = L["Outline"], items = Specs.FLAGS_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyH", label = L["Horizontal align"], items = Specs.JUSTIFY_H_ITEMS })
-        tinsert(list, { type = "dropdown", sub = "texts", index = i, key = "justifyV", label = L["Vertical align"], items = Specs.JUSTIFY_V_ITEMS })
-        tinsert(list, { type = "color", sub = "texts", index = i, key = "color", label = L["Color"] })
-    end
+    TextListSpecs(list, unitKey, "texts")
     return list
 end
 
@@ -810,13 +904,26 @@ local function SpecsFor(unitKey, elementKey)
     if elementKey == "debuffs" then return AuraSpecs("debuffs", unitKey) end
     if elementKey == "icons" then return IconSpecs(els) end
     if elementKey == "inspect" then return InspectSpecs() end
-    if elementKey == "texts" then return TextsSpecs(els) end
+    -- 資源條的控件清單跟著專精走、每次現算（Options/Tab_Resource.lua）
+    if elementKey == "classpower" then return ns.Options.ResourceForm.Controls() end
+    if elementKey == "texts" then return TextsSpecs(unitKey) end
     return {}
 end
 
 ------------------------------------------------------------
 -- 面板生成
 ------------------------------------------------------------
+-- Controls.Resolve 的 nil 安全版（共用層那支假設每一層都在）。
+-- 文字條目是 sub → sub2 → index 三層：刪掉條目之後，按鈕會對**舊的**（已藏起來的）
+-- 面板再跑一次 refreshers，那時 texts[i] 已經不在；條的 texts 表也可能還沒建。
+-- 缺哪一層就回 nil（get 回 nil、set 不寫），不替玩家建表 —— 建表只走「新增文字」。
+local function SafeResolve(tbl, spec)
+    if spec.sub then tbl = type(tbl) == "table" and tbl[spec.sub] or nil end
+    if spec.sub2 then tbl = type(tbl) == "table" and tbl[spec.sub2] or nil end
+    if spec.index then tbl = type(tbl) == "table" and tbl[spec.index] or nil end
+    return type(tbl) == "table" and tbl or nil
+end
+
 local function BuildPanel(unitKey, elementKey)
     local udb = ns.GetUnitDB(unitKey)
     local content = CreateFrame("Frame", nil, scroll.child)
@@ -828,34 +935,37 @@ local function BuildPanel(unitKey, elementKey)
             local root = (spec.root == "unit" and udb)
                 or (spec.root == "frame" and udb.frame)
                 or udb.elements
-            local t = Controls.Resolve(root, spec)
+            local t = SafeResolve(root, spec)
             return t and t[spec.key]
         end,
         set = function(spec, v)
             local root = (spec.root == "unit" and udb)
                 or (spec.root == "frame" and udb.frame)
                 or udb.elements
-            local t = Controls.Resolve(root, spec)
+            local t = SafeResolve(root, spec)
             if t then t[spec.key] = v end
         end,
         apply = function() ns.ApplySettings(unitKey) end,
     }
+    -- 資源條用自己的 ctx：三態的 followAyije、色塊自建表、apply 先 Reevaluate 與結構性重建
+    -- （見 Options/Tab_Resource.lua）。通用 ctx 少任何一件都會壞
+    if elementKey == "classpower" then ctx = ns.Options.ResourceForm.ctx end
 
     local height, refreshers, rows = Controls.Build(content, SpecsFor(unitKey, elementKey), ctx, 4, -8, 520)
     content:SetHeight(height + 24)
     content:Hide()
-    -- textCount：表單的**結構**是 build 當下依 #els.texts 生的，記下來才比對得出
-    -- 「恢復預設之後條目數變了」（見底部的 SettingsApplied）
-    local texts = udb.elements and udb.elements.texts
+    -- textCount：文字表單的**結構**是 build 當下依條目數生的，記下來才比對得出
+    -- 「新增／刪除／恢復預設之後條目數變了」（見底部的 SettingsApplied）。
+    -- 每個面板只記自己的清單：框層文字面板記 texts、血條面板記 hpbar.texts、能量條記 mpbar.texts
     return { frame = content, refreshers = refreshers, height = height + 24,
              rows = rows,
-             textCount = texts and #texts or nil }
+             textCount = TEXT_PANEL_LISTS[elementKey] and TextCountOf(unitKey, elementKey) or nil }
 end
 
 ------------------------------------------------------------
 -- 表單快取失效
 --
--- 表單的**結構**是 build 當下依 DB 生出來的（文字分頁是 `for i = 1, #els.texts`），
+-- 表單的**結構**是 build 當下依 DB 生出來的（文字表單照條目數生，見 TextListSpecs），
 -- 之後就一直重用。所以「恢復預設」把文字條目數改掉之後，快取住的那份會停在舊的條數
 -- ——多的殘留、少的看不到。設定套用時把那個單位的表單全部丟掉，下次進去重建。
 --
@@ -871,10 +981,35 @@ local function InvalidatePanels(unitKey)
     end
 end
 
+-- 只丟單一面板（資源條換專精／條件編輯器增刪列時用，別的元件沒必要跟著重建）
+local function InvalidatePanel(unitKey, elementKey)
+    local id = unitKey .. "/" .. elementKey
+    local p = panels[id]
+    if p then
+        p.frame:Hide()         -- frame 無法銷毀，丟掉參照＋藏起來就好
+        panels[id] = nil
+    end
+end
+
+-- 資源條面板建表時記下的簽章還對不對（專精／型態／主資源／跟隨冷卻管理器，
+-- 見 Tab_Resource.lua 的 Signature）。其他面板一律當成新鮮的
+local function PanelStale(id)
+    local p = panels[id]
+    if not (p and p.sig) then return false end
+    return p.sig ~= ns.Options.ResourceForm.Signature()
+end
+
 local function ShowPanel(unitKey, elementKey)
     for _, p in pairs(panels) do p.frame:Hide() end
     local id = unitKey .. "/" .. elementKey
-    if not panels[id] then panels[id] = BuildPanel(unitKey, elementKey) end
+    -- 資源條：控件清單跟著專精走，簽章不同就丟掉重建（取代原本資源分頁的 specSig 比對）
+    if PanelStale(id) then InvalidatePanel(unitKey, elementKey) end
+    if not panels[id] then
+        -- 記下建表當下的簽章，之後顯示前比對（見 PanelStale）
+        local sig = elementKey == "classpower" and ns.Options.ResourceForm.Signature() or nil
+        panels[id] = BuildPanel(unitKey, elementKey)
+        panels[id].sig = sig
+    end
     local p = panels[id]
     for _, fn in ipairs(p.refreshers) do fn() end
     p.frame:Show()
@@ -896,11 +1031,10 @@ end
 local function RefreshChips(unitKey)
     local els = ns.GetUnitDB(unitKey).elements
     for _, chip in ipairs(elementChips) do
-        -- DB 有這欄 且 這個職業真的有註冊該元件（職業資源條只對六個職業註冊，
-        -- 薩滿看到卻調了沒反應會很困惑）
-        local visible = chip.id == "frame"
-            or (els[chip.id] ~= nil and ns.Elements[chip.id] ~= nil)
-        chip:SetShown(visible)
+        -- 規則見 ElementVisible（資源條另看這個專精有沒有副資源）。
+        -- ⚠ 每次都現算，不留「上次的可見狀態」：分頁關著時換專精，下次 ShowOptionsTab →
+        -- SelectUnit → 這裡拿到的就是新的候選清單（Reevaluate 已經清掉快取）
+        chip:SetShown(ElementVisible(els, chip.id))
     end
     -- 一排放不下就換到下一排。⚠ chipRow 的**高度不在這裡動** —— 它在 Init 就照
     -- 「全部 chip 都出現」需要的排數留好了。不同單位的 chip 數不一樣，高度跟著算
@@ -947,11 +1081,8 @@ function ns.Options.FocusUnitElement(unitKey, elementKey)
     -- Options.Open 一定會派送 ShowOptionsTab，而本頁的處理器就是照 currentUnit /
     -- currentElement 把兩排高亮與表單一次擺好 —— 先開再改的話會多閃一次舊的那頁。
     -- 這個單位沒有該元件時就不換（RefreshChips 本來也會退回「框架」）。
-    if elementKey then
-        local els = udb.elements
-        if els and els[elementKey] and ns.Elements[elementKey] then
-            currentElement = elementKey
-        end
+    if elementKey and ElementVisible(udb.elements, elementKey) then
+        currentElement = elementKey
     end
     currentUnit = unitKey
 
@@ -1021,7 +1152,8 @@ local function Init()
     end
     chipHighlight = W.CreateButtonGroup(elementChips, SelectElement)
 
-    -- chipRow 的高度只算這一次，照「11 顆全部出現」需要的排數留。
+    -- chipRow 的高度只算這一次，照「12 顆全部出現」需要的排數留（FlowRows 吃的是
+    -- 整個 elementChips，這時還沒有任何一顆被 RefreshChips 藏起來）。
     -- 高度改跟著目前單位算的話，切單位時 chipLine 與底下整張表單會上下彈；
     -- chip 少的單位底下空一排，穩定比緊湊重要。單排時 20+2＝22，與原本相同。
     local chipRows = W.FlowRows(elementChips, ChipRowWidth(), CHIP_GAP_X)
@@ -1045,8 +1177,9 @@ end
 ------------------------------------------------------------
 -- 表單快取失效（E5）
 --
--- 文字分頁的表單是 `for i = 1, #els.texts` 生出來的，之後一直重用。「恢復預設」把
--- 條目數改掉之後，快取住的那份會停在舊的條數 —— 多的殘留、少的看不到。
+-- 文字表單（框層文字分頁、血條／能量條分頁尾端）是照條目數生出來的，之後一直重用。
+-- 「恢復預設」「新增文字」「刪除」把條目數改掉之後，快取住的那份會停在舊的條數
+-- —— 多的殘留、少的看不到。
 --
 -- ⚠ 只在條目數**真的變了**時丟。ApplySettings 是每動一個控件都會跑的，
 -- 無條件重建會把輸入焦點與捲動位置弄掉。
@@ -1067,15 +1200,24 @@ ns.RegisterCallback("ProfileChanged", "unitTabPanels", function()
 end)
 
 ns.RegisterCallback("SettingsApplied", "unitTabPanels", function(unitKey)
-    local p = panels[unitKey .. "/texts"]
-    if not p then return end
-    local udb = ns.GetUnitDB(unitKey)
-    local texts = udb and udb.elements and udb.elements.texts
-    if not texts or p.textCount == #texts then return end
+    -- 三個帶文字清單的面板（框層文字／血條／能量條）各比各的條數
+    local changed = false
+    for listName in pairs(TEXT_PANEL_LISTS) do
+        local p = panels[unitKey .. "/" .. listName]
+        if p and p.textCount ~= TextCountOf(unitKey, listName) then changed = true end
+    end
+    if not changed then return end
     InvalidatePanels(unitKey)
-    -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點
+    -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點。
+    -- 捲動位置要留著：「新增文字」在清單最底下，重建跳回頂端的話新條目就在畫面外。
+    -- 內容高度要等版面解析才更新，所以下一幀再捲回去
     if tab and tab:IsShown() and currentUnit == unitKey then
+        local pos = scroll:GetVerticalScroll()
         ShowPanel(currentUnit, currentElement)
+        C_Timer.After(0, function()
+            local range = scroll:GetVerticalScrollRange() or 0
+            scroll:SetVerticalScroll(math.min(pos, range))
+        end)
     end
 end)
 
@@ -1095,13 +1237,101 @@ ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
 end)
 
 ------------------------------------------------------------
+-- 資源條面板的重建與 chip 重算
+--
+-- 兩個來源，合併成**同一個延一幀的工作**：
+--   * ResourceCandidatesChanged（ClassPower.lua 的 Reevaluate 尾端）：換專精／型態／天賦，
+--     以及資源表單自己的 ctx.apply（它一定先跑 Reevaluate）。chip 要不要出現、
+--     面板簽章對不對，都在這裡重算。
+--   * ns.Options.RebuildUnitPanel：條件編輯器舉手的結構性重建（簽章看不出來）。
+-- 合併的理由：「還原預設」那種一次同時改到簽章又舉手的操作，分開排兩個 timer 會重建兩次
+-- （每次都留一個孤兒 frame）。
+--
+-- ⚠ 一定要延一幀：ctx.apply 是在控件自己的 OnClick 裡跑的，當場重建等於在處理器裡
+-- 把它的父框丟掉。
+-- 分頁關著時：chip 與簽章不必管 —— ShowOptionsTab → SelectUnit → RefreshChips／ShowPanel
+-- 本來就會現算、比對；只有「舉手要重建」的面板要先丟掉（規則列數變了，簽章比不出來）。
+------------------------------------------------------------
+local forcedPanels = {}       -- [id] = { unitKey, elementKey, keepScroll }
+local flushPending = false
+local candidatesChanged = false
+
+-- 丟掉面板快取並（若正顯示）立刻重建；keepScroll 時把捲動位置放回去
+local function RebuildNow(unitKey, elementKey, keepScroll)
+    local showing = tab and tab:IsShown() and currentUnit == unitKey and currentElement == elementKey
+    local offset = (showing and keepScroll and scroll) and scroll:GetVerticalScroll() or 0
+    InvalidatePanel(unitKey, elementKey)
+    if not showing then return end
+    ShowPanel(unitKey, elementKey)
+    -- ⚠ 要再延一幀才設得準：內容高度剛換過，這一幀 GetVerticalScrollRange 還是舊值，
+    -- 直接設會被舊的上限夾掉（新內容比較短時就會夾出一個看起來隨機的位置）
+    if offset > 0 then
+        C_Timer.After(0, function()
+            scroll:SetVerticalScroll(math.min(offset, scroll:GetVerticalScrollRange() or 0))
+        end)
+    end
+end
+
+local function Flush()
+    flushPending = false
+    local changed = candidatesChanged
+    candidatesChanged = false
+
+    local forced = forcedPanels
+    forcedPanels = {}
+
+    if changed and tab and tab:IsShown() and currentUnit == "player" then
+        -- chip 列：資源條那顆可能剛出現／消失。目前選的正是它而它被藏掉 ⇒ RefreshChips
+        -- 會退回「框架」，表單與預覽要跟著換（之後的 RebuildNow 看它已經不在顯示，只丟快取）
+        local before = currentElement
+        RefreshChips("player")
+        if currentElement ~= before then
+            ShowPanel("player", currentElement)
+            ns.Preview.SetElement(currentElement)
+        elseif currentElement == "classpower" and PanelStale("player/classpower") then
+            -- 簽章變了（換專精／型態、跟隨切換）：併進同一批重建，同一幀只建一次
+            forced["player/classpower"] = { "player", "classpower", true }
+        end
+    end
+
+    for _, req in pairs(forced) do
+        RebuildNow(req[1], req[2], req[3])
+    end
+end
+
+local function ScheduleFlush()
+    if flushPending then return end
+    flushPending = true
+    C_Timer.After(0, Flush)
+end
+
+-- 給 Tab_Resource 的結構性重建用（條件編輯器增刪列、還原預設、從冷卻管理器複製）
+function ns.Options.RebuildUnitPanel(unitKey, elementKey, keepScroll)
+    local id = unitKey .. "/" .. elementKey
+    local req = forcedPanels[id]
+    forcedPanels[id] = { unitKey, elementKey, keepScroll or (req and req[3]) or false }
+    ScheduleFlush()
+end
+
+ns.RegisterCallback("ResourceCandidatesChanged", "unitTabChips", function()
+    -- Reevaluate 在戰鬥中也會跑（UNIT_MAXPOWER、天賦），分頁沒開著就連 timer 都不排
+    if not (tab and tab:IsShown()) then return end
+    candidatesChanged = true
+    ScheduleFlush()
+end)
+
+------------------------------------------------------------
 -- 設定搜尋（Options/Search.lua）
 --
 -- 列舉的是 spec 表本身，所以「單位 × 元件」每一種組合都進得了索引，
 -- 不必先把那些分頁建出來（這一頁有 7 個單位 × 最多 11 個元件，
 -- 靠「開過才收得到」的做法等於幾乎搜不到東西）。
 --
--- 元件的可見性判斷跟 RefreshChips 同一套：DB 有這欄，而且這個職業真的有註冊該元件。
+-- 元件的可見性判斷跟 RefreshChips 同一套（ElementVisible）：DB 有這欄、這個職業真的有
+-- 註冊該元件，資源條另外要這個專精有副資源。
+-- 資源條的控件清單跟著專精走，所以每次列舉都現算（SpecsFor → ResourceForm.Controls，
+-- 不快取；索引本身會在 SettingsApplied／ProfileChanged 時失效重建）。跳過去時建出來的
+-- 面板 spec 是另一批 table，Search.Reveal 靠內容鍵（type/sub/sub2/key/label）對列。
 ------------------------------------------------------------
 ns.Search.Register("units", {
     label = L["Units"],
@@ -1111,7 +1341,7 @@ ns.Search.Register("units", {
             local els = udb and udb.elements
             if els then
                 for _, e in ipairs(ELEMENT_LIST) do
-                    if e.key == "frame" or (els[e.key] ~= nil and ns.Elements[e.key] ~= nil) then
+                    if ElementVisible(els, e.key) then
                         add(SpecsFor(u.key, e.key), u.label .. " › " .. e.label,
                             { unit = u.key, element = e.key })
                     end
