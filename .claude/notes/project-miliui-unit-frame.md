@@ -31,8 +31,11 @@ Boss1-5Target/Totem`），namespace `_G.MiliUIUF`。
   單位分頁「左欄選單位 → 上方 chip 選元件 → 只看該元件表單」。**預覽＝畫面實地孿生**（非 Secure、
   假明文資料、與真實框共用 builder，開面板時真實框 UnregisterUnitWatch+Hide；引用計數 options／editmode
   兩個使用者，最後一個關閉才 `RestoreReal`）、匯入匯出 `MILIUF!1!`＋C_EncodingUtil、小地圖鈕純手刻。
-  頂層分頁：一般／單位／召喚物／設定檔／關於。**資源條不是頂層分頁**（2026-10-30 起）：它是玩家框的元件
-  （`classpower`），在「單位 → 玩家」chip 列的「魔力條」與「施法條」之間（標籤「資源條」）。
+  頂層分頁：一般／單位／設定檔／關於。**資源條與召喚物都不是頂層分頁**（2026-10-30 起）：資源條是玩家框的元件
+  （`classpower`），在「單位 → 玩家」chip 列的「魔力條」與「施法條」之間（標籤「資源條」）；召喚物（資料在
+  `units.totem`，不是玩家的元件）緊接在資源條後面（標籤「召喚物」），只有 `ns.TOTEM_CLASSES` 的職業看得到，
+  `Options/Tab_Totem.lua` 只匯出 `ns.Options.TotemForm = { Controls, ctx }`，示範召喚物由 Tab_Unit 的 ShowPanel
+  在選到它時開、選別的／切分頁／關窗時收。
   - chip 可見規則（`Tab_Unit.lua` 的 `ElementVisible`，chip 列／`FocusUnitElement`／設定搜尋共用）：
     DB 有這欄＋`ns.Elements` 有註冊；classpower 另要 `#ns.ResourceCandidates() > 0`（這個專精／型態沒有
     副資源就整顆不出現，所以表單裡不再有「沒有資源」的分支）。每次現算、不留舊的可見狀態。
