@@ -76,3 +76,10 @@ L["TIP_RESET"] = "좌클릭: 인스턴스 초기화 | 우클릭: 전투 기록"
 -- Pull Timer (native countdown)
 L["DBM_PULL_SECONDS"] = "풀 카운트다운 초"
 L["DBM_PULL_SECONDS_DESC"] = "풀 타이머 카운트다운 초 설정 (우클릭)"
+
+-- 배경색
+L["SECTION_BACKGROUND"] = "배경"
+L["BG_COLOR"]           = "배경색"
+L["BG_OPACITY"]         = "배경 불투명도"
+L["BG_DESC"]            = "채팅 바와 버튼 배경이 모두 이 색을 사용합니다. 기본값은 채팅 창·정보 바와 같은 어두운 회색이라 나란히 놓였을 때 한 덩어리로 보입니다."
+L["RESET_BG"]           = "기본 배경색으로 복원"

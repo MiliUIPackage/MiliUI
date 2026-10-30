@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- 「一般」分頁：鎖定、跟聊天視窗同組、排列方向、字級與按鈕尺寸、
---               自適應寬度、開怪倒數秒數、重置
+--               自適應寬度、底色、開怪倒數秒數、重置
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -27,6 +27,7 @@ local function Apply()
     ns.UpdateFontSize()        -- 字級
     ns.UpdateButtonSize()      -- 按鈕寬高（順帶重排，自適應寬度也是在重排時算的）
     ns.UpdateLayout()          -- 排列方向
+    ns.UpdateBackground()      -- 底色與透明度
     ns.UpdateDBMButton()       -- 開怪倒數秒數（巨集內文與工具提示）
     RefreshAll()
 end
@@ -135,6 +136,17 @@ local CONTROLS = {
     { type = "text",   label = L["MATCH_CHAT_WIDTH_DESC"] },
     AutoButtonWidthRow,
     { type = "text",   label = L["AUTO_BUTTON_WIDTH_DESC"] },
+
+    -- 底色：顏色走色票（只選 RGB），透明度另外一條滑桿——選色器裡的透明度滑桿
+    -- 要點開才看得到，而透明度是最常被調的那個值。兩者都寫進同一張 cb.BgColor。
+    { type = "header", label = L["SECTION_BACKGROUND"] },
+    { type = "color",  key = "BgColor", label = L["BG_COLOR"], hasAlpha = false },
+    { type = "slider", sub = "BgColor", key = "a", label = L["BG_OPACITY"],
+      min = 0, max = 100, step = 1, scale = 100 },
+    { type = "text",   label = L["BG_DESC"] },
+    -- 按下後 Controls 會跑一輪 refreshers，色票與滑桿跟著回到預設
+    { type = "button", label = "", text = L["RESET_BG"], width = 160,
+      onClick = function() ns.ResetBgColor() end },
 
     { type = "header", label = L["CHANNEL_DBM"] },
     { type = "slider", key = "DBMPullSeconds", label = L["DBM_PULL_SECONDS"], min = 1, max = 30, step = 1 },

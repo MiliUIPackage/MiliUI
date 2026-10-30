@@ -28,14 +28,26 @@ local texture = "Interface\\Buttons\\WHITE8X8"
 -- 改這個值的時候記得同步 MiliUI_DamageMeters/Core/DB.lua 與
 -- MiliUI_InfoBar/Config.lua 的同名常數。
 --
--- 這個值沒有進 SavedVariables（一直都是寫死的），所以不需要遷移：
--- 舊玩家 /reload 之後直接就是新的顏色。
+-- 這是**預設值**：玩家可以在設定頁改底色與透明度（存在 `cb.BgColor`，
+-- 2026-10-30 起），「還原預設底色」就是把這組常數抄回去。沒改過的玩家
+-- InitDB 會補上這組值，所以改常數仍然不需要遷移——但已經自己調過色的玩家
+-- 不會跟著動，那是他們要的。
 --
 -- ⚠ 宣告位置要在 CreateSD 之前：Lua 的區域變數只對「宣告之後」的程式碼可見，
 --   放在檔案後半的話 CreateSD 裡讀到的會是全域 nil。
 ------------------------------------------------------------
 local DARK_BG = 0x1A / 255   -- 0.102
 local DARK_BG_ALPHA = 0.8
+local BG_DEFAULT = { r = DARK_BG, g = DARK_BG, b = DARK_BG, a = DARK_BG_ALPHA }
+
+-- 現行底色：DB 有就用 DB（InitDB 之前、或表被外力清掉時退回預設）。
+-- 回傳四個數字，直接餵 SetBackdropColor／SetColorTexture。
+local function BgColor()
+    local cb = MiliUI_ChatBar_DB and MiliUI_ChatBar_DB.Chatbar
+    local c = cb and cb.BgColor
+    if type(c) ~= "table" then c = BG_DEFAULT end
+    return c.r or BG_DEFAULT.r, c.g or BG_DEFAULT.g, c.b or BG_DEFAULT.b, c.a or BG_DEFAULT.a
+end
 
 --------
 -- SavedVariables
@@ -62,6 +74,12 @@ local function InitDB()
     -- 取消勾選就會整條回到原本的樣子。
     if cb.MatchChatWidth    == nil then cb.MatchChatWidth    = true         end
     if cb.AutoButtonWidth   == nil then cb.AutoButtonWidth   = true         end
+
+    -- 底色：抄一份預設進來（不要直接指到 BG_DEFAULT——選色器是就地改 r/g/b/a，
+    -- 共用同一張表的話「還原預設」就沒東西可以還原了）
+    if type(cb.BgColor) ~= "table" then
+        cb.BgColor = { r = BG_DEFAULT.r, g = BG_DEFAULT.g, b = BG_DEFAULT.b, a = BG_DEFAULT.a }
+    end
 end
 
 --------
@@ -78,7 +96,7 @@ local function CreateSD(parent)
         edgeFile = "Interface\\Buttons\\WHITE8X8",
         edgeSize = 2,
     })
-    parent:SetBackdropColor(DARK_BG, DARK_BG, DARK_BG, DARK_BG_ALPHA)
+    parent:SetBackdropColor(BgColor())
     parent:SetBackdropBorderColor(0, 0, 0, 0)
 end
 
@@ -328,6 +346,7 @@ local AddRGBButton
 local UpdateFontSize
 local UpdateButtonSize
 local UpdateButtonVisibility
+local UpdateBackground
 
 --------
 -- Availability
@@ -887,7 +906,18 @@ UpdateLayout()
 ------------------------------------------------------------
 local grad = bgFrame:CreateTexture(nil, "BACKGROUND")
 grad:SetAllPoints()
-grad:SetColorTexture(DARK_BG, DARK_BG, DARK_BG, DARK_BG_ALPHA)
+grad:SetColorTexture(BgColor())
+
+-- 底色改了就重套：條本身一張貼圖，加上每顆按鈕的 backdrop（按鈕底平常被色塊整面
+-- 蓋住看不到，但跟條用同一個值，兩邊才不會在某個狀態下露出不同的灰）。
+-- 純顏色寫入，不受戰鬥鎖定影響。
+UpdateBackground = function()
+    local r, g, b, a = BgColor()
+    grad:SetColorTexture(r, g, b, a)
+    for _, bu in ipairs(buttonList) do
+        if bu.SetBackdropColor then bu:SetBackdropColor(r, g, b, a) end
+    end
+end
 
 ------------------------------------------------------------
 -- 右鍵選單
@@ -1035,6 +1065,15 @@ ns.UpdateFontSize         = function() UpdateFontSize() end
 ns.UpdateButtonSize       = function() UpdateButtonSize() end
 ns.UpdateButtonVisibility = function() UpdateButtonVisibility() end
 ns.UpdateMoverState       = function() UpdateMoverState() end
+ns.UpdateBackground       = function() UpdateBackground() end
+
+-- 還原預設底色：就地把預設抄回 cb.BgColor（設定頁的色票／滑桿都是讀這張表），再重套
+function ns.ResetBgColor()
+    InitDB()
+    local c = MiliUI_ChatBar_DB.Chatbar.BgColor
+    c.r, c.g, c.b, c.a = BG_DEFAULT.r, BG_DEFAULT.g, BG_DEFAULT.b, BG_DEFAULT.a
+    UpdateBackground()
+end
 
 -- 位置重置：回到預設（吸在聊天視窗下；沒有聊天視窗就左下角），再重排一次
 function ns.ResetPosition()

@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 9fef98ea-6774-4d27-8c9f-b9d323b656fa
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-10-30T00:00:00.000Z
 ---
 
 快捷聊天列的位置與磁吸在 `Anchor.lua`，右鍵選單 `Menu.lua` 只剩 63 行的項目清單（引擎是共用層 `W.Menu`，[[project-miliui-widgets-vendor]]）；跨插件的磁吸走 `Libs/MiliUISnap.lua`（[[project-miliui-snap-bars]]）。
@@ -31,7 +31,7 @@ metadata:
 **自適應寬度**是兩段獨立開關：`MatchChatWidth`（總寬＝聊天視窗寬）、`AutoButtonWidth`（再由按鈕顆數平分）。只在橫向生效，兩個**預設都開**（沒做遷移——手動的 `ButtonWidth` 只是先不生效）。
 整排靠 `startOffset = (barWidth - totalButtonWidth) / 2` 置中，順便把平分不盡的餘數吃掉；沒對齊聊天視窗時這個算式剛好等於原本的 `endPadding`。
 
-**底色 `0x1A/255` @ 0.8**（`DARK_BG`），跟 DamageMeters、資訊列同一個值（[[project-miliui-hud-skin]]）。聊天列、聊天視窗、統計視窗會並排，三個灰必須一模一樣。這個值**沒有進 SavedVariables**，改了不需要遷移。
+**底色預設 `0x1A/255` @ 0.8**（`DARK_BG`／`BG_DEFAULT`），跟 DamageMeters、資訊列同一個值（[[project-miliui-hud-skin]]）。聊天列、聊天視窗、統計視窗會並排，三個灰必須一模一樣。2026-10-30 起玩家可改：存 `cb.BgColor = {r,g,b,a}`，設定頁「底色」小節＝RGB 色票＋不透明度滑桿（`sub="BgColor", key="a", scale=100`）＋「還原預設底色」按鈕（`ns.ResetBgColor` 就地抄回預設，不換表）。條本身的貼圖與每顆按鈕的 backdrop 都由 `UpdateBackground` 重套。InitDB 對沒改過的玩家補預設，所以改常數仍不需遷移；已自訂的玩家不跟著動。
 
 **「灰掉不能動」的那兩列走 `custom` spec，沒有動共用層**：`Controls.lua` 沒有 disabled 的概念，為了一支插件的兩條規則去動它等於全部消費者一起改。自畫標籤才灰得掉整列；
 停用＝**變灰 ＋ 關掉滑鼠**，只變灰不關滑鼠是最糟的一種（看起來停用、拉下去卻真的會改到 DB）。（共用層後來加的 `requires` 只管 toggle。）
