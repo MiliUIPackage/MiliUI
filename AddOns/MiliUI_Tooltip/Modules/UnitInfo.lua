@@ -253,7 +253,7 @@ end
 ------------------------------------------------------------
 -- 觀察裝等 / 成就點數：非同步快取（TTL 900s、節流 1.2s）
 ------------------------------------------------------------
-local INSPECT_TTL, INSPECT_INTERVAL = 900, 1.2
+local INSPECT_TTL, INSPECT_INTERVAL, INSPECT_PENDING_TIMEOUT = 900, 1.2, 2   -- 實測觀察來回 0.1～0.2 秒
 local inspect = { cache = {}, pendingGUID = nil, pendingUnit = nil, lastRequestAt = 0, suspendedUntil = 0 }
 local achieve = { cache = {}, pendingGUID = nil, lastRequestAt = 0, suspendedUntil = 0 }
 UnitInfo.inspectState = inspect
@@ -348,6 +348,18 @@ local function PreciseInspectItemLevel(unit)
     return total / 16
 end
 
+-- 客戶端現在有沒有這個單位的觀察資料：任何一格裝備連結讀得到就算有（只對當前被觀察者回得出來）
+local function InspectDataPresent(unit)
+    if not GetInventoryItemLink then return false end
+    for slot = 1, 17 do
+        local link = S.SafeCall(GetInventoryItemLink, unit, slot)
+        if S.IsSecret(link) or (link and link ~= "") then return true end
+    end
+    local lv = C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel
+        and S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
+    return (lv and lv > 0) or false
+end
+
 -- 觀察中的單位目前能拿到的裝等：自己算的優先，退回暴雪的整數
 local function InspectedItemLevel(unit)
     local precise = PreciseInspectItemLevel(unit)
@@ -398,7 +410,9 @@ function UnitInfo.RequestInspect(unit)
     if InspectFrame and InspectFrame.IsShown and InspectFrame:IsShown() then return end
     local cached = inspect.cache[guid]
     if cached and (now - cached.time) <= INSPECT_TTL then return end
-    if inspect.pendingGUID == guid then return end
+    -- 同一個人還在等：INSPECT_READY 可能永遠不來（別家插件同幀也發、伺服器只回最後一個），
+    -- 等超過 INSPECT_PENDING_TIMEOUT 就准再問一次，不然這個人會卡在「??」到登出
+    if inspect.pendingGUID == guid and (now - (inspect.lastRequestAt or 0)) < INSPECT_PENDING_TIMEOUT then return end
     if (now - (inspect.lastRequestAt or 0)) < INSPECT_INTERVAL then
         if ns.logEnabled then ns.Log("觀察 %s 被節流（距上次 %.2fs）", tostring(unit), now - inspect.lastRequestAt) end
         return
@@ -439,6 +453,13 @@ function UnitInfo.RequestAchievements(unit)
     end
 end
 
+-- 這個 GUID 現在在哪個 token 上：先用發問時的 token（nameplate 會被回收、換人），再試 mouseover／target
+local function ResolveUnit(guid, hint)
+    if hint and GuidEquals(SafeGuid(hint), guid) then return hint end
+    if GuidEquals(SafeGuid("mouseover"), guid) then return "mouseover" end
+    if GuidEquals(SafeGuid("target"), guid) then return "target" end
+end
+
 -- 觀察收尾：清掉觀察資料（玩家自己開著觀察視窗就不清）、放開 pending、叫提示重畫
 local function FinishInspect(guid)
     if ns.logEnabled then ns.Log("觀察 收尾（快取 level=%s）", tostring(S.SafeValue(guid) and inspect.cache[S.SafeValue(guid)] and inspect.cache[S.SafeValue(guid)].level)) end
@@ -460,11 +481,13 @@ local function RetryPreciseItemLevel(unit, guid, deadline)
             if ns.logEnabled then ns.Log("觀察裝等 重試中 pending 換人，退場") end
             return
         end
-        if not GuidEquals(SafeGuid(unit), guid) then
-            if ns.logEnabled then ns.Log("觀察裝等 重試中 %s 已指到別人，收尾", tostring(unit)) end
+        local now = ResolveUnit(guid, unit)
+        if not now then
+            if ns.logEnabled then ns.Log("觀察裝等 重試中 %s 已指到別人、也不在 mouseover／target，收尾", tostring(unit)) end
             FinishInspect(guid)
             return
         end
+        unit = now
         local precise, slot = PreciseInspectItemLevel(unit)
         if ns.logEnabled then ns.Log("觀察裝等 重試 自己算=%s 卡格=%s", tostring(precise), tostring(slot)) end
         if precise and precise > 0 then
@@ -485,37 +508,39 @@ do
     f:RegisterEvent("INSPECT_ACHIEVEMENT_READY")
     f:SetScript("OnEvent", function(_, event, guid)
         if event == "INSPECT_READY" then
-            if not guid or not GuidEquals(guid, inspect.pendingGUID) then
-                if ns.logEnabled then ns.Log("INSPECT_READY 不是我們等的（pending %s）", inspect.pendingGUID and "有" or "無") end
+            -- 不靠事件帶的 GUID 認貨：12.1 它可能是秘密值（比對一律 false）；別家插件（TinyInspect）
+            -- 同幀也發觀察時伺服器只回最後那一個，事件的 GUID 是別人的。
+            -- 改問「我們等的那個人的裝備現在讀不讀得到」：客戶端只留著當前被觀察者的裝備，
+            -- 讀得到就是我們要的資料，不管是誰發的問。
+            local pendingGUID = inspect.pendingGUID
+            if not pendingGUID then return end
+            local unit = ResolveUnit(pendingGUID, inspect.pendingUnit)
+            if not unit then
+                if ns.logEnabled then ns.Log("INSPECT_READY 等的人已經不在任何 token 上（事件 guid %s）", S.IsSecret(guid) and "秘密" or tostring(guid)) end
                 return
             end
-            if ns.logEnabled then ns.Log("INSPECT_READY 到貨") end
-            local unit
-            if inspect.pendingUnit and GuidEquals(SafeGuid(inspect.pendingUnit), guid) then
-                unit = inspect.pendingUnit
-            elseif GuidEquals(SafeGuid("mouseover"), guid) then
-                unit = "mouseover"
-            elseif GuidEquals(SafeGuid("target"), guid) then
-                unit = "target"
+            if not InspectDataPresent(unit) then
+                if ns.logEnabled then ns.Log("INSPECT_READY 不是我們等的 %s（事件 guid %s）", tostring(unit), S.IsSecret(guid) and "秘密" or tostring(guid)) end
+                return
             end
-            if unit then
-                local precise, slot = PreciseInspectItemLevel(unit)
-                if ns.logEnabled then ns.Log("觀察裝等 unit=%s 自己算=%s 卡格=%s", tostring(unit), tostring(precise), tostring(slot)) end
-                if precise and precise > 0 then
-                    CachePut(inspect, guid, "level", precise)
-                else
-                    -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
-                    local rough = InspectedItemLevel(unit)
-                    if ns.logEnabled then ns.Log("觀察裝等 暴雪整數=%s", tostring(rough)) end
-                    if rough then
-                        CachePut(inspect, guid, "level", rough)
-                        -- 整數先上畫面，不然重試那幾秒提示會一直停在「??」
-                        if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
-                    end
-                    if slot then
-                                    RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
-                        return
-                    end
+            guid = pendingGUID
+            if ns.logEnabled then ns.Log("INSPECT_READY 到貨 unit=%s", tostring(unit)) end
+            local precise, slot = PreciseInspectItemLevel(unit)
+            if ns.logEnabled then ns.Log("觀察裝等 自己算=%s 卡格=%s", tostring(precise), tostring(slot)) end
+            if precise and precise > 0 then
+                CachePut(inspect, guid, "level", precise)
+            else
+                -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
+                local rough = InspectedItemLevel(unit)
+                if ns.logEnabled then ns.Log("觀察裝等 暴雪整數=%s", tostring(rough)) end
+                if rough then
+                    CachePut(inspect, guid, "level", rough)
+                    -- 整數先上畫面，不然重試那幾秒提示會一直停在「??」
+                    if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
+                end
+                if slot then
+                    RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
+                    return
                 end
             end
             FinishInspect(guid)
