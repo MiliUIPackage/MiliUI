@@ -954,7 +954,7 @@ function Specs.Themed(mode, key)
         Note(L["Off also hides Blizzard's own tooltip for these icons. Clicks still pass through."], "icon"),
         -- 按鍵鏡射（Core/Keybinds.lua）：長條類與增益圖示列不做（同按鍵文字的 NoKeybind），條頁不出現這三列
         NK(TS("icon", "toggle", "icon.pressFlash", L["Flash on key press"])),
-        NK(Note(L["Flashes when you press the key bound to this spell's action bar slot. Only key bindings count; clicking the action bar doesn't."], "icon")),
+        NK(Note(L["Flashes when you press the key bound to this spell's action bar slot. Clicking Blizzard's action bar doesn't count; bars from ElvUI, Bartender4 or Dominos flash on clicks too."], "icon")),
         NK(TS("icon", "slider", "icon.pressFlashAlpha", L["Flash opacity"],
             { min = 10, max = 80, step = 5, scale = 100,
               disabled = function(info) return not ReadThemed(info, "icon.pressFlash") end })),

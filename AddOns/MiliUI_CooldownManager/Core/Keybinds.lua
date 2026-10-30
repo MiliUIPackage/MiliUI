@@ -9,6 +9,7 @@
 --   ns.Keybinds.RefreshAll()                綁定／動作條變了：清快取、全部重畫
 --   ns.Keybinds.SlotFromButton(bar, id, mainPage)  按鍵鏡射：綁定指令的參數 → 動作條格號（純函式）
 --   ns.Keybinds.OnPress(bar, id, down)      按鍵鏡射：綁定指令的後掛勾叫這支（見檔尾「按鍵鏡射」）
+--   ns.Keybinds.OnButtonClick(btn, down)    按鍵鏡射：快捷列插件按鈕（LibActionButton 系）的 PostClick 後掛勾叫這支
 --
 -- 格 → 指令的對照照暴雪動作條的定義（Blizzard_ActionBar：MultiActionBars.xml 的 actionpage
 -- 與各條按鈕模板的 buttonType、ActionButton.lua 的 UpdateHotkeys = buttonType..id）：
@@ -333,6 +334,7 @@ function K.RefreshAll()
     cache = {}
     slotCache = {}
     K.slotOwners = {}            -- 整張重建：下面每顆重新 Apply 時重新登記
+    if K.pressHooked and K.HookLAB then K.HookLAB() end     -- 快捷列插件的函式庫可能比我們晚載入
     local B = ns.Bars
     local p = ns.profile
     if B and B.ForEachClaimed and p and type(p.bars) == "table" then
@@ -369,6 +371,9 @@ end
 --   MultiActionButtonDown(bar, id)／MultiActionButtonUp(bar, id)  其餘六條（bar 是框名）
 -- 後掛勾（hooksecurefunc，原函式先跑完、我們只在自己的貼圖上 Show／Hide，不寫任何暴雪的東西）。
 -- 滑鼠點動作條不經過這四支 ⇒ 不閃（設定頁有寫）。
+-- 快捷列插件（ElvUI、Bartender4、Dominos…，都是 LibActionButton-1.0 系）把綁定鍵改成 SetOverrideBindingClick
+-- 直接點自己的按鈕，ACTIONBUTTON<n> 那些綁定指令根本不會跑 ⇒ 上面四支掛了也沒訊號（2026-10-30 玩家回報：
+-- 用 ElvUI 快捷列按鍵閃光沒反應、換回原生快捷列就正常）。那一路另接按鈕本身，見下面「快捷列插件的按鈕」。
 -- **只在第一次有條要用時才掛**（掛了拆不掉）；之後沒有任何一格登記時，掛勾第一行就走。
 --
 -- 格號 → 格子：K.slotOwners[slot] = { [rec] = true }（弱鍵），K.Apply 每次放格時順手登記（SyncPress）；
@@ -628,17 +633,8 @@ local function InPetBattle()
     return false
 end
 
--- 四支掛勾的共同本體。barName nil ＝ 主動作條
-function K.OnPress(barName, id, down)
-    if next(K.slotOwners) == nil and next(held) == nil then return end       -- 沒有任何一格要鏡射
-    barName, id = PlainArg(barName), PlainArg(id)
-    if type(id) ~= "number" or (barName ~= nil and type(barName) ~= "string") then return end
-    local bkey = (barName or "main") .. ":" .. id
-    if not down then return Release(bkey) end
-    Release(bkey)                       -- 同一顆鍵沒放開又按一次（漏了 Up）：先收上一次的
-    if InPetBattle() then return end
-    if barName == nil and MainBarOverridden() then return end
-    local slot = K.SlotFromButton(barName, id, barName == nil and K.MainPage() or nil)
+-- 按下：這個格號登記的每一格亮起，記在 bkey（那顆鍵／那顆按鈕）底下，放開時收的就是這幾顆
+local function Press(bkey, slot)
     local owners = slot and K.slotOwners[slot]
     if not owners or next(owners) == nil then return end
     local entry = { recs = {} }
@@ -653,6 +649,74 @@ function K.OnPress(barName, id, down)
     end)
 end
 
+-- 四支掛勾的共同本體。barName nil ＝ 主動作條
+function K.OnPress(barName, id, down)
+    if next(K.slotOwners) == nil and next(held) == nil then return end       -- 沒有任何一格要鏡射
+    barName, id = PlainArg(barName), PlainArg(id)
+    if type(id) ~= "number" or (barName ~= nil and type(barName) ~= "string") then return end
+    local bkey = (barName or "main") .. ":" .. id
+    if not down then return Release(bkey) end
+    Release(bkey)                       -- 同一顆鍵沒放開又按一次（漏了 Up）：先收上一次的
+    if InPetBattle() then return end
+    if barName == nil and MainBarOverridden() then return end
+    Press(bkey, K.SlotFromButton(barName, id, barName == nil and K.MainPage() or nil))
+end
+
+-- ── 快捷列插件的按鈕（LibActionButton-1.0 系：ElvUI、Bartender4、Dominos…）──────────────────────
+-- 這類插件的綁定鍵是 SetOverrideBindingClick(…, 按鈕名) 直接點按鈕，暴雪那四支函式不會被叫 ⇒ 訊號改接按鈕本身：
+-- 每顆按鈕 HookScript("PostClick")，參數 (按鈕, 滑鼠鍵, down)。按鈕一律註冊 AnyDown＋AnyUp（函式庫建按鈕時定的，
+-- 跟「按下時施放」無關），按下／放開各來一次。按鍵跟滑鼠點都走這條 ⇒ 這類快捷列滑鼠點也會閃（設定頁有寫）。
+-- 格號讀按鈕的 _state_action（函式庫自己記的「現在是哪一格」：翻頁、載具頁、變形頁都已經算進去，所以不用
+-- MainPage／載具那幾個判斷）；_state_type 不是 "action"（寵物條、自訂法術）就不理。兩個都先過 Plain。
+-- 找按鈕：掃 LibStub 裡 major 以 "LibActionButton-1.0" 開頭的每一個函式庫（各家 fork 的 major 不同：-ElvUI…），
+-- GetAllButtons() 現有的全掛、RegisterCallback("OnButtonCreated") 接之後建的。沒載（原生快捷列）⇒ 什麼都不做。
+-- 掃的時機：EnsureHooks（第一次有條要用）＋ RefreshAll（之後才載入的函式庫）。**按鈕上一個欄位都不寫**，掛過的記在自己的弱鍵表。
+local labButtons = setmetatable({}, WEAK)     -- 掛過 PostClick 的按鈕
+local labLibs = setmetatable({}, WEAK)        -- 接過 OnButtonCreated 的函式庫
+K.labListener = {}                            -- CallbackHandler 的收件人（方法第一個參數是它）
+K.labCount = 0                                -- /mcdm debug：掛了幾顆
+
+-- PostClick 後掛勾的本體：down 是按下（true）／放開（false）
+function K.OnButtonClick(btn, down)
+    if next(K.slotOwners) == nil and next(held) == nil then return end
+    if type(btn) ~= "table" then return end
+    local ok, name = pcall(btn.GetName, btn)
+    local bkey = "lab:" .. tostring((ok and PlainArg(name)) or btn)
+    if not PlainArg(down) then return Release(bkey) end
+    Release(bkey)
+    if rawget(btn, "_state_type") ~= "action" then return end
+    Press(bkey, tonumber(PlainArg(rawget(btn, "_state_action"))))
+end
+
+local function HookButton(btn)
+    if type(btn) ~= "table" or labButtons[btn] or type(btn.HookScript) ~= "function" then return end
+    labButtons[btn] = true
+    local G = ns.Guard or function(fn) return fn end
+    local ok = pcall(btn.HookScript, btn, "PostClick", G(function(self, _, down) K.OnButtonClick(self, down) end))
+    if ok then K.labCount = K.labCount + 1 end
+end
+
+local function HookLAB()
+    local LS = _G.LibStub
+    local libs = type(LS) == "table" and type(LS.libs) == "table" and LS.libs or nil
+    if not libs then return end
+    for major, lib in pairs(libs) do
+        if type(major) == "string" and major:find("^LibActionButton%-1%.0") and type(lib) == "table"
+            and not labLibs[lib] and type(lib.GetAllButtons) == "function" then
+            labLibs[lib] = true
+            local ok, buttons = pcall(lib.GetAllButtons, lib)
+            if ok and type(buttons) == "table" then
+                for btn in pairs(buttons) do HookButton(btn) end
+            end
+            if type(lib.RegisterCallback) == "function" then
+                -- CallbackHandler 叫法：method(收件人, 事件名, 按鈕)
+                pcall(lib.RegisterCallback, K.labListener, "OnButtonCreated", function(_, _, btn) HookButton(btn) end)
+            end
+        end
+    end
+end
+K.HookLAB = HookLAB
+
 EnsureHooks = function()
     if K.pressHooked then return end
     local hook = _G.hooksecurefunc
@@ -663,6 +727,7 @@ EnsureHooks = function()
     if _G.ActionButtonUp then hook("ActionButtonUp", G(function(id) K.OnPress(nil, id, false) end)) end
     if _G.MultiActionButtonDown then hook("MultiActionButtonDown", G(function(bar, id) K.OnPress(bar, id, true) end)) end
     if _G.MultiActionButtonUp then hook("MultiActionButtonUp", G(function(bar, id) K.OnPress(bar, id, false) end)) end
+    HookLAB()
 end
 K.EnsureHooks = function() return EnsureHooks() end
 
@@ -684,8 +749,8 @@ function K.PressDebugLine()
     for _ in pairs(recs) do n = n + 1 end
     local h = 0
     for _ in pairs(held) do h = h + 1 end
-    return ("  按鍵鏡射：掛勾 %s、登記 %d 格（%d 顆）、按住 %d、閃過 %d 次"):format(
-        K.pressHooked and "已掛" or "未掛", slots, n, h, K.pressCount)
+    return ("  按鍵鏡射：掛勾 %s、快捷列插件按鈕 %d 顆、登記 %d 格（%d 顆）、按住 %d、閃過 %d 次"):format(
+        K.pressHooked and "已掛" or "未掛", K.labCount, slots, n, h, K.pressCount)
 end
 
 ------------------------------------------------------------

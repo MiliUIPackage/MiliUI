@@ -6,7 +6,8 @@
 -- 覆蓋：綁定字串縮寫（修飾鍵、滑鼠鍵、數字鍵盤、特殊鍵、減號鍵）、動作條格 → 指令名
 -- （主動作條翻頁／變形、左下右下右側、動作條 6–8、不收的頁）、同一個法術多格時的優先序、
 -- 覆寫法術優先、物品掃格子、快取與清快取；按鍵鏡射（綁定指令參數 → 格號全表、格號登記／撤銷／整張重建、
--- 按下／放開的狀態機、2 秒保險、載具與寵物對戰、掛勾只掛一次）；閃光跟著 Masque 皮的遮罩。
+-- 按下／放開的狀態機、2 秒保險、載具與寵物對戰、掛勾只掛一次；快捷列插件的按鈕：掃 LibStub、PostClick 後掛勾、
+-- 格號讀 _state_action、之後建的按鈕與之後載入的函式庫）；閃光跟著 Masque 皮的遮罩。
 ------------------------------------------------------------
 local here = (arg and arg[0] or ""):match("^(.*)[/\\][^/\\]*$") or "."
 local PATH = here .. "/../Core/Keybinds.lua"
@@ -408,6 +409,102 @@ timers = {}
 K.Invalidate()
 eq("Invalidate：排一次重建", #timers, 1)
 eq("Invalidate：0.2 秒合併", timers[1].sec, 0.2)
+
+-- 7b) 快捷列插件的按鈕（LibActionButton 系）：掃 LibStub、每顆按鈕 PostClick 後掛勾、格號讀 _state_action、
+--     之後建的按鈕（OnButtonCreated）與之後才載入的函式庫（RefreshAll 再掃）也接
+local labHandlers = {}
+local function FakeButton(name, slot)
+    local b = { name = name, _state_type = "action", _state_action = slot, hooks = 0 }
+    function b:GetName() return self.name end
+    function b:HookScript(script, fn) self.hooks = self.hooks + 1; labHandlers[self] = { script = script, fn = fn } end
+    return b
+end
+local created = {}
+local btn1, btn2 = FakeButton("ElvUI_Bar1Button6", 6), FakeButton("ElvUI_Bar2Button1", 13)
+local lab = {
+    GetAllButtons = function() return { [btn1] = true, [btn2] = true } end,
+    RegisterCallback = function(target, event, fn) created[#created + 1] = { target = target, event = event, fn = fn } end,
+}
+env.LibStub = { libs = {
+    ["LibActionButton-1.0-ElvUI"] = lab,
+    ["LibActionButton-1.0-Broken"] = { GetAllButtons = function() error("boom") end },
+    ["LibActionButton-1.0"] = {},                           -- 沒有 GetAllButtons：不理
+    ["LibSharedMedia-3.0"] = { GetAllButtons = function() error("not me") end },
+} }
+check("掃 LibStub：壞掉的函式庫不報錯", pcall(K.HookLAB))
+check("掛勾：兩顆都掛 PostClick", labHandlers[btn1] and labHandlers[btn1].script == "PostClick" and labHandlers[btn2] ~= nil)
+check("掛勾：接 OnButtonCreated", created[1] and created[1].event == "OnButtonCreated" and created[1].target == K.labListener)
+eq("只接一個函式庫", #created, 1)
+eq("/mcdm debug 計數", K.labCount, 2)
+K.HookLAB()
+eq("再掃：不重掛", btn1.hooks, 1)
+eq("再掃：不重接", #created, 1)
+-- 按下／放開（PostClick 參數：按鈕、滑鼠鍵、down）
+timers = {}
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+check("第 6 格的按鈕按下：兩顆都亮", recA.pressTex.shown and recB.pressTex.shown)
+eq("保險計時 2 秒", timers[#timers].sec, 2)
+eq("按住一顆", count(K.held), 1)
+labHandlers[btn1].fn(btn1, "LeftButton", false)
+check("放開：都收", not recA.pressTex.shown and not recB.pressTex.shown)
+labHandlers[btn2].fn(btn2, "LeftButton", true)
+check("沒登記的格：不亮", not recA.pressTex.shown and not recB.pressTex.shown)
+labHandlers[btn2].fn(btn2, "LeftButton", false)
+-- 不是動作條格（寵物條）／秘密格號／秘密 down：不亮、不報錯
+btn1._state_type = "pet"
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+check("寵物條：不亮", not recA.pressTex.shown)
+btn1._state_type = "action"
+ns.IsSecret = function(v) return v == "SECRET" end
+btn1._state_action = "SECRET"
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+check("秘密格號：不亮", not recA.pressTex.shown)
+btn1._state_action = 6
+labHandlers[btn1].fn(btn1, "LeftButton", "SECRET")
+check("秘密 down：當放開、不亮", not recA.pressTex.shown)
+ns.IsSecret = savedSecret
+-- 按下後翻頁（同一顆按鈕的 _state_action 變了）再放開：照樣收按下時亮的
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+check("按下：亮", recA.pressTex.shown)
+btn1._state_action = 18
+labHandlers[btn1].fn(btn1, "LeftButton", false)
+check("按下後翻頁再放開：照樣收", not recA.pressTex.shown)
+btn1._state_action = 6
+-- 漏了放開：2 秒保險
+timers = {}
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+timers[1].fn()
+check("2 秒保險：收掉", not recA.pressTex.shown and count(K.held) == 0)
+-- 沒有名字的按鈕也有自己的鍵
+local anon = FakeButton(nil, 6)
+created[1].fn(created[1].target, "OnButtonCreated", anon)
+labHandlers[anon].fn(anon, "LeftButton", true)
+labHandlers[btn1].fn(btn1, "LeftButton", true)
+labHandlers[anon].fn(anon, "LeftButton", false)
+check("兩顆按鈕同一格：放開一顆還亮", recA.pressTex.shown)
+labHandlers[btn1].fn(btn1, "LeftButton", false)
+check("都放開才收", not recA.pressTex.shown)
+-- 之後建的按鈕：OnButtonCreated（CallbackHandler 叫法：收件人、事件名、按鈕）
+local btn3 = FakeButton("ElvUI_Bar3Button6", 6)
+created[1].fn(created[1].target, "OnButtonCreated", btn3)
+check("之後建的按鈕也掛", labHandlers[btn3] ~= nil and btn3.hooks == 1)
+created[1].fn(created[1].target, "OnButtonCreated", btn3)
+eq("同一顆再報：不重掛", btn3.hooks, 1)
+labHandlers[btn3].fn(btn3, "LeftButton", true)
+check("新按鈕按下：亮", recA.pressTex.shown)
+labHandlers[btn3].fn(btn3, "LeftButton", false)
+check("新按鈕放開：收", not recA.pressTex.shown)
+-- 後來才載入的函式庫：RefreshAll 再掃
+local btn4 = FakeButton("BT4Button6", 6)
+env.LibStub.libs["LibActionButton-1.0"] = { GetAllButtons = function() return { [btn4] = true } end }
+K.RefreshAll()
+check("RefreshAll：後來載入的函式庫也掃到（沒有 RegisterCallback 也行）", labHandlers[btn4] ~= nil)
+labHandlers[btn4].fn(btn4, "LeftButton", true)
+check("後載入函式庫的按鈕：亮", recA.pressTex.shown)
+labHandlers[btn4].fn(btn4, "LeftButton", false)
+-- 沒有 LibStub（原生快捷列）：什麼都不做、不報錯
+env.LibStub = nil
+check("沒有 LibStub：不報錯", pcall(K.HookLAB))
 ns.Bars, ns.profile = nil, nil
 ns.Setting, ns.DB = savedSetting, savedDB
 
