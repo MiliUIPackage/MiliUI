@@ -442,11 +442,11 @@ local function FinishInspect(guid)
     if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
 end
 
--- 到貨當下物品資料常常還沒全部快取（GetItemInfo 剛發問），每 0.25 秒再算一次、最多等 2.5 秒。
+-- 到貨當下物品資料常常還沒全部快取（GetItemInfo 剛發問），每 0.25 秒再算一次、最多等 5 秒（中間畫面上有整數頂著，等久一點不痛）。
 -- 期間觀察資料要留著（不能 ClearInspectPlayer，不然連結就沒了）。
 -- 放棄的條件：unit token 已經指到別人、或又發了新的觀察（pendingGUID 換人）—— 那時資料已經是別人的，
 -- 收尾交給新的那一輪，自己安靜退場，快取裡留的是前面存的整數。
-local PRECISE_RETRY_EVERY, PRECISE_RETRY_FOR = 0.25, 2.5
+local PRECISE_RETRY_EVERY, PRECISE_RETRY_FOR = 0.25, 5
 local function RetryPreciseItemLevel(unit, guid, deadline)
     C_Timer.After(PRECISE_RETRY_EVERY, function()
         if not GuidEquals(inspect.pendingGUID, guid) then return end
@@ -486,7 +486,11 @@ do
                 else
                     -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
                     local rough = InspectedItemLevel(unit)
-                    if rough then CachePut(inspect, guid, "level", rough) end
+                    if rough then
+                        CachePut(inspect, guid, "level", rough)
+                        -- 整數先上畫面，不然重試那幾秒提示會一直停在「??」
+                        if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
+                    end
                     if slot then
                         if ns.logEnabled then ns.Log("觀察裝等 第 %d 格還沒快取，重試", slot) end
                         RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
