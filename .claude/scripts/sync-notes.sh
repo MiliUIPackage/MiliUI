@@ -15,8 +15,9 @@ MEM="$HOME/.claude/projects/-Applications-World-of-Warcraft--retail--Interface/m
 DEST="$REPO/.claude/notes"
 
 # 不匯出的：MEMORY.md 是 memory 自己的索引（notes/README.md 就是這邊的索引），
-# feedback-language.md 是個人偏好、不屬於專案筆記。
-SKIP="MEMORY.md feedback-language.md"
+# feedback-language.md 是個人偏好、不屬於專案筆記；project-homedrop-mac-app.md 是跟套組無關的
+# 私人 Mac app（使用者 2026-10-30 拍板不進公開 repo）。
+SKIP="MEMORY.md feedback-language.md project-homedrop-mac-app.md"
 
 CHECK=0
 [ "${1:-}" = "--check" ] && CHECK=1
