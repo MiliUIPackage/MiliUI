@@ -399,11 +399,17 @@ function UnitInfo.RequestInspect(unit)
     local cached = inspect.cache[guid]
     if cached and (now - cached.time) <= INSPECT_TTL then return end
     if inspect.pendingGUID == guid then return end
-    if (now - (inspect.lastRequestAt or 0)) < INSPECT_INTERVAL then return end
+    if (now - (inspect.lastRequestAt or 0)) < INSPECT_INTERVAL then
+        if ns.logEnabled then ns.Log("觀察 %s 被節流（距上次 %.2fs）", tostring(unit), now - inspect.lastRequestAt) end
+        return
+    end
     if pcall(NotifyInspect, unit) then
         inspect.pendingGUID = guid
         inspect.pendingUnit = unit
         inspect.lastRequestAt = now
+        if ns.logEnabled then ns.Log("觀察 送出 NotifyInspect(%s)%s", tostring(unit), inspect.pendingGUID and "" or "（pending 被別人佔著）") end
+    elseif ns.logEnabled then
+        ns.Log("觀察 NotifyInspect(%s) 拋錯", tostring(unit))
     end
 end
 
@@ -435,6 +441,7 @@ end
 
 -- 觀察收尾：清掉觀察資料（玩家自己開著觀察視窗就不清）、放開 pending、叫提示重畫
 local function FinishInspect(guid)
+    if ns.logEnabled then ns.Log("觀察 收尾（快取 level=%s）", tostring(S.SafeValue(guid) and inspect.cache[S.SafeValue(guid)] and inspect.cache[S.SafeValue(guid)].level)) end
     if ClearInspectPlayer and not (InspectFrame and InspectFrame.IsShown and InspectFrame:IsShown()) then
         pcall(ClearInspectPlayer)
     end
@@ -449,9 +456,17 @@ end
 local PRECISE_RETRY_EVERY, PRECISE_RETRY_FOR = 0.25, 5
 local function RetryPreciseItemLevel(unit, guid, deadline)
     C_Timer.After(PRECISE_RETRY_EVERY, function()
-        if not GuidEquals(inspect.pendingGUID, guid) then return end
-        if not GuidEquals(SafeGuid(unit), guid) then FinishInspect(guid) return end
+        if not GuidEquals(inspect.pendingGUID, guid) then
+            if ns.logEnabled then ns.Log("觀察裝等 重試中 pending 換人，退場") end
+            return
+        end
+        if not GuidEquals(SafeGuid(unit), guid) then
+            if ns.logEnabled then ns.Log("觀察裝等 重試中 %s 已指到別人，收尾", tostring(unit)) end
+            FinishInspect(guid)
+            return
+        end
         local precise, slot = PreciseInspectItemLevel(unit)
+        if ns.logEnabled then ns.Log("觀察裝等 重試 自己算=%s 卡格=%s", tostring(precise), tostring(slot)) end
         if precise and precise > 0 then
             CachePut(inspect, guid, "level", precise)
             FinishInspect(guid)
@@ -470,7 +485,11 @@ do
     f:RegisterEvent("INSPECT_ACHIEVEMENT_READY")
     f:SetScript("OnEvent", function(_, event, guid)
         if event == "INSPECT_READY" then
-            if not guid or not GuidEquals(guid, inspect.pendingGUID) then return end
+            if not guid or not GuidEquals(guid, inspect.pendingGUID) then
+                if ns.logEnabled then ns.Log("INSPECT_READY 不是我們等的（pending %s）", inspect.pendingGUID and "有" or "無") end
+                return
+            end
+            if ns.logEnabled then ns.Log("INSPECT_READY 到貨") end
             local unit
             if inspect.pendingUnit and GuidEquals(SafeGuid(inspect.pendingUnit), guid) then
                 unit = inspect.pendingUnit
@@ -481,19 +500,20 @@ do
             end
             if unit then
                 local precise, slot = PreciseInspectItemLevel(unit)
+                if ns.logEnabled then ns.Log("觀察裝等 unit=%s 自己算=%s 卡格=%s", tostring(unit), tostring(precise), tostring(slot)) end
                 if precise and precise > 0 then
                     CachePut(inspect, guid, "level", precise)
                 else
                     -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
                     local rough = InspectedItemLevel(unit)
+                    if ns.logEnabled then ns.Log("觀察裝等 暴雪整數=%s", tostring(rough)) end
                     if rough then
                         CachePut(inspect, guid, "level", rough)
                         -- 整數先上畫面，不然重試那幾秒提示會一直停在「??」
                         if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
                     end
                     if slot then
-                        if ns.logEnabled then ns.Log("觀察裝等 第 %d 格還沒快取，重試", slot) end
-                        RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
+                                    RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
                         return
                     end
                 end

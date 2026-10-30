@@ -398,9 +398,12 @@ function ns.RefreshUnitTip(guid)
     if not tip:IsShown() then return end
     -- 重繪面板接手中：不改寫行，下一幀照新資料重畫面板
     if state.native and state.panelKind == "unit" then
-        if UnitInfo.GuidEquals(state.panelGuid, guid) then ns.Panel.Poke(tip, state) end
+        local same = UnitInfo.GuidEquals(state.panelGuid, guid)
+        if ns.logEnabled then ns.Log("RefreshUnitTip 面板接手中 guid %s", same and "相同 → Poke" or "不同 → 不動") end
+        if same then ns.Panel.Poke(tip, state) end
         return
     end
+    if ns.logEnabled then ns.Log("RefreshUnitTip 走原生行（native=%s kind=%s）", tostring(state.native), tostring(state.panelKind)) end
     local mouseoverGuid = S.SafeCall(UnitGUID, "mouseover")
     if mouseoverGuid ~= nil and UnitInfo.GuidEquals(mouseoverGuid, guid) then
         UnitLines.Apply(tip, state, "mouseover", true)
