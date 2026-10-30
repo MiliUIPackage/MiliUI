@@ -317,9 +317,11 @@ local function SlotItemLevel(unit, slot)
         if S.IsSecret(id) or id then return end   -- 有物品但 link 還沒到
         return 0                                   -- 真的空格
     end
+    -- GetItemInfo 對沒快取的物品回 nil、同時向伺服器要資料 ⇒ 回 nil 讓上層稍後重試
+    local name, _, _, _, _, _, _, _, equipLoc = S.SafeCall(C_Item.GetItemInfo, link)
+    if not S.PlainText(name) then return end
     local lv = S.PlainNumber(S.SafeCall(C_Item.GetDetailedItemLevelInfo, link))
     if not lv or lv <= 0 then return end
-    local equipLoc = select(9, S.SafeCall(C_Item.GetItemInfo, link))
     return lv, S.PlainText(equipLoc)
 end
 
@@ -329,12 +331,13 @@ local function PreciseInspectItemLevel(unit)
     local total = 0
     for _, slot in ipairs(ILVL_SLOTS) do
         local lv = SlotItemLevel(unit, slot)
-        if not lv then return end
+        if not lv then return nil, slot end
         total = total + lv
     end
     local mh, mhLoc = SlotItemLevel(unit, 16)
     local oh, ohLoc = SlotItemLevel(unit, 17)
-    if not mh or not oh then return end
+    if not mh then return nil, 16 end
+    if not oh then return nil, 17 end
     if mh > 0 and oh > 0 then
         total = total + mh + oh
     elseif TWO_HAND[mhLoc] or TWO_HAND[ohLoc] then
@@ -430,6 +433,37 @@ function UnitInfo.RequestAchievements(unit)
     end
 end
 
+-- 觀察收尾：清掉觀察資料（玩家自己開著觀察視窗就不清）、放開 pending、叫提示重畫
+local function FinishInspect(guid)
+    if ClearInspectPlayer and not (InspectFrame and InspectFrame.IsShown and InspectFrame:IsShown()) then
+        pcall(ClearInspectPlayer)
+    end
+    inspect.pendingGUID, inspect.pendingUnit = nil, nil
+    if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
+end
+
+-- 到貨當下物品資料常常還沒全部快取（GetItemInfo 剛發問），每 0.25 秒再算一次、最多等 2.5 秒。
+-- 期間觀察資料要留著（不能 ClearInspectPlayer，不然連結就沒了）。
+-- 放棄的條件：unit token 已經指到別人、或又發了新的觀察（pendingGUID 換人）—— 那時資料已經是別人的，
+-- 收尾交給新的那一輪，自己安靜退場，快取裡留的是前面存的整數。
+local PRECISE_RETRY_EVERY, PRECISE_RETRY_FOR = 0.25, 2.5
+local function RetryPreciseItemLevel(unit, guid, deadline)
+    C_Timer.After(PRECISE_RETRY_EVERY, function()
+        if not GuidEquals(inspect.pendingGUID, guid) then return end
+        if not GuidEquals(SafeGuid(unit), guid) then FinishInspect(guid) return end
+        local precise, slot = PreciseInspectItemLevel(unit)
+        if precise and precise > 0 then
+            CachePut(inspect, guid, "level", precise)
+            FinishInspect(guid)
+        elseif GetTime() < deadline then
+            RetryPreciseItemLevel(unit, guid, deadline)
+        else
+            if ns.logEnabled then ns.Log("觀察裝等 第 %s 格等不到快取，放棄、用暴雪的整數", tostring(slot)) end
+            FinishInspect(guid)
+        end
+    end)
+end
+
 do
     local f = CreateFrame("Frame")
     f:RegisterEvent("INSPECT_READY")
@@ -446,14 +480,21 @@ do
                 unit = "target"
             end
             if unit then
-                local lv = InspectedItemLevel(unit)
-                if lv then CachePut(inspect, guid, "level", lv) end
+                local precise, slot = PreciseInspectItemLevel(unit)
+                if precise and precise > 0 then
+                    CachePut(inspect, guid, "level", precise)
+                else
+                    -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
+                    local rough = InspectedItemLevel(unit)
+                    if rough then CachePut(inspect, guid, "level", rough) end
+                    if slot then
+                        if ns.logEnabled then ns.Log("觀察裝等 第 %d 格還沒快取，重試", slot) end
+                        RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
+                        return
+                    end
+                end
             end
-            if ClearInspectPlayer and not (InspectFrame and InspectFrame.IsShown and InspectFrame:IsShown()) then
-                pcall(ClearInspectPlayer)
-            end
-            inspect.pendingGUID, inspect.pendingUnit = nil, nil
-            if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
+            FinishInspect(guid)
         elseif event == "INSPECT_ACHIEVEMENT_READY" then
             if not achieve.pendingGUID then return end
             if guid and not GuidEquals(guid, achieve.pendingGUID) then return end
