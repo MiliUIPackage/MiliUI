@@ -22,7 +22,7 @@
 --   自製發光引擎也是把整個派送閘在 ~60fps（EUICoreStandaloneRaidFrames_Glows.lua
 --   的 DRIVER_GATE = 0.016），同一個結論。
 --
--- ⚠ 這支管的是**別人的** LibCustomGlow —— 套組裡還在用它的是 Ayije_CDM、
+-- ⚠ 這支管的是**別人的** LibCustomGlow —— 套組裡還在用它的是
 --   BuffReminders、MRT。Cell 已經改用 MiliUIGlow（vendor 複製，自帶共用 driver 與
 --   同一個 60fps 閘），不再經過這裡。兩邊的閘值要一起改，
 --   見 MiliUI/Libs/MiliUIGlow/README.md。

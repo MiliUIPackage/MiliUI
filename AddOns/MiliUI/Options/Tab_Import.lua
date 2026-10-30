@@ -41,31 +41,8 @@ local importRegistry = {
         end,
     },
     {
-        name = "Ayije_CDM",
-        desc = "冷卻管理插件",
-        addonName = "Ayije_CDM",
-        dataCheck = function()
-            return MiliUI_AyijeCDM_Profile ~= nil
-        end,
-        import = function()
-            if not MiliUI_AyijeCDM_Profile then return false, "MiliUI 預設值資料不存在" end
-            if not Ayije_CDMDB then Ayije_CDMDB = {} end
-            if not Ayije_CDMDB.profiles then Ayije_CDMDB.profiles = {} end
-            if not Ayije_CDMDB.profileKeys then Ayije_CDMDB.profileKeys = {} end
-
-            -- 覆寫 Default profile
-            Ayije_CDMDB.profiles["Default"] = CopyTable(MiliUI_AyijeCDM_Profile)
-
-            -- 確保當前角色使用 Default profile
-            local charKey = UnitName("player") .. " - " .. GetRealmName()
-            Ayije_CDMDB.profileKeys[charKey] = "Default"
-
-            return true
-        end,
-    },
-    {
         name = "MiliUI_CooldownManager",
-        desc = "冷卻管理器（自製，取代 Ayije_CDM）",
+        desc = "冷卻管理器（自製）",
         addonName = "MiliUI_CooldownManager",
         dataCheck = function()
             return MiliUI_CooldownManager_Profile ~= nil

@@ -46,7 +46,7 @@ ALLOWED_GLOBAL_WRITES = {
     "MiliUI_Tooltip_DB", "MiliUI_UnitFrames_DB",
     "AGSCDB",
     # 內建預設值資料（Config/ 底下那幾支就是一整包全域表）
-    "MiliUI_PlatynatorProfile", "MiliUI_AyijeCDM_Profile", "MiliUI_CooldownManager_Profile",
+    "MiliUI_PlatynatorProfile", "MiliUI_CooldownManager_Profile",
     # 對外 API 與跨插件註冊表
     "MiliUI", "MiliUI_MenuEntries", "MiliUI_Snap",
     "MiliUI_Stats",                   # 角色屬性計算層（Libs/MiliUIStats，vendor；全域先到先贏）
@@ -77,7 +77,7 @@ ALLOWED_GLOBAL_WRITES = {
     # 刻意寫回暴雪／第三方的全域（都有掛勾理由，見各檔註解）
     "ChatEdit_CustomTabPressed",      # 暴雪留的官方覆寫點，有串回原本的
     "SetDesaturation", "AnimateTexCoords",   # Fix/DeprecatedGlobals.lua 的相容層
-    "BugSackDB", "Ayije_CDMDB", "PLATYNATOR_CONFIG",   # 預設值匯入的目標
+    "BugSackDB", "PLATYNATOR_CONFIG",   # 預設值匯入的目標
     # MiliUI_Merchant 刻意寫的**唯一**一個暴雪全域：商人視窗一頁幾格。暴雪的
     # MerchantFrame_Update 整條重畫迴圈都照這個數字跑，所以要讓它多畫幾格，
     # 除了改這個沒有第二條路（自己畫格子會讓所有照

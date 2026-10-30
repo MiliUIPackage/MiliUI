@@ -37,7 +37,6 @@ UPSTREAM = {
     "PremadeGroupsFilter": "https://github.com/0xbs/premade-groups-filter",
     "tullaRange": "https://github.com/Tuller/tullaRange",
     "tullaRange_Config": "隨 tullaRange 一起",
-    "Ayije_CDM_Options": "隨 Ayije_CDM 一起",
     "HandyNotes_Dragonflight": "https://github.com/zarillion/handynotes-plugins",
     "HandyNotes_TheWarWithin": "https://github.com/zarillion/handynotes-plugins",
     "HandyNotes_Midnight": "https://github.com/zarillion/handynotes-plugins",
@@ -47,7 +46,6 @@ UPSTREAM = {
 BUNDLED_WITH = {
     "MythicDungeonTools_UI": "MythicDungeonTools",
     "tullaRange_Config": "tullaRange",
-    "Ayije_CDM_Options": "Ayije_CDM",
 }
 
 

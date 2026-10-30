@@ -151,7 +151,6 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪框的 taint 規則（Core/HideBlizzard.lua）：reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件；藏施法條要連 `OverlayPlayerCastingBarFrame` 一起（只在宿主是覆蓋快捷列時）、oUF 系會把事件裝回 |
 | [feedback-no-toc-version-bump.md](feedback-no-toc-version-bump.md) | 不準主動 bump 任何插件 `.toc` 的 `## Version`、不開 chore bump commit —— 使用者有自己的插件管版本號；Interface 版本不在此限 |
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
-| [feedback-ayije-cdm-sync-tag.md](feedback-ayije-cdm-sync-tag.md) | Ayije_CDM 出版本只走工作資料夾的 `package.command`（整合包 → 工作 repo，整合包只 commit toc ＋ tag，跟 UnitFrames 同一套）；別在整合包另做同步腳本 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要治本：不在錯誤路徑上加閘／重試／補寫，先問「插件為什麼要替暴雪做這件事」 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
@@ -240,18 +239,15 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 ### 個別插件修補（上游更新後要重套）
 | 檔案 | 內容 |
 |---|---|
-| [project-ayije-cdm-editmode-drag.md](project-ayije-cdm-editmode-drag.md) | Ayije_CDM 編輯模式改成可拖曳 —— 四個容器的錨點語意換算表 |
-| [project-ayije-cdm-aura-slots.md](project-ayije-cdm-aura-slots.md) | Ayije_CDM 光環格（任意光環追蹤）：引擎一格式容器掛持有框；**持有框整條鏈是保護框，戰鬥零寫入**、主增益列改左側固定前綴、簽章重建；待實機驗證清單與 `/cdmaura` |
 | [project-tinytooltip-perf.md](project-tinytooltip-perf.md) | （已作廢，插件移除）TinyTooltip 掉 FPS 的根因分析，MiliUI_Tooltip 的設計依據 |
 | [project-cell-vehicle-secret.md](project-cell-vehicle-secret.md) | Cell 載具名稱秘密值 |
 | [project-cell-no-update-notice.md](project-cell-no-update-notice.md) | Cell 的更新提示現況：不對原版廣播；MiliUI 版本走私有前綴互相提醒 |
 | [project-cell-libgroupinfo-secret-guid.md](project-cell-libgroupinfo-secret-guid.md) | Cell LibGroupInfo 秘密 GUID |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip IsRectValid guard |
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
-| [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起連長條圖示都套皮、戰鬥中不 ReSkin 出偏移方框；Fix 用它的 `_MasqueBlizzBarsSkinned` 印記（只管 Ayije）、MCDM 走 `Core/Compat.lua`；印記在 Core.lua、PreHook 在 MasqueBlizzBars.lua，改名就靜默失效 |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 177 篇）
+## 全部筆記（自動產生，共 173 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -359,8 +355,6 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-121-addon-migration.md](project-121-addon-migration.md) | MiliUI 套組的 12.1 遷移記錄 — 各插件修了什麼、為什麼、放棄了什麼（2026-08，已併回 master） |
 | [project-agent-dir-convention.md](project-agent-dir-convention.md) | repo 的 agent 資料全部放 .claude/（skills 技能 + notes 筆記 + scripts 工具），memory 要匯出同步到 notes；哪些東西被 gitignore／export-ignore 擋在玩家發布包外 |
 | [project-appearancetooltip-secret-rect.md](project-appearancetooltip-secret-rect.md) | AppearanceTooltip 兩處秘密值修補(IsRectValid guard、秘密錨點就不顯示預覽),外加整包 zhTW 中文化,上游更新後要重套 |
-| [project-ayije-cdm-aura-slots.md](project-ayije-cdm-aura-slots.md) | Ayije_CDM 光環格（任意光環追蹤）——引擎一格式 AuraContainer 掛在持有框上的架構、「持有框整條鏈是保護框」的戰鬥零寫入規則、簽章重建、待實機驗證清單 |
-| [project-ayije-cdm-editmode-drag.md](project-ayije-cdm-editmode-drag.md) | Ayije_CDM 四個冷卻檢視器改成可在編輯模式拖曳；四種錨點語意的換算表與兩個受限情境 |
 | [project-baganator-miliui-skin.md](project-baganator-miliui-skin.md) | Baganator 的「MiliUI」皮膚＝fork 裡的薄轉接層＋MiliUI_Skin 對外 handle（MiliUISkin_API）；上游同步會弄掉 TOC 那一行；背包格的兩個特例（顯式保護不跳、Masque 時 artOnly） |
 | [project-burst-helper.md](project-burst-helper.md) | 自製 MiliUI_BurstPotionHelper 爆發藥水切換插件的設計與維護——戰鬥零讀取避免秘密值、SecureHandler 切換、item:ID 不用 bag slot、選擇持久化只存意圖、分環境記憶、團隊副本只在首領戰喝（「首領戰」的 secure 定義＝這場戰鬥見過 bossN 就鎖存到脫戰）；藥水 itemID 每季更新 |
 | [project-cell-auracontainer-rewrite.md](project-cell-auracontainer-rewrite.md) | Cell 光環指示器改走 12.1 AuraContainer（路線 A）的現況架構、設計規則、通則教訓與待辦 |
@@ -374,7 +368,6 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-itemupgrade-preview-icon.md](project-itemupgrade-preview-icon.md) | MiliUI 物品升級預覽 icon 已改成自動推導軌道 bonusID，不再需要每季更新對照表 |
 | [project-local-addon-forks.md](project-local-addon-forks.md) | 哪些第三方插件帶著不會回上游的本地修改（上游更新就會被洗掉），以及怎麼認出來 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | WoW 戰利品「擲骰/取得」記錄沒有 Blizzard 歷史 API，要自己用事件記錄 |
-| [project-masqueblizzbars-cooldownviewer.md](project-masqueblizzbars-cooldownviewer.md) | MasqueBlizzBars 12.1.0.0 起會對冷卻管理器（含增益長條圖示）套 Masque 皮，跟 Ayije_CDM 打架：長條出現偏移方框、層數數字被皮重新錨點裁字；MiliUI/Fix 用它的「已套皮」印記擋長條、用假 Count 讓數字歸 Ayije_CDM 管；MCDM 自己的 Core/Compat.lua 對四條檢視器蓋同一個印記 |
 | [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | MiliUI_DamageMeters「米利風格」專精圖示（40 張）＋頭像卡片＋裝等：產圖流程、授權界線、使用者拍板的決定、接進插件的位置、實機狀態 |
 | [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | MiliUI_AuraEnhance「米利的光環美化」——從套組拆出的獨立插件，兩條遷移來源、字型存路徑還是 LSM 名稱、圖示樣式三代演進（鏡射→Masque→自製 1px；驅散色受限下四條路全封）、暴雪只在部分語系每幀 SetFontObject 所以新按鈕要自己套、SetText 掛勾裡不要每次 SetFont |
 | [project-miliui-bonusroll-filter.md](project-miliui-bonusroll-filter.md) | 星雲之核骰裝提示的兩支強化（MiliUI_QoL/Modules/BonusRoll_Filter.lua 過濾、BonusRoll_Confirm.lua 確認框）——12.1 骰裝介面就是舊 BonusRollFrame、事件自帶 difficultyID/treasureContextLevel、+8 傳奇軌道門檻每季要驗；確認框不走 StaticPopup、要高過 DIALOG+toplevel 的貪需視窗 |
@@ -435,7 +428,6 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 
 | 檔案 | description |
 |---|---|
-| [feedback-ayije-cdm-sync-tag.md](feedback-ayije-cdm-sync-tag.md) | Ayije_CDM 的版本收尾（整合包 bump ＋ tag、複製回工作 repo、打包上傳）唯一的工具是工作資料夾的 package.command，方向是整合包 → 工作 repo；不要在整合包另做同步腳本 |
 | [feedback-button-no-ellipsis.md](feedback-button-no-ellipsis.md) | 按鈕文字結尾不加「…」／「...」（全套組）；「（N）」筆數照留；選單項目、輸入框提示、讀取中狀態不在此限 |
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell fork 只支援正式服（TOC 只有 1200xx），不要為經典版加保護或保留經典版路徑 |
 | [feedback-emphasis-note-yellow.md](feedback-emphasis-note-yellow.md) | 使用者說「黃字說明」＝共用層 W.fontEmphasis（1, 0.82, 0）；整列寬、放在底部灰字說明正上方 |

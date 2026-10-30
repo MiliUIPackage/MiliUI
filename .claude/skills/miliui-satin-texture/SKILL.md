@@ -36,5 +36,5 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
   | Cell（本地 fork，我們就是上游） | `Utils.lua` 的 `LSM:Register("statusbar", "MiliUI Satin", …)` | `appearance.texture = "MiliUI Satin"`（就是 LSM 名；舊 `"TukTex"` 由 `Revise.lua` 一次性旗標 `miliuiSatinMigrated` 換掉，不綁版本號——Cell 版本號由使用者發佈時才 bump） | 是（Cell 內嵌的 LSM） |
 - LSM 名一律「MiliUI Satin」：帶前綴是因為 LSM **撞名會被靜默拒絕**；六支登記同一個名字＝同一張圖，誰先到都一樣，
   各支解析 token 都先認自己的表、不經 LSM。⚠ LSM 登記會問 `C_UIFileAsset.IsKnownFile`：**新檔案要整個重開遊戲**，`/reload` 不夠。
-- 套組以外還在用 TukTex 的：`SharedMedia` 的 `TukTex`、`MiliUI/Config/Ayije_CDM.lua` 的 `"TukTex"`（第三方插件的匯入設定）。這些**不動**。
+- 套組以外還在用 TukTex 的：`SharedMedia` 的 `TukTex`。這個**不動**。
   Cell 2026-10-16 也換了（上面那列）；它不再登記 `TukTex`，SharedMedia 那份還在，玩家手動選 TukTex 照樣解得到。

@@ -18,7 +18,6 @@ Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
 
 Config\Luxthos_Platynator.lua
-Config\Ayije_CDM.lua
 Config\MiliUI_CooldownManager.lua
 Config\BugSack.lua
 
@@ -45,8 +44,6 @@ Api.lua
 Core.lua
 
 Enhance\SlashRL.lua
-Enhance\AyijeCDM_PixelFont.lua
-Enhance\AyijeCDM_CastBar.lua
 Enhance\AddonNames.lua
 Enhance\Baganator_Keystone.lua
 Enhance\LibCustomGlow_FpsGate.lua
@@ -75,7 +72,6 @@ Fix\TinyInspectRemake_OffhandEnchant.lua
 Fix\BugSack_SecretGuard.lua
 Fix\ParagonReputation_HideTooltipForbidden.lua
 Fix\HandyNotes_DecorName.lua
-Fix\MasqueBlizzBars_CooldownViewer.lua
 Fix\Blizzard_TransmogRollChat.lua
 Fix\Blizzard_FriendsStatusDropdown.lua
 Fix\Blizzard_FriendsButtonBar.lua

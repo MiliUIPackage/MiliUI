@@ -11,12 +11,10 @@
 | AdvancedInterfaceOptions | 2.1.9 | 2016-11-13 d26ef58e7 | https://www.curseforge.com/wow/addons/advancedinterfaceoptions |
 | AppearanceTooltip | v81 | 2026-03-22 ce2cb0c4a | https://www.curseforge.com/projects/101155 |
 | Auctionator | 320 | 2026-04-10 a092008e9 | https://www.curseforge.com/wow/addons/auctionator |
-| Ayije_CDM | 3.92_MiliUI | 2026-06-20 c7a365ef0 | https://www.curseforge.com/projects/1469668 |
-| Ayije_CDM_Options | 3.92_MiliUI | 2026-06-20 c7a365ef0 | 隨 Ayije_CDM 一起 |
 | Baganator | 829 | 2026-09-23 73ae195e6 | https://github.com/plusmouse/Baganator（套組用的是 fork 的 miliui 分支，見 notes/project-baganator-miliui-skin.md） |
 | BuffReminders | v6.8.7 | 2026-10-15 09fa1b9d1 | https://www.curseforge.com/projects/1441094 |
 | BugSack | v12.0.4 | 2026-03-17 66dbf6bca | https://github.com/funkydude/BugSack |
-| Cell | r313_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
+| Cell | r314_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
 | Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.8 | 2026-10-20 10b98bea5 | 待補 |
 | EasyExperienceBar | 2026.03.09.A | 2026-10-24 84fa0f796（收錄） | 待補 |
@@ -55,4 +53,4 @@
 | tullaRange_Config | — | 2026-08-23 33972d566 | 隨 tullaRange 一起 |
 | YUI_AuctionHelper | yah-121 | 2026-10-15 5fcc297d2 | 待補 |
 
-共 47 個資料夾。
+共 45 個資料夾。

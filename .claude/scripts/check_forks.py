@@ -45,17 +45,6 @@ PATCHES = [
     P("TinyInspect-Remake", "ItemLevel.lua", "fix from MiliUI", "IsInspectFrameData"),
     P("TinyInspect-Remake", "InspectUnit.lua", "fix from MiliUI", "IsInspectFrameData"),
 
-    # ── Ayije_CDM：12.1 secret guard、xpcall 隔離、米利頭像錨定…（挑各檔一個標記）──
-    P("Ayije_CDM", "Init.lua", "fix from MiliUI", "事件／刷新鏈 xpcall 逐一隔離"),
-    P("Ayije_CDM", "Core/InternalCallbacks.lua", "fix from MiliUI", "戰鬥／專精／天賦 handler 隔離"),
-    P("Ayije_CDM", "Core/Main.lua", "fix from MiliUI", "編輯模式 scale／拖曳補丁、模組初始化隔離"),
-    P("Ayije_CDM", "Core/EditMode.lua", "fix from MiliUI", "編輯模式改成可拖曳"),
-    P("Ayije_CDM", "Core/TrackerUtils.lua", "MiliUIUF_Player", "錨定米利頭像框架"),
-    P("Ayije_CDM", "Core/Style.lua", "fix from MiliUI", "黑底清除、增益長條名字"),
-    P("Ayije_CDM", "Modules/Tags.lua", "fix from MiliUI", "法力數字縮寫選項"),
-    P("Ayije_CDM_Options", "Border.lua", "MiliUI", "無損刷新標題下的說明列"),
-    P("Ayije_CDM", "Ayije_CDM.toc", "_MiliUI", "TOC 版本號尾綴"),
-
     # ── Chattynator ─────────────────────────────────────────────────────
     P("Chattynator", "Core/Config.lua", r"SHOW_LEVEL\s*=.*default\s*=\s*false.*MiliUI",
       "SHOW_LEVEL 預設 false", regex=True),

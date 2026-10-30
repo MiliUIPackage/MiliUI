@@ -126,15 +126,15 @@ body 才有「玩家實際會看到什麼」「設定在哪一頁」「預設開
 - 套組本體：發版管理介面的 `scripts/release-suite.sh`（`_retail_/Packaging.command` 現在只是打開 App）
 - 自製插件：發版管理介面（`~/Projects/MiliUI_ReleaseManager`）的通用發版腳本 `scripts/release.sh`，
   經由 [.claude/scripts/release-notes.sh](../../scripts/release-notes.sh)
-- fork（Ayije_CDM、Cell）：各自工作 repo 的 `package.command`，同樣經由 release-notes.sh；一次發佈多個資料夾的
-  （`Ayije_CDM` ＋ `Ayije_CDM_Options`）會附上全部路徑
+- fork（Cell）：工作 repo 的 `package.command`，同樣經由 release-notes.sh；一次發佈多個資料夾的
+  （例如 `tullaRange` ＋ `tullaRange_Config`）會附上全部路徑
 這時產出直接塞進插件補給站的更新說明欄，**沒有人會先看過**，所以規則照上面全部適用，
 只有交件格式不同：
 
 - **只出繁中**，不出簡中、英文，也不附 tag 區間那一行。
 - 區間由呼叫端給，不要自己重算。套組本體是「上一個日期 tag..HEAD」（HEAD 還沒打 tag 是正常的）；
   單一插件會附上路徑（`只看 AddOns/<插件>`），`git log` 一律加 `-- AddOns/<插件>`（多個路徑就全部帶上）。
-- fork 的第三方插件（Cell、Ayije_CDM）區間內常有「update: Cell」這種併上游的 commit —— 上游的新功能
+- fork 的第三方插件（Cell）區間內常有「update: Cell」這種併上游的 commit —— 上游的新功能
   玩家也拿得到，一樣要寫，但只寫玩家看得到的。
 - 段落改用網站的三段，順序固定：**更新**（＝上面的「新增」）→ **調整** → **修正**。
   沒內容的段落整段省略。

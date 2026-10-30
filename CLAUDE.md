@@ -65,5 +65,5 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
   遊戲裡沒有測試可跑，這幾樣都是「不報錯但會壞」的類型。同一批腳本由
   [.github/workflows/checks.yml](.github/workflows/checks.yml) 在 push 時再跑一次。
 - **commit 訊息**：`feat:` / `fix:` / `update:` / `chore:` 開頭，後面接中文或英文簡述，
-  通常點名插件（例：`fix: Ayije_CDM 翻譯`、`update: Cell`）。
+  通常點名插件（例：`fix: Platynator 翻譯`、`update: Cell`）。
 - **回報用語**：使用者用繁體中文，回覆也用繁體中文。

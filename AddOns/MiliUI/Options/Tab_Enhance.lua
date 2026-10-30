@@ -1,13 +1,13 @@
 ------------------------------------------------------------
--- 「插件強化」分頁：施法條美化（只在舊的冷卻管理器插件載入時出現）、Baganator 鑰石發光、
+-- 「插件強化」分頁：Baganator 鑰石發光、
 -- Chattynator 聊天視窗樣式、Raider.IO 右鍵選單
 --
--- 分界：這頁只管**第三方插件**的強化（Ayije_CDM、Baganator、Chattynator、Raider.IO）。
+-- 分界：這頁只管**第三方插件**的強化（Baganator、Chattynator、Raider.IO）。
 -- 暴雪介面本身的便利功能（商人、任務、探究、世界地圖、調色盤、巨集視窗、好友名單、
 -- 拍賣行……）在獨立插件 MiliUI_QoL，它自己向本體註冊「便利功能」分頁。
 --
 -- 每一條 spec 自帶 get/set，直接接各 Enhance 模組的全域 API
--- （MiliUI_CastBarEnhance / MiliUI_BaganatorKeystone / MiliUI_ChattynatorTabs /
+-- （MiliUI_BaganatorKeystone / MiliUI_ChattynatorTabs /
 --   MiliUI_ChattynatorButtons / MiliUI_ChattynatorURLs / MiliUI_RaiderIOUnitMenu）。
 -- 模組沒載入時 get/set 都靜默略過。
 ------------------------------------------------------------
@@ -56,29 +56,6 @@ local function BuildKeystoneColorRow(parent, x, y, width)
 
     return 26, Refresh
 end
-
--- 施法條那三個開關只對舊的冷卻管理器插件有效（Enhance/AyijeCDM_*.lua 也只在它載入時才掛）。
--- MiliUI_CooldownManager 的引導刻度與延遲條在它自己的設定（/mcdm → 施法條）裡。
--- ⚠ 在 Init（第一次開這一頁）才決定要不要併進來，不在檔案載入時：那時別的插件不一定載入完了
-local CASTBAR_CONTROLS = {
-    { type = "header", label = "施法條（Ayije_CDM）" },
-    { type = "toggle", label = "引導刻度",
-      get = function() local db = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {} return db.channelTicks ~= false end,
-      set = function(v) if MiliUI_CastBarEnhance then MiliUI_CastBarEnhance.SetChannelTicks(v) end end },
-    { type = "text", label = "在引導法術施法條上顯示每一跳的刻度線。" },
-    { type = "toggle", label = "延遲顯示",
-      get = function() local db = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {} return db.latencyBar ~= false end,
-      set = function(v) if MiliUI_CastBarEnhance then MiliUI_CastBarEnhance.SetLatencyBar(v) end end },
-    { type = "text", label = "在施法條尾端顯示紅色延遲區塊。" },
-    { type = "toggle", label = "等比例字型",
-      get = function() local db = MiliUI_CastBarEnhance and MiliUI_CastBarEnhance.GetDB() or {} return db.proportionalFont == true end,
-      set = function(v)
-          if not MiliUI_CastBarEnhance then return end
-          MiliUI_CastBarEnhance.SetProportionalFont(v)
-          AskReload()
-      end },
-    { type = "text", label = "將 Ayije_CDM 的字型從「像素完美」改為「等比例縮放」：不同解析度下字型佔螢幕的比例會一致，但不再保證相同的物理像素數。" },
-}
 
 local CONTROLS = {
     { type = "header", label = "Baganator 背包" },
@@ -129,9 +106,6 @@ local ctx = {
 
 local function Init()
     if tab then return end
-    if C_AddOns.IsAddOnLoaded("Ayije_CDM") then
-        for i = #CASTBAR_CONTROLS, 1, -1 do tinsert(CONTROLS, 1, CASTBAR_CONTROLS[i]) end
-    end
     tab, scroll = ns.Options.MakeFormTab("插件強化")
     local _
     _, refreshers = ns.Options.BuildScrollBody(scroll, CONTROLS, ctx)

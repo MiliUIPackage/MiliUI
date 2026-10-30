@@ -74,11 +74,15 @@ local REPLACED = {
 -- 目標問題已修掉（資訊列的教學提示改鏡射不改錨），2026-09-10 從套組移除。
 -- _BarNameProbe 同樣是診斷探針（Ayije_CDM 增益長條偶爾沒名字），名字改成
 -- 完全讓暴雪寫之後就沒再發作過，2026-09-20 從套組移除。
+-- Ayije_CDM 2026-10-30 從套組移除（冷卻管理器改用自製的 MiliUI_CooldownManager）。
+-- 放這裡不放 REPLACED：兩支同時載入時 MiliUI_CooldownManager 自己會跳互斥彈窗
+-- （停用它／匯入它的設定／繼續用它），這邊再搶著停用會把匯入的機會關掉。
 local REMOVED = {
     { label = "MiniCC",      folders = { "MiniCC" } },
     { label = "WarpDeplete", folders = { "WarpDeplete" } },
     { label = "冷卻錯誤探針", folders = { "_CDProbe" } },
     { label = "長條名字探針", folders = { "_BarNameProbe" } },
+    { label = "Ayije_CDM",   folders = { "Ayije_CDM", "Ayije_CDM_Options" } },
 }
 
 ------------------------------------------------------------

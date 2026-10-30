@@ -6,7 +6,7 @@
 # 用法：release-notes.sh <插件資料夾名> <tag 的 grep -E 樣式> <這次的 tag> <這次的版本號> [en]
 #   例：release-notes.sh MiliUI_UnitFrames '^Miliui_UnitFrames-[0-9.]+$' Miliui_UnitFrames-1.4.3 1.4.3
 # 一次發佈多個資料夾時用空白隔開，第一個當名稱：
-#   例：release-notes.sh "Ayije_CDM Ayije_CDM_Options" '^Ayije_CDM-[0-9.]+_MiliUI$' Ayije_CDM-3.93_MiliUI 3.93_MiliUI
+#   例：release-notes.sh "tullaRange tullaRange_Config" '^tullaRange-[0-9.]+$' tullaRange-12.1.0 12.1.0
 #
 # 區間＝同類 tag 裡最新的一個（排除這次的 tag，重發同一版時才不會變空區間）..這次的 tag，
 # 只看 AddOns/<插件>（多個資料夾就全部一起看）。這次的 tag 還不存在就算到 HEAD。

@@ -52,7 +52,6 @@ ns.AddonRoster = {
         { key = "MiliUI_AdventureGuideSpecCompare", folders = { "MiliUI_AdventureGuideSpecCompare" }, slash = "/agsc" },
 
         -- ===== 介面與外觀 =====
-        { key = "Ayije_CDM", folders = { "Ayije_CDM", "Ayije_CDM_Options" }, slash = "/cdm" },
         { key = "Cell", folders = { "Cell" }, slash = "/cell opt" },
         { key = "Platynator", folders = { "Platynator" }, slash = "/platy" },
         { key = "Chattynator", folders = { "Chattynator" }, slash = "/chattynator" },
