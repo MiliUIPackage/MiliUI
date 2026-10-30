@@ -254,8 +254,8 @@ end
 -- 觀察裝等 / 成就點數：非同步快取（TTL 900s、節流 1.2s）
 ------------------------------------------------------------
 -- INSPECT_PENDING_TIMEOUT 跟 INSPECT_INTERVAL 一樣：沒回音就再問，但再問本來就得等節流過，
--- 設得比節流短只是多重畫一次。實測來回 0.1～0.2 秒，團隊裡被別家插件搶時 1.4 秒。
-local INSPECT_TTL, INSPECT_INTERVAL, INSPECT_PENDING_TIMEOUT = 900, 1.2, 1.2
+-- 設得比節流短只是多重畫一次，所以比節流多一點點。實測來回 0.1～0.2 秒，團隊裡被別家插件搶時 1.4 秒。
+local INSPECT_TTL, INSPECT_INTERVAL, INSPECT_PENDING_TIMEOUT = 900, 1.2, 1.3   -- 逾時比節流多 0.1 秒緩衝，重畫時節流一定已經過了
 local inspect = { cache = {}, pendingGUID = nil, pendingUnit = nil, lastRequestAt = 0, suspendedUntil = 0 }
 local achieve = { cache = {}, pendingGUID = nil, lastRequestAt = 0, suspendedUntil = 0 }
 UnitInfo.inspectState = inspect
