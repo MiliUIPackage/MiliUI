@@ -362,16 +362,6 @@ local function InspectDataPresent(unit)
     return (lv and lv > 0) or false
 end
 
--- 觀察中的單位目前能拿到的裝等：自己算的優先，退回暴雪的整數
-local function InspectedItemLevel(unit)
-    local precise = PreciseInspectItemLevel(unit)
-    if precise and precise > 0 then return precise end
-    if C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel then
-        local lv = S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
-        if lv and lv > 0 then return lv end
-    end
-end
-
 local function GetUnitItemLevel(unit)
     if not S.SafeBool(UnitIsPlayer, unit) then return end
     if S.SafeBool(UnitIsUnit, unit, "player") and GetAverageItemLevel then
@@ -382,10 +372,12 @@ local function GetUnitItemLevel(unit)
     end
     local cached = CacheGet(inspect, unit, "level")
     if cached then return cached end
-    local lv = InspectedItemLevel(unit)
-    if lv then
-        CachePut(inspect, SafeGuid(unit), "level", lv)
-        return lv
+    -- 別家插件剛好觀察過這個人、物品也都快取了：直接算，不用自己發問。
+    -- 只收小數：暴雪的整數不收，收了會在快取待 15 分鐘、也擋掉我們自己發問
+    local precise = PreciseInspectItemLevel(unit)
+    if precise and precise > 0 then
+        CachePut(inspect, SafeGuid(unit), "level", precise)
+        return precise
     end
 end
 
@@ -479,6 +471,14 @@ local function FinishInspect(guid)
     if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
 end
 
+-- 小數真的算不出來（重試到期、或根本沒有哪一格卡住卻也算不出）才退回暴雪四捨五入過的整數
+local function FallbackRoughItemLevel(unit, guid)
+    local rough = C_PaperDollInfo and C_PaperDollInfo.GetInspectItemLevel
+        and S.PlainNumber(S.SafeCall(C_PaperDollInfo.GetInspectItemLevel, unit))
+    if ns.logEnabled then ns.Log("觀察裝等 暴雪整數=%s", tostring(rough)) end
+    if rough and rough > 0 then CachePut(inspect, guid, "level", rough) end
+end
+
 -- 到貨當下物品資料常常還沒全部快取（GetItemInfo 剛發問），每 0.25 秒再算一次、最多等 5 秒（中間畫面上有整數頂著，等久一點不痛）。
 -- 期間觀察資料要留著（不能 ClearInspectPlayer，不然連結就沒了）。
 -- 放棄的條件：unit token 已經指到別人、或又發了新的觀察（pendingGUID 換人）—— 那時資料已經是別人的，
@@ -505,7 +505,8 @@ local function RetryPreciseItemLevel(unit, guid, deadline)
         elseif GetTime() < deadline then
             RetryPreciseItemLevel(unit, guid, deadline)
         else
-            if ns.logEnabled then ns.Log("觀察裝等 第 %s 格等不到快取，放棄、用暴雪的整數", tostring(slot)) end
+            if ns.logEnabled then ns.Log("觀察裝等 第 %s 格等不到快取，放棄、退回暴雪的整數", tostring(slot)) end
+            FallbackRoughItemLevel(unit, guid)
             FinishInspect(guid)
         end
     end)
@@ -538,19 +539,13 @@ do
             if ns.logEnabled then ns.Log("觀察裝等 自己算=%s 卡格=%s", tostring(precise), tostring(slot)) end
             if precise and precise > 0 then
                 CachePut(inspect, guid, "level", precise)
+            elseif slot then
+                -- 物品資料沒快取齊：留著觀察資料重試，「??」等到小數算齊才換掉。
+                -- 不先畫暴雪的整數——那會先跳一次整數再跳一次小數，看起來在抖。
+                RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
+                return
             else
-                -- 先用暴雪的整數頂著；物品資料沒快取齊的話留著觀察資料，等齊了再換成小數
-                local rough = InspectedItemLevel(unit)
-                if ns.logEnabled then ns.Log("觀察裝等 暴雪整數=%s", tostring(rough)) end
-                if rough then
-                    CachePut(inspect, guid, "level", rough)
-                    -- 整數先上畫面，不然重試那幾秒提示會一直停在「??」
-                    if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
-                end
-                if slot then
-                    RetryPreciseItemLevel(unit, guid, GetTime() + PRECISE_RETRY_FOR)
-                    return
-                end
+                FallbackRoughItemLevel(unit, guid)
             end
             FinishInspect(guid)
         elseif event == "INSPECT_ACHIEVEMENT_READY" then
