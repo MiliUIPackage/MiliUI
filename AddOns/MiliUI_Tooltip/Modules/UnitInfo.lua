@@ -421,7 +421,14 @@ function UnitInfo.RequestInspect(unit)
         inspect.pendingGUID = guid
         inspect.pendingUnit = unit
         inspect.lastRequestAt = now
-        if ns.logEnabled then ns.Log("觀察 送出 NotifyInspect(%s)%s", tostring(unit), inspect.pendingGUID and "" or "（pending 被別人佔著）") end
+        if ns.logEnabled then ns.Log("觀察 送出 NotifyInspect(%s)", tostring(unit)) end
+        -- 回音沒來（別家插件在掃團隊、伺服器只回最後一個）就自動再問：逾時後叫提示重畫一次，
+        -- 提示還開在這個人身上的話，重讀時會發現裝等仍未知而再發一次；已經滑走就什麼都不做
+        C_Timer.After(INSPECT_PENDING_TIMEOUT + 0.05, function()
+            if inspect.pendingGUID ~= guid or inspect.lastRequestAt ~= now then return end
+            if ns.logEnabled then ns.Log("觀察 %s 等 %.1fs 沒回音，重畫讓它再問", tostring(unit), INSPECT_PENDING_TIMEOUT) end
+            if ns.RefreshUnitTip then ns.RefreshUnitTip(guid) end
+        end)
     elseif ns.logEnabled then
         ns.Log("觀察 NotifyInspect(%s) 拋錯", tostring(unit))
     end
