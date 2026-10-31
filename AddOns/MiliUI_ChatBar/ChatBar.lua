@@ -906,7 +906,7 @@ UpdateLayout()
 ------------------------------------------------------------
 local grad = bgFrame:CreateTexture(nil, "BACKGROUND")
 grad:SetAllPoints()
-grad:SetColorTexture(BgColor())
+grad:SetColorTexture(BgColor())   -- 此時 DB 還沒載入 ⇒ 預設值；PLAYER_LOGIN 會用 UpdateBackground 重套
 
 -- 底色改了就重套：條本身一張貼圖，加上每顆按鈕的 backdrop（按鈕底平常被色塊整面
 -- 蓋住看不到，但跟條用同一個值，兩邊才不會在某個狀態下露出不同的灰）。
@@ -1002,6 +1002,11 @@ loader:SetScript("OnEvent", function(self, event)
 
     -- Apply lock state (respects Edit Mode)
     UpdateMoverState()
+
+    -- 底色：檔案載入時那次上色跑在 SavedVariables 載入之前，讀到的永遠是預設值；
+    -- 這裡才是第一次看得到玩家存的 BgColor。漏掉這行＝「調了透明度，/reload 就回到預設」
+    -- （2026-10-31 玩家回報；值其實有存，只是沒人重畫）。
+    UpdateBackground()
 
     -- Update colors
     for _, bu in ipairs(buttonList) do
