@@ -39,3 +39,16 @@ end
 if not AnimateTexCoords and TextureUtil and TextureUtil.AnimateTexCoords then
     AnimateTexCoords = TextureUtil.AnimateTexCoords
 end
+
+-- GetItemInfo(item)
+--
+-- 12.1.5 把 Blizzard_DeprecatedItemScript 整支刪了，裡面那句
+-- `GetItemInfo = C_Item.GetItemInfo` 跟著消失。12.1.0 以前它就只是這個別名，
+-- 補回來等於回到 12.1.5 之前的狀態。
+--
+-- Auctionator 的專業視窗材料提示（Tooltips/Hooks.lua 的 SetRecipeReagentItem）
+-- 還在裸呼叫它，滑過配方材料格就噴「attempt to call a nil value」。套組裡其他
+-- 用到的插件都先取了 C_Item 的本地別名或有存在檢查，所以只補這一個。
+if not GetItemInfo and C_Item and C_Item.GetItemInfo then
+    GetItemInfo = C_Item.GetItemInfo
+end

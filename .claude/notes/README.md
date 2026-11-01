@@ -267,7 +267,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | Non-secret WoW 12.1.0 API changes worth using — SVG, radial masks, rolesets, OnUpdateMode, Bootstrap, XML mixins, deprecations |
 | [wow-121-percent-api-signature.md](wow-121-percent-api-signature.md) | UnitHealthPercent / UnitPowerPercent 的官方簽章，以及「別把其他插件註解裡的參數名當權威」 |
 | [wow-121-secret-values.md](wow-121-secret-values.md) | WoW 12.x Secret Values rules — what tainted addon code may/may not do with secrets, plus 12.1's new table-security APIs |
-| [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy |
+| [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords; 12.1.5 GetItemInfo); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy |
 | [wow-121-spell-target-apis.md](wow-121-spell-target-apis.md) | 12.x「這個施法打向誰／是不是打我」的 API 全貌：UnitSpellTargetName 系列、PlayerIsSpellTarget（秘密布林）、UnitIsSpellTarget 已移除；「只列對我施法的敵人」在受限內容做不到 Lua 過濾；暴雪名條本來就有 CastTargetIndicator；EUI 的 Cast Bars 不過濾對我 |
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | Exact list of Unit APIs that started returning secret values in WoW 12.1.0 PTR 7 (build 68914) |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 12.1 右鍵單位選單的完整地雷圖——togglemenu 誤判、tainted 重開的代價、ClickBindings 閘、CopyToClipboard 是保護函式 |

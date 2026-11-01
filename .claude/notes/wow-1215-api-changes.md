@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 2ed86f54-d12c-4e9c-82e8-4d150c50b5be
-  modified: 2026-10-15T00:00:00.000Z
+  modified: 2026-11-01T08:28:05.790Z
 ---
 
 12.1.5（build 69952，2026-09-21）對插件實際有影響的變動，2026-10-15 掃過 MiliUI 系列並修完：
@@ -47,6 +47,11 @@ metadata:
 **Cell 不用修**：`RaidFrames/AuraContainerCore.lua` 本來就 `AddDispelTypeTexture` 優先且先 Clear，`SetAuraBorder` 只是死退路，
 已拿掉。**沒做的**：第三方直接呼叫舊全域的粗估（含別名誤判）：Plumber 53、MRT 53、
 YUI_AuctionHelper 26、TinyInspect-Remake 17、AppearanceTooltip 7、TeleportMenu／Cell／BuffReminders／Ayije_CDM 各 3。
+**粗估大多是誤判**：2026-11-01 逐檔查 `GetItemInfo`，MRT／Plumber／TinyInspect 都在檔頭取了
+`C_Item` 本地別名（`local GetItemInfo = C_Item and C_Item.GetItemInfo or GetItemInfo` 這種），YUI 是
+C_Item 優先、全域只當退路；**真正裸呼叫的只有 Auctionator**（`Tooltips/Hooks.lua` 專業材料提示，滑過
+材料格就報錯）。已在 `MiliUI/Fix/DeprecatedGlobals.lua` 補回 `GetItemInfo = C_Item.GetItemInfo`（等於 12.1.0
+的別名），沒動 Auctionator 本體。再有「舊全域 nil」先查是不是只有一家裸呼叫，同法補在那支檔。
 
 **怎麼比對（下次改版照抄）**：
 1. wiki `Patch_X/API_changes?action=raw` ＋ `/notes` 子頁（官方說明）。

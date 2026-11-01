@@ -1,11 +1,11 @@
 ---
 name: wow-121-setdesaturation-acegui
-description: "WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy"
+description: "WoW 12.1 removed FrameXML globals (SetDesaturation, AnimateTexCoords; 12.1.5 GetItemInfo); restore them in MiliUI/Fix/DeprecatedGlobals.lua instead of patching each library copy"
 metadata: 
   node_type: memory
   type: reference
   originSessionId: f1b7b639-5461-453c-bd27-5aa2c80bde5f
-  modified: 2026-08-16T21:37:33.925Z
+  modified: 2026-11-01T08:28:07.642Z
 ---
 
 12.1 把全域函式 **`SetDesaturation(texture, desaturate)`** 從 FrameXML 移除了（見 `Patch_12.1.0/API_changes` 的 FrameXML Removed 清單）。
