@@ -195,6 +195,30 @@ end
 D.OnBarNameSetText = OnBarNameSetText
 D.RecheckSecretName = RecheckSecretName                              -- 測試用
 
+-- /mcdm debug 每格那行的名字現況（Api.lua 的 ItemLines；不是長條 ＝ ""）。「名字空白」的回報要在空白當下打，
+-- 對 [barname] 記錄看：框藏著（暴雪跳過寫字）／alpha 0（設定關了）／秘密字串量到的寬／疊字有沒有頂上／暴雪寫過幾次
+function D.BarNameDebug(item)
+    local fs = item.Bar and item.Bar.Name
+    if not fs then return "" end
+    local function Get(obj, method)
+        local fn = obj[method]
+        if type(fn) ~= "function" then return "?" end
+        local ok, v = pcall(fn, obj)
+        if not ok then return "?" end
+        if ns.IsSecret(v) then return "秘密" end
+        if type(v) == "number" then return (("%.1f"):format(v):gsub("%.0$", "")) end
+        return v
+    end
+    local text = Get(fs, "GetText")
+    text = text == nil and "nil" or text == "" and "空字串" or text == "秘密" and "秘密字串" or ("「" .. tostring(text) .. "」")
+    local f, fill = nameFill[fs], "沒建"
+    if f then
+        fill = Get(f, "IsShown") == true and ("顯示「" .. tostring(Get(f, "GetText")) .. "」") or "藏"
+    end
+    return (" 名字：顯示=%s alpha=%s 字=%s 寬=%s 疊字=%s 暴雪寫過 %d 次"):format(tostring(Get(fs, "IsShown")),
+        tostring(Get(fs, "GetAlpha")), text, tostring(Get(fs, "GetStringWidth")), fill, nameGen[fs] or 0)
+end
+
 ------------------------------------------------------------
 -- 長條的版面：圖示邊、條身、底色、材質
 ------------------------------------------------------------

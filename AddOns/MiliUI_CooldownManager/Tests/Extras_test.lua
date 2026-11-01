@@ -546,6 +546,20 @@ do
     D.RestyleNameFill(fs)
     check("RestyleNameFill 跟著換樣式", styled and styled[2] == fill)
     ns.Text.StyleNameFill = oldStyle
+    -- /mcdm debug 每格那行的名字現況：秘密字串不讀內容、量到的寬、疊字顯示中的字、暴雪寫過幾次
+    fs.IsShown = function() return true end
+    fs.GetText = function(self) return self.text end
+    fill.IsShown = function(self) return self.shown end
+    fill.GetText = function(self) return self.text end
+    local okDbg, dbg = pcall(D.BarNameDebug, bi)
+    check("BarNameDebug 不拋錯", okDbg, dbg)
+    dbg = okDbg and dbg or ""
+    check("BarNameDebug：秘密字串", dbg:find("字=秘密字串", 1, true), dbg)
+    check("BarNameDebug：寬 0", dbg:find("寬=0 ", 1, true), dbg)
+    check("BarNameDebug：疊字顯示中", dbg:find("疊字=顯示「法術1200」", 1, true), dbg)
+    check("BarNameDebug：寫過的次數", dbg:find("暴雪寫過 %d+ 次"), dbg)
+    eq("BarNameDebug：不是長條 ⇒ 空字串", D.BarNameDebug({}), "")
+    fs.IsShown, fs.GetText = nil, nil
     fs.GetStringWidth = nil
     fs.GetParent, fs.GetFont, fs.GetJustifyH, fs.GetTextColor, fs.GetAlpha = nil, nil, nil, nil, nil
     -- 自訂框不掛

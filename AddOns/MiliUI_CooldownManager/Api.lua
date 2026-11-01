@@ -268,6 +268,8 @@ local function ItemLines(out)
                     cdInfo = cdInfo .. AuraInfo(item, rec)
                 end
                 if rec.claimKey then cdInfo = cdInfo .. IconGeo(item, rec) end
+                -- 增益長條的名字框（「條在、秒數在、名字空白」看這段，Core/Decorate_Bars.lua）
+                if not rec.custom and ns.Decorate.BarNameDebug then cdInfo = cdInfo .. ns.Decorate.BarNameDebug(item) end
                 out[#out + 1] = ("    %s #%s id=%s%s 顯示=%s alpha=%s 縮放=%s 尺寸=%sx%s 錨=%s→%s(%s,%s) 認領=%s%s%s%s")
                     :format(key, tostring(rawget(item, "layoutIndex")), tostring(rec.cooldownID), rep,
                             tostring(Read(item, "IsShown")), alpha, Num(Read(item, "GetScale")),
