@@ -1958,9 +1958,26 @@ UnitButton_UpdateAuras = function(self, updateInfo)
     -- tainted") on every UpdateAll in restricted content. Bail here on the secret state itself so
     -- BOTH paths keep the last known state. The raid-debuff AuraContainer (SetContainerUnit above)
     -- is what actually drives teammate debuffs while this is secret.
-    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then return end
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        self._auraScanMissed = true
+        return
+    end
 
-    if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then return end
+    if updateInfo ~= nil and not F.CanDiffAuraPayload(updateInfo) then
+        self._auraScanMissed = true
+        return
+    end
+
+    -- fix from MiliUI: whatever those two bails dropped cannot be diffed back. A removal nobody
+    -- saw leaves the aura in _debuffs_cache, and the incremental path below RE-RENDERS that
+    -- cache -- so the manual widgets (crowdControls, debuff-type custom indicators) keep an icon
+    -- for an aura nobody carries, through every later UNIT_AURA, until a roster change or a
+    -- /reload. Only a full scan rebuilds the cache. UnitButton_OnTick runs this once auras are
+    -- readable again, because the next UNIT_AURA for this unit may be a long way off.
+    if self._auraScanMissed then
+        self._auraScanMissed = nil
+        updateInfo = nil
+    end
 
     local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
 
@@ -4575,6 +4592,11 @@ end
 do -- local-budget block: OnTick and the shared tick driver; OnShow/OnHide use StartTicking/StopTicking
 local UNKNOWN = _G.UNKNOWN
 local UNKNOWNOBJECT = _G.UNKNOWNOBJECT
+-- Catch-up scans after a secret window, per 0.25s pass. A whole raid missed updates at once and
+-- all of them come due together -- 40 full scans in one tick is exactly the stall a post-combat
+-- queue must not cause. 5 per pass clears 40 buttons in 2 seconds.
+local AURA_RESCANS_PER_PASS = 5
+local auraRescansLeft = 0
 local function UnitButton_OnTick(self)
     -- print(GetTime(), "OnTick", self._updateRequired, self:GetAttribute("refreshOnUpdate"), self:GetName())
     local e = (self.__tickCount or 0) + 1
@@ -4645,6 +4667,14 @@ local function UnitButton_OnTick(self)
         UnitButton_UpdateAll(self)
     end
 
+    -- auraRescansLeft stays 0 while auras are secret (see the ticker), so this cannot bail
+    -- straight back into the flag. displayedUnit: without one UpdateAuras returns before it
+    -- clears the flag, and this button would eat the pass's budget forever.
+    if self._auraScanMissed and auraRescansLeft > 0 and self._indicatorsReady and self.states.displayedUnit then
+        auraRescansLeft = auraRescansLeft - 1
+        UnitButton_UpdateAuras(self)
+    end
+
     --! for Xtarget
     if self:GetAttribute("refreshOnUpdate") then
         UnitButton_UpdateAll(self)
@@ -4686,6 +4716,10 @@ function StartTicking(self)
     tickingButtons[self] = true
     if not tickDriver then
         tickDriver = C_Timer.NewTicker(0.25, function()
+            -- Polled, not event-driven: secrecy lifts on combat end, encounter end, key end or
+            -- match end, whichever comes last, and nothing announces the final flip.
+            local secret = C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret()
+            auraRescansLeft = secret and 0 or AURA_RESCANS_PER_PASS
             for b in pairs(tickingButtons) do
                 local ok, err = pcall(TickOne, b)
                 -- fix from MiliUI: 每 0.25 秒一輪，壞掉的按鈕會每輪都失敗；記錄只記每顆第一次，

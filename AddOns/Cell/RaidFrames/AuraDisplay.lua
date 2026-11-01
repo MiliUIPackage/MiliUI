@@ -3976,18 +3976,64 @@ end
 -- shows EVERY buff -- that is the difference between "filtered" and "everything".
 -- ============================================================
 
--- Containers are bound to group tokens ("raid5"), never to "target"/"focus"/"mouseover":
--- map an alias onto the group token of the same person, or nothing would match.
+-- One person can be bound on several buttons at once: "raid5" on the raid frame, "target" on the
+-- party-target button (slot 1 of the party header is the player, so its target token is plain
+-- "target") and on spotlight. The party-target button keeps its binding while hidden in a raid,
+-- so an exact token match proves nothing: /cab inspect target used to land there and print a
+-- dozen built=false handles instead of the button on screen. Rank: on screen beats hidden, a
+-- group token beats an alias, and the token as typed only breaks ties.
 local function ResolveInspectUnit(unitToken)
-    local bound = {}
+    local onScreen = {}
     for h in pairs(AD._instances or {}) do
-        if type(h.unit) == "string" and not h._destroyed then bound[h.unit] = true end
+        if type(h.unit) == "string" and not h._destroyed then
+            local btn = FindOwnerButton(h.frame)
+            onScreen[h.unit] = onScreen[h.unit] or (btn ~= nil and btn:IsVisible() == true)
+        end
     end
-    if bound[unitToken] then return unitToken end
-    for u in pairs(bound) do
-        if SameUnit(u, unitToken) then return u end
+    local best, bestScore = unitToken, -1
+    for u, visible in pairs(onScreen) do
+        if SameUnit(u, unitToken) then
+            local isGroupToken = u == "player" or strfind(u, "^raid%d+$") or strfind(u, "^party%d+$")
+            local score = (visible and 4 or 0) + (isGroupToken and 2 or 0) + (u == unitToken and 1 or 0)
+            if score > bestScore then best, bestScore = u, score end
+        end
     end
-    return unitToken
+    return best
+end
+
+-- crowdControls is still drawn by the manual aura scan, not by a container, so the handle loop
+-- in AD.Inspect cannot see it -- and it is the indicator that can outlive its aura (see
+-- _auraScanMissed in UnitButton_UpdateAuras). Named from the button's own cache: that entry is
+-- exactly what keeps a stale icon alive, and the unit itself no longer has the aura to ask about.
+local function PrintManualIcons(unitToken, truthIcons)
+    local seen = {}
+    for h in pairs(AD._instances or {}) do
+        local btn = h.unit == unitToken and not h._destroyed and FindOwnerButton(h.frame)
+        if btn and not seen[btn] then
+            seen[btn] = true
+            local cc = btn.indicators and btn.indicators.crowdControls
+            local descs = {}
+            for i = 1, cc and #cc or 0 do
+                if cc[i]:IsShown() and cc[i].icon then
+                    local id = cc[i].icon:GetTexture()
+                    local desc = issecretvalue(id) and "(秘密)" or tostring(id)
+                    for _, a in pairs(btn._debuffs_cache or {}) do
+                        if not issecretvalue(id) and not issecretvalue(a.icon) and a.icon == id
+                            and not issecretvalue(a.name) and not issecretvalue(a.spellId) then
+                            desc = ("%s(%s) icon=%s"):format(tostring(a.name), tostring(a.spellId), tostring(id))
+                            break
+                        end
+                    end
+                    if not issecretvalue(id) and not truthIcons[id] then
+                        desc = desc .. "＝單位身上沒有這個圖示（殘影）"
+                    end
+                    descs[#descs + 1] = desc
+                end
+            end
+            p(("手動路｜%s 群體控制亮著 %d 顆%s｜漏掉光環變動待補掃=%s"):format(tostring(btn:GetName()), #descs,
+                #descs > 0 and ("：" .. table.concat(descs, "、")) or "", tostring(btn._auraScanMissed or false)))
+        end
+    end
 end
 
 -- What is ACTUALLY on the unit, straight from C_UnitAuras -- the ground truth to hold the
@@ -4042,6 +4088,7 @@ function AD.Inspect(unitToken)
     -- assist=false here is the whole answer to "why did my whitelist row fill up after I
     -- got on that boat"; assist=true means the fail-open came from somewhere else
     if AD._gateVehicleLog then p("最近一次載具轉場：" .. AD._gateVehicleLog) end
+    PrintManualIcons(unitToken, truthIcons)
     local n = 0
     for h in pairs(AD._instances or {}) do
         if h.unit == unitToken then

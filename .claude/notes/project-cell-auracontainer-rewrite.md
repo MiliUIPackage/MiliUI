@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 47adb948-8bd2-4804-9bff-d58a154ecf7c
-  modified: 2026-09-22T06:56:45.696Z
+  modified: 2026-11-01T14:08:49.117Z
 ---
 
 Cell 的光環指示器從舊的 spell-ID 比對（路線 B）改成 Blizzard AuraContainer（路線 A，見 [[wow-121-aura-containers]]），讓分類全走 Blizzard-side candidateFilters，照 DandersFrames v5 作法「一個都不少」。使用者 2026-08 選定路線 A。**已上線使用**（master，Cell r283-MiliUI）。
@@ -432,6 +432,20 @@ StatusIcon 的靈魂石移除偵測等於一直沒在跑。**用 `and` 守衛一
 改問 `C_Secrets.ShouldAurasBeSecret()`／`ShouldCooldownsBeSecret()`（跟 `UnitButton_UpdateAuras` 同一道閘），
 `F.FindAuraByName` 另外把 `F.IsSecretTable(aura)`／spellId 秘密的回傳當 nil。**同一個守衛的兩種死法**：
 守不存在的函式、守存在但回秘密的函式——後者更陰，因為「有拿到東西」看起來像「有找到」。
+
+**2026-11-01 群體控制卡圖示（通用解，取代逐項補清除路徑）**：團隊框中央一顆紅框圖示，`/cab inspect` 說單位身上 0 個減益、
+全部 handle `built=false`。兩件事疊在一起：
+- **根因（手動路都有）**：秘密期間的 UNIT_AURA 被 bail 丟掉，移除事件補不回來，aura 留在 `_debuffs_cache`；解禁後增量路徑走
+  `ForEachAuraCache` **把快取重畫一次**，所以後續 UNIT_AURA 也洗不掉，只有全量掃描（換人、/reload）才清。舊程式離線重現過。
+  ⇒ `UnitButton_UpdateAuras` 的兩個 bail 都記 `_auraScanMissed`，下一次放行時強制全量；`UnitButton_OnTick` 主動補掃，
+  因為下一個 UNIT_AURA 可能很久以後才來。**用輪詢不用事件**（秘密解除可能來自戰鬥／首領戰／鑰石／對戰結束，最後一次翻轉沒事件講）：
+  共用 ticker 每輪問一次 `ShouldAurasBeSecret`，每輪最多補 5 顆（40 顆 2 秒掃完，一次還清會卡）。涵蓋 crowdControls、debuff 型自訂指示器、復活狀態等所有手動路。
+  **未在遊戲內驗證**：打完王圖示 2 秒內消失、脫戰那幾秒不掉幀。`/cab inspect` 的「待補掃」應該在解禁後變回 false。
+- **診斷工具查錯框**：`ResolveInspectUnit` 只要 token 完全相符就收，而隊伍目標按鈕（`CellPartyFrameHeaderUnitButton1Target`）
+  的 unit 就叫 `target`（第一格是自己）、在團隊裡藏著但照樣綁定 ⇒ `inspect target` 永遠查到那排空 handle。現在排序：畫面上 > 藏著、組隊 token > 別名、原文只當平手。
+  **指紋：`parent=…Target`＋全部 `built=false`＋`框 visible=false`。**
+- inspect 另外印一行「手動路｜群體控制亮著 N 顆」，名字從按鈕的 `_debuffs_cache` 拿（單位身上已經問不到了），對不上實際圖示標「殘影」。
+- **從截圖認指示器**：量圖示中心對框中心的偏移。「團隊」版面重要減益 CENTER +3、群體控制 CENTER 0，100×50 框放大 2.14 倍時差 6px，一量就分得出來；再對存檔 `WTF/Account/LAXGENIUS/SavedVariables/Cell.lua` 的 position。
 
 ## 矩形（rect）的三層時間效果，全部引擎驅動（2026-09-28／29，c4fa912ea＋2c951f359，未實機驗證）
 
