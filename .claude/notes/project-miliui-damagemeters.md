@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-10-21T00:00:00.000Z
+  modified: 2026-11-01T13:54:55.631Z
 ---
 
 `AddOns/MiliUI_DamageMeters/`（2026-08-24 建立，2026-10-14 TOC 1.2.0）。SavedVariables=`MiliUI_DamageMeters_DB`，
@@ -22,7 +22,7 @@ metadata:
 Core/     Init（啟動＋HAS_API 客戶端閘＋DB_VERSION）/ Media（字型、材質、職業色）/ DB（預設值＋遷移鏈）
 Meter/    Data（C_DamageMeter 包裝＋秘密值守衛＋數字格式＋專精對照／圖示）
           ItemLevel（裝等：自己 GetAverageItemLevel、隊友觀察快取）  Card（頭像卡片）
-          Combat（戰鬥狀態機＋共用 ticker＋假死監看）  Menu（視窗內選單）
+          Combat（戰鬥狀態機＋共用 ticker＋假死逐筆判定）  Menu（視窗內選單）
           Window（視窗工廠）  Rows（熱路徑繪製）  Breakdown  Tooltip  Home
           Builtin（暴雪內建統計的唯一出口）  Move（拖曳／縮放／磁吸／編輯模式）
           Manager（視窗池、統一套用、選單內容、DAMAGE_METER_* 事件）
@@ -362,8 +362,8 @@ hdrButtons = { publish = { enabled, order }, segments =, reset =, settings =, lo
   每一列組好之後 `gsub("|", "")`，並以 UTF-8 字元為界截到 255 bytes（`MAX_BYTES`）。
 
 死亡類型的假死過濾共用 `ns.Rows.FilterDeaths(holder, sources)`（原本是 Rows 內部的
-local，改成吃一個「緩衝掛在誰身上」的 holder）—— **不要複製一份**，判準兩套的話
-清單裡看不到的人會出現在貼進聊天的排行裡。
+local，改成吃一個「緩衝掛在誰身上」的 holder；清單、發佈、首頁卡片都走它）—— **不要複製一份**，
+判準兩套的話清單裡看不到的人會出現在貼進聊天的排行裡。
 
 ## 遷移鏈
 
@@ -436,24 +436,35 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 （失效點：`SetDMType` / `SetSegment` / `InvalidateData` / `Tab_Each.Apply`）、
 `M.Font` 記住解出來的路徑（**只快取問到的** —— 註冊那支字型的插件可能比我們晚載入）。
 
-## 假死監看的註冊閘（2026-08-28）
+## 假死：逐筆判定（2026-11-01，取代 GUID 標記）
 
-`UNIT_SPELLCAST_SUCCEEDED` 原本是**全域註冊** —— 視野內每一個單位的每一次施法成功
-都進 Lua（主城、四十人團隊戰、戰場開場全都會），而它唯一的用途是抓法術 5384
-（假死），一個**只有獵人放得出來**的技能。處理器本身已經寫得很省，但省的是
-「進來之後」；進來這件事本身才是成本。
+使用者回報假死會被算進死亡統計。舊做法（聽 5384 記 GUID、清單裡濾掉這個人）跟 EUI 9.6.9 一模一樣，
+五個洞：戰鬥中 GUID 秘密濾不了、受限時 spellID／GUID 秘密根本記不到、開新分段清標記所以總計與歷史分段
+會冒回來、記在人身上分不開同一人的假死和真死、首頁卡片沒過濾。**照抄 EUI 解不了，它也有這些洞**
+（它的 `UnitHealth <= 0` 清標記在 UnitHealth 秘密下還不會生效）。
 
-現在改成獨立的 `feignFrame`，由 `SyncFeignWatch()` 依隊伍組成決定要不要註冊
-（`GROUP_ROSTER_UPDATE` / `PLAYER_ENTERING_WORLD` / `Init` 各推一次）。單刷、
-大部分五人隊、在城裡的時間全部歸零。隊員職業拿不到明文時當「可能有」（保守方向）；
-沒有獵人時順手清掉 `_feignDeathGUIDs`，留著只會誤篩掉真的死亡。
+現在 `Meter/Combat.lua`「假死：逐筆判定」那段：
+- **判定記在 `deathRecapID`**（NeverSecret、一次死亡一個），開新分段不清，`DAMAGE_METER_RESET` 才清。
+- **判準**：新的 HUNTER 列（`classFilename` 也是 NeverSecret）第一次出現時，隊上真的死著的獵人
+  （`UnitIsDeadOrGhost and not UnitIsFeignDeath`）比 `_accountedDead` 多 ⇒ 真死、帳 +1；否則 ⇒ 假死。
+  比人數才擋得住「假死已經站起來」與「別的獵人早就死著」。
+- **複查**：假死接著真死時旗標可能殘留（註解的說法，未驗證）⇒ 那筆先被判成假死。之後多出一個沒有對應列的死人，
+  等 `RECHECK_HOLD` 2 秒還沒有新列，就把最後一筆假死改回真死（`RECHECK_WINDOW` 30 秒內）。
+  假死之後另開一個 1Hz 的 ticker 複查，因為脫戰時沒有戰鬥 ticker。
+- **判不出來一律當真死**（fail-open，寧可多顯示）：基準期（登入／換區／獵人剛入隊 5 秒）內看到的舊列、存活狀態秘密、PvP。
+- **只掃「目前」分段**，不掃總計與歷史 —— 舊列在那兩邊第一次被看到時無從判定，會把 /reload 前的真死判成假死。
+- **掃描時機**：`RefreshAll`（畫之前）、`BeginSegment`、`DAMAGE_METER_*_SESSION_UPDATED` 去抖後。隊上沒獵人（`_hunterUnits` 空）整個不掃、不問 API。
+- **拿掉 `UNIT_SPELLCAST_SUCCEEDED`**：判準用不到它，而它是最高頻事件之一。
+- 離線測試 `Tests/FeignDeath_test.lua`（`run_tests.sh` 有跑）。
 
-⚠ **刻意不再加「只在戰鬥中才掛」那道閘**：獵人會在**開怪前**假死洗仇恨，那一下發生
-在戰鬥開始之前，掛戰鬥閘就會漏掉 —— 而漏掉的後果是那個人整場被算成死了。
-省那點成本不值得換一個會出錯的統計。
+**已知限制**：判定只在記憶體，`/reload` 後舊的假死會回到清單；多獵人時一個真死、一個同時假死，藏的可能是另一個人（筆數還是對的）。
+
+**待實機確認**（`/mdm debug` 的 `[deaths]` 有 verdict log、各分段的列與回顧最後一筆）：
+1. 同一次死亡在目前／總計／歷史是不是同一個 `deathRecapID`。不是的話總計與歷史濾不到。
+2. 假死的回顧跟真死差在哪（`currentHP`／`overkill`）。如果分得開，可以換成無狀態判定，順便解掉 /reload。
 
 **通則**：「這個高頻事件只為某個職業／某個情境服務」時，閘要下在**註冊面**而不是
-處理器裡的早退。早退省的是 Lua 執行，註冊省的是整個派送。
+處理器裡的早退。早退省的是 Lua 執行，註冊省的是整個派送（2026-08-28 假死監看學到的，事件後來整個拿掉了）。
 
 ## 定位框／內容框、收合、點擊穿透（2026-10-20，玩家要求「視窗擋到怪點不到」）
 
@@ -510,7 +521,8 @@ v5「`iconStyle` 還是舊預設 `spec` 的改成 `mili`」（[[project-mdm-spec
 - 發佈：「說」／自訂頻道在野外的硬體事件要求實際送得出去沒
 - 秘密值路徑：受限內容裡的名字／數字／GUID 有沒有漏掉的 guard
 - 細線樣式在 18px 列高 ＋ 12pt 描邊字下的實際觀感
-- 分段判定的各種邊界（連拉、滅團、PvP 回合間、假死）
+- 分段判定的各種邊界（連拉、滅團、PvP 回合間）
+- 假死逐筆判定（2026-11-01）整套還沒上實機，待確認項見「假死：逐筆判定」那節
 
 相關：[[wow-damagemeter-c-api-design]]、[[project-mdm-spec-icons]]、[[wow-login-screen-size-not-final]]、
 [[project-miliui-widgets-vendor]]、[[wow-121-secret-values]]、[[wow-frame-lifecycle-costs]]、[[wow-luac-global-scan]]

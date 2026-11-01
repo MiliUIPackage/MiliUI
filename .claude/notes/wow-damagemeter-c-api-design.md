@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: reference
   originSessionId: bc14d1ba-6f88-47b5-925d-02454b87ba76
-  modified: 2026-10-14T00:00:00.000Z
+  modified: 2026-11-01T13:54:55.670Z
 ---
 
 拆解對象：`tmp/EUIStandaloneDamageMeters`（Ellesmere，v8.9.8）。核心檔案是
@@ -108,10 +108,10 @@ Enum.DamageMeterSessionType.{Current,Overall}
   丟鑰石、爐石回城 —— 這些情況 `PLAYER_REGEN_ENABLED` 不保證送得到，
   沒有這一段的話 `_inCombat` 會一直是 true，ticker 在外面的世界一直跑下去。
   例外：全隊還在戰鬥（死著重載／觀戰）就別硬斷，走輪詢那條路。
-- **假死**：暴雪不為假死送 `UNIT_AURA`，只能監聽 `UNIT_SPELLCAST_SUCCEEDED` 抓 spellID
-  5384 記 GUID，然後在死亡列表裡濾掉（`deathRecapID > 0` 對假死也成立）。
-  這是高頻事件，handler 第一件事就要用整數比較早退——更好的是**只在隊裡有獵人時才註冊**
-  （[[project-miliui-damagemeters]] 的「假死監看的註冊閘」）。
+- **假死**：`deathRecapID > 0` 對假死也成立，死亡列表要自己濾。EUI 的做法（聽 5384 記 GUID）
+  **在 12.x 擋不住**：戰鬥中 GUID 秘密、受限時 spellID 秘密、標記撐不過下一場。
+  要記在 `deathRecapID` 上，靠 NeverSecret 的 `classFilename` ＋明文的 `UnitIsDeadOrGhost`／`UnitIsFeignDeath` 判定，
+  見 [[project-miliui-damagemeters]] 的「假死：逐筆判定」。
 - **「戰鬥狀態機的起訖」跟 `PLAYER_REGEN_*` 不同步**（隊友先開怪、自己死了團隊還在打、
   5 秒保險絲）：任何要跟著「在不在打」切換的東西（發佈鈕的封鎖圖示、智慧顯示）都不能只聽遊戲事件，
   要從狀態機的 BeginSegment／FreezeCombat 直接推。
@@ -185,7 +185,7 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 - **`src.isLocalPlayer` 是 documented NeverSecret**，是唯一安全的身分判斷。文件寫錯的話
   也要退化成「不是自己」，不能退化成 throw。
 - `classFilename` 可能是秘密 → `RAID_CLASS_COLORS[classFile]` 前必須 `issecretvalue` 擋。
-- `sourceGUID` 可能是秘密 → **絕對不能當 table key**（假死快取就是因此只對明碼 GUID 生效）。
+- `sourceGUID` 可能是秘密 → **絕對不能當 table key**。要逐列記狀態就用 `deathRecapID`（NeverSecret，文件標的還有 `classFilename`／`specIconID`／`isLocalPlayer`）。
 - `specIconID` 可能是秘密 → 拿它查專精表前要擋（查表是硬錯），擋掉就退回暴雪圖示。
 - **秘密值 → 一律寫入，永不備忘。** 名字／數字可能是秘密，`SetText(secret)` 合法（顯示得出來），
   但 `~=` 比較會 throw。所以形狀固定是：

@@ -210,6 +210,37 @@ function ns.DebugText()
     for _, line in ipairs(D.SpecMapLines()) do add("    " .. line) end
 
     ------------------------------------------------------------
+    -- 死亡列：假死判定看這段。
+    -- verdict log 是每筆獵人列判定當下的狀態；底下是各分段現在的列。同一次死亡在
+    -- 目前／總計／歷史分段的 rid 要一樣，判定才跟得過去。recap 用來比對假死和真死的回顧。
+    ------------------------------------------------------------
+    add("")
+    add("[deaths]")
+    for _, line in ipairs(ns.Combat.DeathDebugLines()) do add("  " .. line) end
+    local function DeathRows(label, sessType, sessID)
+        local session = D.GetSession(sessType, sessID, D.T.Deaths)
+        local sources = session and session.combatSources
+        add(("  %s: %s rows"):format(label, sources and tostring(#sources) or "no"))
+        for i = 1, math.min(sources and #sources or 0, 10) do
+            local src = sources[i]
+            local rid = src.deathRecapID
+            local plain = not D.IsSecret(rid) and rid
+            add(("    rid=%s class=%s own=%s name=%s t=%s feign=%s recap: %s")
+                :format(Str(rid), Str(src.classFilename), tostring(D.IsOwnRow(src)), Str(src.name),
+                        Str(src.deathTimeSeconds), tostring(plain and ns.Combat.IsFeigned(plain) or false),
+                        plain and ns.Combat.RecapSummary(plain) or "-"))
+        end
+    end
+    if ns.HAS_API then
+        DeathRows("current", D.S.Current)
+        DeathRows("overall", D.S.Overall)
+        local list = D.GetAvailableSessions() or {}
+        for i = #list, math.max(1, #list - 1), -1 do
+            DeathRows("session " .. Str(list[i].sessionID), nil, list[i].sessionID)
+        end
+    end
+
+    ------------------------------------------------------------
     -- 錯誤
     ------------------------------------------------------------
     add("")

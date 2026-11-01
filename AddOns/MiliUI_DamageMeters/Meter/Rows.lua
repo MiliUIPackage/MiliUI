@@ -186,7 +186,6 @@ end
 -- 清單裡看不到的人會出現在貼進聊天的排行裡。
 ------------------------------------------------------------
 function Rows.FilterDeaths(holder, sources)
-    ns.Combat.CleanupFeignCache()
     -- 緩衝重用：這支每 tick 都跑，每次配一張新表就是每秒四張垃圾。
     -- 安全性：回傳的表只在這一趟 Render 裡被讀完（PaintBar／UpdateSticky），
     -- 沒有任何地方跨 tick 抓著它。
@@ -196,11 +195,9 @@ function Rows.FilterDeaths(holder, sources)
     for i = #sources, 1, -1 do
         local src = sources[i]
         local rid = src.deathRecapID
-        -- _feignDeathGUIDs[secret] 會硬錯（不能用秘密值當 key），
-        -- 所以只有明碼 GUID 才查得起快取；秘密 GUID 的列只能靠 deathRecapID 篩
-        local guid = D.PlainGUID(src.sourceGUID)
+        -- 預覽的範例列 rid 都是 1，可能剛好撞上真的假死編號
         if not D.IsSecret(rid) and rid and rid > 0
-            and not (guid and ns.Combat.IsFeigned(guid)) then
+            and (src.isPreview or not ns.Combat.IsFeigned(rid)) then
             out[#out + 1] = src
         end
     end

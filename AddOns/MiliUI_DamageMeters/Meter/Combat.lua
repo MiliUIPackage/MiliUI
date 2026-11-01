@@ -34,10 +34,8 @@ local _regenTimestamp  = 0         -- 玩家離開戰鬥的 GetTime()
 local _combatGen       = 0         -- 分段世代 token：延後執行的收尾用它判斷自己過期沒
 local _sharedTicker, _timerTicker
 
--- 假死過的 GUID。C_DamageMeter 會給假死一個有效的 deathRecapID，
--- 光靠 deathRecapID > 0 篩不掉。UnitIsFeignDeath 在「假死接著真死」的轉換中
--- 可能還是 true，所以不能拿它來清快取。
-local _feignDeathGUIDs = {}
+-- 判定成假死的 deathRecapID，判準見下面「假死：逐筆判定」那段
+local _feignRecaps = {}
 
 ------------------------------------------------------------
 -- 對外查詢
@@ -45,7 +43,7 @@ local _feignDeathGUIDs = {}
 function C.IsInCombat() return _inCombat end
 function C.IsInEncounter() return _inEncounter end
 function C.Generation() return _combatGen end
-function C.IsFeigned(guid) return _feignDeathGUIDs[guid] end
+function C.IsFeigned(recapID) return _feignRecaps[recapID] end
 
 local function ForEachWindow(fn)
     if ns.Windows and ns.Windows.ForEach then ns.Windows.ForEach(fn) end
@@ -123,31 +121,6 @@ end
 C.IsGroupInCombat = IsGroupInCombat
 
 ------------------------------------------------------------
--- 假死快取清理
---
--- 在篩死亡列表之前跑：確定已經真的死了（血量 0）的 GUID 就把標記拿掉，
--- 否則「假死之後真的死了」那次會被舊標記吃掉、永遠不顯示。
-------------------------------------------------------------
-function C.CleanupFeignCache()
-    if not next(_feignDeathGUIDs) then return end
-    local function note(unit)
-        if not UnitExists(unit) then return end
-        local guid = D.PlainGUID(UnitGUID(unit))
-        if not guid or not _feignDeathGUIDs[guid] then return end
-        if UnitIsDeadOrGhost(unit) and not UnitIsFeignDeath(unit) then
-            _feignDeathGUIDs[guid] = nil
-        end
-    end
-    note("player")
-    local n = GetNumGroupMembers() or 0
-    if n > 0 then
-        local prefix = IsInRaid() and "raid" or "party"
-        local count = IsInRaid() and n or (n - 1)
-        for i = 1, count do note(prefix .. i) end
-    end
-end
-
-------------------------------------------------------------
 -- Ticker
 ------------------------------------------------------------
 local function TimerTick()
@@ -161,6 +134,7 @@ local function StopTimerTicker()
 end
 
 local function RefreshAll()
+    C.ScanDeaths()   -- 先判定再畫：新的假死列才不會先閃出來一下
     ForEachWindow(function(W) W.Refresh() end)
 end
 
@@ -237,7 +211,7 @@ end
 ------------------------------------------------------------
 local function BeginSegment()
     _combatGen = _combatGen + 1
-    if next(_feignDeathGUIDs) then wipe(_feignDeathGUIDs) end  -- 舊標記會誤篩掉新分段的真死
+    C.ScanDeaths()   -- 脫戰時沒有 ticker，開打前先對一次帳（期間被復活的獵人要扣掉）
     _inCombat = true
     _combatEndTime = 0
     _curViewFrozenDur = 0
@@ -253,66 +227,211 @@ local function BeginSegment()
 end
 
 ------------------------------------------------------------
--- 假死監看：只有隊伍裡真的有獵人才註冊
+-- 假死：逐筆判定
 --
--- `UNIT_SPELLCAST_SUCCEEDED` 是遊戲裡最高頻的事件之一 —— 全域註冊等於**視野內每一個
--- 單位的每一次施法成功**都進 Lua。而它在這支插件裡唯一的用途是抓法術 5384（假死），
--- 一個**只有獵人放得出來**的技能。處理器本身已經寫得很省（第一個判斷、整數比較早退），
--- 但省的是「進來之後」，進來這件事本身才是成本，尤其在主城與四十人團隊戰。
+-- C_DamageMeter 的死亡一列就是一次死亡，假死也有自己的一列和有效的 deathRecapID。
+-- 判定結果記在 deathRecapID 上，不記在人身上：
+--   * 戰鬥中 sourceGUID／名字是秘密值，列對不回是誰；deathRecapID 與 classFilename
+--     是文件標記的 NeverSecret，戰鬥中照樣能讀。
+--   * 同一個人可以同時有假死和真死的列，記在人身上分不開。
+--   * 假死在總計與歷史分段裡要繼續濾掉，所以開新分段**不清**。
 --
--- 所以閘在註冊面：隊伍裡（含自己）沒有獵人就整個不掛。單刷、大部分五人隊、
--- 以及在城裡掛機的時間全部歸零。
+-- 判準（新的獵人列第一次出現時）：隊上真的死著的獵人，比已經有對應死亡列的人數多
+-- ⇒ 真死，否則 ⇒ 假死。比人數而不是看「有沒有人在假死」：假死可能一下就站起來了，
+-- 別的獵人也可能早就死著。
 --
--- ⚠ **刻意不再加「只在戰鬥中才掛」那道閘。** 想過，但獵人會在開怪前假死洗仇恨 ——
---   那一下發生在戰鬥開始之前，掛戰鬥閘就會漏掉，而漏掉的後果是那個人整場被算成
---   「死了」。省下來的那點成本不值得換一個會出錯的統計。
+-- 判不出來一律當真死（寧可多顯示一筆，不藏掉真的死亡）：/reload 之前就有的舊列、
+-- 存活狀態讀到秘密值、PvP（敵方的列也可能是獵人）。
+--
+-- 不聽 5384 的施法事件：受限時 spellID 是秘密值，而它又是遊戲裡最高頻的事件之一。
+-- 只掃「目前」分段：同一次死亡在總計與歷史分段是同一個 deathRecapID（未實機驗證，
+-- /mdm debug 的 [deaths] 對得出來）。
 ------------------------------------------------------------
-local feignFrame = CreateFrame("Frame")
-local _feignWatching = false
+local BASELINE_SECS  = 5    -- 登入／換區／獵人剛入隊這段時間看到的列都當舊列，不判定
+local RECHECK_HOLD   = 2    -- 多出一個死人之後，等對應的列這麼久才認定它不會來了
+local RECHECK_WINDOW = 30   -- 最後一筆假死只在這段時間內可能被改回真死
+local LOG_MAX        = 20
 
-local function GroupHasHunter()
-    if ns.playerClass == "HUNTER" then return true end
-    local n = GetNumGroupMembers() or 0
-    if n == 0 then return false end
-    local prefix = IsInRaid() and "raid" or "party"
-    local count = IsInRaid() and n or (n - 1)
-    for i = 1, count do
-        local unit = prefix .. i
-        if UnitExists(unit) then
-            -- 隊伍成員不受 12.1 的受限身分影響，但拿不到明文就當「可能有」比較保險
-            local class = UnitClassBase and UnitClassBase(unit)
-            if class == nil or D.IsSecret(class) or D.SafeClass(class) == "HUNTER" then
-                return true
+local _hunterUnits   = {}   -- 隊上的獵人（職業讀不到明文的也算，見 SyncHunters）
+local _seenRecaps    = {}   -- 判定過的 deathRecapID
+local _accountedDead = 0    -- 真的死著的獵人裡，已經有對應死亡列的人數
+local _baselineUntil = 0
+local _lastFeign, _lastFeignAt, _unexplainedAt, _recheckTicker
+local _deathLog = {}
+
+-- 真的死著的獵人有幾個。假死要扣掉，它的 UnitIsDeadOrGhost 也可能是 true。
+-- 文件沒標這兩支會回秘密值，但真的讀到就回 nil（不知道），呼叫端當判不出來。
+local function DeadHunters()
+    local n = 0
+    for i = 1, #_hunterUnits do
+        local unit = _hunterUnits[i]
+        local dead = UnitIsDeadOrGhost(unit)
+        if D.IsSecret(dead) then return nil end
+        if dead then
+            local feign = UnitIsFeignDeath(unit)
+            if D.IsSecret(feign) then return nil end
+            if not feign then n = n + 1 end
+        end
+    end
+    return n
+end
+
+local function Str(v)
+    if D.IsSecret(v) then return "secret" end
+    return tostring(v)
+end
+
+-- 除錯用：死亡回顧最後一筆的內容。要比對假死和真死的回顧差在哪就看這行
+function C.RecapSummary(recapID)
+    if not C_DeathRecap then return "no api" end
+    local ok, events = pcall(C_DeathRecap.GetRecapEvents, recapID)
+    if not ok then return "error" end
+    if not events or #events == 0 then return "empty" end
+    local ev = events[1]
+    local okMax, maxHP = pcall(C_DeathRecap.GetRecapMaxHealth, recapID)
+    return ("n=%d hp=%s/%s overkill=%s amount=%s event=%s"):format(#events,
+        Str(ev.currentHP), Str(okMax and maxHP), Str(ev.overkill), Str(ev.amount), Str(ev.event))
+end
+
+-- 只記獵人的列，一次死亡才一筆，平常不花成本
+local function LogDeath(rid, verdict, dead)
+    if #_deathLog >= LOG_MAX then table.remove(_deathLog, 1) end
+    local states = {}
+    for i, unit in ipairs(_hunterUnits) do
+        states[i] = ("%s dead=%s feign=%s"):format(unit,
+            Str(UnitIsDeadOrGhost(unit)), Str(UnitIsFeignDeath(unit)))
+    end
+    _deathLog[#_deathLog + 1] = ("%.1f rid=%s %s deadNow=%s accounted=%s [%s] recap: %s"):format(
+        GetTime(), tostring(rid), verdict, tostring(dead), tostring(_accountedDead),
+        table.concat(states, ", "), C.RecapSummary(rid))
+end
+
+local function Classify(dead, isOld)
+    if isOld then return "old" end
+    if not dead then return "unreadable" end
+    local _, instanceType = IsInInstance()
+    if instanceType == "pvp" or instanceType == "arena" then return "pvp" end
+    if dead > _accountedDead then return "real" end
+    return "feign"
+end
+
+-- 複查的輪詢：脫戰時沒有 ticker，假死旗標卻可能在那之後才消失。戰鬥中 ticker 每次都會掃
+local function RecheckTick()
+    if not _lastFeign or _sharedTicker then return end
+    if C.ScanDeaths() then ForEachWindow(function(W) W.Refresh() end) end
+end
+
+-- 回傳 true＝有列的判定變了（呼叫端自己決定要不要重畫）
+function C.ScanDeaths()
+    if #_hunterUnits == 0 then return false end
+    local changed = false
+    local now = GetTime()
+    local dead = DeadHunters()
+    local isOld = now < _baselineUntil
+    if dead and (isOld or dead < _accountedDead) then _accountedDead = dead end
+
+    local session = D.GetSession(D.S.Current, nil, D.T.Deaths)
+    local sources = session and session.combatSources
+    if sources then
+        -- API 給的是最近的在前，舊的先判
+        for i = #sources, 1, -1 do
+            local src = sources[i]
+            local rid = src.deathRecapID
+            if not D.IsSecret(rid) and rid and rid > 0 and not _seenRecaps[rid] then
+                _seenRecaps[rid] = true
+                if D.SafeClass(src.classFilename) == "HUNTER" then
+                    local verdict = Classify(dead, isOld)
+                    if verdict == "real" then
+                        _accountedDead = _accountedDead + 1
+                        _lastFeign, _unexplainedAt = nil, nil   -- 這個死人有對應的列了，不必複查
+                    elseif verdict == "feign" then
+                        _feignRecaps[rid] = true
+                        _lastFeign, _lastFeignAt = rid, now
+                        changed = true
+                        if _recheckTicker then _recheckTicker:Cancel() end
+                        _recheckTicker = C_Timer.NewTicker(1, RecheckTick, RECHECK_WINDOW + RECHECK_HOLD)
+                    end
+                    LogDeath(rid, verdict, dead)
+                end
             end
         end
     end
-    return false
+
+    -- 複查：假死接著真死時 UnitIsFeignDeath 可能還殘留 true，那一筆會被判成假死。
+    -- 殘留消失後會多出一個沒有對應列的死人；對應的列也可能只是還在路上，
+    -- 所以等 RECHECK_HOLD 秒，還是沒有才把最後一筆假死改回真死。
+    if dead and _lastFeign and dead > _accountedDead then
+        if now - _lastFeignAt > RECHECK_WINDOW then
+            _lastFeign, _unexplainedAt = nil, nil
+        elseif not _unexplainedAt then
+            _unexplainedAt = now
+        elseif now - _unexplainedAt >= RECHECK_HOLD then
+            _feignRecaps[_lastFeign] = nil
+            LogDeath(_lastFeign, "recheck-real", dead)
+            _lastFeign, _unexplainedAt = nil, nil
+            _accountedDead = _accountedDead + 1
+            changed = true
+        end
+    else
+        _unexplainedAt = nil
+    end
+    return changed
 end
 
-local function SyncFeignWatch()
-    local want = GroupHasHunter()
-    if want == _feignWatching then return end
-    _feignWatching = want
-    if want then
-        feignFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-    else
-        feignFrame:UnregisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-        wipe(_feignDeathGUIDs)   -- 沒有獵人了，留著的標記只會誤篩掉真的死亡
+-- 分段全清（手動重置、進副本自動重置）：舊列都不在了，編號也可能重來
+function C.ResetDeathTags()
+    wipe(_seenRecaps)
+    wipe(_feignRecaps)
+    _lastFeign, _unexplainedAt = nil, nil
+end
+
+local function StartBaseline()
+    _baselineUntil = GetTime() + BASELINE_SECS
+    C.ScanDeaths()
+    -- 結束前再掃一次：這段期間沒有任何刷新的話，舊列會拖到基準期過後才第一次被看到，
+    -- 就被當成新列判定了
+    C_Timer.After(BASELINE_SECS - 0.5, C.ScanDeaths)
+end
+
+------------------------------------------------------------
+-- 隊上的獵人。沒有就整個不掃，單刷、大部分五人隊、城裡掛機的時間全部歸零。
+-- 職業拿不到明文的也算進去：多算只會讓假死多顯示一筆，少算會把真死藏掉。
+------------------------------------------------------------
+local function NoteIfHunter(unit)
+    if not UnitExists(unit) then return end
+    local class = UnitClassBase and UnitClassBase(unit)
+    if class == nil or D.IsSecret(class) or D.SafeClass(class) == "HUNTER" then
+        _hunterUnits[#_hunterUnits + 1] = unit
     end
 end
-C.SyncFeignWatch = SyncFeignWatch
 
--- 用整數比較早退，非假死的施法幾乎零成本
-local function OnFeignEvent(_, _, unit, _, spellID)
-    if not unit then return end
-    -- spellID 被 C_DamageMeter 污染時可能是秘密數字，比較它會丟錯；
-    -- 沒有可用的 spellID 就沒辦法分類，直接放棄這次
-    if D.IsSecret(spellID) then return end
-    if spellID ~= 5384 then return end       -- 假死
-    local guid = D.PlainGUID(UnitGUID(unit))
-    if guid then _feignDeathGUIDs[guid] = true end
-    -- 不因為「後來又施了別的法」就清掉：假死中的獵人照樣有有效的 deathRecapID，
-    -- 要等 CleanupFeignCache 確認真的死了才清
+local function SyncHunters()
+    local had = #_hunterUnits > 0
+    wipe(_hunterUnits)
+    local n = GetNumGroupMembers() or 0
+    if IsInRaid() then
+        -- raidN 已經包含自己，再算一次 player 會把同一個死人數成兩個
+        for i = 1, n do NoteIfHunter("raid" .. i) end
+    else
+        if ns.playerClass == "HUNTER" then _hunterUnits[1] = "player" end
+        for i = 1, n - 1 do NoteIfHunter("party" .. i) end
+    end
+    -- 沒人掃的這段期間累積的列，一樣是判不出來的舊列
+    if #_hunterUnits > 0 and not had then StartBaseline() end
+end
+
+-- 給 /mdm debug 的 [deaths]
+function C.DeathDebugLines()
+    local feign = 0
+    for _ in pairs(_feignRecaps) do feign = feign + 1 end
+    local lines = {
+        ("hunters=%s deadNow=%s accounted=%s feignTags=%d lastFeign=%s baselineLeft=%.1f"):format(
+            table.concat(_hunterUnits, ","), tostring(DeadHunters()), tostring(_accountedDead),
+            feign, tostring(_lastFeign), math.max(0, _baselineUntil - GetTime())),
+        "verdict log (oldest first):",
+    }
+    for _, line in ipairs(_deathLog) do lines[#lines + 1] = "  " .. line end
+    return lines
 end
 
 ------------------------------------------------------------
@@ -322,7 +441,7 @@ local combatFrame = CreateFrame("Frame")
 
 local function OnEvent(_, event, ...)
     if event == "GROUP_ROSTER_UPDATE" then
-        SyncFeignWatch()
+        SyncHunters()
         return
     end
 
@@ -383,7 +502,8 @@ local function OnEvent(_, event, ...)
     if event == "PLAYER_ENTERING_WORLD" then
         -- 保險：換區／重載之後隊伍組成可能跟上次算的不一樣，而 GROUP_ROSTER_UPDATE
         -- 不保證一定會跟著來（單人時本來就不會發）
-        SyncFeignWatch()
+        SyncHunters()
+        StartBaseline()
         ------------------------------------------------------------
         -- 換區／離開副本 —— **一定要在這裡強制收尾**
         --
@@ -504,18 +624,12 @@ ns.RegisterCallback("Init", "combat", function()
     combatFrame:RegisterEvent("UNIT_FLAGS")
     combatFrame:RegisterEvent("ENCOUNTER_START")
     combatFrame:RegisterEvent("ENCOUNTER_END")
-    -- 隊伍組成變了就重算「要不要監看假死」
+    -- 隊伍組成變了就重算「隊上有哪些獵人」
     combatFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     combatFrame:SetScript("OnEvent", function(...)
         xpcall(OnEvent, ns.ReportError, ...)
     end)
-
-    -- 假死：暴雪不為它送 UNIT_AURA，戰鬥記錄在 12.x 又對插件關閉，只剩施法事件這條路。
-    -- 註冊與否由 SyncFeignWatch 依「隊伍裡有沒有獵人」決定，見上面那段。
-    feignFrame:SetScript("OnEvent", function(...)
-        xpcall(OnFeignEvent, ns.ReportError, ...)
-    end)
-    SyncFeignWatch()
+    SyncHunters()
 
     pvpFrame:RegisterEvent("PVP_MATCH_COMPLETE")
     pvpFrame:RegisterEvent("PVP_MATCH_STATE_CHANGED")

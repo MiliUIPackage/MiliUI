@@ -690,6 +690,7 @@ ns.RegisterCallback("Init", "windows", function()
 
     dmFrame:SetScript("OnEvent", function(_, event)
         if event == "DAMAGE_METER_RESET" then
+            ns.Combat.ResetDeathTags()
             Windows.InvalidateAll()
             Windows.ForEach(function(W) W.Refresh() end)
             return
@@ -701,6 +702,8 @@ ns.RegisterCallback("Init", "windows", function()
         sessionPending = true
         C_Timer.After(SESSION_DEBOUNCE, function()
             sessionPending = false
+            -- 有人死的時候會送這個事件，趁獵人的存活狀態還新鮮判定假死（沒開戰鬥 ticker 時只有這條路）
+            ns.Combat.ScanDeaths()
             Windows.InvalidateData()
             if ns.Combat.IsInCombat() then
                 -- 戰鬥中有 ticker 在跑，不必再重畫。但 ticker 有可能因為收尾的

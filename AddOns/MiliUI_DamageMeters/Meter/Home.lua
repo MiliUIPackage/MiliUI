@@ -109,14 +109,26 @@ end
 ------------------------------------------------------------
 -- 內容
 ------------------------------------------------------------
+-- 卡片要顯示的那一列與總列數。死亡要過假死過濾（跟清單同一套），不然卡片上的名字和
+-- 次數都會把假死算進去；濾完是時間順序，最近的在尾端，對應 API 的第一筆。
+local _deathHolder = {}
+local function TopSource(session, dmType)
+    local sources = session and session.combatSources
+    if not sources then return nil, 0 end
+    if D.IsDeathType(dmType) then
+        sources = ns.Rows.FilterDeaths(_deathHolder, sources)
+        return sources[#sources], #sources
+    end
+    return sources[1], #sources
+end
+
 -- 某個（次數型）類型的第一名：「名字 次數」，名字包職業色碼。
 -- 名字與次數都可能是秘密：format 與 SetFormattedText 吃得下，但不能拿去比較或量長度。
 -- 職業拿不到（秘密、NPC）就不包色碼，交給 FontString 本身的顏色。
 -- splitType＋side：這張卡片是合併檢視時，那一欄自己的分段（可能釘住，不跟視窗）
 local function TopText(W, dmType, splitType, side)
     local sessType, sessID = D.PaneSession(W, side, splitType)
-    local session = D.GetSession(sessType, sessID, dmType)
-    local top = session and session.combatSources and session.combatSources[1]
+    local top = TopSource(D.GetSession(sessType, sessID, dmType), dmType)
     if not top then return nil end
     local text = format("%s %s", D.StripRealm(top.name), D.Abbrev(top.totalAmount))
     local r, g, b = M.ClassColor(top.classFilename)
@@ -167,7 +179,7 @@ local function Refresh(W)
         -- 所以只在這一頁開著時跑。
         local left, right = D.SplitTypes(dmType)
         local session = (not left) and D.GetSession(W.curSession, W.curSessionID, dmType)
-        local top = session and session.combatSources and session.combatSources[1]
+        local top, rowCount = TopSource(session, dmType)
         if left then
             -- 合併檢視：兩欄的第一名並排，順序跟視窗裡的左右一致。
             -- 其中一欄沒資料就放「—」佔位，不然只剩一個名字時看不出是哪一欄的
@@ -184,7 +196,7 @@ local function Refresh(W)
             local r, g, b = M.ClassColor(top.classFilename)
             local value
             if D.IsDeathType(dmType) then
-                value = tostring(#session.combatSources)
+                value = tostring(rowCount)
             elseif D.IsCountType(dmType) then
                 value = D.Abbrev(top.totalAmount)
             else
