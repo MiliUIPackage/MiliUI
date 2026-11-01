@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Minimap
 ## Title-zhTW: |cff33F5FF[地圖]|r 米利的小地圖
 ## Title-zhCN: |cff33E0FF[地图]|r 米利的小地图

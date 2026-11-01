@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Skin
 ## Title-zhTW: |cff33FFE0[外觀]|r 米利的介面外觀
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的界面外观

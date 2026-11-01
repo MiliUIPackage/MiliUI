@@ -1,4 +1,5 @@
 ## Interface: 120100, 120105
+## AllowLoadGameType: standard
 ## Title: MiliUI Crusading Strikes Helper
 ## Title-zhTW: |cff00FFFF[職業]|r|cffF58CBA[聖騎]|r 德莫的征戰聖擊助手
 ## Title-zhCN: |cff4488FF[MiliUI]|r 德莫的征战圣击助手

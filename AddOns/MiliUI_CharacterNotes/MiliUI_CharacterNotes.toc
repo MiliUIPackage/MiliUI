@@ -1,4 +1,5 @@
 ## Interface: 120007, 120100, 120105
+## AllowLoadGameType: standard
 ## Title: MiliUI Character Notes
 ## Title-zhTW: |cff33FFA3[筆記]|r 米利的角色筆記
 ## Title-zhCN: |cffE8C56C[笔记]|r 米利的角色笔记

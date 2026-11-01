@@ -1,4 +1,4 @@
-## Interface: 120007, 120100, 120105
+## Interface: 120007, 120100, 120105, 16001
 ## Title: MiliUI ChatBar
 ## Notes: Quick access chat channel buttons
 ## Title-zhTW: |cffFF9999[聊天]|r 米利的快捷聊天列

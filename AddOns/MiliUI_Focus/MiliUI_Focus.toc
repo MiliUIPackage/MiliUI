@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Focus
 ## Title-zhTW: |cff00FFFF[專注]|r 米利的專注目標助手
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的焦点助手

@@ -1,4 +1,4 @@
-## Interface: 120007, 120100, 120105
+## Interface: 120007, 120100, 120105, 16001
 ## Title: MiliUI Shopping List
 ## Title-zhTW: |cffFFFF99[清單]|r 米利的採購清單
 ## Title-zhCN: |cffFFFF99[清单]|r 米利的采购清单

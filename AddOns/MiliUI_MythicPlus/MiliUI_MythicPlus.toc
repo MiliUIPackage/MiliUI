@@ -1,4 +1,5 @@
 ## Interface: 120100, 120105
+## AllowLoadGameType: standard
 ## Title: MiliUI Mythic Plus
 ## Title-zhTW: |cffFF7F00[M+]|r 米利的傳奇鑰石
 ## Title-zhCN: |cffFF7F00[M+]|r 米利的史诗钥石

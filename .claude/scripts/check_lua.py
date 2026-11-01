@@ -77,6 +77,8 @@ ALLOWED_GLOBAL_WRITES = {
     # 刻意寫回暴雪／第三方的全域（都有掛勾理由，見各檔註解）
     "ChatEdit_CustomTabPressed",      # 暴雪留的官方覆寫點，有串回原本的
     "SetDesaturation", "AnimateTexCoords", "GetItemInfo",   # Fix/DeprecatedGlobals.lua 的相容層
+    "GetSpecialization", "GetSpecializationInfo", "GetActiveSpecGroup",            # 同上，永恆版沒載
+    "GetNumSpecializationsForClassID", "GetSpecializationMasterySpells", "GetTalentInfo",  # Blizzard_DeprecatedSpecialization
     "BugSackDB", "PLATYNATOR_CONFIG",   # 預設值匯入的目標
     # MiliUI_Merchant 刻意寫的**唯一**一個暴雪全域：商人視窗一頁幾格。暴雪的
     # MerchantFrame_Update 整條重畫迴圈都照這個數字跑，所以要讓它多畫幾格，

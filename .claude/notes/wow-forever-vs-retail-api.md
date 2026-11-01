@@ -47,13 +47,14 @@ Forever 獨有：`Blizzard_SwingTimer`、`Blizzard_LegacySystem`、`Blizzard_Leg
 
 - Forever 的「專精」＝主天賦樹。`C_SpecializationInfo.GetSpecialization()` 回主天賦樹索引（暴雪 Camelot 版 PaperDollFrame 就當 `primaryTalentTree` 用），沒點天賦時可能 nil；雙天賦走 `C_SpecializationInfo.GetActiveSpecGroup()`／`SetActiveSpecGroup`／`GetCombatConfigIDForSpecGroup`（`Enum.SpecGroup.Primary`／`Secondary`）。天賦樹本身走 `C_Traits`（每階有自己的法術 ID）。Camelot 天賦框**完全沒用 `C_ClassTalents`** → 天賦配置（loadout）在 Forever 沒意義。
 - **全域 `GetSpecialization`／`GetSpecializationInfo`／`GetActiveSpecGroup`／`GetNumSpecializationsForClassID`／`GetSpecializationMasterySpells`／`GetTalentInfo` 在 Forever 是 nil**：它們由 `Blizzard_DeprecatedSpecialization` 定義，而那個插件 `AllowLoadGameType: classic, standard`。`GetSpecializationInfoByID`／`GetNumSpecializations`／`GetNumSpecGroups` 暴雪 Camelot 程式自己裸用，是 C 原生、還在。
-- 自製插件裸用這些全域的有：CooldownManager、UnitFrames、InfoBar、QoL、DamageMeters、Tooltip、CharacterNotes、AdventureGuideSpecCompare → 改 `C_SpecializationInfo.*`，或在 `MiliUI/Fix/DeprecatedGlobals.lua` 補 shim（那支已經在補 `GetItemInfo`／`SetDesaturation`）。
+- 自製插件裸用這些全域的有：CooldownManager、UnitFrames、InfoBar、QoL、DamageMeters、Tooltip、CharacterNotes、AdventureGuideSpecCompare。**2026-11-02 已在 `MiliUI/Fix/DeprecatedGlobals.lua` 把六個全域照暴雪 Deprecated_Specialization_Standard.lua 補回**（正式服上 `if not` 全跳過）；「專精＝主天賦樹」的語意分流是第二階段的事。
 
 ## TOC 怎麼寫
 
 - `## Interface: 120100, 120105, 16001` 逗號併列即可（wiki 明說優於另立型別 TOC）。要分檔也行：`Name_Forever.toc`／`Name_Camelot.toc`，`_Mainline.toc` 對 Forever 也成立；BigWigs packager 只認 `_Camelot`，我們不走 packager 無所謂。
 - **正式服專屬的插件在 TOC 加 `## AllowLoadGameType: standard`**，Forever 就直接不載入，零程式改動（11.1.5 起開放給一般插件，也有逐檔 `File.lua [AllowLoadGameType standard]`）。這是暴雪自己分流的機制，比 runtime 判斷乾淨。
 - `check_toc.py`／`bump_toc.py` 用「6 位數」判 retail，5 位數的 16001 會被當 classic 條目留著不動 → 工具不用改。
+- **2026-11-02 第一階段已做**：15 支可在永恆用的自製插件 Interface 加 16001；7 支正式服專屬（MythicPlus、BossTimeline、AdventureGuideSpecCompare、CrusadingStrikes、BloodlustMusic、BurstPotionHelper、CharacterNotes）加 `## AllowLoadGameType: standard`。第三方的閘沒動（直接改第三方 TOC 會被上游更新洗掉，而且它們沒列 16001 本來就會被當過期停用）。
 - 第三方已帶 16001：Baganator、Syndicator、Chattynator、Platynator、Plumber、MRT。**Cell 上游沒有 Forever**；NeeRgY fork 從 r277.9.8.8（2026-09-25）起支援（Vanilla 法術等級、buff 表、click-casting 法術表、project ID 載入修正、「沒有專精」的 profile 修正）── 我們的 Cell fork 要支援 Forever 得搬這些，是最大的第三方風險，見 [[wow-cell-neergy-fork]]。
 
 ## 結論：不另外打造

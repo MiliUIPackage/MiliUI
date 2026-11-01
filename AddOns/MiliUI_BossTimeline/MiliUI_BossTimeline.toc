@@ -1,4 +1,5 @@
 ## Interface: 120100, 120105
+## AllowLoadGameType: standard
 ## Title: MiliUI Boss Timeline
 ## Title-zhTW: |cffFF7F00[副本]|r 米利的首領時間軸
 ## Title-zhCN: |cffFF7F00[副本]|r 米利的首领时间轴

@@ -1,4 +1,4 @@
-## Interface: 120007, 120100, 120105
+## Interface: 120007, 120100, 120105, 16001
 ## Title: MiliUI InfoBar
 ## Notes: Flat info bar with micro menu replacement: item level, durability, spec, loot spec, warband keystones, performance.|n|n|cffffd200Usage: |rEsc>Options>AddOns>MiliUI InfoBar or type /mib to configure.
 ## Title-zhTW: |cff33FF52[資訊]|r 米利的資訊列

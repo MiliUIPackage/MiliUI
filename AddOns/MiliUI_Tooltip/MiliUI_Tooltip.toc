@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Tooltip
 ## Title-zhTW: |cff4DD2FF[提示]|r 米利的滑鼠提示
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的鼠标提示

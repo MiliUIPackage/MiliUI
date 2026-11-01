@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Unit Frames
 ## Title-zhTW: |cff4DD2FF[頭像]|r 米利的單位框架
 ## Title-zhCN: |cff4488FF[MiliUI]|r 米利的单位框架

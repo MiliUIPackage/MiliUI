@@ -1,4 +1,4 @@
-## Interface: 120007, 120100, 120105
+## Interface: 120007, 120100, 120105, 16001
 ## Title: MiliUI Merchant
 ## Title-zhTW: |cff33CCFF[商人]|r 米利的商人視窗
 ## Title-zhCN: |cff33CCFF[商人]|r 米利的商人窗口

@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: MiliUI Cooldown Manager
 ## Title-zhTW: |cff00FFFF[冷卻]|r 米利的冷卻管理器
 ## Title-zhCN: |cff00FFFF[冷却]|r 米利的冷却管理器
