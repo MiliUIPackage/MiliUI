@@ -77,6 +77,9 @@ local GROUP_HIDE = {
 -- 而格數會隨學到哪些型態變 ⇒ 不能寫死，要掃姿態列找旅行型態在第幾格。
 -- 水生／飛行型態在正式服都是旅行型態（783）自動切換的樣子，姿態列上只有這一格。
 local TRAVEL_FORM_SPELLS = { [783] = true }
+-- 永恆版（Vanilla）的水棲型態（1066）是姿態列上獨立的一格，不是旅行型態的變體，一起算進「趕路中」
+-- 永恆版待實機確認：GetShapeshiftFormInfo 對水棲型態回的法術 ID 是不是 1066
+if ns.IS_FOREVER then TRAVEL_FORM_SPELLS[1066] = true end
 
 local function TravelFormSlots()
     local n = GetNumShapeshiftForms and GetNumShapeshiftForms() or 0

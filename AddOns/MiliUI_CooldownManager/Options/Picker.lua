@@ -1501,6 +1501,28 @@ local function BagItemName(id)
     return name
 end
 
+-- 永恆版：藥水、團隊增益、個人增益的常用預設是正式服的物品／法術 ID。客戶端資料庫裡一個都沒有的那一組不列
+--（物品資料要不到：ITEM_DATA_LOAD_RESULT 回來就重畫、重畫又再要一次）。field ＝ "items"（物品）｜"ids"（法術）。
+-- 正式服原表照回、不過濾；種族／防禦／控場本來就照「學了沒」濾，不用這支
+local function ForeverDefs(defs, field)
+    if not ns.IS_FOREVER then return defs end
+    local exists
+    if field == "items" then
+        exists = C_Item and C_Item.DoesItemExistByID
+    else
+        exists = C_Spell and C_Spell.DoesSpellExist
+    end
+    if not exists then return defs end
+    local out = {}
+    for _, def in ipairs(defs) do
+        for _, id in ipairs(type(def[field]) == "table" and def[field] or {}) do
+            local ok, v = pcall(exists, id)
+            if not ok or v then out[#out + 1] = def; break end     -- 問不到當有（寧可多列）
+        end
+    end
+    return out
+end
+
 function Picker.PresetRows(kind, key, scope)
     local PR = ns.Presets
     local out = {}
@@ -1538,7 +1560,7 @@ function Picker.PresetRows(kind, key, scope)
     elseif kind == "controls" then
         for _, id in ipairs(PR.Controls(ns.playerClass, ns.Catalog.SpellKnown)) do out[#out + 1] = SpellRow(id, scope) end
     elseif kind == "items" then
-        for _, def in ipairs(PR.ITEMS) do
+        for _, def in ipairs(ForeverDefs(PR.ITEMS, "items")) do
             -- 圖示與名字用包包裡有的那件（都沒有就用主的）
             local shown = ns.Custom.PickItem(def.items, BagCount)
             local name = PlainValue(C_Item and C_Item.GetItemNameByID, shown)
@@ -1553,7 +1575,7 @@ function Picker.PresetRows(kind, key, scope)
         end
     elseif kind == "auras" or kind == "selfAuras" then
         local faction = PlainValue(UnitFactionGroup, "player")
-        for _, def in ipairs(kind == "auras" and PR.AURAS or PR.SelfAuras(ns.specID)) do
+        for _, def in ipairs(ForeverDefs(kind == "auras" and PR.AURAS or PR.SelfAuras(ns.specID), "ids")) do
             local e = PR.AuraEntry(def, key, faction)
             -- 判「已加入」看整組任何一個 ID（換陣營的角色共用設定檔時主 ID 不同）
             local added = false

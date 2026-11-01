@@ -81,9 +81,15 @@ local CONTROLS = {
 
 for _, spec in ipairs(CONTROLS) do tinsert(PAGE_CONTROLS.loot, spec) end
 
+-- 永恆版：header 標了 retailOnly 的小節（從那個 header 到下一個 header 之前）整節不列 ——
+-- 對應的模組在永恆整支不載入或不建（各模組檔頭的 ns.IS_FOREVER 閘），留著只是一排沒作用的開關
 local function Append(list)
     local dst = PAGE_CONTROLS[curPage]
-    for _, spec in ipairs(list) do dst[#dst + 1] = spec end
+    local skip = false
+    for _, spec in ipairs(list) do
+        if spec.type == "header" then skip = ns.IS_FOREVER and spec.retailOnly or false end
+        if not skip then dst[#dst + 1] = spec end
+    end
 end
 
 Append(HideToggle("rollWon",  "隱藏「團隊擲骰獲得」", "團隊擲骰（需求／貪婪）贏得物品時跳出的通知。"))
@@ -145,7 +151,7 @@ Append({
 -- （Modules/GroupLootHistory_AutoClose.lua）。模組全域在舊本體偵測命中時不會由 QoL 建
 -- （那時是舊本體的），所以 get/set 一律先判斷在不在。
 Append({
-    { type = "header", label = "星雲之核骰裝" },
+    { type = "header", label = "星雲之核骰裝", retailOnly = true },
     { type = "toggle", label = "依內容類型隱藏骰裝提示",
       get = function() return MiliUI_BonusRollFilter and MiliUI_BonusRollFilter.IsEnabled() end,
       set = function(v) if MiliUI_BonusRollFilter then MiliUI_BonusRollFilter.SetEnabled(v) end end },
@@ -318,7 +324,7 @@ Append({
 
 -- 烏拉特克戰鬥結束後自動釋放靈魂（Modules/Encounter_AutoRelease.lua）
 Append({
-    { type = "header", label = "首領戰" },
+    { type = "header", label = "首領戰", retailOnly = true },
     { type = "toggle", label = "烏拉特克戰鬥結束後自動釋放靈魂",
       get = function() return ns.UlatekAutoRelease and ns.UlatekAutoRelease.IsEnabled() end,
       set = function(v) if ns.UlatekAutoRelease then ns.UlatekAutoRelease.SetEnabled(v) end end },
@@ -334,7 +340,7 @@ Append({
 Page("misc")
 if GetLocale() == "zhTW" then
     Append({
-        { type = "header", label = "探究" },
+        { type = "header", label = "探究", retailOnly = true },
         { type = "toggle", label = "顯示「點擊標記敦敦」按鈕",
           get = function() return MiliUI_DelveMarkButton and MiliUI_DelveMarkButton.IsEnabled() end,
           set = function(v) if MiliUI_DelveMarkButton then MiliUI_DelveMarkButton.SetEnabled(v) end end },
@@ -417,7 +423,7 @@ Append({
     { type = "text", label = "遊戲內好友已經滿級時，名字後面不再寫「等級 N 職業」，職業看名字顏色就知道。"
         .. "要先開啟上面的職業色才有作用；戰網好友在名單裡本來就不顯示等級。" },
 
-    { type = "header", label = "拍賣行" },
+    { type = "header", label = "拍賣行", retailOnly = true },
     { type = "toggle", label = "「僅限當前資料片」篩選",
       get = function() return MiliUI_AHFilter and MiliUI_AHFilter.IsEnabled and MiliUI_AHFilter.IsEnabled() end,
       set = function(v)
@@ -460,7 +466,8 @@ local function HudPick(t, key, label, extra)
 end
 
 Append({
-    { type = "header", label = "角色面板" },
+    -- 永恆只留下面的「畫面上顯示屬性」：清單、齒輪、稱號搜尋在永恆不建（CharacterStats.lua 等的閘）
+    { type = "header", label = "角色面板", retailOnly = true },
     { type = "toggle", label = "自建屬性清單",
       get = function() local d = CSDB(); return d and d.statsPanel ~= false end,
       set = function(v)

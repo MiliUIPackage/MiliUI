@@ -32,6 +32,10 @@ end
 
 -- 目前專精的在地化名稱（GetSpecializationInfo 的第二個回傳值）。拿不到回 nil
 local function SpecName()
+    -- 永恆版沒有專精：GetSpecializationInfo 回的是主天賦樹的名字，而資源條在那邊是依職業／
+    -- 型態列的（Elements/ClassPower.lua 的 FOREVER_CLASS_RESOURCES），印「目前專精 X」會誤導
+    -- ⇒ 回 nil，頁首那一行整行不出現
+    if ns.IS_FOREVER then return nil end
     local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization) or GetSpecialization
     local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo) or GetSpecializationInfo
     if not (getSpec and getInfo) then return nil end

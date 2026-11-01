@@ -669,4 +669,8 @@ function X.RefreshStats()
     X.NotifyStatsChanged("rating")
 end
 
-X.Register("statsPanel", Build)
+-- 永恆版待實機確認：Camelot 版 PaperDollFrame 結構不同，先不接。
+-- 只跳過建立：上面的 X.SectionColor 照樣匯出，畫面上顯示屬性（StatsHud.lua）的「分區色」要用
+if not ns.IS_FOREVER then
+    X.Register("statsPanel", Build)
+end

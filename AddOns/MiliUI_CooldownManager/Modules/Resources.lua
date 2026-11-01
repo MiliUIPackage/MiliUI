@@ -137,6 +137,13 @@ local function GetValue(key)
         return n, def.max
     end
     if def.power == nil then return 0, 0 end
+    if def.targetBound and GetComboPoints then
+        -- 永恆版的連擊點（Modules/Resources_Defs.lua 的 targetBound）：點數讀目標身上的、上限照舊。
+        -- 一樣是原始值（秘密值原樣轉手，不比較）；拋錯或明文的 nil ＝ 0
+        local ok, n = pcall(GetComboPoints, "player", "target")
+        if not ok or (not ns.IsSecret(n) and type(n) ~= "number") then n = 0 end
+        return n, UnitPowerMax("player", def.power) or 0
+    end
     local cur = UnitPower("player", def.power)
     local max = UnitPowerMax("player", def.power)
     return cur or 0, max or 0
@@ -1967,6 +1974,14 @@ local function OnEvent(_, event, ...)
         ns.CastStacks.Reset()
         R.RenderAllCastTimers()
     end
+    if ns.IS_FOREVER and (event == "PLAYER_TARGET_CHANGED" or event == "COMBO_TARGET_CHANGED") then
+        -- 永恆版：連擊點那一列（targetBound）只重畫值、不重推候選清單（同單位框架那組的做法）
+        for i = 1, shownCount do
+            local def = rows[i] and rows[i].key and R.RESOURCES[rows[i].key]
+            if def and def.targetBound then Mark(false) break end
+        end
+        if event == "COMBO_TARGET_CHANGED" then return end
+    end
     if event == "PLAYER_TARGET_CHANGED" then
         -- 看目標身上減益的列（Frozen）：容器不會自己因為換目標重掃
         for i = 1, shownCount do
@@ -2023,6 +2038,11 @@ local function RegisterEvents()
     if CLASS == "DEATHKNIGHT" then evFrame:RegisterEvent("RUNE_POWER_UPDATE") end
     if CLASS == "DRUID" then evFrame:RegisterEvent("PLAYER_DEAD") end       -- 鐵鬃的每層倒數清空
     if CLASS == "ROGUE" then evFrame:RegisterUnitEvent("UNIT_POWER_POINT_CHARGE", "player") end
+    -- 永恆版：連擊點綁在目標身上（targetBound）——換目標、點數轉到新目標都沒有能量事件 ⇒ 照暴雪 Camelot 版連擊點條聽這兩個
+    if ns.IS_FOREVER and (CLASS == "ROGUE" or CLASS == "DRUID") then
+        evFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+        evFrame:RegisterEvent("COMBO_TARGET_CHANGED")
+    end
     -- 秘法靈魂的「剩幾個 GCD」：格式器的分段跟著 GCD 長度
     if CLASS == "MAGE" then
         evFrame:RegisterUnitEvent("UNIT_SPELL_HASTE", "player")

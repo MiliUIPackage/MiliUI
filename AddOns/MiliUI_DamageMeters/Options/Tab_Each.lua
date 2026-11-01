@@ -254,6 +254,13 @@ local CONTROLS = {
     { type = "custom",   build = BuildSplitList, h = SPLIT_LIST_H },
 }
 
+-- 永恆版沒有探究：「探究中隱藏」那一列拿掉（D.IsInDelve 在那邊固定回 false，勾了也沒作用）
+if ns.IS_FOREVER then
+    for i = #CONTROLS, 1, -1 do
+        if CONTROLS[i].key == "hideInDelve" then table.remove(CONTROLS, i) end
+    end
+end
+
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["Per window"])

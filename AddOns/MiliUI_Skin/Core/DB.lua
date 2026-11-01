@@ -148,12 +148,25 @@ function DB.Init()
 end
 
 ------------------------------------------------------------
+-- 永恆版（WoW Forever）的視窗狀態：[key] = "disabled" | "absent"
+--
+-- `Engine.Register` 在永恆登記配方時照配方的 `forever` 欄位填進來；**正式服永遠是空表**
+-- （填表的那一行在 `ns.IS_FOREVER` 後面）。
+--   "disabled"  目標面板被 Camelot 版整檔取代、retail 的子區塊路徑不能信 ⇒ `IsWindowEnabled`
+--               回 false，之後走的是跟「玩家在設定裡關掉」完全同一條路；設定頁那一列變暗、點不動
+--   "absent"    目標插件在永恆不載入（或載入但視窗永遠不開）⇒ 這裡不管（不載入的，引擎等不到
+--               ADDON_LOADED 自己停在 waiting-addon；載入了就照常對同一套框套皮），只給設定頁把那一列藏起來
+------------------------------------------------------------
+DB.forever = {}
+
+------------------------------------------------------------
 -- 這個視窗現在該不該套？（總開關 ＋ 個別開關）
 -- 沒有 ns.db 表示還沒到 PLAYER_LOGIN，一律當成「還不能套」。
 ------------------------------------------------------------
 function DB.IsWindowEnabled(key)
     local db = ns.db
     if not db or not db.enabled then return false end
+    if DB.forever[key] == "disabled" then return false end
     return db.windows[key] ~= false
 end
 

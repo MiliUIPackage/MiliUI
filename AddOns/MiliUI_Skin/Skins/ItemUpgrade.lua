@@ -285,6 +285,7 @@ end
 E.Register{
     key   = "itemupgrade",
     addon = "Blizzard_ItemUpgradeUI",  -- `## LoadOnDemand: 1`
+    forever = "absent",                -- 永恆：插件准載、程式不變，但沒有物品升級 ⇒ 視窗永遠不開（真的被載入也只是對同一套框套皮）；設定頁藏掉這一列
     title = L["Item Upgrade"],
     apply = Apply,
 }

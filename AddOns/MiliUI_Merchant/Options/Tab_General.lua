@@ -49,6 +49,22 @@ local function BuildSpecs()
     }
 end
 
+-- 永恆版沒有家園：「房屋裝飾」那個勾與它底下那行說明一起拿掉
+-- （判定那邊也整段跳過，見 Modules/Collected.lua 的 Compute）
+if ns.IS_FOREVER then
+    local build = BuildSpecs
+    BuildSpecs = function()
+        local specs = build()
+        local note = L["Off by default: owning one does not mean you don't want a second."]
+        for i = #specs, 1, -1 do
+            if specs[i].key == "housing" or (specs[i].type == "text" and specs[i].label == note) then
+                table.remove(specs, i)
+            end
+        end
+        return specs
+    end
+end
+
 ------------------------------------------------------------
 -- 總開關關掉時，拍賣場開關與六個類別蓋上一層半透明黑
 --

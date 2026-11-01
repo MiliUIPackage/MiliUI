@@ -61,12 +61,42 @@ local BUTTON_DEFS = {
 
 MM.BUTTON_DEFS = BUTTON_DEFS
 
+------------------------------------------------------------
+-- 永恆版的按鈕組（Blizzard_MicroMenu/Camelot/MicroMenuContainerOverrides.lua 的
+-- GenerateButtonInfos）：法術書與天賦分開兩顆（SpellbookMicroButton／TalentMicroButton），
+-- 合併的 PlayerSpellsMicroButton 跟成就鈕不在那排；家園、地城手冊、商店、客服看伺服器的
+-- 遊戲規則。⚠ 這些按鈕的**全域都在**（共用的 XML 一律建出來，只是沒收進那排），
+-- 所以「全域存在」在永恆不能當判準——藏著的那幾顆點下去，暴雪的 OnClick 會去叫永恆
+-- 根本沒載入的介面（家園就是）。改成只認暴雪那排真的收進去的：MicroMenuMixin:AddButton
+-- 會寫 layoutIndex，沒收的就沒有（只讀，不寫暴雪的欄位）。
+--
+-- 「spell」那格在永恆對到天賦鈕（標籤本來就是 TALENTS_BUTTON），法術書與永恆獨有的
+-- Legacy 鈕（LegacyMicroButton）各補一格、照暴雪那排的順序排在它前後——資訊列預設把暴雪
+-- 那排藏起來，不補的話這兩個介面就只剩快捷鍵打得開。標籤用暴雪自己的全域字串；
+-- 預設開關在 Config.lua。Legacy 還沒解鎖時暴雪會把原鈕停用，轉發過去的點擊照樣沒反應。
+------------------------------------------------------------
+if ns.IS_FOREVER then
+    for i, def in ipairs(BUTTON_DEFS) do
+        if def.key == "spell" then
+            def.globals = { "TalentMicroButton" }
+            def.binding = "TOGGLETALENTS"
+            table.insert(BUTTON_DEFS, i + 1, { key = "legacy", label = LEGACY_BUTTON,
+                binding = "TOGGLELEGACYSYSTEM", globals = { "LegacyMicroButton" } })
+            table.insert(BUTTON_DEFS, i, { key = "spellbook", label = SPELLBOOK_ABILITIES_BUTTON,
+                binding = "TOGGLESPELLBOOK", globals = { "SpellbookMicroButton" } })
+            break
+        end
+    end
+end
+
 local function ResolveMicroButton(def)
     for _, name in ipairs(def.globals) do
         local ref = _G[name]
-        if ref then return ref end
+        if ref and (not ns.IS_FOREVER or ref.layoutIndex ~= nil) then return ref end
     end
 end
+-- 設定頁（Options/Tab_Micro.lua）在永恆只列解得出來的按鈕
+MM.Resolve = ResolveMicroButton
 
 ------------------------------------------------------------
 -- 圖示：從暴雪按鈕身上「抄」而不是自備圖檔

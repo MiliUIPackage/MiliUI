@@ -140,7 +140,10 @@ function Tab.Build(parent, title)
     return page
 end
 
-Options.RegisterPage(KEY, L["Mount Special button"], Tab.Build)
+-- 永恆版沒有坐騎特效按鈕：頁不登記（左欄也不列；按鈕本身由 Modules/MountSpecial.lua 的 Init 閘掉）
+if not ns.IS_FOREVER then
+    Options.RegisterPage(KEY, L["Mount Special button"], Tab.Build)
+end
 
 -- 編輯模式拖完（拖了就脫離錨定）、錨定視窗改了值：錨定那一節重讀
 local function RefreshMoved(key)

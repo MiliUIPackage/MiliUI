@@ -81,6 +81,13 @@ local RESOURCES = {
     SoulFragments   = { name = L["Soul Fragments"], mode = "pip", cast = 228477, max = 6,   passive = 228477 },
 }
 
+-- 永恆版（Vanilla 規則）：連擊點存在**目標**身上，換了目標那一份就不是你能用的。
+-- 暴雪 Camelot 版的連擊點條（Blizzard_UnitFrame/Camelot/TargetBoundComboPointBar.lua）
+-- 因此不讀玩家的原始能量值，改讀 GetComboPoints("player", "target")，並且聽
+-- PLAYER_TARGET_CHANGED／COMBO_TARGET_CHANGED（見檔尾）。照它的做法：GetValue 看到這個旗標就換來源
+-- 永恆版待實機確認：UnitPower("player", 連擊點) 在永恆到底是不是跟著目標走（是的話兩條路結果一樣）
+if ns.IS_FOREVER then RESOURCES.ComboPoints.targetBound = true end
+
 -- 專精 → 資源清單（照抄 Ayije_CDM/Modules/Resources.lua 的 SPEC_POWER_MAP）
 local SPEC_RESOURCES = {
     [71]  = { "Rage" },                          [72]  = { "Rage" },
@@ -104,6 +111,14 @@ local SPEC_RESOURCES = {
     [577] = { "Fury" },                          [581] = { "Fury", "SoulFragments" },
     [1480] = { "Fury" },
     [1467] = { "Essence" },                      [1468] = { "Essence" },  [1473] = { "Essence" },
+}
+
+-- 永恆版沒有專精：CurrentSpecID 回的是主天賦樹的 ID（還沒點天賦時是 nil），對不上上面那張表，
+-- 所以改依職業列。Vanilla 九職的副資源只有連擊點：盜賊列在這裡，德魯伊貓形走 ResourceCandidates
+-- 的型態分支；其餘職業只有主資源（法力／怒氣／能量），能量條已經在畫 ⇒ 不列，資源條整個不出現。
+-- 盜賊的能量照上面那張表的寫法一起列，交給「主資源」閘剔除
+local FOREVER_CLASS_RESOURCES = {
+    ROGUE = { "Energy", "ComboPoints" },
 }
 
 local function CurrentSpecID()
@@ -137,6 +152,12 @@ local function GetValue(key)
         if not fn then return 0, def.max end
         local ok, n = pcall(fn, def.cast)
         return (ok and ns.Desecret(n, 0)) or 0, def.max
+    end
+    if def.targetBound then
+        -- 永恆版的連擊點（見 RESOURCES 底下 targetBound 那段）：點數讀目標身上的，上限照舊
+        local ok, n = pcall(GetComboPoints, "player", "target")
+        local max = ns.Desecret(UnitPowerMax("player", def.power), 0) or 0
+        return (ok and ns.Desecret(n, 0)) or 0, max
     end
     local cur = ns.Desecret(UnitPower("player", def.power), 0) or 0
     local max = ns.Desecret(UnitPowerMax("player", def.power), 0) or 0
@@ -752,7 +773,9 @@ function ns.ResourceCandidates()
             raw = { "LunarPower" }
         end
     else
-        for _, key in ipairs(SPEC_RESOURCES[specID or 0] or {}) do
+        local keys = SPEC_RESOURCES[specID or 0]
+        if ns.IS_FOREVER then keys = FOREVER_CLASS_RESOURCES[CLASS] end
+        for _, key in ipairs(keys or {}) do
             raw[#raw + 1] = key
         end
     end
@@ -1700,6 +1723,16 @@ ns.Events.Register("UNIT_POWER_POINT_CHARGE", "classpower_charge", function(unit
     chargedDirty = true
     RepaintRows(IsComboRow)
 end, "player")
+end
+
+-- 永恆版：連擊點跟著目標走（見 RESOURCES 底下 targetBound 那段）。換目標、或點數被轉到新目標
+-- 都不會有能量事件 ⇒ 照暴雪 Camelot 版連擊點條聽這兩個，只重畫連擊點那一列（理由同上面的充能）。
+-- 兩個都是全域事件，走 Core/Events.lua 的全域 eventFrame、已經延一幀
+-- （PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送）
+if ns.IS_FOREVER and (CLASS == "ROGUE" or CLASS == "DRUID") then
+    local function RepaintCombo() RepaintRows(IsComboRow) end
+    ns.Events.Register("PLAYER_TARGET_CHANGED", "classpower_combo_target", RepaintCombo)
+    ns.Events.Register("COMBO_TARGET_CHANGED", "classpower_combo_move", RepaintCombo)
 end
 
 -- 光環堆疊型資源（漩渦之武／矛尖／靈魂碎片）沒有 UNIT_POWER 可用，只能吃 UNIT_AURA。

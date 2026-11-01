@@ -160,7 +160,9 @@ local function Compute(itemID, dim, getTip, getLink, arg)
     local v
     if dim.recipes and classID == Enum.ItemClass.Recipe then
         v = IsRecipeKnown(getTip, arg)
-    elseif dim.housing and classID == Enum.ItemClass.Housing then
+    -- 永恆版沒有家園（Blizzard_Housing* 不載入、C_HousingCatalog 沒資料，設定列也藏了）：
+    -- 整段跳過。不跳的話查不到會回 nil＝「資料未到」，那一格會一直掛著重試
+    elseif dim.housing and not ns.IS_FOREVER and classID == Enum.ItemClass.Housing then
         v = IsHousingCollected(itemID)
     elseif dim.transmog
         and (classID == Enum.ItemClass.Weapon or classID == Enum.ItemClass.Armor) then

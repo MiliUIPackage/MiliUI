@@ -213,6 +213,11 @@ local RESOURCES = {
     -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
     Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
+-- 永恆版（Vanilla 規則）：連擊點存在**目標**身上，換了目標那一份就不是你能用的。暴雪 Camelot 版的連擊點條
+-- （Blizzard_UnitFrame/Camelot/TargetBoundComboPointBar.lua）讀 GetComboPoints("player", "target")、聽
+-- PLAYER_TARGET_CHANGED／COMBO_TARGET_CHANGED；照它的做法（同單位框架 Elements/ClassPower.lua）：
+-- targetBound ＝ R.GetValue 換來源（上限照舊 UnitPowerMax），Modules/Resources.lua 的 OnEvent 換目標時重畫值
+if ns.IS_FOREVER then RESOURCES.ComboPoints.targetBound = true end
 R.RESOURCES = RESOURCES
 
 -- 顯示用的名字：法術名在載入當下可能還沒有資料，之後再問一次（拿到就記下）
@@ -378,9 +383,28 @@ R.SPEC_CLASS = SPEC_CLASS
 -- 德魯伊看「現在的型態」：熊＝怒氣、貓＝能量＋連擊點、其餘照專精（梟＝星能；野性／守護＝法力）
 local DRUID_BEAR, DRUID_CAT = 5, 1
 
+-- 永恆版（ns.IS_FOREVER）：ns.specID 是職業層的固定 key（負的 classID，Core/Init.lua 的 ns.RefreshSpec），不在上面
+-- 任何一張專精表裡。Vanilla 的職業資源只有法力／怒氣／能量／連擊點 ⇒ 照職業給，沒列的職業（聖騎、獵人、牧師、
+-- 薩滿、法師、術士）都是法力；德魯伊照型態，法力每個型態都列（變形要花法力）。天賦閘照舊（上限 0 的列不顯示）。
+-- 連擊點讀目標身上的（RESOURCES.ComboPoints.targetBound，見上面）。永恆版待實機確認：獵人是不是用法力
+local FOREVER_RESOURCES = { WARRIOR = { "Rage" }, ROGUE = { "Energy", "ComboPoints" } }
+
 -- 純函式（離線測試用）：職業、專精、德魯伊型態 → 這個專精該有的資源 key（還沒套天賦閘）
 function R.RawList(class, specID, form)
     local out = {}
+    if ns.IS_FOREVER and not SPEC_CLASS[specID or 0] then
+        if class == "DRUID" then
+            if form == DRUID_BEAR then
+                out[1] = "Rage"
+            elseif form == DRUID_CAT then
+                out[1], out[2] = "Energy", "ComboPoints"
+            end
+            out[#out + 1] = "Mana"
+            return out
+        end
+        for _, key in ipairs(FOREVER_RESOURCES[class] or { "Mana" }) do out[#out + 1] = key end
+        return out
+    end
     if class == "DRUID" then
         if form == DRUID_BEAR then
             out[1] = "Rage"

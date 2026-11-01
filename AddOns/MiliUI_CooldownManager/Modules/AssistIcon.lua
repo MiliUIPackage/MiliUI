@@ -213,6 +213,8 @@ end
 ------------------------------------------------------------
 function AI.Init()
     if container then return end
+    -- 永恆版不提供戰鬥輔助（見 Core/Assist.lua 的 A.Available）：圖示不建；面板清單（Core/DB.lua）與設定頁同時拿掉
+    if ns.IS_FOREVER then return end
     container = ns.Bars.RegisterPanel(KEY, {
         anchorPoint = "CENTER",
         minSize     = MinSize,

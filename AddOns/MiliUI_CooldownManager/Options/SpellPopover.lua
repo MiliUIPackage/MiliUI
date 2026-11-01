@@ -1892,8 +1892,9 @@ Layout = function(kind, class)
             row.frame:ClearAllPoints()
             row.frame:SetPoint("TOPLEFT", body, "TOPLEFT", PAD, y)
             if row.buttons then
-                -- 專精層的自訂項目才有（暴雪的法術本來就逐專精由暴雪管；寬層本來就每個專精都看得到）
-                frame.copyBtn:SetShown(kind ~= nil and CurScope() == "spec")
+                -- 專精層的自訂項目才有（暴雪的法術本來就逐專精由暴雪管；寬層本來就每個專精都看得到）。
+                -- 永恆版沒有：專精層的 key 是職業層的固定 key（Core/Init.lua 的 ns.RefreshSpec），沒有「其他專精」可以複製過去
+                frame.copyBtn:SetShown(not ns.IS_FOREVER and kind ~= nil and CurScope() == "spec")
                 local list = { frame.removeBtn, frame.restoreBtn, frame.copyBtn }
                 local _, bh = W.FlowLayout(frame.btnRow, list, ROW_W, 6, 4, 22)
                 frame.btnRow:SetHeight(bh)

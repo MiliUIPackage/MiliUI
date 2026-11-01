@@ -22,6 +22,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有烏拉特克（這支只認 encounter 3492）：整支不載入，設定頁「首領戰」那一節也不列（Options/Controls.lua）
+if ns.IS_FOREVER then return end
 
 local ENCOUNTER_ID = 3492
 local TRY_INTERVAL = 0.1     -- 每拍間隔

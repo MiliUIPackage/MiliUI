@@ -14,6 +14,12 @@ local Specs = ns.Specs
 
 local tabs = {}   -- [kind] = { tab, refreshers, board }
 
+-- 永恆版沒有傳奇鑰石：評分那一列資料層不給值（UnitInfo.lua），設定頁也不列它的方塊與圖示開關。
+-- DB 裡的 key 不動，看板重排時照樣留在原本那一列
+local function Unsupported(key)
+    return ns.IS_FOREVER and key == "mplusScore"
+end
+
 ------------------------------------------------------------
 -- 表單（看板以外的控制項）
 ------------------------------------------------------------
@@ -46,10 +52,12 @@ local function BuildControls(kind)
     if kind == "player" then
         controls[#controls + 1] = { type = "header", label = L["Icon instead of text"] }
         for _, key in ipairs({ "className", "mplusScore", "itemLevel", "achievementPoints", "mount" }) do
-            controls[#controls + 1] = {
-                type = "toggle", sub = "elements", sub2 = key, key = "icon",
-                label = Specs.ELEMENT_LABELS[key] or key,
-            }
+            if not Unsupported(key) then
+                controls[#controls + 1] = {
+                    type = "toggle", sub = "elements", sub2 = key, key = "icon",
+                    label = Specs.ELEMENT_LABELS[key] or key,
+                }
+            end
         end
         controls[#controls + 1] = { type = "text", label = L["Replaces the text label with a small icon (spec icon for class, dedicated icons for the rest)."] }
         controls[#controls + 1] = { type = "header", label = L["Item level"] }
@@ -132,7 +140,7 @@ local function RowCapableList(kind)
     local seen, list = {}, {}
     for _, row in ipairs(def) do
         for _, key in ipairs(row) do
-            if not seen[key] then
+            if not seen[key] and not Unsupported(key) then
                 seen[key] = true
                 list[#list + 1] = key
             end
@@ -246,7 +254,7 @@ local function CreateBoard(parent, kind, width, onHeight)
             local shown = {}
             for _, key in ipairs(row) do
                 local cfg = elements[key]
-                if cfg and cfg.enable then tinsert(shown, key) end
+                if cfg and cfg.enable and not Unsupported(key) then tinsert(shown, key) end
             end
             -- 整列元素都停用的列不畫（例如預設關閉的「所在區域」獨佔一列，
             -- 會變成一條永遠掛著的空 strip）。key 留在 DB 原位，

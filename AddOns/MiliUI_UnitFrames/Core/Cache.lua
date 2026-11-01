@@ -155,6 +155,10 @@ local function PlainPositive(ok, v)
 end
 
 function Cache.PlayerPetSpec()
+    -- 永恆版的獵人寵物沒有專精（Vanilla 寵物走忠誠度／訓練點數，暴雪 Camelot 版獸欄也沒有專精），
+    -- 寵物專精色在那邊的設定頁整個不列（Options/Specs_UF.lua、Tab_General.lua）。
+    -- 這裡直接回 nil ＝ 退主人職業色，匯入的設定檔帶著 petspec 也只會是那個顏色
+    if ns.IS_FOREVER then return nil end
     if not (GetSpecIndex and GetSpecInfo) then return nil end
     -- (isInspect, isPet)。GetSpecializationInfo 的 isInspect 不可為 nil，要明寫 false
     local idx = PlainPositive(pcall(GetSpecIndex, false, true))

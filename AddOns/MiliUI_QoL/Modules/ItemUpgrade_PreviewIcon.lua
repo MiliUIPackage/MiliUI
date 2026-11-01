@@ -20,6 +20,8 @@
 --------------------------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有物品升級（Blizzard_ItemUpgradeUI 照載，但遊戲裡永遠不會開）：整支不載入
+if ns.IS_FOREVER then return end
 
 EventUtil.ContinueOnAddOnLoaded("Blizzard_ItemUpgradeUI", function()
     if not ItemUpgradeFrame then return end

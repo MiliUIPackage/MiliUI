@@ -167,6 +167,9 @@ local inited = false
 function PW.Init()
     if inited then return end
     inited = true
+    -- 永恆版：認得的藥水全是 Presets.ITEMS 的正式服藥水（永恆喝不到），不聽施放事件；
+    -- 視窗永遠不開 ⇒ PW.Active／PW.State 照舊回「沒有」，暴雪那一格照暴雪的
+    if ns.IS_FOREVER then return end
     cand = PW.BuildCandidates(ns.Presets)
     local E = ns.Events
     if not (E and E.Register) then return end

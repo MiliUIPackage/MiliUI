@@ -90,6 +90,12 @@ local function HideBlizzardArt(hide)
     if bd then
         if _G.MinimapCompassTexture then _G.MinimapCompassTexture:SetAlpha(a) end
         if bd.StaticOverlayTexture then bd.StaticOverlayTexture:SetAlpha(a) end
+        -- 永恆版：Camelot 覆寫的 MinimapClusterMixin:UpdateMinimapConfig 在「旋轉小地圖」
+        -- 開著時會給這張墊底貼圖貼一圈圓環（正式服那支是空函式，這張永遠沒圖），
+        -- 它跟羅盤環一樣畫在 MinimapBackdrop 裡、會疊在方形地圖上，一起關。
+        if ns.IS_FOREVER and _G.MinimapCompassTextureUnderlay then
+            _G.MinimapCompassTextureUnderlay:SetAlpha(a)
+        end
     end
 
     -- 12.x 的區域名按鈕在 cluster 上；cluster 已經 alpha 0，這裡只是把滑鼠關掉，
@@ -824,6 +830,19 @@ ns.RegisterCallback("Init", "Skin", function()
             end
         end
     end)
+
+    -- 永恆版：同一個 UpdateMinimapConfig 在 rotateMinimap 這個 CVar 一變（CVarCallbackRegistry
+    -- 的回呼）就對 Minimap 重下一次暴雪的圓形遮罩，方形地圖會變回圓的；正式服那支是空函式。
+    -- 不掛它的函式（這一層不加新掛鉤），聽同一個 CVar 事件、延一幀等暴雪跑完再整套重套。
+    -- 永恆版待實機確認：登入時伺服器同步下來的 CVar 會不會也走這條、重套是否蓋得回方形
+    if ns.IS_FOREVER then
+        local cv = CreateFrame("Frame")
+        cv:RegisterEvent("CVAR_UPDATE")
+        cv:SetScript("OnEvent", function(_, _, name)
+            if name ~= "rotateMinimap" then return end
+            C_Timer.After(0, function() ns.Safe(Skin.Apply) end)
+        end)
+    end
 
     -- 座標與時鐘共用**一個** ticker。兩個各開一個 OnUpdate 是團隊框那條教訓的
     -- 縮小版：N 個每幀腳本的成本主要在派送次數，不在腳本內容

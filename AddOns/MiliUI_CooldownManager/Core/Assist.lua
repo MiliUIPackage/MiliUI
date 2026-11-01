@@ -84,6 +84,11 @@ end
 local function Secret(v) return ns.IsSecret and ns.IsSecret(v) or false end
 
 function A.Available()
+    -- 永恆版：C_AssistedCombat 還在，但暴雪 Camelot 版把遊戲設定的「戰鬥輔助」整節藏掉
+    -- （InterfaceOverrides.HasAssistedCombat 回 false）⇒ 當這個客戶端沒有：不輪詢、不亮；
+    -- 設定頁與下一招圖示另外拿掉（Options/Sidebar.lua、Options/Tab_Assist.lua、Modules/AssistIcon.lua）。
+    -- 永恆版待實機確認：暴雪之後若開放，拿掉這個閘與那三處即可
+    if ns.IS_FOREVER then return false end
     local ac = _G.C_AssistedCombat
     return type(ac) == "table" and type(ac.GetNextCastSpell) == "function"
 end

@@ -13,6 +13,13 @@
 ------------------------------------------------------------
 local ADDON, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+-- 永恆沒有的內容（探究、物品升級、代工訂單、星雲之核骰裝、拍賣場資料片篩選）各模組在
+-- 檔頭用它整支跳過；角色面板的自建清單／齒輪／稱號搜尋只跳過建立，見各檔。
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
 ns.DB_VERSION = 2   -- 2 = 2026-10-19 顯示數值預設改「數值 (百分比)」（Core/DB.lua 的 MIGRATIONS）

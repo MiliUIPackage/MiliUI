@@ -610,6 +610,7 @@ end
 E.Register{
     key   = "weeklyrewards",
     addon = "Blizzard_WeeklyRewards",
+    forever = "absent",                -- 永恆：插件准載、程式不變，但沒有大寶庫 ⇒ 視窗永遠不開（真的被載入也只是對同一套框套皮）；設定頁藏掉這一列
     title = L["Great Vault"],
     -- ⚠ `hooks` 刻意不給：這一份的 hook 數是 **0**（特許條件 2）。
     apply = Apply,

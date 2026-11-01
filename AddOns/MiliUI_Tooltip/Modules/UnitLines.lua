@@ -152,7 +152,10 @@ local function GetOriginalSpecLine(tip, className)
         local line = _G[name .. "TextLeft" .. i]
         local stripped = Lines.StripText(line and line:GetText())
         if stripped and not stripped:find("^%d") and not stripped:find("^<")
-            and stripped:find(className, 1, true) then
+            and stripped:find(className, 1, true)
+            -- 永恆版沒有專精行；等級行若帶職業名（「等級 60 人類 戰士」）會被當成最短那一行，
+            -- 整句塞進職業欄。永恆版待實機確認等級行的格式，這裡先把等級行排除
+            and not (ns.IS_FOREVER and LEVEL and stripped:find("^" .. LEVEL)) then
             local len = #stripped
             if not bestLen or len < bestLen then
                 best, bestLen = stripped, len

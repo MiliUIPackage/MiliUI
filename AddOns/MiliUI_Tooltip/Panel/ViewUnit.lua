@@ -60,7 +60,14 @@ end
 ------------------------------------------------------------
 local function NameText(f)
     local text = f.name
-    if f.realm then text = text .. Paint("-" .. f.realm, LOOK.SECONDARY) end
+    if f.realm then
+        if ns.IS_FOREVER then
+            -- 永恆版這一格是姓氏（UnitName 的第二回傳，沒有伺服器）：照暴雪的顯示用空格接、跟名字同色
+            text = text .. " " .. f.realm
+        else
+            text = text .. Paint("-" .. f.realm, LOOK.SECONDARY)
+        end
+    end
     if f.title then
         if f.titlePrefix then
             text = Paint(f.title, LOOK.SECONDARY) .. " " .. text

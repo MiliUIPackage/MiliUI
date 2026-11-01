@@ -3,6 +3,11 @@
 ------------------------------------------------------------
 local ADDON, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 local L = ns.L          -- Locales\Locale.lua 在 TOC 排在本檔之前
 
 ns.ADDON_NAME  = ADDON

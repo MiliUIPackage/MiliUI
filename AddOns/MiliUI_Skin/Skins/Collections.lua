@@ -1,3 +1,6 @@
+-- 永恆版待做：Camelot 版 CollectionsJournal 整檔取代，結構不同，先停用
+--   （`E.Register` 的 `forever = "disabled"`：永恆上登記當下就標停用、一個 hook 都不裝，設定頁那一列變暗。
+--    等實機看過 Camelot 版的結構再寫皮，不要照 retail 的子區塊路徑猜）
 ------------------------------------------------------------
 -- 配方：收藏（CollectionsJournal 外框 ＋ 坐騎 MountJournal）
 --
@@ -494,6 +497,7 @@ end
 E.Register{
     key   = "collections",
     addon = "Blizzard_Collections",     -- 隨需載入：ADDON_LOADED 才套（apply 過戰鬥閘）
+    forever = "disabled",              -- 永恆：Camelot 版整檔取代，先停用（見檔頭）
     title = L["Collections"],
     hooks = InstallHooks,
     apply = Apply,

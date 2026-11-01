@@ -211,7 +211,11 @@ function Tab.Build(parent, title)
     return page
 end
 
-Options.RegisterPage(KEY, ns.SkyridingTitle and ns.SkyridingTitle() or L["Skyriding"], Tab.Build)
+-- 永恆版沒有天空騎術：頁不登記（左欄也不列；面板本身由 Modules/Skyriding.lua 的 Init 閘掉）。
+-- 每一列的設定視窗（Options/SkyridingSettings.lua）只從這一頁開，跟著到不了
+if not ns.IS_FOREVER then
+    Options.RegisterPage(KEY, ns.SkyridingTitle and ns.SkyridingTitle() or L["Skyriding"], Tab.Build)
+end
 
 -- 編輯模式拖完（拖了就脫離錨定）、錨定視窗改了值：錨定那一節重讀
 local function RefreshMoved(key)

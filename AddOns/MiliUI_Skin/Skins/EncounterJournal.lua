@@ -1519,6 +1519,7 @@ end
 E.Register{
     key   = "encounterjournal",
     addon = "Blizzard_EncounterJournal",
+    forever = "absent",                -- 永恆：Blizzard_EncounterJournal 不載入（冒險指南整個沒有）⇒ 停在 waiting-addon；設定頁藏掉這一列
     title = L["Adventure Guide"],
     hooks = InstallHooks,
     apply = Apply,

@@ -1,3 +1,6 @@
+-- 永恆版待做：Camelot 版 InspectFrame 整檔取代，結構不同，先停用
+--   （`E.Register` 的 `forever = "disabled"`：永恆上登記當下就標停用、一個 hook 都不裝，設定頁那一列變暗。
+--    等實機看過 Camelot 版的結構再寫皮，不要照 retail 的子區塊路徑猜）
 ------------------------------------------------------------
 -- 配方：觀察視窗（`InspectFrame`，隨需載入 `Blizzard_InspectUI`）
 --
@@ -387,6 +390,7 @@ end
 E.Register{
     key   = "inspect",
     addon = "Blizzard_InspectUI",
+    forever = "disabled",              -- 永恆：Camelot 版整檔取代，先停用（見檔頭）
     title = L["Inspect"],
     hooks = InstallHooks,
     apply = Apply,

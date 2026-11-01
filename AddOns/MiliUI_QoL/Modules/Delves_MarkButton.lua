@@ -20,6 +20,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有探究（Blizzard_Delves* 不載入）：整支不載入，設定頁那一節也不列（Options/Controls.lua）
+if ns.IS_FOREVER then return end
 
 local MIN_LEVEL   = 3            -- 探究**等級**（賽季軌道），不是探究的難度層級
 local TARGET_NAME = "敦敦"

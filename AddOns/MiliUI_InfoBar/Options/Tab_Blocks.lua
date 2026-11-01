@@ -34,6 +34,8 @@ local BLOCK_NOTES = {
     cpu        = "BLOCK_CPU_DESC",
     mem        = "BLOCK_MEM_DESC",
 }
+-- 永恆版的天賦方塊沒有配置、右鍵不切換（Core/Blocks.lua），這段說明對不上 ⇒ 只顯示名稱
+if ns.IS_FOREVER then BLOCK_NOTES.spec = nil end
 
 -- 外部插件掛進來的方塊（Core/Plugins.lua）名字由註冊方給，不在我們的語系表裡——
 -- 照內建的規則查 L["BLOCK_EXT_…"] 會是 AceLocale 的缺鍵警告

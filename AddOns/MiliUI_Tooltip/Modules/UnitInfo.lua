@@ -131,9 +131,20 @@ local function GetMoveSpeed(unit)
 end
 
 -- 頭銜：pvpName 去掉 name 的剩餘部分（字串運算 → 兩者都要明文）
-local function GetTitle(name, pvpName)
+-- surname 只有永恆版會傳（UnitName 的第二回傳在永恆是姓氏）：頭銜字串若帶著「名 姓」，
+-- 整段當名字去掉，不然姓氏會被當成頭銜、名字列變成「名 姓 姓」。只認名字緊接姓氏的那一段，
+-- 不單獨去掉姓氏（單字姓氏可能剛好出現在頭銜裡）。永恆版待實機確認 UnitPVPName 帶不帶姓氏，兩種都不出錯
+local function GetTitle(name, pvpName, surname)
     name, pvpName = S.PlainText(name), S.PlainText(pvpName)
     if not name or not pvpName or name == pvpName then return end
+    surname = S.PlainText(surname)
+    if surname and surname ~= "" then
+        local sep = Constants and Constants.CharacterNameSeparatorConsts
+            and Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR or " "
+        local full = name .. sep .. surname
+        if full == pvpName then return end
+        if string.find(pvpName, full, 1, true) then name = full end
+    end
     local pos = string.find(pvpName, name, 1, true)
     local title = pvpName:gsub(name, "", 1)
     title = title:gsub(",", ""):gsub("，", "")
@@ -179,6 +190,7 @@ local function GetZone(unit, unitname, realm)
 end
 
 local function GetMythicPlusScore(unit)
+    if ns.IS_FOREVER then return end      -- 永恆版沒有傳奇鑰石（API 在、沒資料）
     if not S.SafeBool(UnitIsPlayer, unit) then return end
     if not (C_PlayerInfo and C_PlayerInfo.GetPlayerMythicPlusRatingSummary) then return end
     local summary = S.SafeCall(C_PlayerInfo.GetPlayerMythicPlusRatingSummary, unit)
@@ -612,7 +624,14 @@ function UnitInfo.GetUnitInfo(unit)
     t.role         = (type(role) == "string" and role ~= "NONE") and role or nil
     t.name         = name
     t.gender       = GetGender(gender)
-    t.realm        = realm or GetRealmName()
+    if ns.IS_FOREVER then
+        -- 永恆版沒有伺服器：UnitName 的第二回傳是姓氏（暴雪 Camelot 版 NameUtil 也這樣讀），
+        -- 沒姓氏就什麼都不放 —— 退回 GetRealmName 的話每個人名字後面都會掛一個伺服器名。
+        -- 秘密字串照舊原樣傳遞（不對它做真假判斷）
+        if S.PlainText(realm) == "" then t.realm = nil else t.realm = realm end
+    else
+        t.realm        = realm or GetRealmName()
+    end
     t.levelValue   = (plainLevel and plainLevel >= 0) and plainLevel or L["unknown"]
     t.itemLevel    = isPlayer and ((itemLevel and itemLevel > 0) and TruncItemLevel(itemLevel) or L["unknown"]) or nil
     t.achievementPoints = isPlayer and ((achievementPoints and achievementPoints >= 0) and floor(achievementPoints + 0.5) or L["unknown"]) or nil
@@ -641,10 +660,13 @@ function UnitInfo.GetUnitInfo(unit)
     t.factionGroup = factionGroup
     t.reaction     = reaction
     t.classif      = classif
-    t.title, t.titleIsPrefix = GetTitle(name, pvpName)
+    t.title, t.titleIsPrefix = GetTitle(name, pvpName, ns.IS_FOREVER and S.PlainText(realm) or nil)
     if t.classifBoss then t.classifElite = nil end
     -- 分數與括號拆開存：染色只染分數，括號（最佳層數）固定白色
-    if mplusScore and mplusScore > 0 then
+    if ns.IS_FOREVER then
+        -- 永恆版沒有傳奇鑰石：這一列整個不出現（下面的 else 會畫成「0 (0)」）
+        t.mplusScoreNumber, t.mplusBestText, t.mplusScoreColor = nil, nil, nil
+    elseif mplusScore and mplusScore > 0 then
         t.mplusScoreNumber = floor(mplusScore + 0.5)
         t.mplusBestText = (mplusBest and mplusBest > 0) and (" (" .. mplusBest .. ")") or ""
         t.mplusScoreColor = mplusColor

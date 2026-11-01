@@ -146,6 +146,7 @@ end
 E.Register{
     key   = "delvespicker",
     addon = "Blizzard_DelvesDifficultyPicker",
+    forever = "absent",                -- 永恆：沒有探究，Blizzard_DelvesDifficultyPicker 不載入 ⇒ 停在 waiting-addon；設定頁藏掉這一列
     title = L["Delve Difficulty Picker"],
     apply = Apply,
 }

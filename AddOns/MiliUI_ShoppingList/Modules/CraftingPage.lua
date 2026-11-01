@@ -165,6 +165,10 @@ local function Attach()
     Refresh()
 end
 
+-- 永恆版照樣掛：Camelot 版 ProfessionsFrame 換掉的只有外框與分頁（Camelot\Blizzard_ProfessionsFrame.xml）
+-- 和幾個尺寸覆寫，CraftingPage／SchematicForm（Reagents、OptionalReagents、CreateMultipleInputBox、
+-- Init、GetRecipeInfo、GetTransaction）跟正式服是同一份模板與 mixin（wow-ui-source forever 分支對過）。
+-- 永恆版待實機確認：材料區在那邊是兩欄，按鈕貼在「材料：」旁邊的位置要看一眼
 EventUtil.ContinueOnAddOnLoaded("Blizzard_Professions", Attach)
 
 ns.RegisterCallback("ListChanged", "craftingPage", function()

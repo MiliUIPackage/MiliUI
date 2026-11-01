@@ -810,6 +810,10 @@ end
 -- 事件
 ------------------------------------------------------------
 ns.RegisterCallback("Init", "mythicPlus", function()
+    -- 永恆版沒有傳奇鑰石（也不載 Blizzard_ChallengesUI）：整個面板不啟動 —— 不聽事件、
+    -- 不掛滑鼠提示、不等鑰石視窗。state.inChallenge 永遠是 false，摺疊條件與
+    -- UpdateVisibility 照常問、照常拿到「不在鑰石裡」。設定分頁也不列（Options/Panel.lua）
+    if ns.IS_FOREVER then return end
     evt = CreateFrame("Frame")
     for _, e in ipairs({
         "PLAYER_ENTERING_WORLD", "ZONE_CHANGED", "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED_INDOORS",

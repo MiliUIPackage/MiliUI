@@ -36,6 +36,8 @@
 -- 宿主框 `SetIgnoreParentAlpha(true)`：保險——pane 本身沒中和，但跟屬性清單同一套寫法。
 ------------------------------------------------------------
 local _, ns = ...
+-- 永恆版待實機確認：Camelot 版 PaperDollFrame 結構不同，先不接
+if ns.IS_FOREVER then return end
 
 local X = ns.CharSheet
 local C = X.C

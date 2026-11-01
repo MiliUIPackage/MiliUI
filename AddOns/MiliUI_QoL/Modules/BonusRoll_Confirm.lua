@@ -25,6 +25,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有星雲之核骰裝（額外戰利品擲骰），也沒有拾取專精：整支不載入，設定頁那一節也不列
+if ns.IS_FOREVER then return end
 
 local DEFAULTS = {
     enabled = true,

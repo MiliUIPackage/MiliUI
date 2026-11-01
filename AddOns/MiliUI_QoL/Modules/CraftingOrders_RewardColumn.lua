@@ -18,6 +18,9 @@
 --------------------------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有代工訂單（ProfessionsFrame 還是 Camelot 版整檔取代的）：整支不載入。
+-- 同目錄的 .xml 只定義一個 virtual 模板，沒人建就不會實體化，留著無妨。
+if ns.IS_FOREVER then return end
 
 local MAX_ICONS    = 4
 local ICON_SIZE    = 20

@@ -1,3 +1,6 @@
+-- 永恆版待做：Camelot 版 ProfessionsFrame 整檔取代，結構不同，先停用
+--   （這一份是 `professions` 的 part，沒有自己的 `E.Register`：Skins/Professions.lua 那一筆
+--    標了 `forever = "disabled"`，這裡跟著一起不跑。ProfessionsBookFrame 在永恆的樣子也待實機確認）
 ------------------------------------------------------------
 -- 配方（`professions` 的 part）：專業技能書
 --   `ProfessionsBookFrame`，隨需載入 `Blizzard_ProfessionsBook`，預設快捷鍵 K

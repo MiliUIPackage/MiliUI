@@ -1359,9 +1359,11 @@ function DB.ApplySpecProfile()
 end
 
 local function OnSpecMaybeChanged()
-    local before = ns.specID
+    local before, beforeIndex = ns.specID, ns.specIndex
     ns.RefreshSpec()
-    if ns.specID == before then return end
+    -- 永恆版：specID 是職業層的固定 key（Core/Init.lua 的 ns.RefreshSpec），會變的只有主天賦樹（specIndex：
+    -- 雙天賦切換、點數重新分配）。暴雪冷卻管理器的版面標籤與「設定檔綁專精」都照它走 ⇒ 它變了也當換專精
+    if ns.specID == before and not (ns.IS_FOREVER and ns.specIndex ~= beforeIndex) then return end
     DB.TouchCustom()                      -- 專精換了：「目前專精」的覆寫／自訂清單是另一張表
     DB.ApplySpecProfile()
     ns.Fire("SpecChanged", ns.specID)
@@ -1372,6 +1374,9 @@ if ns.Events then
     -- 新角色／剛登入時 GetSpecialization() 可能還是 nil，而之後不一定會補一發
     -- PLAYER_SPECIALIZATION_CHANGED ⇒ 進場時再對一次（沒變就什麼都不做）
     ns.Events.Register("PLAYER_ENTERING_WORLD", "db_spec", OnSpecMaybeChanged)
+    -- 永恆版：點天賦（第一點、重洗後重點）可能讓主天賦樹換手卻不發 PLAYER_SPECIALIZATION_CHANGED；
+    -- 暴雪冷卻管理器自己也是聽 TRAIT_CONFIG_UPDATED 換版面（CooldownViewerSettingsDataProvider）
+    if ns.IS_FOREVER then ns.Events.Register("TRAIT_CONFIG_UPDATED", "db_spec", OnSpecMaybeChanged) end
 end
 
 ------------------------------------------------------------
@@ -1766,6 +1771,13 @@ ns.PANEL_KEYS = PANEL_KEYS
 -- 順序有意義：顯示條件照這個順序套、錨定候選照這個順序列（天空騎術排在倒數第二、坐騎特效按鈕 2026-10-16 加在最後；
 -- 自訂列 2026-10-13 加在自訂格子後面、觸發牌堆 2026-10-16 加在自訂列後面）
 DB.PANEL_ORDER = { "resources", "pips", "custombars", "procdeck", "castbar", "focuscast", "assistIcon", "skyriding", "mountspecial" }
+-- 永恆版：天空騎術、坐騎特效按鈕（Vanilla 世界沒有）、下一招圖示（暴雪 Camelot 版不提供戰鬥輔助）三個面板整個不存在——
+-- 模組不初始化（各自的 Init）、設定頁不登記，這裡從面板清單拿掉 ⇒ ConfigTable 回 nil、不是錨定候選、不參與排開與顯示條件。
+-- 存檔裡那三張表（BuildDefaults 照補）不動，匯出到正式服照常
+if ns.IS_FOREVER then
+    PANEL_KEYS.skyriding, PANEL_KEYS.mountspecial, PANEL_KEYS.assistIcon = nil, nil, nil
+    DB.PANEL_ORDER = { "resources", "pips", "custombars", "procdeck", "castbar", "focuscast" }
+end
 function DB.IsPanel(key) return PANEL_KEYS[key] == true end
 
 -- 資源列獨立擺放的面板 key："res:<資源 key>"（不在 PANEL_KEYS：那是靜態表，這種面板第一次用到才登記）。

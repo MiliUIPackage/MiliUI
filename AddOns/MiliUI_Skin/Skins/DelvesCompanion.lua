@@ -212,6 +212,7 @@ end
 E.Register{
     key   = "delvescompanion",
     addon = "Blizzard_DelvesCompanionConfiguration",
+    forever = "absent",                -- 永恆：插件照載（TOC 准 camelot、非 LoD，程式與正式服一字不差）但沒有探究 ⇒ 視窗永遠不開；設定頁藏掉這一列
     title = L["Delve Companion"],
     apply = Apply,
 }

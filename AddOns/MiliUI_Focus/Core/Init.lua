@@ -11,6 +11,11 @@
 ------------------------------------------------------------
 local ADDON, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 ns.ADDON_NAME = ADDON
 ns.VERSION    = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
 ns.DB_VERSION = 2   -- v2：zhTW 宣告內容的「焦點」正名為「專注目標」（見 Core/DB.lua）

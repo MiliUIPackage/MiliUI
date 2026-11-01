@@ -17,6 +17,12 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+-- （放這支是因為它是 TOC 裡 Libs／Locales 之後第一支自己的 Lua；其他檔一律讀 `ns.IS_FOREVER`，不要各自重算）
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 ns.Tokens = {}
 local T = ns.Tokens
 

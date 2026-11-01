@@ -426,7 +426,11 @@ local function BuildSpecMap()
             and GetSpecializationInfoForClassID) then return end
     for classID = 1, GetNumClasses() do
         local _, classFile = GetClassInfo(classID)
-        local keys = classFile and SPEC_KEYS[classFile]
+        -- 永恆版沒有專精，這裡列出來的是主天賦樹：數量與順序不保證跟正式服一樣
+        -- （德魯伊正式服 4 個專精、經典天賦樹 3 棵），照 SPEC_KEYS 的順序套米利專精圖
+        -- 會錯位到別的專精上。所以永恆不給 tex：米利樣式一律退職業圖（ResolveIcon 的
+        -- 既有退路），暴雪專精圖示樣式與卡片的專精名照用天賦樹自己的圖示與名字。
+        local keys = classFile and not ns.IS_FOREVER and SPEC_KEYS[classFile]
         local list = {}
         if classFile then specByClass[classFile] = list end
         for i = 1, GetNumSpecializationsForClassID(classID) or 0 do
@@ -602,6 +606,9 @@ end
 --   Manager 的顯示條件另外排了一次延後重算。
 ------------------------------------------------------------
 function D.IsInDelve()
+    -- 永恆版沒有探究（設定裡那一列也藏了，見 Options/Tab_Each.lua）：
+    -- 不去賭 IsPartyWalkIn 在那邊的語意，匯入的設定檔勾著也不會把視窗藏掉
+    if ns.IS_FOREVER then return false end
     return (C_PartyInfo and C_PartyInfo.IsPartyWalkIn and C_PartyInfo.IsPartyWalkIn()) and true or false
 end
 

@@ -147,7 +147,11 @@ local function Attach()
     Refresh()
 end
 
-EventUtil.ContinueOnAddOnLoaded("Blizzard_ProfessionsCustomerOrders", Attach)
+-- 永恆版沒有代工訂單（C_CraftingOrders 沒資料、遊戲裡也沒有下單的 NPC）：整頁不掛。
+-- Blizzard_ProfessionsCustomerOrders 的 TOC 沒擋遊戲型別，不閘的話萬一被載入就會掛上
+if not ns.IS_FOREVER then
+    EventUtil.ContinueOnAddOnLoaded("Blizzard_ProfessionsCustomerOrders", Attach)
+end
 
 ns.RegisterCallback("ListChanged", "customerOrders", function()
     if button and button:IsVisible() then Schedule() end

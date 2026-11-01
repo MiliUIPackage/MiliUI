@@ -325,6 +325,9 @@ end
 ------------------------------------------------------------
 function MS.Init()
     if container then return end
+    -- 永恆版沒有坐騎特效動作（Vanilla 的坐騎沒有，天空騎術也沒有）：整顆按鈕不建、不聽事件；面板清單（Core/DB.lua）與
+    -- 設定頁（Options/Tab_MountSpecial.lua、左欄）同時拿掉。MS.Visible／FollowingSky 沒建框時回 false
+    if ns.IS_FOREVER then return end
     -- 上午版本的欄位搬家（見檔頭）
     local p = ns.profile
     if p then MS.Upgrade(Cfg(), p.skyriding) end

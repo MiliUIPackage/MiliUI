@@ -181,6 +181,11 @@ MakeTextBlock("durability", {
 -- 事件的坑（EUI 註解實測過）：TRAIT_CONFIG_UPDATED 觸發時 last-selected
 -- 指標還是舊的，名字會讀到前一個；SPELLS_CHANGED 在換裝完成後才來，
 -- 由它把名字讀正。兩個都註冊，處理冪等。
+--
+-- 永恆版：沒有專精也沒有天賦配置（Camelot 版天賦框完全不走 C_ClassTalents）。
+-- GetSpecialization() 回的是主天賦樹索引、GetSpecializationInfo 回那棵樹的名字，
+-- 所以方塊退化成「天賦 <主天賦樹>」，還沒點天賦時是「—」；左鍵照樣開天賦視窗，
+-- 配置名與右鍵選單整段跳過。
 ------------------------------------------------------------
 local function CurrentSpecID()
     local idx = GetSpecialization and GetSpecialization()
@@ -195,6 +200,7 @@ local function CurrentSpecName()
 end
 
 local function CurrentLoadoutName()
+    if ns.IS_FOREVER then return nil end
     if not (C_ClassTalents and C_ClassTalents.GetLastSelectedSavedConfigID) then return nil end
     local specId = CurrentSpecID()
     if not specId then return nil end
@@ -205,6 +211,8 @@ local function CurrentLoadoutName()
 end
 
 local function ShowLoadoutMenu(anchor)
+    -- 永恆版沒有配置可切，選單只會剩一行「沒有已儲存的配置」，乾脆不開
+    if ns.IS_FOREVER then return end
     local specId = CurrentSpecID()
     if not specId then return end
     local items = { { isTitle = true, text = L["MENU_LOADOUTS"] } }
@@ -239,6 +247,10 @@ end
 
 do
     local ref = _G.PlayerSpellsMicroButton or _G.SpellbookMicroButton or _G.TalentMicroButton
+    -- 永恆版：PlayerSpellsMicroButton 這個全域在（共用的 XML 一律建出來），但暴雪自己那排
+    -- 沒收它 —— 永恆的天賦與法術書是分開的兩顆，天賦是 TalentMicroButton（Camelot 版
+    -- MicroMenuContainerOverrides.lua 的 GenerateButtonInfos，不掛遊戲規則、一定在）
+    if ns.IS_FOREVER and _G.TalentMicroButton then ref = _G.TalentMicroButton end
     MakeTextBlock("spec", {
         clickable = true,
         template  = ref and "SecureActionButtonTemplate" or nil,

@@ -39,8 +39,15 @@ local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["Folding"])
     local ctx = ns.Controls.MakeCtx(function() return ns.db.visibility end, Apply)
+    local controls = BuildControls()
+    -- 永恆版沒有傳奇鑰石：「鑰石進行中」那條永遠不會成立，不列（DB 值不動）
+    if ns.IS_FOREVER then
+        for i = #controls, 1, -1 do
+            if controls[i].key == "mythicPlus" then tremove(controls, i) end
+        end
+    end
     local _
-    _, refreshers = ns.Options.BuildScrollBody(scroll, BuildControls(), ctx)
+    _, refreshers = ns.Options.BuildScrollBody(scroll, controls, ctx)
 end
 
 ns.RegisterCallback("ShowOptionsTab", "visibilityTab", function(id)

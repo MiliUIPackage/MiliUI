@@ -47,6 +47,8 @@ end
 -- 對外（MiliUI_Skin 問）：自建屬性清單有沒有開。看設定不看建好沒——Skin 的掛勾在
 -- PLAYER_LOGIN 就裝，那時我們可能還沒建（戰鬥中延後）
 function ns.StatsListEnabled()
+    -- 永恆版不建清單（CharacterStats.lua 的閘），回 false 讓 Skin 照常替暴雪的屬性列上色
+    if ns.IS_FOREVER then return false end
     return X.IsEnabled("statsPanel")
 end
 

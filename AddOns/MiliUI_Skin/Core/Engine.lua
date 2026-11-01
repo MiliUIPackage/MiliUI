@@ -2982,6 +2982,19 @@ function Engine.Register(spec)
     if spec.parts then
         for _, part in ipairs(spec.parts) do part.status = "pending" end
     end
+    -- 永恆版：配方的 `forever` 欄位（"disabled"／"absent"，語意見 Core/DB.lua 的 `DB.forever`）。
+    -- 正式服不看這個欄位。"disabled" 在登記當下就標停用（parts 一起標：`RunRecipe` 在停用時
+    -- 不碰 parts，不標的話 `/mskin debug` 會在同一行多點名一個「還沒套」的 part）；
+    -- 之後 `RunRecipe` 走既有的 disabled 路徑（`DB.IsWindowEnabled` 對這個 key 回 false）。
+    if ns.IS_FOREVER and spec.key and spec.forever then
+        ns.DB.forever[spec.key] = spec.forever
+        if spec.forever == "disabled" then
+            spec.status = "disabled"
+            if spec.parts then
+                for _, part in ipairs(spec.parts) do part.status = "disabled" end
+            end
+        end
+    end
     recipes[#recipes + 1] = spec
     if spec.key then
         recipesByKey[spec.key] = spec

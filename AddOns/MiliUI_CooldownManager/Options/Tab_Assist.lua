@@ -169,7 +169,10 @@ function Tab.Build(parent, title)
     return page
 end
 
-Options.RegisterPage(PAGE, L["Combat Assistant"], Tab.Build)
+-- 永恆版不提供戰鬥輔助（Core/Assist.lua 的 A.Available）：頁不登記（左欄也不列；下一招圖示由 Modules/AssistIcon.lua 閘掉）
+if not ns.IS_FOREVER then
+    Options.RegisterPage(PAGE, L["Combat Assistant"], Tab.Build)
+end
 
 -- 編輯模式拖完（拖了就脫離錨定）、錨定視窗改了值：錨定那一節重讀
 local function RefreshMoved(key)

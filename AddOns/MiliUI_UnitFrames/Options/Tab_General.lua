@@ -154,6 +154,18 @@ local CONTROLS = {
     { type = "text", label = L["Per-unit reset lives at the bottom of Units > Frame; restore-everything lives on the Profile tab."] },
 }
 
+-- 永恆版：獵人寵物沒有專精（見 Core/Cache.lua 的 PlayerPetSpec），「寵物專精色」這一節
+-- 從標題刪到下一個標題之前。在檔案層刪 ⇒ 分頁內容與設定搜尋（列舉的是同一張表）一起少掉
+if ns.IS_FOREVER then
+    for i, spec in ipairs(CONTROLS) do
+        if spec.type == "header" and spec.label == L["Pet specialization colors"] then
+            tremove(CONTROLS, i)
+            while CONTROLS[i] and CONTROLS[i].type ~= "header" do tremove(CONTROLS, i) end
+            break
+        end
+    end
+end
+
 local function Init()
     if tab then return end
     tab, scroll = ns.Options.MakeFormTab(L["Global style"])

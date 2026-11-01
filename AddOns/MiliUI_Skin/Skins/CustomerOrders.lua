@@ -607,6 +607,7 @@ end
 E.Register{
     key   = "customerorders",
     addon = "Blizzard_ProfessionsCustomerOrders",
+    forever = "absent",                -- 永恆：插件准載但沒有代工訂單 ⇒ 視窗永遠不開、通常停在 waiting-addon；設定頁藏掉這一列
     title = L["Crafting Orders"],
     hooks = InstallHooks,
     apply = Apply,

@@ -139,6 +139,10 @@ end
 -- 目前是不是近戰專精。查不到專精（登入初期、或 API 換過）一律回 false ＝ 走遠程探針，
 -- 也就是改動前的行為。
 local function IsMeleeSpec()
+    -- 永恆版沒有專精：GetSpecialization 回的是主天賦樹索引、GetSpecializationInfo 回那棵樹的
+    -- ID，跟 MELEE_SPECS 的 specID 不是同一套（撞號也不代表同一件事）⇒ 一律當不是近戰，
+    -- 走 HARM／HELP 的職業探針（各職業清單裡都有 Vanilla 就有的一級法術 ID）
+    if ns.IS_FOREVER then return false end
     local CSI = C_SpecializationInfo
     local idx = (CSI and CSI.GetSpecialization and CSI.GetSpecialization())
         or (GetSpecialization and GetSpecialization())

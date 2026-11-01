@@ -66,6 +66,16 @@ local function IsSelf(sender)
     local me = UnitName("player")
     if not me or issecret(me) then return false end
     if sender == me then return true end
+    if ns.IS_FOREVER then
+        -- 永恆版沒有伺服器、角色有姓氏（UnitName 的第二回傳）。認不出自己的話，自己廣播的
+        -- 回音會被當成隊友，一開自動標記就跳「隊友 ○○ 跟你撞號」。送件者的格式待實機確認：
+        -- 名字連結的分隔是「-」、顯示的分隔是空格，兩種都認；下面伺服器那條照舊當保險
+        local _, surname = UnitName("player")
+        if type(surname) == "string" and not issecret(surname) and surname ~= ""
+           and (sender == me .. "-" .. surname or sender == me .. " " .. surname) then
+            return true
+        end
+    end
     local realm = GetRealmName()
     return realm ~= nil and sender == (me .. "-" .. realm:gsub("%s+", ""))
 end

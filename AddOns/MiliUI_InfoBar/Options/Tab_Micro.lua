@@ -35,10 +35,14 @@ local function BuildControls()
         { type = "text",   label = L["MICRO_BUTTONS_DESC"] },
     }
     for _, def in ipairs(ns.MicroMenu.BUTTON_DEFS) do
-        controls[#controls + 1] = {
-            type = "toggle", key = def.key, sub = "micro",
-            label = def.label or def.key,
-        }
+        -- 永恆版：暴雪那排沒有的按鈕（家園、成就…）資訊列也不建，開關不列
+        -- （判準在 Core/MicroMenu.lua 的 ns.MicroMenu.Resolve）
+        if not ns.IS_FOREVER or ns.MicroMenu.Resolve(def) then
+            controls[#controls + 1] = {
+                type = "toggle", key = def.key, sub = "micro",
+                label = def.label or def.key,
+            }
+        end
     end
     return controls
 end

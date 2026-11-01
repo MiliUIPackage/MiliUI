@@ -547,4 +547,9 @@ local function Build()
 end
 
 -- 齒輪不看任何開關（面板裡的 HUD 分頁在清單關掉時也有用）；模組有載入就建
-X.Register(nil, Build)
+-- 永恆版待實機確認：Camelot 版 PaperDollFrame 結構不同，先不接。
+-- 只跳過建立：上面的 HUD_*_ITEMS 是 /mqol「畫面上顯示屬性」那幾個下拉的選項，
+-- X.SettingsShown／SettingsRect 在面板沒建時回 false／nil（StatsHud.lua 照樣能用）
+if not ns.IS_FOREVER then
+    X.Register(nil, Build)
+end

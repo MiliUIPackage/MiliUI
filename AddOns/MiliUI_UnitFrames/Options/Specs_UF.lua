@@ -69,7 +69,8 @@ local PET_SPEC_ITEMS = {
 local petColorItems
 
 function Specs.ColorMethodItems(unitKey)
-    if unitKey ~= "pet" then return Specs.COLOR_METHOD_ITEMS end
+    -- 永恆版的獵人寵物沒有專精（見 Core/Cache.lua 的 PlayerPetSpec），寵物框也不給這兩項
+    if unitKey ~= "pet" or ns.IS_FOREVER then return Specs.COLOR_METHOD_ITEMS end
     if not petColorItems then
         petColorItems = {}
         for _, item in ipairs(Specs.COLOR_METHOD_ITEMS) do

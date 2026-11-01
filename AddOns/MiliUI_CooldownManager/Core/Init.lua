@@ -10,6 +10,11 @@
 ------------------------------------------------------------
 local ADDON, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 local L = ns.L          -- Locales\Locale.lua 在 TOC 排在本檔之前
 
 ns.ADDON_NAME   = ADDON
@@ -210,8 +215,26 @@ end
 
 ------------------------------------------------------------
 -- 專精：spells 表以 specID 為鍵，設定檔也可以綁專精（見 Core/DB.lua）
+--
+-- 永恆版沒有專精：C_SpecializationInfo.GetSpecialization() 回的是主天賦樹（1～3，還沒點天賦時 nil），
+-- GetSpecializationInfo 回的 id 不在我們任何一張專精表裡，而且主天賦樹會跟著點數分配變（升級途中、重洗天賦）。
+-- 決定（只在 ns.IS_FOREVER 走，正式服照舊）：
+--   * specIndex 照放主天賦樹：暴雪冷卻管理器自己的版面標籤就是 classID×10＋它（Catalog.SpecTag 要對得上），
+--     「設定檔綁專精」也照它（雙天賦切換時換設定檔）；沒點天賦 ＝ nil，跟正式服「還沒有專精」同一條路
+--   * specID（spells[]、自訂項目專精層、資源列開關、自訂列／自訂格子清單的 key）一律用**職業層的固定 key**：
+--     負的 classID（不會撞到正式服的 specID，型別照舊是數字）。登入時天賦還沒載入、1～9 級沒有天賦、
+--     重洗天賦都拿得到，排好的版面也不會因為某一棵多點了一點就整張換掉
+-- 全域 GetSpecialization 在永恆要靠本體補（本體沒開就是 nil）⇒ 直接問 C_SpecializationInfo
 ------------------------------------------------------------
 function ns.RefreshSpec()
+    if ns.IS_FOREVER then
+        local CSI = C_SpecializationInfo
+        local idx = CSI and CSI.GetSpecialization and CSI.GetSpecialization() or nil
+        ns.specIndex = (type(idx) == "number" and idx > 0) and idx or nil
+        local classID = select(3, UnitClass("player"))
+        ns.specID = type(classID) == "number" and -classID or nil
+        return
+    end
     local idx = GetSpecialization and GetSpecialization()
     ns.specIndex = idx
     ns.specID = idx and GetSpecializationInfo(idx) or nil

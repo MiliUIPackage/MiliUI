@@ -2834,7 +2834,7 @@ end
 -- 顯示條件
 ------------------------------------------------------------
 function Specs.Visibility()
-    return {
+    local list = {
         { type = "header", label = L["Visibility"], tab = "visibility" },
         Nested(L["Show when"]),
         BS("toggle", "visibility.showCombat", L["In combat"]),
@@ -2855,6 +2855,18 @@ function Specs.Visibility()
         BS("dropdown", "visibility.group", L["Group"], { items = GROUP_ITEMS }),
         Note(L["Restrictions win over \"Show when\"."]),
     }
+    -- 永恆版沒有天空騎術與家園：這兩列連同底下那一列灰字拿掉。條件本身在 Core/Visibility.lua 讀 API 本來就判不成立，
+    -- 存檔裡勾著的值（從正式服匯入的設定檔）留著不動
+    if ns.IS_FOREVER then
+        for i = #list, 1, -1 do
+            local path = list[i].path
+            if path == "visibility.hideSkyriding" or path == "visibility.hideHousing" then
+                table.remove(list, i + 1)
+                table.remove(list, i)
+            end
+        end
+    end
+    return list
 end
 
 ------------------------------------------------------------

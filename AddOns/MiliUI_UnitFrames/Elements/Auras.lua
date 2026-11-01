@@ -176,7 +176,10 @@ local MIN_BUILD = 120100
 local function Detect()
     if caps.detected then return caps end
     caps.detected = true
-    if caps.build < MIN_BUILD then return caps end
+    -- 永恆版的 Interface 是 16001（小於 120100），但跑的是同一套 12.1 光環引擎
+    -- （Blizzard_AuraContainer 一字不差）⇒ 不吃版本閘，照樣往下實測模板在不在。
+    -- 少了這條，永恆上整片光環列與驅散高亮都會靜默不建
+    if caps.build < MIN_BUILD and not ns.IS_FOREVER then return caps end
     local ok, frame = pcall(CreateFrame, "AuraContainer", nil, UIParent, "CustomAuraContainerTemplate")
     if not ok or not frame then return caps end
     frame:Hide()

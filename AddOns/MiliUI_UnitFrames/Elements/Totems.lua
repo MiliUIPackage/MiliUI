@@ -27,6 +27,9 @@ local CLASS = ns.playerClass
 ns.TOTEM_CLASSES = {
     SHAMAN = true, DRUID = true, MONK = true, DEATHKNIGHT = true, PALADIN = true,
 }
+-- 永恆版（Vanilla 九職）只有薩滿的圖騰會進圖騰欄位：德魯伊還沒有生命綻放、聖騎也沒有佔欄位的技能，
+-- 武僧／死騎這兩個職業不存在。留著的話德魯伊／聖騎的「單位 → 玩家」會多一顆永遠不會有東西的「召喚物」
+if ns.IS_FOREVER then ns.TOTEM_CLASSES = { SHAMAN = true } end
 
 if not ns.TOTEM_CLASSES[CLASS] then
     return

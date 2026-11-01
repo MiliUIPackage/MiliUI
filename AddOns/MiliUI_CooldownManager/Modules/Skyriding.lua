@@ -1637,6 +1637,9 @@ end
 ------------------------------------------------------------
 function SR.Init()
     if container then return end
+    -- 永恆版沒有天空騎術（Vanilla 世界、沒有飛行）：整個面板不建、不聽事件；面板清單（Core/DB.lua）與
+    -- 設定頁（Options/Tab_Skyriding.lua、左欄）同時拿掉。其餘的 SR.* 在沒建框時本來就是空操作／回 false
+    if ns.IS_FOREVER then return end
     -- 發佈前的欄位搬家：排版之前先搬（見 SR.Upgrade）
     SR.Upgrade(Cfg())
     container = ns.Bars.RegisterPanel(KEY, {

@@ -18,6 +18,12 @@
 ------------------------------------------------------------
 local _, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+-- （放這支開頭：TOC 裡 Core\Style.lua 是 Init 之前、第一支自己的檔）
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 ns.Style = {}
 local S = ns.Style
 local P = ns.P

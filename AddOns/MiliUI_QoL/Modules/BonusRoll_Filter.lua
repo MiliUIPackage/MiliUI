@@ -26,6 +26,8 @@
 ------------------------------------------------------------
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版沒有星雲之核骰裝（額外戰利品擲骰）：整支不載入，設定頁那一節也不列
+if ns.IS_FOREVER then return end
 
 -- +8 以上完賽的寶庫已是傳奇軌道，骰裝才有機會出傳奇品質
 local MPLUS_SHOW_MIN = 8

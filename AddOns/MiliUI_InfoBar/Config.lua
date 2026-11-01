@@ -1,5 +1,10 @@
 local addonName, ns = ...
 
+-- 永恆版（WoW Forever，遊戲型別 camelot）：WOW_PROJECT_CAMELOT 只在永恆載入時才定義，
+-- 正式服是 nil。詳見 .claude/notes/wow-forever-vs-retail-api.md
+ns.IS_FOREVER = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 ----------------------------------------------------------------------
 -- Localization (shared across all files)
 ----------------------------------------------------------------------
@@ -130,6 +135,19 @@ ns.BLOCK_DEFS = {
     { key = "location",   order = 120, enabled = false },
 }
 
+-- 永恆版：這兩塊的內容永恆一樣都沒有，整塊不進註冊表 ⇒ 不建實例、不進版面、
+-- 「區塊」看板也不列（下面的存檔預設照這張表生，連存檔格都不會有）。
+--   lootspec ＝ 擲骰天賦：永恆沒有專精，就沒有拾取專精。
+--   warband  ＝ 戰隊資訊：方塊是鑰石、面板是大寶庫／探究懸賞圖／鍍金儲物箱／虛無之核，
+--               永恆沒有 M+、大寶庫、探究。資料層 Core/Warband.lua 照跑（API 回空不會錯）。
+-- 天賦（spec）留著：顯示主天賦樹名，見 Core/Blocks.lua。
+if ns.IS_FOREVER then
+    local FOREVER_SKIP = { lootspec = true, warband = true }
+    for i = #ns.BLOCK_DEFS, 1, -1 do
+        if FOREVER_SKIP[ns.BLOCK_DEFS[i].key] then table.remove(ns.BLOCK_DEFS, i) end
+    end
+end
+
 ----------------------------------------------------------------------
 -- 配色 preset
 --
@@ -237,3 +255,10 @@ ns.DB_DEFAULTS = {
         right  = { action = "countdown",  seconds = 10 },
     },
 }
+
+-- 永恆版多兩顆微型按鈕（法術書、Legacy；Core/MicroMenu.lua 的永恆按鈕組），預設開。
+-- 沒放預設的話 db.micro 裡是 nil ＝ 被當成關掉，一進遊戲就看不到。
+if ns.IS_FOREVER then
+    ns.DB_DEFAULTS.micro.spellbook = true
+    ns.DB_DEFAULTS.micro.legacy = true
+end

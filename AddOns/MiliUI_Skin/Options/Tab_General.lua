@@ -189,11 +189,41 @@ local controls = {
     },
 }
 
+------------------------------------------------------------
+-- 永恆版（WoW Forever）：配方登記時標了 `forever` 的視窗（`ns.DB.forever`，語意見 Core/DB.lua）
+--   "absent"    目標插件在永恆不載入 ⇒ 勾選框連同底下那行說明一起拿掉（這個開關不會有任何作用）
+--   "disabled"  Camelot 版整檔取代、先停用 ⇒ 勾選框留著但顯示成沒勾、變暗、點不動
+--               （走表單既有的 `requires` 閘），看得出這一項在這個版本是停用的；說明一起拿掉
+-- 正式服不走這一支（`ns.IS_FOREVER` 為 false 時直接用原本的 `controls`）。
+------------------------------------------------------------
+local FOREVER_OFF = { foreverOff = true }   -- `requires` 指到它 ⇒ ctx.get 回 false ⇒ 那一列停用
+
+local function ForeverControls(list)
+    local out, dropText = {}, false
+    for _, spec in ipairs(list) do
+        local state = spec.type == "toggle" and spec.sub == "windows" and ns.DB.forever[spec.key]
+        if spec.type == "text" and dropText then
+            -- 被拿掉／停用的那一列底下的說明：跟著不顯示
+        elseif state == "disabled" then
+            local copy = {}
+            for k, v in pairs(spec) do copy[k] = v end
+            copy.foreverOff = true
+            copy.requires = FOREVER_OFF
+            out[#out + 1] = copy
+        elseif not state then
+            out[#out + 1] = spec
+        end
+        dropText = state and true or false
+    end
+    return out
+end
+
 ns.Options.builders.general = function()
     local tab, scroll = ns.Options.MakeFormTab(L["MiliUI Skin"])
 
     local ctx = {
         get = function(spec)
+            if spec.foreverOff then return false end
             local t = ns.Controls.Resolve(ns.db, spec)
             return t and t[spec.key]
         end,
@@ -204,7 +234,8 @@ ns.Options.builders.general = function()
         apply = AskReload,
     }
 
-    local _, refreshers = ns.Options.BuildScrollBody(scroll, controls, ctx, ns.Options.FORM_W)
+    local list = ns.IS_FOREVER and ForeverControls(controls) or controls
+    local _, refreshers = ns.Options.BuildScrollBody(scroll, list, ctx, ns.Options.FORM_W)
 
     tab.Refresh = function()
         for _, fn in ipairs(refreshers) do fn() end

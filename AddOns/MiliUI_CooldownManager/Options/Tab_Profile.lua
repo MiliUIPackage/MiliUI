@@ -60,8 +60,14 @@ local function NumSpecs()
     return type(n) == "number" and n or 0
 end
 
+-- 永恆版：「專精」＝主天賦樹（綁定照 ns.specIndex，見 Core/Init.lua 的 ns.RefreshSpec），名字是那棵樹的名字。
+-- 全域 GetSpecializationInfo 在永恆要靠本體補（本體沒開就是 nil）⇒ 直接問 C_SpecializationInfo
 local function SpecName(i)
-    local _, name = GetSpecializationInfo(i)
+    local info = GetSpecializationInfo
+    if ns.IS_FOREVER and C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo then
+        info = C_SpecializationInfo.GetSpecializationInfo
+    end
+    local _, name = info(i)
     return type(name) == "string" and name or ("#" .. i)
 end
 

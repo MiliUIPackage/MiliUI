@@ -211,6 +211,8 @@ local function Items()
     out[#out + 1] = { id = "resources" }
     out[#out + 1] = { id = "castbar" }
     out[#out + 1] = { id = "focuscast" }       -- 專注目標施法條（Modules/FocusCastbar.lua）
+    -- 永恆版沒有底下三頁：戰鬥輔助（Core/Assist.lua 的 A.Available）、天空騎術與坐騎特效按鈕（Core/DB.lua 的面板清單）
+    if ns.IS_FOREVER then return out end
     out[#out + 1] = { id = "assist" }          -- 戰鬥輔助（下一招醒目標示＋下一招圖示）
     out[#out + 1] = { id = "skyriding" }       -- 天空騎術（活力充能＋速度條）
     out[#out + 1] = { id = "mountspecial" }    -- 坐騎特效按鈕（Modules/MountSpecial.lua）

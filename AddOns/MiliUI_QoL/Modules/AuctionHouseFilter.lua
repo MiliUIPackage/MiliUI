@@ -13,6 +13,11 @@
 
 local _, ns = ...
 if ns.legacyCore then return end
+-- 永恆版只有一個資料片，「僅限當前資料片」沒有可篩的東西；而且這個篩選預設是開的，
+-- 伺服器在永恆怎麼解讀「當前資料片」沒驗過，萬一把瀏覽結果整個濾空，玩家只會看到
+-- 拍賣場什麼都搜不到。整支不載入，設定頁那一節也不列。
+-- 永恆版待實機確認：拍賣場的篩選清單（C_AuctionHouse.GetFilterGroups）有沒有這一項。
+if ns.IS_FOREVER then return end
 
 -- 回傳的是根表（兩個 key 都是頂層布林，不是子表）
 local function GetDB()

@@ -1506,7 +1506,13 @@ ns.PVESkin.CategoryRowPoints = CategoryRowPoints
 
 E.Register{
     key   = "pve",
-    addon = nil,                       -- Blizzard_GroupFinder 的 TOC 是 DefaultState: enabled、非 LoD
+    -- 正式服：nil（Blizzard_GroupFinder 的 TOC 是 DefaultState: enabled、非 LoD）。
+    -- 永恆：Blizzard_GroupFinder 的 TOC 是 `ExcludeLoadGameType: camelot`（forever 分支查證），
+    --   改載 Blizzard_GroupFinder_VanillaStyle（框名是 LFGParentFrame 那一套，跟這份配方對不上）。
+    --   留 nil 的話登入就會跑 hooks／apply：每一個框與被勾的函式都是 nil，不會報錯，但會記一長串
+    --   「找不到的區域」、狀態卻標成已套用。⇒ 永恆上改成等這支插件，停在 waiting-addon、一個 hook 都不裝。
+    addon = ns.IS_FOREVER and "Blizzard_GroupFinder" or nil,
+    forever = "absent",                -- 永恆：設定頁藏掉這一列（parts 的 PVPUI／ChallengesUI 也都不載入）
     -- 標題用暴雪自己的 `GROUP_FINDER`（zhTW「地城與團隊」/ zhCN「地下城和团队副本」），
     -- 那就是這個視窗的標題與第一顆分頁的字
     title = L["Group Finder"],

@@ -167,8 +167,18 @@ end
 -- 戰隊記錄（Core/Warband.lua）與坐騎的角色專屬設定（Core/Mounts.lua）共用
 -- 同一種格式——兩邊各寫一份的話，哪天有人加了伺服器名正規化就對不起來了。
 -- 讀不到（秘密字串）時給問號：這個值會拿去當 table key，不能讓秘密值進去。
+--
+-- 永恆版：沒有伺服器、角色有姓氏，認一隻角色要看「名＋姓」——「名-伺服器」可能把兩隻
+-- 同名的併成一筆（記錄互相蓋掉）⇒ 改用「名-姓」，GetRealmName() 不參與。UnitName 在永恆的
+-- 第二個回傳值是姓氏不是伺服器（Camelot 版 NameUtil.FormatUnitNameForDisplay 就這樣讀）；
+-- 沒有姓氏就留空。
+-- 永恆版待實機確認：UnitName("player") 的第二個回傳值真的是姓氏（不是的話也不會錯，只是退回只看名字）。
 ----------------------------------------------------------------------
 function ns.CharKey()
+    if ns.IS_FOREVER then
+        local name, surname = UnitName("player")
+        return (S.PlainText(name) or "?") .. "-" .. (S.PlainText(surname) or "")
+    end
     return (S.PlainText(UnitName("player")) or "?") .. "-" .. (S.PlainText(GetRealmName()) or "?")
 end
 

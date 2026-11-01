@@ -31,6 +31,12 @@ local TABS = {
     { id = "automation", label = L["Automation"] },
     { id = "about",      label = L["About"] },
 }
+-- 永恆版沒有傳奇鑰石：計時面板整個不啟動（Modules/MythicPlus.lua），分頁也不列
+if ns.IS_FOREVER then
+    for i = #TABS, 1, -1 do
+        if TABS[i].id == "mythicPlus" then tremove(TABS, i) end
+    end
+end
 
 function Options.NewTabFrame()
     local tab = CreateFrame("Frame", nil, Options.panel)

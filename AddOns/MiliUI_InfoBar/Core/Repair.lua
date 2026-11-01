@@ -35,6 +35,12 @@ R.SLOTS = {
     { 9,  WRISTSLOT },     { 10, HANDSSLOT },
     { 16, MAINHANDSLOT },  { 17, SECONDARYHANDSLOT },
 }
+-- 永恆版有遠程武器欄（第 18 格：弓、槍、弩、魔杖、投擲武器，Camelot 版 PaperDollFrame 的
+-- CharacterRangedSlot），會掉耐久；正式服早就拿掉了。不列的話獵人的弓壞了方塊上看不到。
+-- 空著的時候 SlotDurability 回 nil，照樣跳過。
+if ns.IS_FOREVER and (RANGEDSLOT or INVTYPE_RANGED) then
+    R.SLOTS[#R.SLOTS + 1] = { INVSLOT_RANGED or 18, RANGEDSLOT or INVTYPE_RANGED }
+end
 
 -- 回 nil ＝ 這個部位沒有會損耗的裝備（或受限內容裡讀不到）
 function R.SlotDurability(slotId)

@@ -28,6 +28,13 @@
 --     每個框只改一次（弱鍵表記著，不在暴雪框上留欄位）。
 ---------------------------------------------------------------
 
+local _, ns = ...
+
+-- 永恆版不載 Blizzard_GroupFinder（TOC 是 ExcludeLoadGameType: camelot，改載
+-- Blizzard_GroupFinder_VanillaStyle），這支要掛的 LFGListGroupDataDisplayRoleCount_Update
+-- 永遠不會出現 —— 不閘的話下面的 ADDON_LOADED 監聽會掛一整個 session 白等
+if ns.IS_FOREVER then return end
+
 local DAMAGER_WIDTH = 22    -- 暴雪：17
 local HEALER_WIDTH  = 20    -- 暴雪：17（四十人團的治療會到兩位數）
 
