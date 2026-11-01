@@ -57,6 +57,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
 | [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5：相容層全拔（`GetItemInfo` 等舊全域變 nil、`X and X()` 靜默失效）、`SetAuraBorder` 刪除→`AddDispelTypeTexture`、小地圖新座標框要 Hide、`GetInventoryItemCooldown` 第 4 回傳、保護 Cooldown 不能 SetCooldown；Cell 本來就走 AddDispelTypeTexture；Ketho＋wow-ui-source 比對步驟 |
+| [wow-forever-vs-retail-api.md](wow-forever-vs-retail-api.md) | 《魔獸世界：永恆》（camelot／forever，Interface 16001）vs 正式服：API 文件是超集、差在哪些 Blizzard 插件不載入（冒險指南、LFG、M+、首領時間軸）與哪些面板被 Camelot 版整檔取代（角色、天賦、觀察）；**全域 `GetSpecialization` 系列在 Forever 是 nil**；結論不另外打造，正式服專屬插件用 `## AllowLoadGameType: standard` 閘掉；wow-ui-source `forever` 分支比對法 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
 | [wow-macroframe-select-taint.md](wow-macroframe-select-taint.md) | 插件呼叫 `MacroFrame:SelectMacro`／`SaveMacro` 或改巨集格欄數 ⇒ 安全按鈕跑巨集前的 `SaveMacro` 讀到髒的 `selectedIndex`，快捷列巨集被擋到 /reload；搜尋只能 `PickupMacro`＋自畫高亮 |
@@ -247,7 +248,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 173 篇）
+## 全部筆記（自動產生，共 174 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -307,6 +308,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-font-metrics-dropin.md](wow-font-metrics-dropin.md) | 換 WoW 中文字型要先對齊行高與字面，否則字會整體變小、位置全跑掉 |
 | [wow-font-weight-ink-matching.md](wow-font-weight-ink-matching.md) | 換中文字型時用「墨水量」對齊粗細；微軟雅黑 Bold 約等於思源黑體 Black(900) 而不是 Bold(700) |
 | [wow-fontstring-font-before-settext.md](wow-fontstring-font-before-settext.md) | FontString 沒有字型就 SetText 會硬錯並中斷整支初始化——症狀完全不像字型問題 |
+| [wow-forever-vs-retail-api.md](wow-forever-vs-retail-api.md) | 《魔獸世界：永恆》（WoW Forever，遊戲型別 camelot／forever，Interface 16001）跟正式服（standard）的 API 與 UI 差在哪、怎麼比對、MiliUI 要支援 Forever 的結論：不另外打造，同一份 repo 用 TOC 的 AllowLoadGameType 閘＋少量 runtime 分流；全域 GetSpecialization 系列在 Forever 是 nil；哪些 Blizzard 插件不載入、哪些面板被 Camelot 版整檔取代 |
 | [wow-frame-lifecycle-costs.md](wow-frame-lifecycle-costs.md) | 暴雪的 frame 刪不掉 —— 由此推出的三條設計規則（簽章重建=洩漏、連續控件是放大器、池化格子不要丟棄） |
 | [wow-frame-vs-texture-layering.md](wow-frame-vs-texture-layering.md) | 疊層順序是 strata → frame level → DrawLayer；子 frame 蓋過父層貼圖只在同 strata 成立，跨 strata 時父層貼圖會蓋住子框 |
 | [wow-getspellcooldown-isongcd-nil.md](wow-getspellcooldown-isongcd-nil.md) | C_Spell.GetSpellCooldown 不在 GCD 時 isOnGCD 欄位是 nil（不是 false）；判「真的在冷卻」要 not isOnGCD，比 == false 會永遠不成立 |
