@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 629d19ba-309f-41f7-aa47-258c1bee5d39
-  modified: 2026-10-25T05:01:27.802Z
+  modified: 2026-11-02T13:56:34.898Z
 ---
 
 **MiliUI_Tooltip**（2026-08-22 一次寫完，`c01f3fde0`）：取代 `TinyTooltip-Remake` 的全新滑鼠提示插件，只支援 12.1+。
@@ -233,3 +233,13 @@ Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.too
 `Adopt` 的 `ignoreParentAlpha`／`followPanel` 兩個 opts 連同 Skin 那邊的旗標一起拿掉，Skin 只剩 `keepScale`（那是換皮本身的事：Adopt 會 SetScale）。
 `Panel.Follow` 本身（留縫 N1、ReturnFollowers、秘密閘、每顆一次）一行沒動，只是入口從 Adopt 旗標換成 AdoptSidecar。
 規則：**換皮歸 Skin 去找，「看得見」不能歸 Skin 去找**——是我們壓原生 alpha 0 造成的副作用，補償就要在我們這邊、不能依賴另一支插件有沒有開。
+
+## 世界任務獎勵的比價框閃爍（2026-11-02，使用者實機 log；修好未實機）
+
+世界地圖滑過有裝備獎勵的世界任務，每 0.2 秒閃一次。主提示因為內嵌物品框（`ItemTooltip` 顯示中）本來就走原生，閃的是**比價框**。
+log 指紋：每 0.2 秒「Try 新件（之前 nil）→ 重貼 provisional → 重畫 → Try 同一件 → 下一幀 對帳 行數 28（完整 22）指紋不同」，對帳之後**沒有「重畫」也沒有「重貼」**，下一輪 panelKey 又是 nil。
+刪去法：RenderView 永遠回 true、Render 之後的路全部會記 log ⇒ 只剩 `Panel.Align` 回 false（讀到秘密的錨點／位置）→ Restore。**具體哪個值秘密是推論，當時的 log 沒記**，暴雪 TooltipComparisonManager 檔尾註解自己提到比價有 secret anchors 的問題。
+機制：`QuestUtils_AddQuestRewardsToTooltip` 用 `tooltip.ItemTooltip.Tooltip` 叫 `GameTooltip_ShowCompareItem`，`Initialize` 把比價框 `SetOwner(內嵌框, ANCHOR_NONE)`＋ClearAllPoints；post-call 當下沒有點 ⇒ `Keep` 暫貼一定成功 ⇒ 面板畫一幀；下一幀有點才失敗、拆回原生；地圖標記 `UpdateTooltip = OnMouseEnter` 每 0.2 秒重建 ⇒ 面板 1 幀、原生 9 幀輪流。
+修法：`Eligible` 加 `OwnedByEmbedded`（`tip:GetOwner().IsEmbedded`，暴雪 XML 的 KeyValue，只讀）⇒ 這種比價框從頭到尾走原生，跟主提示一致，對原生零寫入。`Tests/Try_test.lua` #20。
+通則：**比價框的 post-call 永遠沒有點，暫貼的成功不代表對得齊**；對帳才失敗的退回沒有封鎖，遇到會重建的來源就是閃爍。要是別條路再出現同樣指紋，再考慮比照單位加同 key 的退回封鎖。
+log 補強：`面板 Restore tip=… 來源：debugstack`（誰拆的）、`面板 對齊失敗：錨點／位置讀不到`、`Try 不接`。`/mtip debug` 只印 Lua 錯誤清單，退回不是錯誤所以永遠沒訊息；時序一律走 `/mtip log`＋重現＋`/mtip logdump`。

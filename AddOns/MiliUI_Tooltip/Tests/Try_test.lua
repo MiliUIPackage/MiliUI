@@ -988,4 +988,43 @@ do
     check("戰鬥隱藏：面板回來", t.state.panel.shown)
 end
 
+------------------------------------------------------------
+-- 20. 世界任務獎勵的比價框（2026-11-02 實機 log：每 0.2 秒「Try 新件（之前 nil）」→ 下一幀對帳 → 沒有重畫）：
+-- 比價框的 owner 是內嵌物品框。post-call 當下原生沒有點（暴雪剛清）、暫貼一定成功，下一幀才讀不到錨點 ⇒
+-- 面板畫一幀又拆，地圖標記每 0.2 秒重建一次＝閃爍。要在 post-call 就認出來、從頭到尾不碰原生
+------------------------------------------------------------
+do
+    local t = Setup()
+    local embedded = t.env.CreateFrame("GameTooltip", "GameTooltipItemTooltipTooltip", t.env.UIParent)
+    embedded.IsEmbedded = true
+    local owner = embedded
+    t.tip.GetOwner = function() return owner end
+    t.tip:ClearAllPoints()
+    eq("內嵌比價：Try 回 false", t.P.Try(t.tip, t.state, ITEM, t.data), false)
+    t.env.FlushTimers()
+    t.tip:SetPoint("TOP", embedded, "TOP", 0, 0)
+    t.tip:ClearAllPoints()
+    eq("內嵌比價：重建再進來也 false", t.P.Try(t.tip, t.state, ITEM, t.data), false)
+    t.env.FlushTimers()
+    eq("內嵌比價：沒畫", t.renders(), 0)
+    eq("內嵌比價：alpha 沒寫過", t.tip.alphaCalls, nil)
+    eq("內嵌比價：padding 沒寫過", t.tip.padCalls, nil)
+    eq("內嵌比價：沒登記輪詢", next(t.polls), nil)
+
+    -- 一般比價（滑到背包的裝備）照接；接著滑到世界任務 ⇒ 當場退回
+    owner = t.env.UIParent
+    t.tip:SetPoint("BOTTOMLEFT", t.env.UIParent, "BOTTOMLEFT", 100, 100)
+    eq("內嵌比價：owner 是一般框照接", t.P.Try(t.tip, t.state, ITEM, t.data), true)
+    check("內嵌比價：面板顯示中", t.state.panel.shown)
+    owner = embedded
+    eq("內嵌比價：換成內嵌 ⇒ 不接", t.P.Try(t.tip, t.state, ITEM, t.data), false)
+    check("內嵌比價：面板拆掉", not t.state.panel.shown)
+    eq("內嵌比價：原生 alpha 還原", t.tip.alpha, 1)
+
+    -- owner 讀不到（秘密、沒有這支 API）不算內嵌，其他條件照舊
+    local t2 = Setup()
+    t2.tip.GetOwner = function() return SECRET end
+    eq("內嵌比價：秘密 owner 不擋", t2.P.Try(t2.tip, t2.state, ITEM, t2.data), true)
+end
+
 H.finish("Try_test")

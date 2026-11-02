@@ -92,6 +92,7 @@ taint 接觸面清單在 `Core/Hooks.lua` 檔頭，**要碰暴雪物件的新程
 - tooltip 的 `GetPoint`／`GetLeft`／`GetTop`／`GetWidth`／`GetPadding` 任何一個回秘密值
 - 讀不出名字、render 出錯（`Core/Hooks.lua` 的 xpcall 接住後 `Panel.Fail` 退回）
 - 內嵌物品框（世界任務獎勵）或底部說明字顯示中——那時暴雪自己在用 padding
+- 比價框的 owner 是內嵌物品框（世界任務獎勵的比價，`owner.IsEmbedded`）——主提示走原生，比價框一起走原生
 - 暴雪插進提示裡的框（`GameTooltip_InsertFrame`：UIWidget 組、進度條，`tip.insertedFrames`）顯示中——面板畫不出來；
   顯示途中才插進來的，下一次對帳讓回原生
 - 單位：身分受限（`C_Secrets.ShouldUnitIdentityBeSecret`，副本戰鬥、陌生的跨服玩家…）、讀不出明文 token／GUID／名字

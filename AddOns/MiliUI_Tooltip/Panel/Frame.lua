@@ -847,7 +847,10 @@ end
 
 function Panel.Align(panel, tip)
     local points = ReadPoints(tip)
-    if not points then return false end
+    if not points then
+        if ns.logEnabled and ns.Log then ns.Log("面板 對齊失敗：原生的錨點讀不到（秘密）") end
+        return false
+    end
     if #points == 0 then return Keep(panel, tip) end
     if Mirror(panel, tip, points) then return true end
     SetMirror(panel, nil)
@@ -856,7 +859,10 @@ function Panel.Align(panel, tip)
     if not side then return false end
     local dx, dy, rawX, rawY, unlaid = GridOffset(panel, tip, side, vside)
     if unlaid then return Keep(panel, tip) end
-    if not dx then return false end
+    if not dx then
+        if ns.logEnabled and ns.Log then ns.Log("面板 對齊失敗：原生的位置讀不到（秘密）") end
+        return false
+    end
     -- 遲滯：同一個角、角的位置移動不到半個實體像素 ⇒ 沿用上次的整數像素修正。
     -- 原生角停在半像素附近時，每次重算的捨入會在相鄰兩個像素之間翻轉（浮點誤差就夠），面板左右或上下抖 1px
     -- （2026-10-18 實機：鏡射接上之後還剩約 1px 的左右抖）

@@ -75,10 +75,22 @@ local function ShownRegion(region)
     local ok, shown = pcall(region.IsShown, region)
     return not ok or S.IsSecret(shown) or shown and true or false
 end
+-- 比價框的主提示是內嵌物品框（世界任務獎勵的比價：QuestUtils 用 tooltip.ItemTooltip.Tooltip 叫 GameTooltip_ShowCompareItem，
+-- 暴雪的 CompareItem 把 owner 設成它）。主提示本身因為上面那條走原生，比價框錨在內嵌框與原生 GameTooltip 上，下一幀對帳讀不到錨點。
+-- post-call 當下比價框還沒有點（暴雪剛清）、Keep 暫貼一定成功，所以要在這裡認出來：不然面板畫一幀就拆，
+-- 地圖標記的 UpdateTooltip 每 0.2 秒重建一次＝閃爍（2026-11-02 實機 log）。只讀；讀不到不算內嵌，其他條件照舊
+local function OwnedByEmbedded(tip)
+    if not tip.GetOwner then return false end
+    local ok, owner = pcall(tip.GetOwner, tip)
+    if not ok or S.IsSecret(owner) or type(owner) ~= "table" then return false end
+    local okE, embedded = pcall(function() return owner.IsEmbedded end)
+    return okE and embedded == true
+end
 local function Eligible(tip)
     for _, key in ipairs(BLIZZ_PADDING_USERS) do
         if ShownRegion(tip[key]) then return false end
     end
+    if OwnedByEmbedded(tip) then return false end
     -- 暴雪插進提示裡的框（GameTooltip_InsertFrame：UIWidget 組、進度條）：面板畫不出來，原生又在 alpha 0 ⇒ 不接。
     -- 只讀（暴雪自己的欄位，ClearLines 時清成 nil）
     local okF, frames = pcall(function() return tip.insertedFrames end)
@@ -181,6 +193,11 @@ local restoringAll = false      -- Panel.RestoreAll 進行中（設定改了）�
 
 function Panel.Restore(tip, state)
     if not state then return end
+    -- 面板在顯示才記：開著 /mtip log 看得到是哪一條路拆的（對帳、輪詢、post-call 的閘）
+    if ns.logEnabled and (state.native or (state.panel and state.panel:IsShown())) then
+        ns.Log("面板 Restore tip=%s key=%s 來源：%s", tostring(S.PlainText((S.SafeCall(tip.GetName, tip))) or "?"),
+            tostring(state.panelKey), debugstack and debugstack(2, 3, 0) or "?")
+    end
     local wasUnit = state.panelKind == "unit" and (state.native or (state.panel and state.panel:IsShown()))
     local unitKey = wasUnit and (state.panelKey or (state.panelRestricted and Panel.UNIT_BLOCK_RESTRICTED))
     state.releasePending = nil
@@ -462,6 +479,7 @@ function Panel.Try(tip, state, dataType, data)
         return false
     end
     if S.IsForbiddenObject(tip) or not Eligible(tip) then
+        if ns.logEnabled then ns.Log("Try 不接（內嵌物品／插入框／底部字）key=%s", tostring(Panel.Key(kind, data))) end
         Panel.Restore(tip, state)
         return false
     end
