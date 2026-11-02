@@ -128,7 +128,11 @@ local function LoadList()
         tierNames[tier] = name
     end
 
-    EJ_SelectTier(currentTier)
+    -- fix from MiliUI: 永恆（WoW Forever）沒有冒險指南（Blizzard_EncounterJournal 不載入、
+    -- EJ_GetNumTiers 是 0、EJ_GetCurrentTier 可能是 nil），EJ_SelectTier 只在有資料時叫
+    if currentTier and num > 0 then
+        EJ_SelectTier(currentTier)
+    end
 end
 
 -------------------------------------------------
@@ -2445,7 +2449,8 @@ local function ShowTab(tab)
         debuffsTab:Show()
         UpdatePreviewButton()
 
-        if not loadedExpansion then
+        -- fix from MiliUI: 永恆（WoW Forever）的冒險指南是空的，tierNames 沒有東西就不選
+        if not loadedExpansion and #tierNames > 0 then
             expansionDropdown:SetSelectedItem(1)
             LoadExpansion(tierNames[#tierNames])
         end

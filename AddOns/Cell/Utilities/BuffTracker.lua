@@ -30,7 +30,70 @@ local requiredByEveryone = {}
 local available = {}
 local unaffected = {}
 
-if Cell.isRetail then
+if Cell.isForever then
+    -- fix from MiliUI: 永恆（WoW Forever）是 1.x 的世界：團隊增益只有四種（耐力／全屬性／智力／攻擊強度），
+    -- 沒有精通／臨機應變／青銅龍祝福，也沒有喚能師；ID 用 1.x 的第一階（同名各階都會被名字比對認到），
+    -- 祈禱版（團體）當別名。沒有專精 ⇒ requiredBuffs（依專精）空著，四種都算人人要。
+    -- 資料取自 NeeRgY/Cell r277.9.9 的永恆版。正式服走下面原本那張表。
+    buffs = {
+        stamina = {
+            tag = ITEM_MOD_STAMINA_SHORT, -- Stamina
+            icon = 135987,
+            order = 1,
+            provider = {
+                PRIEST = {id = {1243, 21562}, level = 1}, -- 真言術：韌（第一階）／堅韌禱言 - Power Word: Fortitude / Prayer of Fortitude
+            }
+        },
+        stats = {
+            tag = RAID_BUFF_1, -- Stats
+            icon = 136078,
+            order = 2,
+            provider = {
+                DRUID = {id = {1126, 21849}, level = 1}, -- 野性印記／野性賜福 - Mark of the Wild / Gift of the Wild
+            }
+        },
+        intellect = {
+            tag = ITEM_MOD_INTELLECT_SHORT, -- Intellect
+            icon = 135932,
+            order = 3,
+            provider = {
+                MAGE = {id = {1459, 23028}, level = 1}, -- 秘法智慧／秘法光輝 - Arcane Intellect / Arcane Brilliance
+            }
+        },
+        attackPower = {
+            tag = RAID_BUFF_3, -- Attack Power
+            icon = 132333,
+            order = 4,
+            provider = {
+                WARRIOR = {id = 6673, level = 1}, -- 戰鬥怒吼 - Battle Shout
+            }
+        },
+    }
+
+    requiredBuffs = {}
+
+    requiredByEveryone = {
+        stamina = true,
+        stats = true,
+        intellect = true,
+        attackPower = true,
+    }
+
+    available = {
+        stamina = false,
+        stats = false,
+        intellect = false,
+        attackPower = false,
+    }
+
+    unaffected = {
+        stamina = {},
+        stats = {},
+        intellect = {},
+        attackPower = {},
+    }
+
+elseif Cell.isRetail then
     buffs = {
         stamina = {
             tag = ITEM_MOD_STAMINA_SHORT, -- Stamina
@@ -301,7 +364,11 @@ do
     local function Insert(class, buffKey, name, icon)
         tinsert(buffs[buffKey]["names"], name)
         if myClass == class and myLevel >= classBuffs[class][buffKey] then
-            buffsProvidedByMe[buffKey] = {name, icon}
+            -- fix from MiliUI: 永恆的 id 表是「主法術 ＋ 祈禱版別名」，自己提供的那格只認第一個（主法術）
+            -- 的名字與圖示；正式服的表沒有別名，照舊每次覆寫
+            if not (Cell.isForever and buffsProvidedByMe[buffKey]) then
+                buffsProvidedByMe[buffKey] = {name, icon}
+            end
         end
     end
 

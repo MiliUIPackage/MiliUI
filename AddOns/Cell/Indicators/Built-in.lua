@@ -381,6 +381,16 @@ end
 -- useConfigColor: take the ring colour from the indicator's own 顏色 setting instead of
 -- the default green. Only custom indicators have such a setting; the three built-in
 -- cooldown rows keep the default.
+-- fix from MiliUI: 永恆（WoW Forever）的法術每一階各有 spellID、容器只認 ID —— 把玩家法術書裡同名各階
+-- 補進集合（F.ExpandSpellRanks，Utils.lua 的永恆區塊；學到新的一階時那邊會重推指示器）。
+-- 正式服原表回傳，不複製。
+local function ExpandRanks(ids)
+    if Cell.isForever and F.ExpandSpellRanks then
+        return F.ExpandSpellRanks(ids)
+    end
+    return ids
+end
+
 local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, useConfigColor, customStyle)
     if IsPreviewButton(parent) then return end
     if not (Cell.AuraDisplay and Cell.AuraDisplay.IsSupported()) then return end
@@ -425,7 +435,7 @@ local function AttachBuffContainer(parent, indicator, getSpellIDs, defaultNum, u
         end
 
         local opts = {
-            spellIDs = getSpellIDs(t),
+            spellIDs = ExpandRanks(getSpellIDs(t)),
             showDuration = t.showDuration,
             showStack = t.showStack,
             -- cooldown animation: "clock" / "vertical" / "none" (see StyleButton).

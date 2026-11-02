@@ -545,7 +545,12 @@ function eventFrame:ADDON_LOADED(arg1)
 
             -- https://wow.gamepedia.com/SpecializationID
             local specs = {}
-            do
+            if Cell.isForever then
+                -- fix from MiliUI: 永恆（WoW Forever）沒有專精，GetNumSpecializationsForClassID 這個全域也
+                -- 不存在（Blizzard_DeprecatedSpecialization 不載入）；唯一的「專精」key 是負的 classID，
+                -- 見 UpdateSpecVars
+                tinsert(specs, -Cell.vars.playerClassID)
+            else
                 local specID
                 --! GetNumSpecializations / GetSpecializationInfo returns NOTHING at this time
                 for i = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
@@ -566,6 +571,25 @@ function eventFrame:ADDON_LOADED(arg1)
                 for _, t in pairs(F.GetResurrectionClickCastings(Cell.vars.playerClass)) do
                     tinsert(CellDB["clickCastings"][Cell.vars.playerClass][specID], t)
                 end
+            end
+        end
+        -- fix from MiliUI: 永恆（WoW Forever）的「專精」key 是負的 classID（見 UpdateSpecVars）。在正式服
+        -- 建立、被玩家複製到永恆 WTF 的 CellDB 沒有這個 key，「每個專精獨立設定檔」一開就會對 nil 迭代；
+        -- 這裡補成跟首次啟動一樣的預設（選目標／開選單＋復活術）。
+        if Cell.isForever then
+            local cc = CellDB["clickCastings"][Cell.vars.playerClass]
+            local key = -Cell.vars.playerClassID
+            if type(cc[key]) ~= "table" then
+                cc[key] = {
+                    {"type1", "target"},
+                    {"type2", "togglemenu"},
+                }
+                for _, t in pairs(F.GetResurrectionClickCastings(Cell.vars.playerClass)) do
+                    tinsert(cc[key], t)
+                end
+            end
+            if type(cc["alwaysTargeting"]) == "table" and cc["alwaysTargeting"][key] == nil then
+                cc["alwaysTargeting"][key] = "disabled"
             end
         end
         Cell.vars.clickCastings = CellDB["clickCastings"][Cell.vars.playerClass]
@@ -933,6 +957,22 @@ end
 -- end
 
 local function UpdateSpecVars()
+    -- fix from MiliUI: 永恆（WoW Forever）沒有專精系統。playerSpecID 是整支 Cell 的存檔 key（點擊施法的
+    -- 分專精設定檔、快速協助、快速施法、版面自動切換），要一個登入當下就拿得到、永遠不變、而且不會跟
+    -- 別的職業撞的數字 → 用負的 classID（正式服的 specID 都是正數，不會撞；CellDB 是整個帳號共用的，
+    -- 快速協助直接拿 specID 當 key，所以不能用 0 這種跨職業共用的值）。名稱／圖示顯示「沒有專精」；
+    -- 角色只信隊伍指派的 UnitGroupRolesAssigned，沒指派就當 DAMAGER —— 主天賦樹推不出可靠的角色
+    -- （德魯伊第三棵在 1.x 是恢復、正式服是守護者），而且全域 GetSpecialization 在永恆是 nil
+    -- （Blizzard_DeprecatedSpecialization 不載入）。指派變了由 PLAYER_ROLES_ASSIGNED 再跑一次。
+    if Cell.isForever then
+        Cell.vars.playerSpecID = -Cell.vars.playerClassID
+        Cell.vars.playerSpecName = L["No Spec"]
+        Cell.vars.playerSpecIcon = 134400
+        local role = F.Desecret(UnitGroupRolesAssigned("player"))
+        if role ~= "TANK" and role ~= "HEALER" then role = "DAMAGER" end
+        Cell.vars.playerSpecRole = role
+        return
+    end
     Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
     if not Cell.vars.playerSpecName or Cell.vars.playerSpecName == "" then
         Cell.vars.playerSpecName = L["No Spec"]
@@ -946,6 +986,14 @@ function eventFrame:PLAYER_LOGIN()
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
     eventFrame:RegisterEvent("UI_SCALE_CHANGED")
+    if Cell.isForever then
+        -- fix from MiliUI: 永恆沒有專精，playerSpecRole 來自隊伍指派（見 UpdateSpecVars），指派變了要重算
+        eventFrame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
+        -- 正式服靠登入時客戶端自己發的 ACTIVE_TALENT_GROUP_CHANGED 做第一次 UpdateSpecVars；永恆的雙天賦
+        -- 系統會不會在這個時間點發同一個事件沒有把握，而 playerSpecID 沒值 PreUpdateLayout 會直接 return、
+        -- 框架整個不出來，所以這裡主動跑一次（prevSpec 會把之後真的來的事件去重）
+        eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
+    end
 
     Cell.vars.playerNameShort = GetUnitName("player")
     Cell.vars.playerNameFull = F.UnitFullName("player")
@@ -1048,7 +1096,17 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
     end
 
     --  fires twice
-    local spec = GetSpecialization()
+    local spec
+    if Cell.isForever then
+        -- fix from MiliUI: 永恆（WoW Forever）沒有專精。全域 GetSpecialization 是 nil
+        -- （Blizzard_DeprecatedSpecialization 不載入），C_SpecializationInfo 版回的是主天賦樹索引、
+        -- 沒點天賦時是 nil；這裡只拿它當「有沒有變」的訊號，nil 收成 0 讓第一次一定跟 prevSpec 不同，
+        -- UpdateSpecVars 才會跑
+        local CSI = C_SpecializationInfo
+        spec = (CSI and CSI.GetSpecialization and CSI.GetSpecialization()) or 0
+    else
+        spec = GetSpecialization()
+    end
     if prevSpec ~= spec then
         prevSpec = spec
         F.Log("group", "|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
@@ -1070,6 +1128,24 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
             end
             Cell.Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
         end
+    end
+end
+
+-- fix from MiliUI: 永恆（WoW Forever）專用（PLAYER_LOGIN 只在永恆註冊）。隊伍裡的角色指派變了，
+-- playerSpecRole 跟著變，版面自動切換（依角色）才會換到對的版面。
+function eventFrame:PLAYER_ROLES_ASSIGNED()
+    if not Cell.isForever then return end
+    if InCombatLockdown() then
+        -- 脫戰後走 ACTIVE_TALENT_GROUP_CHANGED 那條重算；prevSpec 清掉它才會真的跑 UpdateSpecVars
+        prevSpec = nil
+        checkSpecFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    local before = Cell.vars.playerSpecRole
+    UpdateSpecVars()
+    if Cell.vars.playerSpecRole ~= before then
+        F.Log("group", "|cffffbb77RoleChanged:|r", Cell.vars.playerSpecRole)
+        Cell.Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
     end
 end
 

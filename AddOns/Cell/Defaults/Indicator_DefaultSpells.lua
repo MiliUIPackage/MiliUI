@@ -34,6 +34,16 @@ local debuffBlacklist = {
     213213, -- 伪装 - Masquerade
 }
 
+-- fix from MiliUI: 永恆（WoW Forever）只留客戶端認得的（鬼魂 8326 的 ID 跟 1.x 相同），其餘正式服
+-- 減益在設定頁會列成「無效」
+if Cell.isForever then
+    for i = #debuffBlacklist, 1, -1 do
+        if not F.GetSpellInfo(debuffBlacklist[i]) then
+            tremove(debuffBlacklist, i)
+        end
+    end
+end
+
 function I.GetDefaultDebuffBlacklist()
     -- local temp = {}
     -- for i, id in pairs(debuffBlacklist) do
@@ -82,6 +92,15 @@ local bigDebuffs = {
     -- 358777, -- 痛苦之链
 }
 
+-- fix from MiliUI: 永恆（WoW Forever）同上，認不得的正式服減益拿掉
+if Cell.isForever then
+    for i = #bigDebuffs, 1, -1 do
+        if not F.GetSpellInfo(bigDebuffs[i]) then
+            tremove(bigDebuffs, i)
+        end
+    end
+end
+
 function I.GetDefaultBigDebuffs()
     return bigDebuffs
 end
@@ -101,13 +120,160 @@ local summonDuration = {
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
-        temp[F.GetSpellInfo(id)] = duration
+        -- fix from MiliUI: 永恆（WoW Forever）認不得正式服的 spellID，名字會是 nil（nil 不能當 key）
+        local name = F.GetSpellInfo(id)
+        if name then
+            temp[name] = duration
+        end
     end
     summonDuration = temp
 end
 
 function I.GetSummonDuration(spellName)
     return summonDuration[spellName]
+end
+
+-------------------------------------------------
+-- 永恆（WoW Forever）：1.x 的減傷／外部減傷資料
+-------------------------------------------------
+-- fix from MiliUI: 下面 externals／defensives／offensives 三張表是正式服的法術；永恆是 1.x 的世界，
+-- 多數 ID 客戶端認不得（設定頁會列成一排「無效」），而 1.x 的法術每一階各有 spellID、光環容器只認 ID，
+-- 同一支法術要把每一階都列進去（別人身上的增益沒辦法從自己的法術書推出各階，只能手列）。
+-- 這段只在永恆跑：先把 1.x 的條目併進去（既有主 ID 補別名、沒有的加新主 ID），再把客戶端認不得的
+-- 法術整條拿掉。資料取自 NeeRgY/Cell r277.9.9 的永恆版（同一個 Cell 血統）。正式服完全不動。
+local MergeForeverSpells, PruneUnknownSpells
+local FOREVER_EXTERNALS, FOREVER_DEFENSIVES
+if Cell.isForever then
+    -- extra[class][id] = true（單一 ID）或 { [aliasId] = true, ... }（主 ID ＋ 各階／別名）
+    MergeForeverSpells = function(base, extra)
+        for class, spells in pairs(extra) do
+            base[class] = base[class] or {}
+            local target = base[class]
+            for id, v in pairs(spells) do
+                if type(v) == "table" then
+                    local cur = target[id]
+                    if type(cur) ~= "table" then
+                        -- 原本是 true／false 或沒有：變成「主 ID ＋ 別名」的表
+                        -- （主 ID 由 I.UpdateExternals 那邊照舊以 ID 登記，別名同名所以名字也會登記到）
+                        cur = {}
+                        target[id] = cur
+                    end
+                    for subId, trackByName in pairs(v) do
+                        if cur[subId] == nil then cur[subId] = trackByName end
+                    end
+                elseif target[id] == nil then
+                    target[id] = v
+                end
+            end
+        end
+    end
+
+    -- 把客戶端認不得的法術（F.GetSpellInfo 回 nil）整條拿掉；別名表裡認不得的別名也拿掉
+    PruneUnknownSpells = function(byClass)
+        for class, spells in pairs(byClass) do
+            for id, v in pairs(spells) do
+                local keep = F.GetSpellInfo(id) and true or false
+                if type(v) == "table" then
+                    for subId in pairs(v) do
+                        if F.GetSpellInfo(subId) then
+                            keep = true
+                        else
+                            v[subId] = nil
+                        end
+                    end
+                end
+                if not keep then
+                    spells[id] = nil
+                end
+            end
+            if next(spells) == nil then
+                byClass[class] = nil
+            end
+        end
+    end
+
+    FOREVER_EXTERNALS = {
+        ["DRUID"] = {
+            [29166] = true, -- 激活 - Innervate
+        },
+        ["PALADIN"] = {
+            [1022] = { -- 保護祝福 - Blessing of Protection（第一階＝正式服 ID）
+                [5599] = true, -- 第二階
+                [10278] = true, -- 第三階
+            },
+            [6940] = { -- 犧牲祝福 - Blessing of Sacrifice
+                [20729] = true, -- 第二階
+            },
+        },
+        ["PRIEST"] = {
+            [6346] = true, -- 防護恐懼結界 - Fear Ward
+        },
+    }
+
+    FOREVER_DEFENSIVES = {
+        ["DRUID"] = {
+            [22842] = { -- 狂暴回復 - Frenzied Regeneration
+                [22895] = true, -- 第二階
+                [22896] = true, -- 第三階
+            },
+        },
+        ["HUNTER"] = {
+            [19263] = true, -- 威懾 - Deterrence
+        },
+        ["MAGE"] = {
+            [11958] = true, -- 寒冰屏障 - Ice Block（1.x 的 ID）
+            [11426] = { -- 寒冰護體 - Ice Barrier（第一階＝正式服 ID）
+                [13031] = true, -- 第二階
+                [13032] = true, -- 第三階
+                [13033] = true, -- 第四階
+            },
+            [1463] = { -- 法力護盾 - Mana Shield
+                [8494] = true,
+                [8495] = true,
+                [10191] = true,
+                [10192] = true,
+                [10193] = true,
+            },
+        },
+        ["PALADIN"] = {
+            [498] = { -- 聖佑術 - Divine Protection
+                [5573] = true, -- 第二階
+            },
+            [642] = { -- 聖盾術 - Divine Shield
+                [1020] = true, -- 第二階
+            },
+        },
+        ["PRIEST"] = {
+            [586] = { -- 漸隱術 - Fade
+                [9578] = true,
+                [9579] = true,
+                [9592] = true,
+                [10941] = true,
+                [10942] = true,
+            },
+            [27827] = true, -- 救贖之魂 - Spirit of Redemption
+        },
+        ["ROGUE"] = {
+            [1856] = { -- 消失 - Vanish
+                [1857] = true, -- 第二階
+                [11327] = true, -- 增益光環
+                [11329] = true, -- 增益光環
+            },
+        },
+        ["WARLOCK"] = {
+            [6229] = { -- 暗影結界 - Shadow Ward
+                [11739] = true,
+                [11740] = true,
+                [28610] = true,
+            },
+        },
+        ["WARRIOR"] = {
+            [12975] = { -- 破釜沉舟 - Last Stand
+                [12976] = true, -- 第二階
+            },
+            [20230] = true, -- 反擊風暴 - Retaliation
+        },
+    }
 end
 
 -------------------------------------------------
@@ -190,6 +356,11 @@ local externals = { -- true: track by name, false: track by id
         [213871] = true, -- 护卫 - Bodyguard
     },
 }
+
+if Cell.isForever then
+    MergeForeverSpells(externals, FOREVER_EXTERNALS)
+    PruneUnknownSpells(externals)
+end
 
 function I.GetExternals()
     return externals
@@ -364,6 +535,11 @@ local defensives = { -- true: track by name, false: track by id
         [184364] = true, -- 狂怒回复 - Enraged Regeneration
     },
 }
+
+if Cell.isForever then
+    MergeForeverSpells(defensives, FOREVER_DEFENSIVES)
+    PruneUnknownSpells(defensives)
+end
 
 function I.GetDefensives()
     return defensives
@@ -544,6 +720,10 @@ local offensives = { -- true: track by name, false: track by id
     },
 }
 
+if Cell.isForever then
+    PruneUnknownSpells(offensives)
+end
+
 function I.GetOffensives()
     return offensives
 end
@@ -659,26 +839,23 @@ local tankActiveMitigations = {
     132404, -- 盾牌格挡 - Shield Block
 }
 
-local tankActiveMitigationNames = {
-    -- death knight
-    -- F.GetClassColorStr("DEATHKNIGHT")..F.GetSpellInfo(77535).."|r", -- 鲜血护盾
-    F.GetClassColorStr("DEATHKNIGHT")..F.GetSpellInfo(195181).."|r", -- 白骨之盾
-
-    -- demon hunter
-    F.GetClassColorStr("DEMONHUNTER")..F.GetSpellInfo(203819).."|r", -- 恶魔尖刺
-
-    -- druid
-    F.GetClassColorStr("DRUID")..F.GetSpellInfo(192081).."|r", -- 铁鬃
-
-    -- monk
-    F.GetClassColorStr("MONK")..F.GetSpellInfo(215479).."|r", -- 酒醒入定
-
-    -- paladin
-    F.GetClassColorStr("PALADIN")..F.GetSpellInfo(132403).."|r", -- 正义盾击
-
-    -- warrior
-    F.GetClassColorStr("WARRIOR")..F.GetSpellInfo(132404).."|r", -- 盾牌格挡
-}
+-- fix from MiliUI: 改成迴圈組字串 —— 永恆（WoW Forever）認不得這些正式服 spellID，F.GetSpellInfo 回 nil，
+-- 原本的「字串 .. nil」會在載入時就炸掉整支檔案。正式服組出來的字串、順序都跟原本一樣。
+local tankActiveMitigationNames = {}
+for _, t in ipairs({
+    -- {"DEATHKNIGHT", 77535}, -- 鲜血护盾
+    {"DEATHKNIGHT", 195181}, -- 白骨之盾
+    {"DEMONHUNTER", 203819}, -- 恶魔尖刺
+    {"DRUID", 192081}, -- 铁鬃
+    {"MONK", 215479}, -- 酒醒入定
+    {"PALADIN", 132403}, -- 正义盾击
+    {"WARRIOR", 132404}, -- 盾牌格挡
+}) do
+    local name = F.GetSpellInfo(t[2])
+    if name then
+        tinsert(tankActiveMitigationNames, F.GetClassColorStr(t[1])..name.."|r")
+    end
+end
 
 do
     local temp = {}
@@ -804,7 +981,65 @@ local dispelNodeIDs = {
 local eventFrame = CreateFrame("Frame")
 --Whenever anything is committed to the configID, e.g. when saving talents, switching talent loadouts, spending profession points, etc
 
-if UnitClassBase("player") == "WARLOCK" then
+if Cell.isForever then
+    -- fix from MiliUI: 永恆（WoW Forever）沒有天賦樹節點（C_ClassTalents 用不上），能不能驅散看法術書
+    -- 有沒有學那支法術。1.x 的驅散：牧師 驅散魔法(527/988)／治療疾病(528)／驅除疾病(552)；
+    -- 聖騎士 淨化(1152，毒＋疾病)／清潔術(4987，毒＋疾病＋魔法)；德魯伊 解除詛咒(2782)／治療中毒(8946)／
+    -- 驅毒(2893)；薩滿 治療中毒(526)／治療疾病(2870)；法師 解除次級詛咒(475)；術士靠地獄獵犬的
+    -- 吞噬魔法（19505 各階，寵物法術）。SPELLS_CHANGED／UNIT_PET 重算；跟正式服一樣延一秒合併。
+    local FOREVER_DISPELS = {
+        ["PRIEST"]  = { ["Magic"] = {527, 988}, ["Disease"] = {528, 552} },
+        ["PALADIN"] = { ["Magic"] = {4987}, ["Poison"] = {1152, 4987}, ["Disease"] = {1152, 4987} },
+        ["DRUID"]   = { ["Curse"] = {2782}, ["Poison"] = {8946, 2893} },
+        ["SHAMAN"]  = { ["Poison"] = {526}, ["Disease"] = {2870} },
+        ["MAGE"]    = { ["Curse"] = {475} },
+    }
+    local DEVOUR_MAGIC = {19505, 19731, 19734, 19736, 27276, 27277}
+    local playerClass = UnitClassBase("player")
+
+    local function Known(spellId, isPet)
+        if isPet then return IsSpellKnown(spellId, true) end
+        if IsPlayerSpell and IsPlayerSpell(spellId) then return true end
+        return IsSpellKnown(spellId)
+    end
+
+    local function UpdateDispellable()
+        wipe(dispellable)
+        local t = FOREVER_DISPELS[playerClass]
+        if t then
+            for dispelType, ids in pairs(t) do
+                for _, id in ipairs(ids) do
+                    if Known(id) then
+                        dispellable[dispelType] = true
+                        break
+                    end
+                end
+            end
+        elseif playerClass == "WARLOCK" then
+            for _, id in ipairs(DEVOUR_MAGIC) do
+                if Known(id, true) then
+                    dispellable["Magic"] = true
+                    break
+                end
+            end
+        end
+        -- texplore(dispellable)
+        NotifyDispellable()
+    end
+
+    local timer
+    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    eventFrame:RegisterEvent("SPELLS_CHANGED")
+    if playerClass == "WARLOCK" then
+        eventFrame:RegisterEvent("UNIT_PET")
+    end
+    eventFrame:SetScript("OnEvent", function(self, event, unit)
+        if event == "UNIT_PET" and unit ~= "player" then return end
+        if timer then timer:Cancel() end
+        timer = C_Timer.NewTimer(1, UpdateDispellable)
+    end)
+
+elseif UnitClassBase("player") == "WARLOCK" then
     eventFrame:RegisterEvent("UNIT_PET")
 
     local timer
@@ -891,7 +1126,12 @@ local drinks = {
 do
     local temp = {}
     for _, id in pairs(drinks) do
-        temp[F.GetSpellInfo(id)] = true
+        -- fix from MiliUI: 永恆（WoW Forever）認不得正式服的 spellID，名字會是 nil（nil 不能當 key）；
+        -- 1.x 的「喝水」是 430 各階，同名，一個 ID 認得就全部認得
+        local name = F.GetSpellInfo(id)
+        if name then
+            temp[name] = true
+        end
     end
     drinks = temp
 end
@@ -1031,6 +1271,19 @@ local spells =  {
     -- 73920, -- 治疗之雨 - Healing Rain
     -- 456366, -- 治疗之雨 - Healing Rain
 }
+
+-- fix from MiliUI: 永恆（WoW Forever）把客戶端認不得的正式服法術拿掉，預設版面的「治療者」才不會列一排
+-- 「無效」。玩家自己各階的 ID 不用列：光環容器那邊從法術書補（F.ExpandSpellRanks），回春術 774／
+-- 癒合 8936／恢復 139／真言術：盾 17 的第一階 ID 跟正式服相同，都在這張表裡。
+if Cell.isForever then
+    local temp = {}
+    for _, id in ipairs(spells) do
+        if F.GetSpellInfo(id) then
+            tinsert(temp, id)
+        end
+    end
+    spells = temp
+end
 
 -- The default Healers spell list. Revise reads it to top up an EXISTING Healers indicator --
 -- the template only reaches layouts created after a spell is added here, so without that pass
@@ -1332,6 +1585,8 @@ local targetedSpells = {
 }
 
 function I.GetDefaultTargetedSpellsList()
+    -- fix from MiliUI: 永恆（WoW Forever）沒有這些正式服地城法術，給空清單（不然設定頁一排「無效」）
+    if Cell.isForever then return {} end
     return targetedSpells
 end
 
@@ -1414,6 +1669,8 @@ local actions = {
 
 
 function I.GetDefaultActions()
+    -- fix from MiliUI: 永恆（WoW Forever）沒有這些正式服藥水（會顯示成「?」圖示），預設空清單
+    if Cell.isForever then return {} end
     return actions
 end
 

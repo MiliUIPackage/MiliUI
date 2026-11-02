@@ -27,13 +27,17 @@ local function CreateTooltip(name, hasIcon)
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         icon:Hide()
 
-        hooksecurefunc(tooltip, "SetSpellByID", function(self, id, tex)
-            if tex then
-                iconBG:Show()
-                icon:SetTexture(tex)
-                icon:Show()
-            end
-        end)
+        -- fix from MiliUI: 永恆（WoW Forever）的 GameTooltip 沒有 SetSpellByID（NeeRgY fork 實測），
+        -- hooksecurefunc 對不存在的方法會直接報錯；正式服有這個方法，照舊掛勾
+        if tooltip.SetSpellByID then
+            hooksecurefunc(tooltip, "SetSpellByID", function(self, id, tex)
+                if tex then
+                    iconBG:Show()
+                    icon:SetTexture(tex)
+                    icon:Show()
+                end
+            end)
+        end
     end
 
     if Cell.isRetail then

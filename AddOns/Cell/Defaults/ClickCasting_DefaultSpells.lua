@@ -311,6 +311,91 @@ local defaultSpells = {
     },
 }
 
+-- fix from MiliUI: 永恆（WoW Forever）的 1.x 點擊施法法術清單，接在上面那份正式服清單後面（永恆沒有專精，
+-- 全部算 common）。只列會對友方施放的；客戶端認不得、或法術書裡還沒有的，組清單時會被濾掉。
+-- 資料取自 NeeRgY/Cell r277.9.9 的永恆版。字尾字母同上（C＝冷卻、T＝天賦、P＝PvP 天賦）。
+local foreverSpells = {
+    ["DRUID"] = {
+        29166, -- 激活 - Innervate
+        774, -- 回春術 - Rejuvenation
+        8936, -- 癒合 - Regrowth
+        5185, -- 治療之觸 - Healing Touch
+        8946, -- 治療中毒 - Cure Poison
+        2893, -- 驅毒術 - Abolish Poison
+        2782, -- 解除詛咒 - Remove Curse
+        20484, -- 復生 - Rebirth
+        1126, -- 野性印記 - Mark of the Wild
+        21849, -- 野性賜福 - Gift of the Wild
+    },
+    ["MAGE"] = {
+        475, -- 解除次級詛咒 - Remove Lesser Curse
+        130, -- 緩落術 - Slow Fall
+        1008, -- 魔法增效 - Amplify Magic
+        604, -- 魔法抑制 - Dampen Magic
+        1459, -- 秘法智慧 - Arcane Intellect
+        23028, -- 秘法光輝 - Arcane Brilliance
+    },
+    ["PALADIN"] = {
+        635, -- 聖光術 - Holy Light
+        19750, -- 聖光閃現 - Flash of Light
+        633, -- 聖療術 - Lay on Hands
+        "20473T", -- 神聖震擊 - Holy Shock
+        1044, -- 自由祝福 - Blessing of Freedom
+        1038, -- 拯救祝福 - Blessing of Salvation
+        6940, -- 犧牲祝福 - Blessing of Sacrifice
+        1022, -- 保護祝福 - Blessing of Protection
+        4987, -- 清潔術 - Cleanse
+        1152, -- 淨化術 - Purify
+        7328, -- 救贖 - Redemption
+        19752, -- 神聖干涉 - Divine Intervention
+        20217, -- 王者祝福 - Blessing of Kings
+        25898, -- 強效王者祝福 - Greater Blessing of Kings
+        19740, -- 力量祝福 - Blessing of Might
+        25782, -- 強效力量祝福 - Greater Blessing of Might
+        19742, -- 智慧祝福 - Blessing of Wisdom
+        25894, -- 強效智慧祝福 - Greater Blessing of Wisdom
+        "20911T", -- 庇護祝福 - Blessing of Sanctuary
+        "25899T", -- 強效庇護祝福 - Greater Blessing of Sanctuary
+    },
+    ["PRIEST"] = {
+        17, -- 真言術：盾 - Power Word: Shield
+        2061, -- 快速治療 - Flash Heal
+        2050, -- 次級治療術 - Lesser Heal
+        2054, -- 治療術 - Heal
+        2060, -- 強效治療術 - Greater Heal
+        139, -- 恢復 - Renew
+        596, -- 治療禱言 - Prayer of Healing
+        527, -- 驅散魔法 - Dispel Magic
+        552, -- 驅除疾病 - Abolish Disease
+        528, -- 治療疾病 - Cure Disease
+        2006, -- 復活術 - Resurrection
+        "10060T", -- 能量灌注 - Power Infusion
+        1706, -- 漂浮術 - Levitate
+        6346, -- 防護恐懼結界 - Fear Ward
+        1243, -- 真言術：韌 - Power Word: Fortitude
+        21562, -- 堅韌禱言 - Prayer of Fortitude
+        14752, -- 神聖之靈 - Divine Spirit
+        27681, -- 精神禱言 - Prayer of Spirit
+        976, -- 防護暗影 - Shadow Protection
+        27683, -- 防護暗影禱言 - Prayer of Shadow Protection
+        2096, -- 心靈視界 - Mind Vision
+    },
+    ["SHAMAN"] = {
+        8004, -- 次級治療波 - Lesser Healing Wave
+        331, -- 治療波 - Healing Wave
+        1064, -- 治療鍊 - Chain Heal
+        526, -- 治療中毒 - Cure Poison
+        2870, -- 治療疾病 - Cure Disease
+        2008, -- 先祖之魂 - Ancestral Spirit
+        546, -- 水上行走 - Water Walking
+        131, -- 水下呼吸 - Water Breathing
+    },
+    ["WARLOCK"] = {
+        132, -- 偵測隱形 - Detect Invisibility
+        5697, -- 無盡呼吸 - Unending Breath
+    },
+}
+
 function F.GetClickCastingSpellList(class, spec)
     local spells = defaultSpells[class]["common"] and F.Copy(defaultSpells[class]["common"]) or {}
 
@@ -318,6 +403,19 @@ function F.GetClickCastingSpellList(class, spec)
     if spec and defaultSpells[class][spec] then
         for _, v in pairs(defaultSpells[class][spec]) do
             tinsert(spells, v)
+        end
+    end
+
+    -- fix from MiliUI: 永恆（WoW Forever）是 1.x 的世界，上面那份正式服清單缺它大半的法術（次級治療術、
+    -- 治療術、恢復、各種祝福…），把 1.x 清單接在後面；同名的只留第一個（同一支法術正式服／1.x 各一個 ID
+    -- 的情況）、法術書裡沒有的（還沒學）不列。正式服 seenNames 是 nil，下面那段不會跑。
+    local seenNames
+    if Cell.isForever then
+        seenNames = {}
+        if foreverSpells[class] then
+            for _, v in ipairs(foreverSpells[class]) do
+                tinsert(spells, v)
+            end
         end
     end
 
@@ -336,8 +434,19 @@ function F.GetClickCastingSpellList(class, spec)
         end
 
         local name, icon = F.GetSpellInfo(spellId)
+        local maxRank
+        if name and seenNames then
+            -- 永恆：濾掉同名重複與沒學的；有兩階以上的帶最高階數給等級子選單（第 5 格，見 ClickCastings.lua）
+            maxRank = F.GetMaxSpellRank(spellId)
+            if seenNames[name] or maxRank == nil then
+                name = nil
+            else
+                seenNames[name] = true
+                if maxRank < 2 then maxRank = nil end
+            end
+        end
         if name then
-            spells[i] = {icon, name, spellType, spellId}
+            spells[i] = {icon, name, spellType, spellId, maxRank}
         else
             F.Debug("|cffff0000[INVALID]|r click-casting spell:", spellId)
             if not invalid then invalid = {} end
@@ -396,7 +505,11 @@ local resurrections_for_dead = {
 do
     local temp = {}
     for _, id in pairs(resurrections_for_dead) do
-        temp[F.GetSpellInfo(id)] = true
+        -- fix from MiliUI: 永恆（WoW Forever）認不得正式服的 spellID，名字會是 nil（nil 不能當 key）
+        local name = F.GetSpellInfo(id)
+        if name then
+            temp[name] = true
+        end
     end
     resurrections_for_dead = temp
 end
@@ -446,6 +559,18 @@ local resurrection_click_castings = {
 --         end
 --     end
 -- end
+
+-- fix from MiliUI: 永恆（WoW Forever）只留客戶端認得的復活術（聖騎士的代禱、德魯伊的起死回生這類
+-- 正式服法術會變成空綁定）
+if Cell.isForever then
+    for _, t in pairs(resurrection_click_castings) do
+        for i = #t, 1, -1 do
+            if not F.GetSpellInfo(t[i][3]) then
+                tremove(t, i)
+            end
+        end
+    end
+end
 
 function F.GetResurrectionClickCastings(class)
     return resurrection_click_castings[class] or {}

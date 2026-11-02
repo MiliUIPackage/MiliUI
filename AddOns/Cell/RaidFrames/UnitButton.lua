@@ -2508,6 +2508,9 @@ end
 -- refreshes on, and whichever handler the client happens to call first would decide whether
 -- we read the new spec or the old one. The spec itself is one call away and never stale.
 local function SpecRole()
+    -- fix from MiliUI: 永恆（WoW Forever）沒有專精，GetSpecialization 回的是主天賦樹索引，
+    -- 查出來的角色是正式服專精的、對 1.x 天賦樹不準 —— 永恆只信隊伍指派的角色
+    if Cell.isForever then return end
     if not (GetSpecialization and GetSpecializationInfo) then return end
     local index = GetSpecialization()
     if not index then return end

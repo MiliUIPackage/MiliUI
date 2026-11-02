@@ -25,8 +25,18 @@ Cell.isWrath = false
 Cell.isCata = false
 Cell.isMists = false
 
+-- fix from MiliUI: 《魔獸世界：永恆》（WoW Forever，遊戲型別 camelot）。它跟正式服是同一套 Mainline
+-- 程式碼、同一套 12.1 秘密值與戰鬥封鎖規則，所以照樣走 isRetail 這條路；差別只在遊戲內容
+-- （1.x 世界、九職、沒有專精、法術每一階各有 spellID、角色有姓氏沒伺服器）。WOW_PROJECT_CAMELOT
+-- 只在永恆客戶端定義，正式服是 nil。⚠ 不要用 GetBuildInfo 或 Interface 版本判永恆：它的 build 是
+-- 1.60.1／16001，任何「build >= 12xxxx 才算 Midnight」的寫法在永恆都會誤判成舊客戶端。
+-- 永恆專屬的分流一律讀這個旗標；詳見 .claude/notes/wow-forever-vs-retail-api.md、wow-cell-neergy-fork.md。
+Cell.isForever = (WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT)
+    or (WOW_PROJECT_FOREVER ~= nil and WOW_PROJECT_ID == WOW_PROJECT_FOREVER) or false
+
 -- still real version checks WITHIN retail, keep them honest
-Cell.isMidnight = select(4, GetBuildInfo()) >= 120000
+-- (永恆的 build 是 1.60.1，但秘密值規則跟 Midnight 一樣，直接算 Midnight；正式服這行跟原本等價)
+Cell.isMidnight = Cell.isForever or select(4, GetBuildInfo()) >= 120000
 Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
 -------------------------------------------------
@@ -2089,6 +2099,17 @@ if Cell.isRetail or Cell.isMists then
     local GetSpellTexture = C_Spell.GetSpellTexture
     function F.GetSpellInfo(spellId)
         if not spellId then return end
+        -- fix from MiliUI: 永恆（WoW Forever）的點擊施法可以降階，綁定存成 "spellId:rank"（跟經典服同一個
+        -- 格式；F.GetRankSuffix 那組 helper 見下面的永恆區塊）。正式服的綁定永遠是數字，不會進這一段，
+        -- 回傳值也維持兩個。
+        local rank
+        if Cell.isForever and type(spellId) == "string" then
+            -- 只認 "數字:數字"；法術名也可能帶冒號（真言術：盾），不能用 strsplit 硬拆
+            local id, r = spellId:match("^(%d+):(%d+)$")
+            if id then
+                spellId, rank = tonumber(id), tonumber(r)
+            end
+        end
         local info = GetSpellInfo(spellId)
         if not info then return end
 
@@ -2096,6 +2117,9 @@ if Cell.isRetail or Cell.isMists then
             info.iconID = GetSpellTexture(spellId)
         end
 
+        if rank then
+            return info.name, info.iconID, rank
+        end
         return info.name, info.iconID
     end
 else
@@ -2184,6 +2208,174 @@ if Cell.isWrath or Cell.isTBC or Cell.isVanilla then
 
         return maxRank
     end
+end
+
+-------------------------------------------------
+-- 永恆（WoW Forever）：法術階數
+-------------------------------------------------
+-- fix from MiliUI: 永恆的法術每一階各有自己的 spellID，法術書也還是 Classic 式的「等級 N」副標。
+-- 這組 helper 只在永恆定義（正式服 F.GetRankSuffix／F.GetMaxSpellRank 維持 nil，跟原本只有經典服那段
+-- 才有一樣）：
+--   F.GetRankSuffix(rank)       → "(等級 N)"，點擊施法用「法術名(等級 N)」施放降階（經典服同法）
+--   F.GetMaxSpellRank(spellId)  → 玩家法術書裡同名法術的最高階數；單階法術 0；不在法術書（還沒學）nil
+--   F.GetSameNameSpellIDs(id)   → 玩家法術書裡所有同名法術的 spellID（光環容器只認 ID，每一階都要餵）
+--   F.GetSpellRankSuffix(id)    → 清單顯示用的灰字 " (R1)"，沒有階數回 ""
+--   F.ExpandSpellRanks(ids)     → 把 {[id]=true} 集合補上同名各階（容器 includeSpellIDs 用），回新表
+-- 法術書掃描走 C_SpellBook（永恆是 Mainline API，GetNumSpellTabs 那組舊函式不存在），只看玩家自己已學的
+-- （Enum.SpellBookItemType.Spell；法術書裡「將來會學」的 FutureSpell 不算），結果以法術名快取；
+-- SPELLS_CHANGED 重掃，內容真的變了（學到新法術／新的一階）才把指示器重推一次，容器才會認得新階的 ID。
+if Cell.isForever then
+    local locale = GetLocale()
+    local MATCH_PATTERN, FORMAT_PATTERN = "Rank (%d+)", "Rank %d"
+    if locale == "deDE" or locale == "frFR" then
+        MATCH_PATTERN, FORMAT_PATTERN = "Rang (%d+)", "Rang %d"
+    elseif locale == "esES" or locale == "esMX" then
+        MATCH_PATTERN, FORMAT_PATTERN = "Rango (%d+)", "Rango %d"
+    elseif locale == "itIT" then
+        MATCH_PATTERN, FORMAT_PATTERN = "Grado (%d+)", "Grado %d"
+    elseif locale == "koKR" then
+        MATCH_PATTERN, FORMAT_PATTERN = "(%d+) 레벨", "%d 레벨"
+    elseif locale == "ptBR" then
+        MATCH_PATTERN, FORMAT_PATTERN = "Grau (%d+)", "Grau %d"
+    elseif locale == "ruRU" then
+        MATCH_PATTERN, FORMAT_PATTERN = "Уровень (%d+)", "Уровень %d"
+    elseif locale == "zhCN" then
+        MATCH_PATTERN, FORMAT_PATTERN = "等级 (%d+)", "等级 %d"
+    elseif locale == "zhTW" then
+        MATCH_PATTERN, FORMAT_PATTERN = "等級 (%d+)", "等級 %d"
+    end
+    FORMAT_PATTERN = "(" .. FORMAT_PATTERN .. ")"
+
+    function F.GetRankSuffix(rank)
+        return FORMAT_PATTERN:format(rank)
+    end
+
+    local SPELL_TYPE = Enum.SpellBookItemType and Enum.SpellBookItemType.Spell
+    local BANK = (Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player) or 0
+
+    -- 法術名 → { ids = {spellID, ...}, ranks = {[spellID] = 階數 or false}, maxRank = N }
+    local byName = {}
+    local scanned = false
+    local lastSig
+
+    local function RankOf(subText)
+        if type(subText) ~= "string" or not F.IsValueNonSecret(subText) then return nil end
+        return tonumber(subText:match(MATCH_PATTERN) or subText:match("(%d+)"))
+    end
+
+    local function Signature()
+        -- 法術書內容的簡單指紋：同名群數 ＋ 總 ID 數（學新法術／新的一階都會變）
+        local groups, total = 0, 0
+        for _, entry in pairs(byName) do
+            groups = groups + 1
+            total = total + #entry.ids
+        end
+        return groups .. ":" .. total
+    end
+
+    local function Scan()
+        wipe(byName)
+        scanned = true
+        if C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines and C_SpellBook.GetSpellBookItemInfo then
+            for line = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+                local lineInfo = C_SpellBook.GetSpellBookSkillLineInfo(line)
+                if lineInfo then
+                    local offset, count = lineInfo.itemIndexOffset or 0, lineInfo.numSpellBookItems or 0
+                    for i = offset + 1, offset + count do
+                        local item = C_SpellBook.GetSpellBookItemInfo(i, BANK)
+                        if item and type(item.spellID) == "number" and not item.isOffSpec
+                            and (not SPELL_TYPE or item.itemType == SPELL_TYPE) then
+                            local name = item.name
+                            if type(name) == "string" and F.IsValueNonSecret(name) then
+                                local entry = byName[name]
+                                if not entry then
+                                    entry = { ids = {}, ranks = {}, maxRank = 0 }
+                                    byName[name] = entry
+                                end
+                                if entry.ranks[item.spellID] == nil then
+                                    tinsert(entry.ids, item.spellID)
+                                    local rank = RankOf(item.subName) or false
+                                    entry.ranks[item.spellID] = rank
+                                    if rank and rank > entry.maxRank then entry.maxRank = rank end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        lastSig = Signature()
+    end
+
+    local function Lookup(spellId)
+        if not scanned then Scan() end
+        local name = F.GetSpellInfo(spellId)
+        if not name then return nil end
+        return byName[name]
+    end
+
+    function F.GetMaxSpellRank(spellId)
+        local entry = Lookup(spellId)
+        if not entry then return nil end
+        return entry.maxRank
+    end
+
+    local EMPTY = {}
+    function F.GetSameNameSpellIDs(spellId)
+        local entry = Lookup(spellId)
+        return entry and entry.ids or EMPTY
+    end
+
+    function F.GetSpellRankSuffix(spellId)
+        if not (spellId and C_Spell and C_Spell.GetSpellSubtext) then return "" end
+        local ok, subText = pcall(C_Spell.GetSpellSubtext, spellId)
+        local rank = ok and RankOf(subText)
+        if rank then
+            return " |cff888888(R" .. rank .. ")|r"
+        end
+        return ""
+    end
+
+    function F.ExpandSpellRanks(ids)
+        if type(ids) ~= "table" then return ids end
+        local out = {}
+        for id, v in pairs(ids) do out[id] = v end
+        for id in pairs(ids) do
+            if type(id) == "number" then
+                for _, rankId in ipairs(F.GetSameNameSpellIDs(id)) do
+                    if out[rankId] == nil then out[rankId] = true end
+                end
+            end
+        end
+        return out
+    end
+
+    local refreshTimer
+    local rankFrame = CreateFrame("Frame")
+    rankFrame:RegisterEvent("SPELLS_CHANGED")
+    rankFrame:SetScript("OnEvent", function(self, event)
+        if event == "PLAYER_REGEN_ENABLED" then
+            self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+        end
+        local before = lastSig
+        Scan()
+        -- 還沒有人查過（before 是 nil）＝沒有東西是照舊資料建的，不用重推
+        if not before or before == lastSig or not Cell.loaded then return end
+        if InCombatLockdown() then
+            self:RegisterEvent("PLAYER_REGEN_ENABLED")
+            return
+        end
+        if refreshTimer then refreshTimer:Cancel() end
+        refreshTimer = C_Timer.NewTimer(1, function()
+            refreshTimer = nil
+            if InCombatLockdown() then
+                rankFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+                return
+            end
+            F.Log("layout", "|cffff7777SPELLS_CHANGED (Forever ranks):|r UpdateIndicators")
+            Cell.Fire("UpdateIndicators")
+        end)
+    end)
 end
 
 if C_Spell.GetSpellCooldown then
@@ -2468,20 +2660,23 @@ end
 
 local playerClass = UnitClassBase("player")
 
+-- fix from MiliUI: 永恆（WoW Forever）走 isRetail 這條路，但法術是 1.x 的 —— 測距法術選經典服那組
+-- （一級就會的：治療之觸／聖光術／次級治療術／治療波；火球術／懲擊／閃電箭／暗影箭），
+-- 正式服的選擇不變。
 local friendSpells = {
     -- ["DEATHKNIGHT"] = 47541,
     -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
+    ["DRUID"] = (Cell.isForever or Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
     -- FIXME: [361469 活化烈焰] 会被英雄天赋 [431443 时序烈焰] 替代，但它而且有问题
     -- IsSpellInRange 始终返回 nil
     ["EVOKER"] = 355913, -- 翡翠之花
     -- ["HUNTER"] = 136,
     ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
     ["MONK"] = 116670, -- 活血术
-    ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
-    ["PRIEST"] = (Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
+    ["PALADIN"] = (Cell.isRetail and not Cell.isForever) and 19750 or 635, -- 圣光闪现 / 圣光术
+    ["PRIEST"] = (Cell.isForever or Cell.isWrath or Cell.isTBC or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
     -- ["ROGUE"] = Cell.isWrath and 57934,
-    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
+    ["SHAMAN"] = (Cell.isRetail and not Cell.isForever) and 8004 or 331, -- 治疗之涌 / 治疗波
     ["WARLOCK"] = 5697, -- 无尽呼吸
     -- ["WARRIOR"] = 3411, -- 援护
 }
@@ -2502,13 +2697,13 @@ local harmSpells = {
     -- IsSpellInRange 始终返回 nil
     ["EVOKER"] = 362969, -- 碧蓝打击
     ["HUNTER"] = 75, -- 自动射击
-    ["MAGE"] = Cell.isRetail and 116 or 133, -- 寒冰箭 / 火球术
+    ["MAGE"] = (Cell.isRetail and not Cell.isForever) and 116 or 133, -- 寒冰箭 / 火球术
     ["MONK"] = 117952, -- 碎玉闪电
     ["PALADIN"] = 20271, -- 审判
-    ["PRIEST"] = Cell.isRetail and 589 or 585, -- 暗言术：痛 / 惩击
+    ["PRIEST"] = (Cell.isRetail and not Cell.isForever) and 589 or 585, -- 暗言术：痛 / 惩击
     ["ROGUE"] = 1752, -- 影袭
-    ["SHAMAN"] = Cell.isRetail and 188196 or 403, -- 闪电箭
-    ["WARLOCK"] = 234153, -- 吸取生命
+    ["SHAMAN"] = (Cell.isRetail and not Cell.isForever) and 188196 or 403, -- 闪电箭
+    ["WARLOCK"] = Cell.isForever and 686 or 234153, -- 暗影箭（永恆）/ 吸取生命
     ["WARRIOR"] = 355, -- 嘲讽
 }
 

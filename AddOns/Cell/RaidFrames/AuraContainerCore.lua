@@ -53,7 +53,9 @@ local function Probe()
     }
 
     if not Cell.isMidnight then return c end
-    if c.build < MIN_BUILD then return c end
+    -- fix from MiliUI: 永恆（WoW Forever）的 build 是 1.60.1，但 AuraContainer 跟 12.1 一樣在；
+    -- build 門檻只對正式服有意義
+    if not Cell.isForever and c.build < MIN_BUILD then return c end
     if not c.filterStrings then return c end
 
     -- CreateFrame errors outright on an unknown intrinsic, hence the pcall
@@ -96,7 +98,7 @@ function ACC.Failure()
     local c = ACC.GetCaps()
     if not c then return "戰鬥中無法偵測（AuraContainer 只能在非戰鬥時建立）" end
     if not Cell.isMidnight then return "非 Midnight 客戶端" end
-    if (c.build or 0) < MIN_BUILD then
+    if not Cell.isForever and (c.build or 0) < MIN_BUILD then
         return ("需要 build %d 以上（目前 %d）"):format(MIN_BUILD, c.build or 0)
     end
     if not c.filterStrings then return "AuraUtil.IsValidFilterString 不存在" end

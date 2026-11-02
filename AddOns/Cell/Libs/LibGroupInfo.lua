@@ -158,6 +158,12 @@ local CanInspect = CanInspect
 local GetSpecialization = GetSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
 local GetSpecializationInfo = GetSpecializationInfo or (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
 local GetInspectSpecialization = GetInspectSpecialization
+-- fix from MiliUI: 《魔獸世界：永恆》（camelot）沒有專精系統。C_SpecializationInfo.GetSpecialization()
+-- 在那裡回的是主天賦樹索引、沒點天賦時是 nil，餵給 GetSpecializationInfo 會報 Usage 錯；而且
+-- 就算有索引，查回來的也是正式服的專精資料，對 1.x 的天賦樹是錯的（德魯伊第三棵在 1.x 是
+-- 恢復、正式服是守護者）。永恆一律當「沒有專精」，角色留給 assignedRole。正式服不受影響：
+-- GetSpecialization 在正式服永遠有值（1～9 級是 initial 專精 5）。
+local IS_FOREVER = WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT
 local UnitNameUnmodified = UnitNameUnmodified
 local GetNormalizedRealmName = GetNormalizedRealmName
 local UnitLevel = UnitLevel
@@ -254,8 +260,10 @@ local function BuildAndNotify(unit)
     local specId, role
 
     if UnitIsUnit(unit, "player") then
-        local specIndex = GetSpecialization()
-        specId, _, _, _, role = GetSpecializationInfo(specIndex)
+        local specIndex = (not IS_FOREVER) and GetSpecialization() or nil
+        if specIndex then
+            specId, _, _, _, role = GetSpecializationInfo(specIndex)
+        end
     else
         specId = GetInspectSpecialization(unit)
         role = select(5, GetSpecializationInfoByID(specId))
