@@ -68,6 +68,12 @@ PATCHES = [
     P("YUI_AuctionHelper", "YUI_AuctionHelper.toc", r"^## LoadWith:\s*Blizzard_AuctionHouseUI\s*$",
       "TOC 晚載入（拍賣場開啟時載入）", regex=True),
 
+    # ── !BugGrabber／BugSack：TOC 加 16001，永恆（WoW Forever）不勾「載入過期插件」也載得起來 ──
+    #   洗掉不報錯，症狀是永恆上 Lua 錯誤完全看不到（遊戲預設 scriptErrors 關）。
+    #   兩支本來就支援經典服，程式不用改；重套就是把 `, 16001` 補回 Interface 行尾。
+    P("!BugGrabber", "!BugGrabber.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
+    P("BugSack", "BugSack.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
+
     # ── MRT：12.1 光環秘密值閘 ──────────────────────────────────────────
     #   2026-10-18 重套（只剩 CheckPotionsOnPull；UpdateData 上游 5335 已自帶外層閘）。
     #   重套腳本：python3 .claude/patches/MRT-RaidCheck-secret-gate.py
