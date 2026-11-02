@@ -1,11 +1,11 @@
 ---
 name: wow-cell-neergy-fork
-description: NeeRgY/Cell 這支平行 fork —— 值得參考什麼、不要抄什麼、以及它踩過而我們該避開的坑
+description: NeeRgY/Cell 這支平行 fork —— 值得參考什麼、不要抄什麼、以及它踩過而我們該避開的坑；2026-11-02 把他們的永恆（WoW Forever）支援搬進我們的 Cell 的決定、沒搬的東西與待實機驗證清單
 metadata: 
   node_type: memory
   type: reference
   originSessionId: 370815d0-9f01-4f66-b973-db047100add7
-  modified: 2026-08-16T21:22:41.665Z
+  modified: 2026-11-02T12:00:00.000Z
 ---
 
 https://github.com/NeeRgY/Cell —— 血統是 enderneko → jdtoppin → krysiolol → NeeRgY，基底停在
@@ -133,3 +133,74 @@ r277，用 `r277.9.x` 自己往下編號。我們從 r282 走自己的路，**�
 - 9.8.1「角色互換後 raid slot 的 unit token 沒變，光環／施法圖示卡在別人框上」—— 查我們的光環容器 key 有沒有吃 guid。
 - 9.8.2「戰士／盜賊／獵人戰鬥中距離淡出失效」—— 我們 `F.IsInRange` 在 UnitInRange 回秘密且沒有 spell_friend 時，
   戰鬥中直接 `return true`；群組內主要靠 UNIT_IN_RANGE_UPDATE 的 payload（`ir`），要實測 payload 是否戰鬥中秘密。
+
+## 第四次比對（2026-11-02，他們 r277.9.8.7 → r277.9.9.2 / 我們 r314_MiliUI）：永恆支援搬運
+
+他們的做法是**整包再複製一份 `Forever/`**（Cell_Camelot.toc、Interface 16001、`Cell.isForever = true` 寫死），
+mainline 那份不動；真正跟永恆有關的差異只在 Utils／Core／三張預設資料表／BuffTracker／ClickCastings／
+Widgets 的 nameFormat。對照法：`diff neergy-new/X neergy-new/Forever/X`（同 tag 內比），不是跨 tag。
+9.9.1／9.9.2 宣稱的「client project ID 改變後載入失敗」在 Forever/Utils.lua 看不到修法
+（master 仍是 `Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE`），我們的 isRetail 本來就釘 true 不受影響。
+
+**我們的做法（單一 TOC ＋ runtime 旗標）**：`Cell.toc` 的 Interface 加 16001；`Utils.lua` 定義
+`Cell.isForever`（`WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT`，另認 `WOW_PROJECT_FOREVER`），
+`Cell.isMidnight = Cell.isForever or build >= 120000`（永恆 build 是 1.60.1，不改這行整支會走非 Midnight 路徑）。
+正式服路徑一個位元不變，所有永恆分流都掛 `Cell.isForever`，全部帶 `fix from MiliUI` 註解。
+
+搬了的（對照 NeeRgY 的項目）：
+- **專精**（Core.lua `UpdateSpecVars`）：`playerSpecID = -classID`（整支 Cell 的存檔 key：點擊施法分專精檔、
+  快速協助／快速施法、版面自動切換；CellDB 整帳號共用、快速協助直接拿 specID 當 key，所以不能像他們用 0）、
+  名稱「沒有專精」／圖示 134400、角色只信 `UnitGroupRolesAssigned("player")`（desecret）否則 DAMAGER，
+  `PLAYER_ROLES_ASSIGNED` 重算；`ACTIVE_TALENT_GROUP_CHANGED` 在永恆改讀 `C_SpecializationInfo.GetSpecialization()`、
+  nil 收成 0 當訊號，**PLAYER_LOGIN 主動跑一次**（永恆會不會在登入時發這個事件沒把握，playerSpecID 沒值
+  PreUpdateLayout 直接 return ＝ 框架整個不出來）。首次啟動的分專精表只建 `-classID` 一格；
+  複製正式服 CellDB 到永恆的情況在 ADDON_LOADED 補 `clickCastings[class][-classID]`／`alwaysTargeting[-classID]`。
+  不用 `C_SpecializationInfo.GetSpecializationInfo(idx)` 取名字／角色：查回來是正式服專精資料，德魯伊第三棵
+  在 1.x 是恢復、正式服是守護者，寧可顯示「沒有專精」。LibGroupInfo（我們的副本）對 player 在永恆跳過
+  GetSpecializationInfo（nil 索引會 Usage 錯）；UnitButton 的 `SpecRole()` 永恆回 nil。
+- **多階法術**：兩條路。① 別人身上的（externals／defensives）用**靜態別名表** `FOREVER_EXTERNALS`／
+  `FOREVER_DEFENSIVES`（Indicator_DefaultSpells.lua，取自 NeeRgY，另補犧牲祝福第二階 20729、狂暴回復各階）
+  用 `MergeForeverSpells` 併進既有表（`true` → `{別名=true}` 表，主 ID 由 I.UpdateExternals 照舊以 ID 登記）；
+  ② 自己的（Healers／所有自訂 buff 指示器）在 `I.AttachBuffContainer` 的 `spellIDs` 經 `F.ExpandSpellRanks`
+  從**玩家法術書**補同名各階（Utils.lua 永恆區塊，C_SpellBook 掃描、只算 `Enum.SpellBookItemType.Spell`、
+  以法術名快取；SPELLS_CHANGED 重掃，指紋變了才 `Cell.Fire("UpdateIndicators")`，戰鬥中延到 REGEN）。
+  ⚠ 逐法術配色的 border／bars（`effectSpellColors`，每個 ID 一個 record）沒展開階數 —— 已知限制。
+- **點擊施法**：`foreverSpells` 1.x 清單接在正式服清單後（永恆沒專精，全算 common）、同名去重、
+  `F.GetMaxSpellRank == nil`（不在法術書）不列、≥2 階才帶第 5 格給既有的等級子選單；綁定存 `"id:rank"`，
+  永恆的 `F.GetSpellInfo` 認這個格式回第三值 rank，施放走既有的 `法術名 .. F.GetRankSuffix(rank)` ＝
+  「法術名(等級 N)」（經典服同法；正式服 F.GetSpellInfo 回傳值不變）。
+- **驅散**：永恆沒天賦節點，改查法術書（`IsPlayerSpell`／`IsSpellKnown`）：牧師 527/988、528、552；
+  聖騎士 4987（魔法＋毒＋疾病）、1152（毒＋疾病）；德魯伊 2782、8946/2893；薩滿 526、2870；法師 475；
+  術士看寵物吞噬魔法 19505 各階。SPELLS_CHANGED／UNIT_PET 延一秒重算，照舊 `NotifyDispellable`。
+- **Buff Tracker**：永恆四種團隊增益（真言術：韌 1243＋堅韌禱言 21562、野性印記 1126＋野性賜福 21849、
+  秘法智慧 1459＋秘法光輝 23028、戰鬥怒吼 6673；⚠ 1.x 的 21562 是堅韌禱言，正式服同一個 ID 是真言術：韌），
+  requiredBuffs 空、四種人人要；`Insert` 只在永恆改成第一個命中才寫 buffsProvidedByMe。
+- **預設資料修剪**（永恆才跑）：externals／defensives／offensives、治療者法術、減益黑名單、大型減益、
+  復活點擊綁定全部拿掉客戶端認不得的 ID（不然設定頁一排「無效」）；`actions`／`targetedSpells` 預設空表。
+- **載入期 nil 防呆**（正式服行為不變）：summonDuration／drinks／resurrections 的 `temp[F.GetSpellInfo(id)]`
+  加 nil 判斷；`tankActiveMitigationNames` 改迴圈組字串（原本 `字串..nil` 會在載入時炸掉整支檔案）。
+- **其他**：AuraContainerCore 的 `MIN_BUILD` 門檻永恆跳過（不然 probe 直接判不支援，光環全退舊路）；
+  Widgets/Tooltip 的 `hooksecurefunc(tooltip, "SetSpellByID")` 先查方法存在（NeeRgY 實測永恆沒有）；
+  RaidDebuffs 模組 `EJ_SelectTier` 與 tab 預選只在有 tier 時跑（永恆冒險指南是空的，`SetSelectedItem(1)`
+  對空清單會炸）；測距法術永恆改選一級就會的 1.x 法術（治療之觸／聖光術／次級治療術／治療波、火球術／
+  懲擊／閃電箭 403／暗影箭 686）。
+
+沒搬的（與原因）：Name Text 的姓氏格式（Full／First／Surname；要加 11 語系字串，我們名字維持名、
+`F.UnitFullName` 在永恆是「名-姓」當 key，兩端一致） —— 可以當後續功能；`Cell.snippetsOK`（他們自己確認
+secure snippet 在永恆正常，整段是 no-op）；`F.ClientIcon` 圖示重對應（只用在他們的 retail BuffTracker 表，
+永恆不走）；HideBlizzard 的團隊樣式切換重試（我們的 HideBlizzard 不碰編輯模式）；三態 Highlight Debuffs／
+Cast By You／Targeted Spell Bars／Level Text／Ping Icon（功能，不是永恆相容）；debuffTypeColor 空表修復與
+Revise 的 clearedBadDefaultActions（他們 CVar 備份期的遺物，我們永恆是新 DB、預設直接空）；Missing Buffs
+拔發光（他們是 LibCustomGlow 共用池崩潰，我們是 MiliUIGlow）；Buff Tracker 單人模式（功能）；
+血量文字 deficit 改 UnitHealthMissing（非永恆專屬）；RaidDebuffs tab 的長篇說明（我們只做防呆）。
+
+**待永恆實機驗證**（本機 `_forever_` 已裝客戶端）：登入零錯誤、團隊框有出來（PLAYER_LOGIN 那次主動
+UpdateSpecVars 是關鍵）；`/cab` 看 AuraContainer probe 是否支援、團隊框顯示 1.x 增減益；治療者指示器顯示
+自己各階 HoT（回春術 774／癒合 8936／恢復 139／真言術：盾 17 的第一階 ID 跟正式服相同，靠 ExpandSpellRanks
+補其餘階）；`C_SpellBook.GetSpellBookItemInfo` 在永恆的欄位（`name`／`subName`＝「等級 N」／`itemType`／
+`isOffSpec`）—— 階數解析全押在 subName；點擊施法清單有 1.x 法術與等級子選單、選一階綁定後真的施放該階
+（「法術名(等級 N)」語法在 Mainline 引擎下）；驅散「＋」角標與 includeDispelTypes 模式照職業出現；
+Buff Tracker 四格；狀態文字「喝水」（430 同名各階）與 AFK；角色指派後版面自動切換有換；
+`UnitName("player")` 第二回傳是姓氏 → `playerNameFull`＝「名-姓」，Comm 的 target 比對兩端一致；
+`GetInspectSpecialization` 回 0 時 `GetSpecializationInfoByID(0)` 不報錯（LibGroupInfo）；
+RaidDebuffs 分頁開得起來（空的）；SPELLS_CHANGED 學新階後指示器有重推（看 `/cell debug` layout log）；PLAYER_LOGIN 主動跑的那次 UpdateSpecVars 會在 groupType 還是 nil 時 PreUpdateLayout 一次（走 raid_outdoor），再被 GROUP_ROSTER_UPDATE 修正 —— 正式服客戶端自己發的事件也可能是這個順序，看登入有沒有版面閃一下；若永恆其實有發 ACTIVE_TALENT_GROUP_CHANGED，可以把主動呼叫拿掉。

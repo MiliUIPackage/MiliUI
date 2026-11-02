@@ -55,7 +55,7 @@ Forever 獨有：`Blizzard_SwingTimer`、`Blizzard_LegacySystem`、`Blizzard_Leg
 - **正式服專屬的插件在 TOC 加 `## AllowLoadGameType: standard`**，Forever 就直接不載入，零程式改動（11.1.5 起開放給一般插件，也有逐檔 `File.lua [AllowLoadGameType standard]`）。這是暴雪自己分流的機制，比 runtime 判斷乾淨。
 - `check_toc.py`／`bump_toc.py` 用「6 位數」判 retail，5 位數的 16001 會被當 classic 條目留著不動 → 工具不用改。
 - **2026-11-02 第一階段已做**：15 支可在永恆用的自製插件 Interface 加 16001；7 支正式服專屬（MythicPlus、BossTimeline、AdventureGuideSpecCompare、CrusadingStrikes、BloodlustMusic、BurstPotionHelper、CharacterNotes）加 `## AllowLoadGameType: standard`。第三方的閘沒動（直接改第三方 TOC 會被上游更新洗掉，而且它們沒列 16001 本來就會被當過期停用）。
-- 第三方已帶 16001：Baganator、Syndicator、Chattynator、Platynator、Plumber、MRT。**Cell 上游沒有 Forever**；NeeRgY fork 從 r277.9.8.8（2026-09-25）起支援（Vanilla 法術等級、buff 表、click-casting 法術表、project ID 載入修正、「沒有專精」的 profile 修正）── 我們的 Cell fork 要支援 Forever 得搬這些，是最大的第三方風險，見 [[wow-cell-neergy-fork]]。
+- 第三方已帶 16001：Baganator、Syndicator、Chattynator、Platynator、Plumber、MRT。**Cell 上游沒有 Forever**；NeeRgY fork 從 r277.9.8.8（2026-09-25）起支援（Vanilla 法術等級、buff 表、click-casting 法術表、project ID 載入修正、「沒有專精」的 profile 修正）── **2026-11-02 已搬進我們的 Cell fork**（TOC 加 16001、`Cell.isForever` 旗標、`playerSpecID = -classID`、1.x 減傷／驅散／團隊增益表、法術書補各階、點擊施法降階），決定與待實機驗證清單見 [[wow-cell-neergy-fork]] 第四次比對。
 
 ## 結論：不另外打造
 

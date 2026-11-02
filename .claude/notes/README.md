@@ -289,7 +289,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-blizzard-window-skin-strategies.md](wow-blizzard-window-skin-strategies.md) | 暴雪原生視窗換皮（12.x）的通用策略——背景直接建成目標框的貼圖、池化框與選單的層級、進度條邊與文字同框交錯、池化列掛法、物品格方框、SetVertexColor 的 alpha 陷阱、哪些區域一律不碰與原因；做 MiliUI_Skin 或任何「重畫暴雪視窗」時先看 |
 | [wow-cdm-equipslot-stale-cache.md](wow-cdm-equipslot-stale-cache.md) | 暴雪冷卻管理器的飾品格「有時變灰、沒給框」＝設定資料提供者的 isKnown 快取過期（API 已是 true）；不能從插件標髒。MCDM 的出路：代畫缺框的格、增益法術從 linkedSpellIDs 解（暴雪沒給框照樣讀得到）、觸發增益＝全部扣掉使用效果（SlotUseBuffIDs 沒使用效果時會退回第 1 個增益，先判有沒有使用效果） |
 | [wow-cell-fork-comm.md](wow-cell-fork-comm.md) | MiliUI 版 Cell 為什麼不廣播 CELL_VERSION，以及哪些 comm 前綴刻意保持互通 |
-| [wow-cell-neergy-fork.md](wow-cell-neergy-fork.md) | NeeRgY/Cell 這支平行 fork —— 值得參考什麼、不要抄什麼、以及它踩過而我們該避開的坑 |
+| [wow-cell-neergy-fork.md](wow-cell-neergy-fork.md) | NeeRgY/Cell 這支平行 fork —— 值得參考什麼、不要抄什麼、以及它踩過而我們該避開的坑；2026-11-02 把他們的永恆（WoW Forever）支援搬進我們的 Cell 的決定、沒搬的東西與待實機驗證清單 |
 | [wow-chattynator-chat-window-frame.md](wow-chattynator-chat-window-frame.md) | 要吸附／對齊「聊天視窗」時，Chattynator 在場的話 ChatFrame1 不是對的框，怎麼找到真正那顆 |
 | [wow-child-frame-steals-mouse-focus.md](wow-child-frame-steals-mouse-focus.md) | 覆蓋在父框上的子按鈕會搶走滑鼠焦點，父框的 OnEnter/OnLeave 就不觸發——症狀是「滑鼠移動快會卡住、慢慢移動正常」 |
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開的成因，與 PLAYER_REGEN_DISABLED 強制鬆開窗口；**隱式保護沿錨點鏈遞迴傳**——排版鏈尾巴一顆 secure 鈕，前面整排都成保護框 |
