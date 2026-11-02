@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 115994b3-d41f-4e67-b636-6c325885e05b
-  modified: 2026-10-21T00:00:00.000Z
+  modified: 2026-11-02T18:17:45.388Z
 ---
 
 2026-08-29 開的獨立插件（`AddOns/MiliUI_QuestTracker/`，2026-10-12 TOC 1.0.9），骨架照
@@ -211,7 +211,8 @@ BugGrabber 本 session 相關錯誤；被動記錄 SCENARIO_*／WORLD_STATE_TIME
 
 ### 2026-10-13 目標進度上色／百分比（未實機驗證）
 `Skin.lua` 的「目標進度」段：進度從**行文字**解析（全形數字／「／」先轉半形、貼圖跳脫碼先拿掉），紅→黃→綠漸層；
-完成照 `line.Text.colorStyle`（**滑過時存的是 `Complete.reverse`，兩個都要認**）或動畫 state。補色掛在 AddBlock post-hook＋標題 OnEnter/OnLeave HookScript
+完成**只看** `line.Text.colorStyle`（暴雪每次排版都照這一輪的判定重寫）。
+⚠ **不能看 `line.state`（2026-11-03 玩家回報「進大秘境偶爾 0/1 變綠」的根因）**：`ObjectivesBlock` 的行以 criteriaIndex 為鍵、跨副本與跨階段沿用——離開場景時 `LayoutContents` 提早 return、行不釋放（`/mquest debug` 人在城裡也印 `Scenario objectives lines=5` 就是這個），`Reset` 不動 state，而場景未完成的分支**不重設 state**（任務那條有寫 Completed→Present，場景沒有）。上一個副本親眼打勾的行帶著 Completed 進下一個副本 ⇒ 圖示是圓點、文字 0/1、卻是完成色；哪幾行綠取決於上一場哪幾行是當場打勾的，所以「偶爾」。上色關著時同一個 bug 是變白。Adventure 收藏成功那行 Completing 但 colorStyle 仍是 Normal，暴雪自己也不換色，所以跟著不換。補色掛在 AddBlock post-hook＋標題 OnEnter/OnLeave HookScript
 （順帶修掉「滑過離開後目標行回 0.8 灰」）。百分比用 SetText 接在原文後，接完比 `GetNumLines`／`IsTruncated`，多一行或被截就退回原文；原文記在 `T.Flags()`。
 預設：上色關（1.0.10 發佈時是開，10-15 改關、DB v3 遷移一律壓成 false）、百分比關。
 上色**關著**時打勾的目標行是白（不是目標灰）；上色開著時完成行才用外觀分頁的「已完成」色。

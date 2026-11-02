@@ -405,7 +405,10 @@ end
 -- 沒有 x/y 的行（「回報給…」「可交付」）、帶進度條的行、文字是秘密值的行一律不動。
 --
 -- 「完成」照暴雪的判定，不是自己比 cur >= req：暴雪對完成的目標是用 Complete 色系
--- 呼叫 SetStringText（行上的 colorStyle 欄位，**只讀**），動畫狀態也會走 Completing／Completed。
+-- 呼叫 SetStringText（行上的 colorStyle 欄位，**只讀**），每次排版都照這一輪的判定重寫。
+-- ⚠ line.state 是動畫狀態，不能拿來判完成：場景區塊的行以 criteriaIndex 為鍵、跨副本與跨階段
+--   沿用（Reset 不動 state，離開場景時 LayoutContents 提早 return、行也不會被釋放），而場景
+--   未完成的分支不重設 state —— 上一個副本打勾的行帶著 Completed 進下一個副本，0/1 就被染成完成色。
 --
 -- 上色時機（對過 Blizzard_ObjectiveTrackerBlock.lua）：
 --   * SetStringText 只在色系換掉時才 SetTextColor ⇒ 色系沒變的排版不會蓋掉我們的顏色；
@@ -466,10 +469,7 @@ local function IsLineComplete(line)
     local style = line.Text and line.Text.colorStyle
     -- 滑過時暴雪存的是反向色系（SetStringText 的 useHighlight 分支），兩個都要認
     local done = colors and colors.Complete
-    if done and style ~= nil and (style == done or style == done.reverse) then return true end
-    local S = _G.ObjectiveTrackerAnimLineState
-    local st = line.state
-    return S ~= nil and st ~= nil and (st == S.Completing or st == S.Completed)
+    return done ~= nil and style ~= nil and (style == done or style == done.reverse)
 end
 
 local lineText = T.Flags()   -- fs → { raw = 暴雪原文, shown = 我們寫上去的字 }
