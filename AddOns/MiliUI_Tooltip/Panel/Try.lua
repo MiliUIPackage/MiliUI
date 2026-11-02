@@ -75,22 +75,10 @@ local function ShownRegion(region)
     local ok, shown = pcall(region.IsShown, region)
     return not ok or S.IsSecret(shown) or shown and true or false
 end
--- 比價框的主提示是內嵌物品框（世界任務獎勵的比價：QuestUtils 用 tooltip.ItemTooltip.Tooltip 叫 GameTooltip_ShowCompareItem，
--- 暴雪的 CompareItem 把 owner 設成它）。主提示本身因為上面那條走原生，比價框錨在內嵌框與原生 GameTooltip 上，下一幀對帳讀不到錨點。
--- post-call 當下比價框還沒有點（暴雪剛清）、Keep 暫貼一定成功，所以要在這裡認出來：不然面板畫一幀就拆，
--- 地圖標記的 UpdateTooltip 每 0.2 秒重建一次＝閃爍（2026-11-02 實機 log）。只讀；讀不到不算內嵌，其他條件照舊
-local function OwnedByEmbedded(tip)
-    if not tip.GetOwner then return false end
-    local ok, owner = pcall(tip.GetOwner, tip)
-    if not ok or S.IsSecret(owner) or type(owner) ~= "table" then return false end
-    local okE, embedded = pcall(function() return owner.IsEmbedded end)
-    return okE and embedded == true
-end
 local function Eligible(tip)
     for _, key in ipairs(BLIZZ_PADDING_USERS) do
         if ShownRegion(tip[key]) then return false end
     end
-    if OwnedByEmbedded(tip) then return false end
     -- 暴雪插進提示裡的框（GameTooltip_InsertFrame：UIWidget 組、進度條）：面板畫不出來，原生又在 alpha 0 ⇒ 不接。
     -- 只讀（暴雪自己的欄位，ClearLines 時清成 nil）
     local okF, frames = pcall(function() return tip.insertedFrames end)

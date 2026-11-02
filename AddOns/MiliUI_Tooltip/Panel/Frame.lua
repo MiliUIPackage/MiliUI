@@ -766,10 +766,10 @@ end
 -- TOPLEFT（sig = "provisional"，下一次有點時一定重算）。
 -- 之前在這裡退成「沒有點 ⇒ LEFT/TOP、位移 0」，每個重設循環先貼原生的 TOPLEFT、下一幀再鏡射回主面板 ⇒
 -- 兩種貼法輪流＝抖，鏈越長越兇（2026-10-18 實機兩份 dump 對出來）
-local function Keep(panel, tip)
+local function Keep(panel, tip, provisional)
     if panel.anchored then return true end
     if panel.anchorArgs then return Apply(panel, panel.alignSig, panel.anchorArgs) end
-    return Apply(panel, "provisional", { { "TOPLEFT", tip, "TOPLEFT", 0, 0 } })
+    return Apply(panel, "provisional", provisional or { { "TOPLEFT", tip, "TOPLEFT", 0, 0 } })
 end
 
 ------------------------------------------------------------
@@ -845,7 +845,152 @@ local function Mirror(panel, tip, points)
     return Apply(panel, "mirror:" .. table.concat(sig, ";"), mirrored)
 end
 
+-- 遲滯：同一個角、角的位置移動不到半個實體像素 ⇒ 沿用上次的整數像素修正。
+-- 原生角停在半像素附近時，每次重算的捨入會在相鄰兩個像素之間翻轉（浮點誤差就夠），面板左右或上下抖 1px
+-- （2026-10-18 實機：鏡射接上之後還剩約 1px 的左右抖）
+local function StableGrid(panel, tip, corner, dx, dy, rawX, rawY)
+    if panel.gridCorner == corner and panel.gridTip == tip and panel.gridRawX then
+        local half = Panel.Pixel(panel, 1) * 0.5
+        if math.abs(rawX - panel.gridRawX) <= half and math.abs(rawY - panel.gridRawY) <= half then
+            dx, dy = panel.gridDX, panel.gridDY
+            rawX, rawY = panel.gridRawX, panel.gridRawY
+        end
+    end
+    panel.gridCorner, panel.gridTip = corner, tip
+    panel.gridRawX, panel.gridRawY, panel.gridDX, panel.gridDY = rawX, rawY, dx, dy
+    return dx, dy
+end
+
+------------------------------------------------------------
+-- 世界任務獎勵的比價框：主提示留原生（內嵌物品框暴雪自己在用 padding，Try.lua 的 Eligible），比價框走面板。
+-- 暴雪把這種比價框的 owner 設成內嵌物品框（TooltipComparisonManager:Initialize），點是 TOP→內嵌框、LEFT／RIGHT→主提示，
+-- 原生的上緣對齊的是提示中段的內嵌框，貼原生就比主提示低一大截（2026-11-02 實機截圖）⇒ 面板不貼原生，
+-- 直接排在主提示旁、上緣對齊主提示，跟一般比價的三顆一樣。
+-- 原生只拿來看「放哪一邊」：這條鏈的錨點或位置實機讀不到過（2026-11-02 log：對帳時 Align 回 false，面板畫一幀就拆，
+-- 地圖標記每 0.2 秒重建一次＝閃爍），讀不到就照暴雪的選邊規則自己判斷，面板不因此退回。
+------------------------------------------------------------
+-- 回傳 主提示、內嵌框；不是這種比價框回 nil。找法同暴雪 AnchorShoppingTooltips 的 sideAnchorFrame。只讀
+function Panel.EmbeddedHost(tip)
+    if not tip.GetOwner then return nil end
+    local ok, owner = pcall(tip.GetOwner, tip)
+    if not ok or S.IsSecret(owner) or type(owner) ~= "table" then return nil end
+    local okH, host = pcall(function()
+        if owner.IsEmbedded == true then return owner:GetParent():GetParent() end
+    end)
+    if okH and type(host) == "table" and not S.IsSecret(host) then return host, owner end
+end
+
+-- 暴雪寫死的那兩顆（XML：self.Tooltip.shoppingTooltips）
+local function ShoppingTips(owner)
+    local ok, list = pcall(function() return owner.shoppingTooltips end)
+    if ok and type(list) == "table" and not S.IsSecret(list) then return list[1], list[2] end
+end
+
+-- 我的左邊貼對方 ⇒ 我在對方右邊（TOP→內嵌框那個點沒有左右，略過）
+local function SideFromPoints(points)
+    for _, p in ipairs(points) do
+        if type(p[1]) == "string" then
+            if p[1]:find("LEFT", 1, true) then return "RIGHT" end
+            if p[1]:find("RIGHT", 1, true) then return "LEFT" end
+        end
+    end
+end
+
+-- 原生的點讀不到：照暴雪的選邊規則（右邊放得下放右邊，放不下看哪邊空間大）。主提示的左右也讀不到就看游標（地圖標記就在游標底下）。
+-- 需要的寬取兩顆的上限：兩顆面板要算出同一邊，不能各用自己的寬
+local function GuessSide(host)
+    local okL, left = pcall(host.GetLeft, host)
+    local okR, right = pcall(host.GetRight, host)
+    left, right = okL and S.PlainNumber(left), okR and S.PlainNumber(right)
+    if not (left and right) then
+        local x, scale = S.PlainNumber((GetCursorPosition())), EffectiveScale(UIParent)
+        if not (x and scale) then return "RIGHT" end
+        local okW, width = pcall(host.GetWidth, host)
+        left = x / scale
+        right = left + (okW and S.PlainNumber(width) or 0)
+    end
+    local screen = S.PlainNumber(GetScreenWidth())
+    if not screen then return "RIGHT" end
+    local room = screen - right
+    return (room >= LOOK.MAX_W * 2 or room >= left) and "RIGHT" or "LEFT"
+end
+
+-- 暴雪的排法（AnchorShoppingTooltips）：放右邊時第二顆貼主提示、第一顆貼第二顆；放左邊相反；只有一顆就貼主提示。
+-- 回傳我要貼的另一顆比價框；該貼主提示回 nil
+local function HostNeighbor(tip, owner, side)
+    local first, second = ShoppingTips(owner)
+    local inner, outer = first, second
+    if side == "RIGHT" then inner, outer = second, first end
+    if not inner or tip ~= outer then return nil end
+    local ok, shown = pcall(inner.IsShown, inner)
+    if ok and not S.IsSecret(shown) and shown then return inner end
+end
+
+-- 面板不貼原生，原生的夾邊管不到它 ⇒ 這條路的面板自己夾（一般比價是原生在夾，見 Native.UpdateClamp）。
+-- 兩顆的夾邊範圍一樣高（上緣留標籤、下緣到較高那顆的底）：靠螢幕邊被推的時候一起動，上緣還是齊的
+local function ClampBesideHost(panel, owner)
+    local top, bottom = panel.clampOwnTop or 0, panel.totalHeight or panel.height or 0
+    local first, second = ShoppingTips(owner)
+    for _, shop in ipairs({ first or false, second or false }) do
+        local other = shop and Panel.PanelFor(shop)
+        if other then
+            top = math.max(top, other.clampOwnTop or 0)
+            bottom = math.max(bottom, other.totalHeight or other.height or 0)
+        end
+    end
+    local margin = panel.clampMargin or 0
+    local insetTop, insetBottom = top + margin, (panel.height or 0) - bottom - margin
+    local sig = ("%.3f|%.3f|%.3f"):format(margin, insetTop, insetBottom)
+    if panel.hostClampSig == sig then return end
+    panel.hostClampSig = sig
+    panel:SetClampRectInsets(-margin, margin, insetTop, insetBottom)
+    panel:SetClampedToScreen(true)
+end
+
+local function ClearHostClamp(panel)
+    if not panel.hostClampSig then return end
+    panel.hostClampSig = nil
+    panel:SetClampedToScreen(false)
+    panel:SetClampRectInsets(0, 0, 0, 0)
+end
+
+local function AlignBesideHost(panel, tip, host, owner)
+    panel.besideHost = true      -- Native.Fit：這顆不靠原生定位，原生的尺寸讀不到也不必退回
+    ClampBesideHost(panel, owner)
+    local gap = Panel.Scale(panel, LOOK.FRAME_GAP)
+    local points = ReadPoints(tip)
+    -- 原生暫時沒有點（post-call 當下暴雪剛清）：不改貼法（J3）；第一次先排在主提示右邊，下一幀照暴雪選的邊重算
+    if points and #points == 0 then
+        return Keep(panel, tip, { { "TOPLEFT", host, "TOPRIGHT", gap, 0 } })
+    end
+    local side = points and SideFromPoints(points)
+    local guessed = not side
+    if guessed then side = GuessSide(host) end
+    local neighbor = HostNeighbor(tip, owner, side)
+    local other = neighbor and Panel.PanelFor(neighbor)
+    local rel = other or neighbor or host
+    local point, relPoint, dx, dy = "TOPLEFT", "TOPRIGHT", gap, 0
+    if side == "LEFT" then point, relPoint, dx = "TOPRIGHT", "TOPLEFT", -gap end
+    -- 對方面板的角本來就在整數像素上；貼原生要修，讀不到（秘密）就不修
+    if not other then
+        local fx, fy, rawX, rawY = GridOffset(panel, rel, side, "TOP")
+        if fx then
+            fx, fy = StableGrid(panel, rel, "TOP" .. side, fx, fy, rawX, rawY)
+            dx, dy = dx + fx, fy
+        end
+    end
+    SetMirror(panel, other)
+    -- sig 帶 guess：開著 /mtip log 看得到這條路是不是讀不到原生的點
+    local sig = ("host:%s|%s|%s|%.3f|%.3f%s"):format(point, tostring(rel), relPoint, dx, dy, guessed and "|guess" or "")
+    return Apply(panel, sig, { { point, rel, relPoint, dx, dy } })
+end
+
 function Panel.Align(panel, tip)
+    local host, owner = Panel.EmbeddedHost(tip)
+    if host then return AlignBesideHost(panel, tip, host, owner) end
+    panel.besideHost = nil
+    ClearHostClamp(panel)
+
     local points = ReadPoints(tip)
     if not points then
         if ns.logEnabled and ns.Log then ns.Log("面板 對齊失敗：原生的錨點讀不到（秘密）") end
@@ -863,19 +1008,8 @@ function Panel.Align(panel, tip)
         if ns.logEnabled and ns.Log then ns.Log("面板 對齊失敗：原生的位置讀不到（秘密）") end
         return false
     end
-    -- 遲滯：同一個角、角的位置移動不到半個實體像素 ⇒ 沿用上次的整數像素修正。
-    -- 原生角停在半像素附近時，每次重算的捨入會在相鄰兩個像素之間翻轉（浮點誤差就夠），面板左右或上下抖 1px
-    -- （2026-10-18 實機：鏡射接上之後還剩約 1px 的左右抖）
     local corner = vside .. side
-    if panel.gridCorner == corner and panel.gridTip == tip and panel.gridRawX then
-        local half = Panel.Pixel(panel, 1) * 0.5
-        if math.abs(rawX - panel.gridRawX) <= half and math.abs(rawY - panel.gridRawY) <= half then
-            dx, dy = panel.gridDX, panel.gridDY
-            rawX, rawY = panel.gridRawX, panel.gridRawY
-        end
-    end
-    panel.gridCorner, panel.gridTip = corner, tip
-    panel.gridRawX, panel.gridRawY, panel.gridDX, panel.gridDY = rawX, rawY, dx, dy
+    dx, dy = StableGrid(panel, tip, corner, dx, dy, rawX, rawY)
     -- 從下緣貼：原生的底是整組（主面板＋縫＋附屬框）的底 ⇒ 主面板往上讓出附屬框那一截
     if vside == "BOTTOM" then
         dy = dy + ((panel.totalHeight or panel.height or 0) - (panel.height or 0))
@@ -891,6 +1025,8 @@ function Panel.Detach(panel, keep)
     panel.anchored = false
     if not keep then
         SetMirror(panel, nil)
+        panel.besideHost = nil
+        ClearHostClamp(panel)
         panel.alignSig, panel.anchorArgs = nil, nil
         panel.gridCorner, panel.gridTip, panel.gridRawX = nil, nil, nil
     end
