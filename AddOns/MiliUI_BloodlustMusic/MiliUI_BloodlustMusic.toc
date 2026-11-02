@@ -13,7 +13,7 @@
 ## Category-zhCN: 战斗
 ## Category-koKR: 전투
 ## Author: Mili
-## Version: 1.2.8
+## Version: 1.2.9
 ## SavedVariables: MiliUI_BloodlustMusic_DB
 
 Libs\MiliUIWidgets\PixelPerfect.lua
