@@ -174,9 +174,13 @@ function Native.Fit(tip, state, partial)
 
     local okW, w = pcall(tip.GetWidth, tip)
     local okH, h = pcall(tip.GetHeight, tip)
-    if not okW or not okH or not Plain(w, h) then return false end
-    local pr, pb = ReadPadding(tip)
-    if not pr then return false end
+    local pr, pb
+    if okW and okH and Plain(w, h) then pr, pb = ReadPadding(tip) end
+    if not pr then
+        -- 讀不到（秘密）：一般面板貼著原生、撐不到就會錯位 ⇒ 退回。排在主提示旁的比價面板（Panel.Align）不靠原生，不撐就是了
+        if panel.besideHost then return Panel.Align(panel, tip) end
+        return false
+    end
 
     -- panel 跟 tooltip 的有效縮放不一定相同（預覽、別的父層），換成 tooltip 的單位
     local tipScale, panelScale = Panel.EffectiveScale(tip), Panel.EffectiveScale(panel)

@@ -234,12 +234,15 @@ Bartender 自己也有「工具提示：戰鬥中停用」（LAB 的 `config.too
 `Panel.Follow` 本身（留縫 N1、ReturnFollowers、秘密閘、每顆一次）一行沒動，只是入口從 Adopt 旗標換成 AdoptSidecar。
 規則：**換皮歸 Skin 去找，「看得見」不能歸 Skin 去找**——是我們壓原生 alpha 0 造成的副作用，補償就要在我們這邊、不能依賴另一支插件有沒有開。
 
-## 世界任務獎勵的比價框閃爍（2026-11-02，使用者實機 log；修好未實機）
+## 世界任務獎勵的比價框（2026-11-02，使用者實機 log＋截圖；不閃已實機，面板版未實機）
 
 世界地圖滑過有裝備獎勵的世界任務，每 0.2 秒閃一次。主提示因為內嵌物品框（`ItemTooltip` 顯示中）本來就走原生，閃的是**比價框**。
 log 指紋：每 0.2 秒「Try 新件（之前 nil）→ 重貼 provisional → 重畫 → Try 同一件 → 下一幀 對帳 行數 28（完整 22）指紋不同」，對帳之後**沒有「重畫」也沒有「重貼」**，下一輪 panelKey 又是 nil。
 刪去法：RenderView 永遠回 true、Render 之後的路全部會記 log ⇒ 只剩 `Panel.Align` 回 false（讀到秘密的錨點／位置）→ Restore。**具體哪個值秘密是推論，當時的 log 沒記**，暴雪 TooltipComparisonManager 檔尾註解自己提到比價有 secret anchors 的問題。
 機制：`QuestUtils_AddQuestRewardsToTooltip` 用 `tooltip.ItemTooltip.Tooltip` 叫 `GameTooltip_ShowCompareItem`，`Initialize` 把比價框 `SetOwner(內嵌框, ANCHOR_NONE)`＋ClearAllPoints；post-call 當下沒有點 ⇒ `Keep` 暫貼一定成功 ⇒ 面板畫一幀；下一幀有點才失敗、拆回原生；地圖標記 `UpdateTooltip = OnMouseEnter` 每 0.2 秒重建 ⇒ 面板 1 幀、原生 9 幀輪流。
-修法：`Eligible` 加 `OwnedByEmbedded`（`tip:GetOwner().IsEmbedded`，暴雪 XML 的 KeyValue，只讀）⇒ 這種比價框從頭到尾走原生，跟主提示一致，對原生零寫入。`Tests/Try_test.lua` #20。
+第一版修法（`Eligible` 擋掉、整顆走原生）不閃了但使用者退件：原生的上緣錨在提示中段的內嵌框（`TOP→內嵌框`）、標籤也是暴雪的樣式，要跟一般比價一樣（面板、上緣對齊、小標籤）。
+現在的做法（`Panel/Frame.lua` 的 `AlignBesideHost`）：比價框照常走面板，但 owner 是內嵌框（`owner.IsEmbedded`，主提示＝`owner:GetParent():GetParent()`，同暴雪 `sideAnchorFrame`）時**面板不貼原生**，直接 `TOPLEFT→主提示:TOPRIGHT`（或左邊）留縫、第二顆貼第一顆的面板。
+原生只拿來看放哪一邊；點讀不到（sig 帶 `|guess`）就照暴雪的選邊規則自己判斷，主提示位置也讀不到就看游標；`Native.Fit` 讀不到尺寸也不退回（`panel.besideHost`）——所以不管當初秘密的是哪個值都不會再退回閃爍。
+原生的夾邊管不到這種面板 ⇒ **只有這條路面板自己夾**（`ClampBesideHost`：兩顆範圍一樣高，被推時一起動），換回一般比價或 Restore 時還原。`Tests/Try_test.lua` #20。
 通則：**比價框的 post-call 永遠沒有點，暫貼的成功不代表對得齊**；對帳才失敗的退回沒有封鎖，遇到會重建的來源就是閃爍。要是別條路再出現同樣指紋，再考慮比照單位加同 key 的退回封鎖。
-log 補強：`面板 Restore tip=… 來源：debugstack`（誰拆的）、`面板 對齊失敗：錨點／位置讀不到`、`Try 不接`。`/mtip debug` 只印 Lua 錯誤清單，退回不是錯誤所以永遠沒訊息；時序一律走 `/mtip log`＋重現＋`/mtip logdump`。
+log 補強：`面板 Restore tip=… 來源：debugstack`（誰拆的）、`面板 對齊失敗：錨點／位置讀不到`、`Try 不接`、`面板 重貼 host:…|guess`。`/mtip debug` 只印 Lua 錯誤清單，退回不是錯誤所以永遠沒訊息；時序一律走 `/mtip log`＋重現＋`/mtip logdump`。

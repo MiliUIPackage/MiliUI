@@ -989,42 +989,234 @@ do
 end
 
 ------------------------------------------------------------
--- 20. 世界任務獎勵的比價框（2026-11-02 實機 log：每 0.2 秒「Try 新件（之前 nil）」→ 下一幀對帳 → 沒有重畫）：
--- 比價框的 owner 是內嵌物品框。post-call 當下原生沒有點（暴雪剛清）、暫貼一定成功，下一幀才讀不到錨點 ⇒
--- 面板畫一幀又拆，地圖標記每 0.2 秒重建一次＝閃爍。要在 post-call 就認出來、從頭到尾不碰原生
+-- 20. 世界任務獎勵的比價框：主提示留原生（有內嵌物品框），比價框走面板。
+-- 暴雪把比價框的 owner 設成內嵌框，點是 TOP→內嵌框、LEFT／RIGHT→主提示 ⇒ 貼原生的話上緣比主提示低一大截（2026-11-02 實機截圖）；
+-- 這條鏈的幾何實機讀不到過，退回的話面板畫一幀就拆、每 0.2 秒一次＝閃爍（2026-11-02 實機 log）。
+-- 面板要直接排在主提示旁、上緣對齊主提示，而且原生讀不到也不退回
 ------------------------------------------------------------
 do
-    local t = Setup()
-    local embedded = t.env.CreateFrame("GameTooltip", "GameTooltipItemTooltipTooltip", t.env.UIParent)
-    embedded.IsEmbedded = true
-    local owner = embedded
-    t.tip.GetOwner = function() return owner end
-    t.tip:ClearAllPoints()
-    eq("內嵌比價：Try 回 false", t.P.Try(t.tip, t.state, ITEM, t.data), false)
-    t.env.FlushTimers()
-    t.tip:SetPoint("TOP", embedded, "TOP", 0, 0)
-    t.tip:ClearAllPoints()
-    eq("內嵌比價：重建再進來也 false", t.P.Try(t.tip, t.state, ITEM, t.data), false)
-    t.env.FlushTimers()
-    eq("內嵌比價：沒畫", t.renders(), 0)
-    eq("內嵌比價：alpha 沒寫過", t.tip.alphaCalls, nil)
-    eq("內嵌比價：padding 沒寫過", t.tip.padCalls, nil)
-    eq("內嵌比價：沒登記輪詢", next(t.polls), nil)
+    local function Rig()
+        local t = Setup()
+        local env, P = t.env, t.P
+        env.GetScreenWidth = function() return 2000 end
+        env.cursorX = 500
+        env.GetCursorPosition = function() return env.cursorX, 300 end
+        local main = t.tip
+        local item = env.CreateFrame("Frame", nil, main)
+        local embedded = env.CreateFrame("GameTooltip", "GameTooltipItemTooltipTooltip", item)
+        embedded.IsEmbedded = true
+        local rig = { t = t, env = env, P = P, main = main, embedded = embedded }
+        local function Shop(name, id)
+            local tip = H.Tip(env, name, { { left = name } })
+            tip:ClearAllPoints()
+            tip.GetOwner = function() return rig.owner or embedded end
+            H.CompareHeader(tip, "Equipped")
+            local st = {}
+            t.ns.Skin.State[tip] = st
+            return tip, st, { id = id, lines = { { type = 22, lineIndex = 1, leftText = name } } }
+        end
+        rig.shop1, rig.st1, rig.data1 = Shop("ShoppingTooltip1", 41)
+        rig.shop2, rig.st2, rig.data2 = Shop("ShoppingTooltip2", 42)
+        embedded.shoppingTooltips = { rig.shop1, rig.shop2 }
+        -- 暴雪的順序：SetOwner＋ClearAllPoints → ClearLines → ProcessInfo（post-call）→ 之後才 SetPoint
+        function rig.PostCall()
+            rig.shop1:ClearAllPoints(); rig.shop2:ClearAllPoints()
+            local a = P.Try(rig.shop1, rig.st1, ITEM, rig.data1)
+            local b = P.Try(rig.shop2, rig.st2, ITEM, rig.data2)
+            return a, b
+        end
+        function rig.Right()
+            rig.shop1:SetPoint("TOP", embedded, "TOP", 0, 0)
+            rig.shop2:SetPoint("TOP", embedded, "TOP", 0, 0)
+            rig.shop2:SetPoint("LEFT", main, "RIGHT", 0, 0)
+            rig.shop1:SetPoint("TOPLEFT", rig.shop2, "TOPRIGHT", 0, 0)
+        end
+        function rig.Left()
+            rig.shop1:SetPoint("TOP", embedded, "TOP", 0, 0)
+            rig.shop2:SetPoint("TOP", embedded, "TOP", 0, 0)
+            rig.shop1:SetPoint("RIGHT", main, "LEFT", 0, 0)
+            rig.shop2:SetPoint("TOPRIGHT", rig.shop1, "TOPLEFT", 0, 0)
+        end
+        return rig
+    end
+    local function Only(panel, point, rel, relPoint, x, y, name)
+        eq(name .. "：只有一個點", #panel.points, 1)
+        local p = panel.points[1]
+        eq(name .. "：點", p[1], point)
+        check(name .. "：對象", rawequal(p[2], rel))
+        eq(name .. "：對方點", p[3], relPoint)
+        eq(name .. "：x", p[4], x)
+        eq(name .. "：y", p[5], y)
+    end
 
-    -- 一般比價（滑到背包的裝備）照接；接著滑到世界任務 ⇒ 當場退回
-    owner = t.env.UIParent
-    t.tip:SetPoint("BOTTOMLEFT", t.env.UIParent, "BOTTOMLEFT", 100, 100)
-    eq("內嵌比價：owner 是一般框照接", t.P.Try(t.tip, t.state, ITEM, t.data), true)
-    check("內嵌比價：面板顯示中", t.state.panel.shown)
-    owner = embedded
-    eq("內嵌比價：換成內嵌 ⇒ 不接", t.P.Try(t.tip, t.state, ITEM, t.data), false)
-    check("內嵌比價：面板拆掉", not t.state.panel.shown)
-    eq("內嵌比價：原生 alpha 還原", t.tip.alpha, 1)
+    -- 放右邊：第二顆貼主提示右邊、第一顆貼第二顆，上緣都跟主提示齊
+    local r = Rig()
+    local a, b = r.PostCall()
+    check("內嵌比價：兩顆都接", a and b)
+    Only(r.st1.panel, "TOPLEFT", r.main, "TOPRIGHT", 6, 0, "內嵌比價：post-call 當下先暫排在主提示旁")
+    r.Right()
+    r.env.FlushTimers()
+    local p1, p2 = r.st1.panel, r.st2.panel
+    check("內嵌比價：面板顯示中", p1.shown and p2.shown)
+    eq("內嵌比價：原生藏起來", r.shop1.alpha, 0)
+    check("內嵌比價：標籤照畫", p1.tag and p1.tag.shown)
+    Only(p2, "TOPLEFT", r.main, "TOPRIGHT", 6, 0, "內嵌比價放右邊：第二顆貼主提示")
+    Only(p1, "TOPLEFT", p2, "TOPRIGHT", 6, 0, "內嵌比價放右邊：第一顆貼第二顆的面板")
+    check("內嵌比價：第一顆鏡射在第二顆上", p1.mirrorOf == p2)
 
-    -- owner 讀不到（秘密、沒有這支 API）不算內嵌，其他條件照舊
+    -- 地圖標記每 0.2 秒重建：不拆、不重畫、不動
+    local renders, sig1, sig2 = r.t.renders(), p1.alignSig, p2.alignSig
+    for _ = 1, 5 do
+        a, b = r.PostCall()
+        check("內嵌比價重建：同一件照接", a and b)
+        r.Right()
+        r.env.FlushTimers()
+        check("內嵌比價重建：面板一直在", p1.shown and p2.shown)
+    end
+    eq("內嵌比價重建：不重畫", r.t.renders(), renders)
+    eq("內嵌比價重建：第一顆不重貼", p1.alignSig, sig1)
+    eq("內嵌比價重建：第二顆不重貼", p2.alignSig, sig2)
+
+    -- 自己夾邊（原生的夾邊管不到）：範圍兩顆一樣高，上緣留標籤
+    eq("內嵌比價：面板自己夾", p1.clamped, true)
+    eq("內嵌比價：第二顆也夾", p2.clamped, true)
+    local top1 = p1.clampInsets[3]
+    check("內嵌比價：夾邊上緣有留標籤", top1 > (p1.clampMargin or 0))
+    p1.totalHeight = (p2.totalHeight or p2.height) + 50
+    r.P.Align(p2, r.shop2)
+    H.near("內嵌比價：矮的那顆下緣範圍留到高的那顆的底",
+        p2.clampInsets[4], p2.height - p1.totalHeight - (p2.clampMargin or 0))
+
+    -- 換到一般比價（滑到背包的裝備）：改貼原生那一路、夾邊還原
+    r.owner = r.env.UIParent
+    r.P.Align(p1, r.shop1)
+    eq("內嵌比價換一般：不再自己夾", p1.clamped, false)
+    eq("內嵌比價換一般：夾邊範圍還原", p1.clampInsets[3], 0)
+    r.owner = nil
+
+    -- 退回：夾邊也還原
+    r.P.Align(p2, r.shop2)
+    eq("內嵌比價：前提第二顆在夾", p2.clamped, true)
+    r.P.Restore(r.shop2, r.st2)
+    eq("內嵌比價退回：不再自己夾", p2.clamped, false)
+    eq("內嵌比價退回：原生 alpha 還原", r.shop2.alpha, 1)
+    local bad = false
+    for _, q in ipairs(p1.points) do
+        if rawequal(q[2], p2) then bad = true end
+    end
+    check("內嵌比價退回：另一顆不再貼拆掉的面板", not bad)
+
+    -- 放左邊：第一顆貼主提示左邊、第二顆貼第一顆
+    local l = Rig()
+    l.PostCall()
+    l.Left()
+    l.env.FlushTimers()
+    Only(l.st1.panel, "TOPRIGHT", l.main, "TOPLEFT", -6, 0, "內嵌比價放左邊：第一顆貼主提示")
+    Only(l.st2.panel, "TOPRIGHT", l.st1.panel, "TOPLEFT", -6, 0, "內嵌比價放左邊：第二顆貼第一顆的面板")
+
+    -- 換邊不繞成圈
+    l.shop1:ClearAllPoints(); l.shop2:ClearAllPoints()
+    l.Right()
+    local ok, err = pcall(l.t.polls[l.st1])
+    check("內嵌比價換邊：第一顆先重算不報錯", ok, err)
+    ok, err = pcall(l.t.polls[l.st2])
+    check("內嵌比價換邊：第二顆重算不報錯", ok, err)
+    Only(l.st2.panel, "TOPLEFT", l.main, "TOPRIGHT", 6, 0, "內嵌比價換邊：第二顆貼主提示")
+    Only(l.st1.panel, "TOPLEFT", l.st2.panel, "TOPRIGHT", 6, 0, "內嵌比價換邊：第一顆貼第二顆")
+
+    -- 只有一顆：貼主提示
+    local o = Rig()
+    o.shop2.shown = false
+    o.P.Try(o.shop1, o.st1, ITEM, o.data1)
+    o.shop1:SetPoint("TOP", o.embedded, "TOP", 0, 0)
+    o.shop1:SetPoint("LEFT", o.main, "RIGHT", 0, 0)
+    o.env.FlushTimers()
+    Only(o.st1.panel, "TOPLEFT", o.main, "TOPRIGHT", 6, 0, "內嵌比價單顆：貼主提示")
+
+    -- 主提示的角在半像素上：修到整數像素
+    local f = Rig()
+    f.main.left, f.main.top = 100.4, 500.3
+    f.PostCall()
+    f.Right()
+    f.env.FlushTimers()
+    H.near("內嵌比價：x 修到整數像素", f.st2.panel.points[1][4], 6 + (math.floor(f.main:GetRight() + 0.5) - f.main:GetRight()), 0.001)
+    H.near("內嵌比價：y 修到整數像素", f.st2.panel.points[1][5], 500 - 500.3, 0.001)
+
+    -- 原生的點全讀不到（實機 log 的情況）：不退回、自己選邊。主提示左邊界 100、右邊空間大 ⇒ 放右邊
+    local s = Rig()
+    s.PostCall()
+    s.Right()
+    for _, shop in ipairs({ s.shop1, s.shop2 }) do
+        shop.GetPoint = function() return SECRET, SECRET, SECRET, SECRET, SECRET end
+    end
+    s.env.FlushTimers()
+    check("內嵌比價讀不到點：面板還在", s.st1.panel.shown and s.st2.panel.shown)
+    eq("內嵌比價讀不到點：原生還壓著", s.shop1.alpha, 0)
+    Only(s.st2.panel, "TOPLEFT", s.main, "TOPRIGHT", 6, 0, "內嵌比價讀不到點：第二顆貼主提示")
+    Only(s.st1.panel, "TOPLEFT", s.st2.panel, "TOPRIGHT", 6, 0, "內嵌比價讀不到點：第一顆貼第二顆")
+    check("內嵌比價讀不到點：log 認得出來", s.st2.panel.alignSig:find("guess", 1, true))
+    -- 重建幾輪也不拆
+    renders = s.t.renders()
+    for _ = 1, 3 do
+        s.shop1.points, s.shop2.points = {}, {}
+        s.P.Try(s.shop1, s.st1, ITEM, s.data1)
+        s.P.Try(s.shop2, s.st2, ITEM, s.data2)
+        s.env.FlushTimers()
+        check("內嵌比價讀不到點重建：面板一直在", s.st1.panel.shown and s.st2.panel.shown)
+    end
+    eq("內嵌比價讀不到點重建：不重畫", s.t.renders(), renders)
+
+    -- 主提示靠螢幕右邊、點讀不到 ⇒ 放左邊
+    local g = Rig()
+    g.main.left = 1700
+    g.PostCall()
+    g.Right()
+    for _, shop in ipairs({ g.shop1, g.shop2 }) do
+        shop.GetPoint = function() return SECRET, SECRET, SECRET, SECRET, SECRET end
+    end
+    g.env.FlushTimers()
+    Only(g.st1.panel, "TOPRIGHT", g.main, "TOPLEFT", -6, 0, "內嵌比價猜邊：靠右邊放左邊")
+    Only(g.st2.panel, "TOPRIGHT", g.st1.panel, "TOPLEFT", -6, 0, "內嵌比價猜邊：第二顆貼第一顆")
+
+    -- 主提示的位置也讀不到：看游標，修正量是 0
+    local c = Rig()
+    c.main.GetLeft = function() return SECRET end
+    c.main.GetRight = function() return SECRET end
+    c.main.GetTop = function() return SECRET end
+    c.env.cursorX = 1800
+    c.PostCall()
+    c.Right()
+    for _, shop in ipairs({ c.shop1, c.shop2 }) do
+        shop.GetNumPoints = function() return SECRET end
+    end
+    c.env.FlushTimers()
+    Only(c.st1.panel, "TOPRIGHT", c.main, "TOPLEFT", -6, 0, "內嵌比價全秘密：看游標放左邊")
+
+    -- 原生的寬高也讀不到：不撐原生，面板不退回
+    local w = Rig()
+    w.PostCall()
+    w.Right()
+    w.env.FlushTimers()
+    local pads = w.shop1.padCalls or 0
+    w.shop1.GetWidth = function() return SECRET end
+    w.shop1.GetHeight = function() return SECRET end
+    local okPoll, errPoll = pcall(w.t.polls[w.st1])
+    check("內嵌比價尺寸秘密：輪詢不報錯", okPoll, errPoll)
+    check("內嵌比價尺寸秘密：面板還在", w.st1.panel.shown)
+    eq("內嵌比價尺寸秘密：不撐原生", w.shop1.padCalls or 0, pads)
+
+    -- owner 讀不到（秘密、沒有這支 API）不算內嵌，走一般路徑
     local t2 = Setup()
     t2.tip.GetOwner = function() return SECRET end
-    eq("內嵌比價：秘密 owner 不擋", t2.P.Try(t2.tip, t2.state, ITEM, t2.data), true)
+    eq("內嵌比價：秘密 owner 走一般路徑", t2.P.Try(t2.tip, t2.state, ITEM, t2.data), true)
+    eq("內嵌比價：一般路徑不自己夾", t2.state.panel.clamped, nil)
+
+    -- 一般比價的尺寸秘密照舊退回（只有排在主提示旁的不靠原生）
+    local t3 = Setup()
+    t3.P.Try(t3.tip, t3.state, ITEM, t3.data)
+    t3.env.FlushTimers()
+    t3.tip.GetWidth = function() return SECRET end
+    eq("一般面板尺寸秘密：照舊回 false", t3.P.Native.Fit(t3.tip, t3.state), false)
 end
 
 H.finish("Try_test")
