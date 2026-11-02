@@ -1080,7 +1080,11 @@ local function OnCastEvent(t, sent, event, evUnit, arg2, arg3, arg4, arg5)
         if arg4 ~= nil then ShowInterrupted() else EndFade() end
     elseif event == "UNIT_SPELLCAST_EMPOWER_STOP" then
         if S.castState ~= 2 then return end
-        if arg5 ~= nil then ShowInterrupted() else EndFade() end
+        -- 聚能的結束是玩家自己放開鍵，不像一般施法要等條跑完：打出去就當場收條、不淡出
+        -- （淡出時條凍在放開那一階，看起來像還在蓄）。第 4 個參數是「有沒有打出去」
+        -- （放開太早連第一階都沒到＝false）、第 5 個是打斷者；兩個都只在明文時讀
+        local failed = arg4 ~= nil and not IsSecret(arg4) and arg4 == false
+        if arg5 ~= nil or failed then ShowInterrupted() else HideBar() end
     elseif event == "UNIT_SPELLCAST_FAILED" then
         -- FAILED 也會為「不是目前這條」的施法而發（引導中另外按技能失敗）：
         -- 只在施法中、castGUID 相符（都讀得到明文時）才理會
