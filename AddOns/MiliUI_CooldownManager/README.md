@@ -2612,6 +2612,18 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
   `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖
   `SetVertexColor`）。一般施法與引導同一張，不依不可打斷換圖（秘密布林）。換材質後火花照舊在 `SetStatusBarTexture` 之後重下錨點；底色照 `bgColor`。
+- **彩虹材質**（2026-11-04，玩家問「施法條能不能彩虹色」）：`Core/Media.lua` 的 `M.RAINBOW` 兩款（「MiliUI Rainbow」鮮豔、「MiliUI Rainbow Soft」柔和），
+  圖是技能 `miliui-cdm-rainbow-texture` 的腳本算的（`Media/miliui_rainbow*.png`，四張全自己做、不帶 SharedMedia 那包沒授權檔的貼圖），登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到。
+  靜態那張色相紅→紫當填充（StatusBar 是裁切不是拉伸 ⇒ 進度前進時光譜逐段露出）；選到彩虹時 `BaseColor` 回白（施法色／職業色不染），蓄力階色、
+  斷法就緒、不可打斷、打斷照舊乘上去（暗彩虹／紅彩虹），上色流程一行沒改。專注目標施法條同樣白底。
+  **流動**（`rainbowFlow`，預設開；`rainbowFlowSpeed` 一輪幾秒，預設 3）：StatusBar 自己管填充貼圖的座標、填充本身捲不動 ⇒ 另外疊一層：
+  裁切框 `f.flowClip`（`SetClipsChildren`）兩點錨在條的起點與**填充貼圖的前緣**（跟火花同一招，錨在秘密尺寸的貼圖上、不讀幾何），
+  框裡 `f.flowTex` 整條寬、`_flow` 那張（色相繞滿一圈、兩端同色）REPEAT 平鋪，`TextureCoordTranslation` 循環動畫往填充方向捲一整個週期
+  （反向填充反著捲）⇒ 彩虹在流、只露出已填的那一截，全程引擎跑。狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
+  （各管一個布林；秘密布林餵 `SetAlphaFromBoolean(flag, 0, 1)`、明文直接 `SetAlpha`），底下填充照 `ApplyColor` 的顏色。
+  層級：條 L+1 → 流動 L+2 → 刻度 L+3（火花搬到這層，才不會被流動層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層；
+  `CreateAnimation("TextureCoordTranslation")` 建不出來就整層不用。**待實機驗證**：裁切框錨在秘密尺寸的貼圖上有沒有照裁、貼圖座標動畫配 REPEAT 有沒有無縫、
+  流動層只做玩家施法條（專注目標那條只有靜態）。
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。

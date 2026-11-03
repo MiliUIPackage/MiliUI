@@ -18,6 +18,9 @@
 -- UI-CastingBar-Filling-Standard、去飽和，顏色照下面的上色流程（施法／引導／不可打斷／斷法就緒／蓄力
 -- 最後都是對填充貼圖 SetVertexColor）。一般施法與引導用同一張，**不依不可打斷換圖**（那是秘密布林）。
 --
+-- 彩虹材質（Core/Media.lua 的 M.RAINBOW，2026-11-04）：選到時底色自動白（不然施法色把彩虹染髒），蓄力／斷法就緒／
+-- 不可打斷／打斷照舊乘上去；rainbowFlow 開著再疊一層「流動彩虹」（見下面「流動彩虹層」，全程引擎跑）。
+--
 -- 刻度、延遲、蓄力分階都要「明文的時間軸」（開始／結束讀得到）：讀不到就不畫，
 -- 條本身照樣由 duration 物件驅動。位置一律用設定算出來的寬度（不讀框的幾何）。
 --
@@ -225,6 +228,12 @@ local function SetFillTexture(bar, token)
 end
 CB.SetFillTexture = SetFillTexture
 
+-- 材質 token 是不是彩虹（判定在 Core/Media.lua；離線測試沒載 Media 時一律不是）
+function CB.IsRainbow(token)
+    local M = ns.Media
+    return (M and M.IsRainbow and M.IsRainbow(token)) and true or false
+end
+
 ------------------------------------------------------------
 -- 框
 ------------------------------------------------------------
@@ -265,16 +274,30 @@ local function Build()
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(0)
 
-    -- 火花：只建立、不錨定（錨點要對到填充貼圖，Layout 設完材質才錨）
-    f.spark = f.bar:CreateTexture(nil, "OVERLAY")
-    f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
-    f.spark:SetBlendMode("ADD")
-    f.spark:Hide()
+    -- 流動彩虹層（見「流動彩虹層」）：裁切框 → host → 整條寬的貼圖；錨點與貼圖在 Layout 設。
+    -- 貼圖座標動畫建不出來（舊客戶端）就整層不用（S.flow 永遠 false）
+    f.flowClip = CreateFrame("Frame", nil, f.bar)
+    f.flowClip:SetClipsChildren(true)
+    f.flowClip:Hide()
+    f.flowHost = CreateFrame("Frame", nil, f.flowClip)
+    f.flowHost:SetAllPoints(f.bar)
+    f.flowTex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK"))
+    f.flowTex:SetAllPoints(f.bar)
+    f.flowAnim = f.flowTex:CreateAnimationGroup()
+    f.flowAnim:SetLooping("REPEAT")
+    local okAnim, scroll = pcall(f.flowAnim.CreateAnimation, f.flowAnim, "TextureCoordTranslation")
+    f.flowScroll = (okAnim and scroll) or nil
 
-    -- 刻度、蓄力分階、延遲區：一層蓋在填充上
+    -- 刻度、蓄力分階、延遲區：一層蓋在填充（與流動層）上
     f.marks = CreateFrame("Frame", nil, f.bar)
     f.marks:SetAllPoints(f.bar)
     f.markPool = {}
+
+    -- 火花：只建立、不錨定（錨點要對到填充貼圖，Layout 設完材質才錨）。掛在刻度那一層，才不會被流動層蓋掉半邊
+    f.spark = f.marks:CreateTexture(nil, "OVERLAY")
+    f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    f.spark:SetBlendMode("ADD")
+    f.spark:Hide()
     f.latency = NoSnap(f.marks:CreateTexture(nil, "OVERLAY", nil, 6))
     f.latency:SetTexture(SOLID)
     f.latency:SetVertexColor(1, 0, 0, 0.5)
@@ -333,6 +356,44 @@ local function PlaceMark(i, p, r, g, b, a)
 end
 
 ------------------------------------------------------------
+-- 流動彩虹層（材質是彩虹、rainbowFlow 開著才用；2026-11-04）
+--
+-- StatusBar 自己管填充貼圖的座標，填充本身捲不動 ⇒ 另外疊一層：裁切框 f.flowClip（SetClipsChildren）兩點錨在條的起點與
+-- **填充貼圖的前緣**（跟火花同一招——錨在秘密尺寸的貼圖上沒問題，只要不讀幾何），框裡 f.flowTex 整條寬、REPEAT 平鋪，
+-- 貼圖座標動畫（TextureCoordTranslation，循環）往填充方向捲一整個週期 ⇒ 看起來是彩虹在流、而且只露出已填的那一截。
+-- 全程引擎跑，沒有每幀 Lua，秘密模式照常。
+-- 狀態色要露出來時把這層壓透明，底下的填充貼圖照 ApplyColor 的顏色：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的
+-- alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean、明文直接 SetAlpha）。打斷／失敗／收條時停動畫、藏層。
+------------------------------------------------------------
+local function FlowWanted(cfg)
+    return f.flowScroll ~= nil and CB.IsRainbow(cfg.texture) and cfg.rainbowFlow ~= false
+end
+
+local function StartFlow()
+    if not (f.flowClip and S.flow) then return end
+    f.flowClip:Show()
+    if not f.flowAnim:IsPlaying() then f.flowAnim:Play() end
+end
+
+local function StopFlow()
+    if not f.flowClip then return end
+    f.flowAnim:Stop()
+    f.flowClip:Hide()
+end
+
+-- 一個旗標（nil／明文／秘密布林）→ 框的 alpha：真 ＝ 0（讓底下的狀態色露出來）、假或沒有 ＝ 1
+local function FlowAlpha(frame, flag)
+    if flag == nil then frame:SetAlpha(1) return end
+    if IsSecret(flag) then
+        if not (frame.SetAlphaFromBoolean and pcall(frame.SetAlphaFromBoolean, frame, flag, 0, 1)) then
+            frame:SetAlpha(1)
+        end
+        return
+    end
+    frame:SetAlpha(flag and 0 or 1)
+end
+
+------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
 ------------------------------------------------------------
 function CB.Layout()
@@ -382,12 +443,13 @@ function CB.Layout()
     f.bar:SetReverseFill(S.reversed)
     S.barW, S.barH = barW - inset * 2, H - inset * 2
 
-    -- 層級：底 L → 條 L+1 → 刻度 L+2 → 文字 L+3；圖示 L+1
+    -- 層級：底 L → 條 L+1 → 流動彩虹 L+2 → 刻度（含火花）L+3 → 文字 L+4；圖示 L+1
     local lvl = f:GetFrameLevel()
     f.barHolder:SetFrameLevel(lvl)
     f.bar:SetFrameLevel(lvl + 1)
-    f.marks:SetFrameLevel(lvl + 2)
-    f.textFrame:SetFrameLevel(lvl + 3)
+    f.flowClip:SetFrameLevel(lvl + 2)
+    f.marks:SetFrameLevel(lvl + 3)
+    f.textFrame:SetFrameLevel(lvl + 4)
     f.iconFrame:SetFrameLevel(lvl + 1)
 
     -- 邊緣陰影（Core/Shape.lua）：條身與圖示各一圈；陰影框都是 f 的子框、層級 f − 1 ⇒ 圖示那圈不會蓋到條身的黑邊。
@@ -421,6 +483,30 @@ function CB.Layout()
     local tex = f.bar:GetStatusBarTexture()
     if tex then f.spark:SetPoint("CENTER", tex, S.reversed and "LEFT" or "RIGHT", 0, 0) end
     f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
+
+    -- 流動彩虹層：裁切框的前緣錨在填充貼圖上（換材質後貼圖是新的，跟火花一樣在這裡重下）；
+    -- 捲動方向跟填充方向同向（反向填充就反著捲），一輪幾秒照設定
+    S.flow = FlowWanted(cfg)
+    if S.flow and tex then
+        f.flowTex:SetTexture(ns.Media.RainbowFlow(cfg.texture), "REPEAT", "CLAMP")
+        f.flowTex:SetVertexColor(1, 1, 1, 1)
+        local secs = tonumber(cfg.rainbowFlowSpeed) or 3
+        if secs < 0.5 then secs = 0.5 end
+        f.flowScroll:SetOffset(S.reversed and 1 or -1, 0)
+        f.flowScroll:SetDuration(secs)
+        f.flowClip:ClearAllPoints()
+        if S.reversed then
+            f.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, 0)
+            f.flowClip:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
+        else
+            f.flowClip:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, 0)
+            f.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
+        end
+        if S.castState == 1 or S.castState == 2 then StartFlow() else StopFlow() end
+    else
+        S.flow = false
+        StopFlow()
+    end
 
     -- 施法中改了尺寸：刻度與延遲區照新寬度重畫
     if S.castState == 1 or S.castState == 2 then CB.DrawMarks() end
@@ -458,6 +544,8 @@ local function BaseColor()
     if S.castEmpowered then
         return C(c["empowerStage" .. EmpowerStage()], 0.35, 0.75, 0.35)
     end
+    -- 彩虹材質：底色白（施法色／職業色不染），上面的狀態色照舊乘上去
+    if CB.IsRainbow(cfg.texture) then return 1, 1, 1 end
     if cfg.useClassColor then
         local r, g, b = ns.Style.Accent()
         return r, g, b
@@ -482,10 +570,12 @@ local function ApplyColor()
     local br, bg, bb = BaseColor()
     local r, g, b = br, bg, bb
     local tinted = false
+    local flowReady                           -- 流動層要讓位的「斷法就緒」旗標（nil ＝ 沒這回事）
     -- 斷法就緒（可能是秘密布林：只餵曲線）
     if cfg.interruptReady and chainOK and ns.Interrupt then
         local ready, has = ns.Interrupt.IsReady()
         if has then
+            flowReady = ready
             if IsSecret(ready) then
                 if Eval then
                     local ok, rr, gg, b2 = pcall(EvalTriple, ready, c.interruptReady, r, g, b)
@@ -514,6 +604,11 @@ local function ApplyColor()
         end
     end
     tex:SetVertexColor(r, g, b, 1)
+    -- 流動彩虹層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
+    if S.flow and f.flowClip then
+        FlowAlpha(f.flowClip, ni)
+        FlowAlpha(f.flowHost, flowReady)
+    end
 end
 
 ------------------------------------------------------------
@@ -629,9 +724,11 @@ local function SetTimeText(text)
     f.timeText:SetText(text)
 end
 
+-- 開唱（真的或預覽）時的前緣效果：火花，加上流動彩虹層
 local function ShowSpark()
     local cfg = Cfg() or {}
     f.spark:SetShown(cfg.showSpark ~= false)
+    StartFlow()
 end
 
 -- 沒在施法：關掉「沒在施法時隱藏」的話留一條空條，否則整條藏起來（容器的 alpha 由 Visibility 管）
@@ -646,6 +743,7 @@ local function HideBar()
     f:SetScript("OnUpdate", nil)
     ClearMarks()
     f.spark:Hide()
+    StopFlow()
     f.shake:Stop()
     f:SetAlpha(1)
     S.lastTime = nil
@@ -683,6 +781,7 @@ local function EndFade(color, label)
     S.displayToken = S.displayToken + 1
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f.spark:Hide()
+    StopFlow()
     f.latency:Hide()
     if color then
         local tex = f.bar:GetStatusBarTexture()
@@ -706,6 +805,7 @@ local function ShowInterrupted()
     f:SetScript("OnUpdate", nil)
     ClearMarks()
     f.spark:Hide()
+    StopFlow()
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(1)
     local c = Colors().interrupted

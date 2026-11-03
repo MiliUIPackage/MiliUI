@@ -452,6 +452,10 @@ CastbarDefaults = function()
         height        = 20,
         font          = "INHERIT",         -- 文字字型；"INHERIT" ＝ 跟隨主題的通用字型
         texture       = "blizzard",        -- 暴雪施法條的漸層圖（去色後照下面的顏色染）；v2 起的預設（使用者 2026-10-02 指定）
+        -- 彩虹材質（"MiliUI Rainbow"／"MiliUI Rainbow Soft"）選著時的流動層（2026-11-04）：裁切框跟著填充前緣、
+        -- 整條寬的彩虹貼圖座標動畫捲；別的材質下兩個欄位沒作用。舊存檔靠 MergeDefaults 補
+        rainbowFlow   = true,
+        rainbowFlowSpeed = 3,              -- 捲完一輪幾秒
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow，2026-10-19）：圖示與條身各一圈；舊存檔沒有 ＝ 關
         shadow        = false,

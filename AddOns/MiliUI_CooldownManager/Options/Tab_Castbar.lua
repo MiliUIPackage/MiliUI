@@ -53,6 +53,12 @@ local function TextureItems()
     return items
 end
 
+-- 流動彩虹的兩列只在材質是彩虹時可用（Core/Media.lua 的 M.RAINBOW）
+local function NotRainbow()
+    local cfg = Cfg()
+    return not (cfg and ns.Media.IsRainbow(cfg.texture))
+end
+
 local function ResetAll()
     local cfg = Cfg()
     if not cfg then return end
@@ -71,6 +77,9 @@ local function Controls()
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
         BS("dropdown", "texture", L["Texture"], { items = TextureItems }),
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
+        BS("toggle", "rainbowFlow", L["Flowing rainbow"], { disabled = NotRainbow }),
+        BS("slider", "rainbowFlowSpeed", L["Seconds per cycle"], { min = 0.5, max = 10, step = 0.5, disabled = NotRainbow }),
+        Note(L["Rainbow textures (MiliUI Rainbow / Soft): the color turns white on its own; empowered stages, interrupt-ready, non-interruptible and interrupted still layer on top. Flowing = the whole rainbow scrolls along the fill direction, and pauses while non-interruptible or interrupt-ready so the color shows."]),
         BS("color", "bgColor", L["Background color"]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
         -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow）：條身與每顆圖示各一圈

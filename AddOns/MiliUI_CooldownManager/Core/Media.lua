@@ -54,6 +54,28 @@ end
 M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
+-- 彩虹材質（2026-11-04，玩家問「施法條能不能彩虹色」）：技能 miliui-cdm-rainbow-texture 的腳本畫的，四張全自己算。
+-- 每款兩張：靜態那張色相紅→紫、當 StatusBar 填充（進度前進時逐段露出）；`_flow` 那張色相繞滿一圈、兩端同色，
+-- 給施法條的流動層 REPEAT 平鋪＋貼圖座標動畫捲（Modules/Castbar.lua）。選到彩虹時施法條的底色自動當白，不然會被施法色染髒。
+-- 登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到；流動只有玩家施法條做。
+local MEDIA = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\"
+M.RAINBOW = {
+    ["MiliUI Rainbow"]      = { tex = MEDIA .. "miliui_rainbow.png",      flow = MEDIA .. "miliui_rainbow_flow.png" },
+    ["MiliUI Rainbow Soft"] = { tex = MEDIA .. "miliui_rainbow_soft.png", flow = MEDIA .. "miliui_rainbow_soft_flow.png" },
+}
+M.RAINBOW_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft" }
+
+-- token 是不是彩虹材質（純函式）
+function M.IsRainbow(token)
+    return type(token) == "string" and M.RAINBOW[token] ~= nil
+end
+
+-- 彩虹的流動貼圖路徑（不是彩虹 ＝ nil）
+function M.RainbowFlow(token)
+    local r = M.IsRainbow(token) and M.RAINBOW[token]
+    return r and r.flow or nil
+end
+
 local lsmDone = false
 function M.RegisterSharedMedia()
     if lsmDone then return end
@@ -61,6 +83,9 @@ function M.RegisterSharedMedia()
     if not lsm then return end
     lsmDone = true
     pcall(lsm.Register, lsm, "statusbar", M.BAR_TEXTURE_NAME, M.BAR_TEXTURE)
+    for _, name in ipairs(M.RAINBOW_ORDER) do
+        pcall(lsm.Register, lsm, "statusbar", name, M.RAINBOW[name].tex)
+    end
 end
 M.RegisterSharedMedia()
 
@@ -68,6 +93,7 @@ M.RegisterSharedMedia()
 function M.Texture(token)
     if not token or token == "solid" then return M.WHITE8X8 end
     if token == M.BAR_TEXTURE_NAME then return M.BAR_TEXTURE end
+    if M.RAINBOW[token] then return M.RAINBOW[token].tex end
     local lsm = LSM()
     if lsm then
         local ok, path = pcall(lsm.Fetch, lsm, "statusbar", token, true)
