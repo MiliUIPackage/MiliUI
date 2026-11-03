@@ -285,8 +285,16 @@ local function Build()
     f.flowTex:SetAllPoints(f.bar)
     f.flowAnim = f.flowTex:CreateAnimationGroup()
     f.flowAnim:SetLooping("REPEAT")
-    local okAnim, scroll = pcall(f.flowAnim.CreateAnimation, f.flowAnim, "TextureCoordTranslation")
-    f.flowScroll = (okAnim and scroll) or nil
+    -- ⚠ CreateAnimation 的型別名是 "TextureCoord"，不是 XML 標籤的 "TextureCoordTranslation"（2026-11-04 實機：
+    -- 給後者客戶端不報錯、回一個一般 Animation，SetOffset 是 nil）。兩個都試，拿到有 SetOffset 的才算
+    for _, kind in ipairs({ "TextureCoord", "TextureCoordTranslation" }) do
+        local ok, a = pcall(f.flowAnim.CreateAnimation, f.flowAnim, kind)
+        if ok and type(a) == "table" and a.SetOffset then
+            f.flowScroll = a
+            break
+        end
+        pcall(f.flowAnim.RemoveAnimations, f.flowAnim)
+    end
 
     -- 刻度、蓄力分階、延遲區：一層蓋在填充（與流動層）上
     f.marks = CreateFrame("Frame", nil, f.bar)

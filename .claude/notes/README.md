@@ -93,6 +93,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-hyperlink-region-steals-hover.md](wow-hyperlink-region-steals-hover.md) | 超連結區搶走滑鼠焦點：游標停在超連結字框上時 frame 收到 OnLeave 不是 OnEnter；提示改從 sink 的 OnHyperlinkEnter 顯示 |
 | [wow-fontstring-font-before-settext.md](wow-fontstring-font-before-settext.md) | FontString 沒給字型就 `SetText` 是硬錯，而且會中斷整支初始化 —— 症狀是「整個模組沒生效」 |
 | [wow-countdown-fontstring-alpha-overwritten.md](wow-countdown-fontstring-alpha-overwritten.md) | 用 `SetAlpha(0)` 藏 Cooldown 倒數字：之後的 `SetTextColor`／`SetCountdownFormatter` 會蓋回 1、戰鬥中 `GetAlpha` 讀回秘密 ⇒ alpha 最後寫、藏的時候每次寫 |
+| [wow-createanimation-texturecoord-type-name.md](wow-createanimation-texturecoord-type-name.md) | 貼圖座標捲動動畫的 `CreateAnimation` 型別名是 `"TextureCoord"`，給 `"TextureCoordTranslation"` 不報錯但 `SetOffset` 是 nil |
 | [wow-setscript-clobbers-hookscript.md](wow-setscript-clobbers-hookscript.md) | `SetScript` 蓋掉 `HookScript`：腳本要在會掛勾的初始化之前設，失效是靜默的 |
 | [wow-3d-model-ignores-strata.md](wow-3d-model-ignores-strata.md) | 3D 模型不吃 strata／frame level，`SetModelDrawLayer` 也無效 —— 被視窗蓋住只能把 model alpha 歸零 |
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉**全部**快捷鍵含 ESC —— 擷取按鍵要用顯示／隱藏覆蓋層 |
@@ -249,7 +250,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 175 篇）
+## 全部筆記（自動產生，共 176 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -299,6 +300,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-cooldownviewer-layout-order-wash.md](wow-cooldownviewer-layout-order-wash.md) | 暴雪冷卻管理器的資料提供者每次重建都拿當下的類別集合去對作用中版面的存檔順序（刪掉集合沒有的、照預設接回集合有的）並寫回、下次 SaveLayouts 存檔；被系統換專精時集合是另一個專精的 ⇒ 玩家在暴雪面板排的順序被洗成預設，暴雪自己的檢視器一樣；插件寫不回去，只能自己記住（MCDM 順序保護） |
 | [wow-cooldownviewer-target-aura-locks-icon.md](wow-cooldownviewer-target-aura-locks-icon.md) | 冷卻管理器的冷卻格在目標身上有對應減益時，GetSpellID／GetSpellTexture 都回減益的（圖示鎖成減益圖、不吃覆蓋法術、觸發發光事件被丟掉晚 3～5 秒）；暴雪內建行為。MCDM：關掉增益時間的格自己貼法術圖、自己聽 OVERLAY_GLOW 事件；增益的名字／圖示要照暴雪面板用 overrideTooltipSpellID |
 | [wow-countdown-fontstring-alpha-overwritten.md](wow-countdown-fontstring-alpha-overwritten.md) | 用 SetAlpha(0) 藏 Cooldown 的倒數字會被同一顆 FontString 之後的 SetTextColor／SetCountdownFormatter 蓋回 1；戰鬥中 GetAlpha 又讀回秘密值，不能「寫過就不寫」 |
+| [wow-createanimation-texturecoord-type-name.md](wow-createanimation-texturecoord-type-name.md) | 貼圖座標捲動動畫在 Lua 的 CreateAnimation 型別名是 \"TextureCoord\"，不是 XML 標籤／widget 名的 \"TextureCoordTranslation\"；給錯名字不報錯、回一般 Animation、SetOffset 是 nil |
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 C_DamageMeter 的「輕量傷害統計」設計哲學——不解析戰鬥記錄、成本只跟可見列數走；API 面（source 有什麼、沒什麼）、事件名、分段判定、秘密值紀律；從 EUIStandaloneDamageMeters 拆解而來 |
 | [wow-delve-detection.md](wow-delve-detection.md) | 探究（Delve）的三種偵測——在不在裡面、探究等級、詞綴（豐碩／宿敵） |
 | [wow-editmode-blizzard-grid.md](wow-editmode-blizzard-grid.md) | 暴雪的編輯模式本來就有格線與吸附；插件不要自己畫，讀它的設定就好；判斷暴雪格線「看得到」要問 Grid:IsVisible() 不是 IsShown()（旗標在編輯模式外也是 true） |

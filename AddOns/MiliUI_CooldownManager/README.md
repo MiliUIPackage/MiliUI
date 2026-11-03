@@ -2621,8 +2621,10 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   框裡 `f.flowTex` 整條寬、`_flow` 那張（色相繞滿一圈、兩端同色）REPEAT 平鋪，`TextureCoordTranslation` 循環動畫往填充方向捲一整個週期
   （反向填充反著捲）⇒ 彩虹在流、只露出已填的那一截，全程引擎跑。狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
   （各管一個布林；秘密布林餵 `SetAlphaFromBoolean(flag, 0, 1)`、明文直接 `SetAlpha`），底下填充照 `ApplyColor` 的顏色。
-  層級：條 L+1 → 流動 L+2 → 刻度 L+3（火花搬到這層，才不會被流動層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層；
-  `CreateAnimation("TextureCoordTranslation")` 建不出來就整層不用。**待實機驗證**：裁切框錨在秘密尺寸的貼圖上有沒有照裁、貼圖座標動畫配 REPEAT 有沒有無縫、
+  層級：條 L+1 → 流動 L+2 → 刻度 L+3（火花搬到這層，才不會被流動層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層。
+  ⚠ **`CreateAnimation` 的型別名是 `"TextureCoord"`**，不是 XML 標籤的 `"TextureCoordTranslation"`：給後者客戶端不報錯、回一個一般 Animation，
+  `SetOffset` 是 nil（2026-11-04 實機：Layout 炸 attempt to call a nil value、流動層從沒動過）。程式兩個名字都試、拿到有 `SetOffset` 的才用，
+  都建不出來就整層不用。**待實機驗證**：裁切框錨在秘密尺寸的貼圖上有沒有照裁、貼圖座標動畫配 REPEAT 有沒有無縫、
   流動層只做玩家施法條（專注目標那條只有靜態）。
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
