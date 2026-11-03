@@ -49,6 +49,69 @@ local testBarShowing        = false
 local isInEditMode          = false
 
 ----------------------------------------------------------------------
+-- 自訂曲目的路徑（同 MiliUI_CooldownManager 的自訂語音）
+--
+-- 一筆自訂曲目是下面兩種之一：
+--   path  Interface 之後的相對路徑（放插件資料夾外，更新插件才不會被洗掉）
+--   lsm   LibSharedMedia 的音效名：播放當下才查，提供它的插件沒啟用就跳過
+----------------------------------------------------------------------
+local TRACK_ROOT           = "Interface\\"
+local MUSIC_MEDIA_RELATIVE = (MUSIC_MEDIA_PREFIX:gsub("^Interface\\", ""))
+
+-- 舊存檔的 filename（Media 資料夾裡的檔名）→ path。換完指向同一個檔：字串跟舊版拼出來的
+-- 一字不差，所以這裡不做正規化。沒取名字的舊曲目原本顯示檔名，補進 name 才不會變成顯示整段路徑。
+-- filename 清掉就是「換過了」的記號，重跑不會重複加前綴
+local function MigrateCustomTracks(sv)
+    if type(sv.customTracks) ~= "table" then return end
+    for _, t in ipairs(sv.customTracks) do
+        if type(t) == "table" and type(t.filename) == "string" then
+            if t.filename ~= "" then
+                if not t.path then t.path = MUSIC_MEDIA_RELATIVE .. t.filename end
+                if not t.name or t.name == "" then t.name = t.filename end
+            end
+            t.filename = nil
+        end
+    end
+end
+
+-- 玩家填的路徑 → Interface 之後的相對路徑（反斜線、去掉頭尾空白與開頭的 Interface\）。
+-- 整段絕對路徑（…\_retail_\Interface\…）一樣只留 Interface 之後那截。
+-- 只填檔名＝舊用法，照舊找 Media 資料夾。只收 .ogg／.mp3（PlaySoundFile 只播這兩種）。
+-- 不合法回 nil, 原因（"empty"｜"ext"）
+local function NormalizeTrackPath(input)
+    if type(input) ~= "string" then return nil, "empty" end
+    local p = input:gsub("^%s+", ""):gsub("%s+$", "")
+    p = p:gsub("^[\"']+", ""):gsub("[\"']+$", "")       -- 從檔案總管複製時常帶引號
+    p = p:gsub("/", "\\"):gsub("\\+", "\\")
+    local low = "\\" .. p:lower()
+    local _, cut = low:find("\\interface\\", 1, true)
+    if cut then p = p:sub(cut) end                       -- low 前面多墊了一個反斜線：cut 剛好是 p 裡的下一個字
+    p = p:gsub("^\\+", "")
+    if p == "" then return nil, "empty" end
+    local ext = (p:match("%.([^.\\]+)$") or ""):lower()
+    if ext ~= "ogg" and ext ~= "mp3" then return nil, "ext" end
+    if not p:find("\\", 1, true) then p = MUSIC_MEDIA_RELATIVE .. p end
+    return p
+end
+
+-- 一筆自訂曲目此刻要播的路徑（LSM 可能回檔案編號）；播不了回 nil
+local function CustomTrackPath(t)
+    if t.lsm then
+        local lsm = LibStub and LibStub("LibSharedMedia-3.0", true)
+        if not lsm then return nil end
+        local ok, path = pcall(lsm.Fetch, lsm, "sound", t.lsm, true)
+        return ok and path or nil
+    end
+    if t.path and t.path ~= "" then return TRACK_ROOT .. t.path end
+    return nil
+end
+
+local function TrackDisplayName(t)
+    if t.name and t.name ~= "" then return t.name end
+    return t.lsm or t.path or "?"
+end
+
+----------------------------------------------------------------------
 -- DB init
 ----------------------------------------------------------------------
 local function InitDB()
@@ -71,6 +134,8 @@ local function InitDB()
             db.trackEnabled[i] = true
         end
     end
+
+    MigrateCustomTracks(db)
 end
 ns.InitDB = InitDB
 ns.GetDB  = function() return db end
@@ -91,14 +156,13 @@ local function BuildAllTracks()
     end
     if db.customTracks then
         for i, t in ipairs(db.customTracks) do
-            local fn = t.filename or ""
             all[#all + 1] = {
-                source   = "custom",
-                index    = i,
-                name     = (t.name ~= nil and t.name ~= "") and t.name or fn,
-                filename = fn,
-                path     = MUSIC_MEDIA_PREFIX .. fn,
-                enabled  = t.enabled ~= false,
+                source  = "custom",
+                index   = i,
+                name    = TrackDisplayName(t),
+                path    = CustomTrackPath(t),
+                lsm     = t.lsm,
+                enabled = t.enabled ~= false,
             }
         end
     end
@@ -108,7 +172,7 @@ end
 local function GetEnabledTracks()
     local tracks = {}
     for _, t in ipairs(BuildAllTracks()) do
-        if t.enabled and t.path and t.path ~= MUSIC_MEDIA_PREFIX then
+        if t.enabled and t.path then
             tracks[#tracks + 1] = t
         end
     end
@@ -120,6 +184,15 @@ end
 -- Used for both main lust playback and settings preview, removing the
 -- ~80 lines of parallel state that existed before.
 ----------------------------------------------------------------------
+local END_WATCH_INTERVAL = 0.5
+
+-- 這支 handle 的聲音播完了嗎。讀不到一律當還在播（最壞就是照舊等到 duration 才還原音量）
+local function SoundEnded(handle)
+    if not (C_Sound and C_Sound.IsPlaying) then return false end
+    local ok, playing = pcall(C_Sound.IsPlaying, handle)
+    return ok and Readable(playing) and playing == false
+end
+
 local function NewSoundSession()
     local self = {
         handle           = nil,
@@ -128,6 +201,7 @@ local function NewSoundSession()
         savedNumChannels = nil,
         savedCacheSize   = nil,
         restoreTimer     = nil,
+        endWatcher       = nil,
     }
 
     function self:Stop()
@@ -155,9 +229,16 @@ local function NewSoundSession()
             self.restoreTimer:Cancel()
             self.restoreTimer = nil
         end
+        if self.endWatcher then
+            self.endWatcher:Cancel()
+            self.endWatcher = nil
+        end
     end
 
-    function self:Play(path, channel, duration)
+    -- watchEnd：聲音可能比 duration 短（LSM 裡多半是一兩秒的音效）⇒ 播完就還原音量，
+    -- 不然遊戲音樂會白白靜音到 duration 結束。onEnded 只在這種提早結束時呼叫。
+    -- 內建與路徑曲目不開這個，維持固定 duration
+    function self:Play(path, channel, duration, watchEnd, onEnded)
         self:Stop()
 
         local curMusic    = tonumber(GetCVar("Sound_MusicVolume")) or 0
@@ -180,6 +261,15 @@ local function NewSoundSession()
         end
         self.handle = handle
         self.restoreTimer = C_Timer.NewTimer(duration, function() self:Stop() end)
+        if watchEnd and handle then
+            self.endWatcher = C_Timer.NewTicker(END_WATCH_INTERVAL, function()
+                if SoundEnded(handle) then
+                    self.handle = nil   -- 已經停了，不必 StopSound
+                    self:Stop()
+                    if onEnded then onEnded() end
+                end
+            end)
+        end
         return true
     end
 
@@ -223,7 +313,7 @@ local function PlayLustMusic()
         db.lastTrackIndex = nextPos
     end
 
-    if mainSession:Play(track.path, db.channel or DEFAULT_CHANNEL, MUSIC_DURATION) then
+    if mainSession:Play(track.path, db.channel or DEFAULT_CHANNEL, MUSIC_DURATION, track.lsm ~= nil) then
         print(string.format(L["MSG_MUSIC_PLAYING"], track.name))
     end
 end
@@ -235,22 +325,22 @@ local function StopPreview()
     previewSession:Stop()
 end
 
-local function PreviewTrack(source, index)
-    local path, name
+local function PreviewTrack(source, index, onEnded)
+    local path, name, isLSM
     if source == "builtin" then
         local t = MUSIC_FILES[index]
         if t then path, name = t.path, t.name end
     elseif source == "custom" then
         local t = db and db.customTracks and db.customTracks[index]
-        if t and t.filename and t.filename ~= "" then
-            path = MUSIC_MEDIA_PREFIX .. t.filename
-            name = (t.name ~= nil and t.name ~= "") and t.name or t.filename
+        if t then
+            path, name = CustomTrackPath(t), TrackDisplayName(t)
+            isLSM = t.lsm ~= nil
         end
     end
     if not path or path == "" then return false end
 
     local channel = (db and db.channel) or DEFAULT_CHANNEL
-    if previewSession:Play(path, channel, MUSIC_DURATION) then
+    if previewSession:Play(path, channel, MUSIC_DURATION, isLSM, onEnded) then
         return true, name
     end
     return false, name
@@ -812,4 +902,6 @@ ns.ShowBar           = ShowBar
 ns.StopPreview       = StopPreview
 ns.PreviewTrack      = PreviewTrack
 ns.IsPreviewPlaying  = function() return previewSession:IsPlaying() end
+ns.NormalizeTrackPath = NormalizeTrackPath
+ns.TrackDisplayName   = TrackDisplayName
 ns.GetBarFrame       = function() return barFrame end

@@ -72,6 +72,24 @@ function Specs.SoundItems()
     return items
 end
 
+-- 「從 LSM 加入」曲目的下拉：做成函式、開頁才求值（LSM 的音效是別的插件註冊的，可能比我們晚載入）。
+-- 已經加過的不列，LSM 自帶的 None 是佔位不是聲音
+function Specs.LSMTrackItems()
+    local items = {}
+    local lsm = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if not lsm then return items end
+    local added = {}
+    for _, t in ipairs(ns.GetDB().customTracks or {}) do
+        if t.lsm then added[t.lsm] = true end
+    end
+    for _, name in ipairs(lsm:List("sound")) do
+        if name ~= "None" and not added[name] then
+            items[#items + 1] = { text = name, value = name }
+        end
+    end
+    return items
+end
+
 -- 試聽：數字 = 暴雪 SoundKit ID，字串 = LibSharedMedia 註冊名
 function Specs.PlaySound(sound)
     if not sound then return end

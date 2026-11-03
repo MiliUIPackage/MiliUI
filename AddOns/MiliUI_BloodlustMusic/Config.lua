@@ -133,7 +133,7 @@ ns.DB_DEFAULTS = {
     playMode              = "random",   -- "random" | "sequential"
     channel               = ns.DEFAULT_CHANNEL,
     trackEnabled          = {},         -- [index] = true/false per built-in track
-    customTracks          = {},         -- array of { name, filename, enabled }
+    customTracks          = {},         -- array of { name, enabled, path | lsm }（見 Music.lua）
     lastTrackIndex        = 0,
     barWidth              = 185,
     barHeight             = 10,

@@ -173,6 +173,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | 檔案 | 內容 |
 |---|---|
 | [project-burst-helper.md](project-burst-helper.md) | MiliUI_BurstPotionHelper 爆發藥水 —— 戰鬥零讀取避免秘密值、選擇只存意圖；**團隊只在首領戰喝：「首領戰」的 secure 定義＝這場戰鬥見過 bossN 就鎖存到脫戰**（沒有 secure 的遭遇中訊號）；藥水 itemID 每季更新 |
+| [project-miliui-bloodlustmusic.md](project-miliui-bloodlustmusic.md) | 米利的嗜血音樂 MiliUI_BloodlustMusic —— 自訂歌可放整個 Interface、舊 filename 載入時遷移、可從 LSM 加曲目；只有 LSM 曲目走 C_Sound.IsPlaying 提早還原音量，尚未實機驗證 |
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、標題列按鈕看板 hdrButtons＋發佈三道閘、遷移鏈 DB v5、`/mdm debug` 除錯分頁（位置跑掉類回報先要這份）、踩過的點（含 `check_lua.py` 抓不到的全域讀取） |
 | [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | 傷害統計的米利風格專精圖示（40 張，預設、DB v5）＋頭像卡片＋裝等；source 只給 specIconID 要反查專精、裝等走觀察快取；噬滅順序／戰鬥中秘密 specIconID 待驗 |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM，1.5.x 上線、核心功能上過實機）—— 拍板與授權、引擎契約（倒數不自畫、認領重錨、暴雪框零欄位兩例外）、撞牆通則（增益旗標只有 SetUseAuraDisplayTime 且到期只 Clear、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數與 GetAlpha 是秘密值、收合框不當錨點、互斥停用要全帳號）、各功能一句話索引；驗證從 README《待實機驗證》與 `/mcdm debug` 開始 |
@@ -248,7 +249,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 174 篇）
+## 全部筆記（自動產生，共 175 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -372,6 +373,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | WoW 戰利品「擲骰/取得」記錄沒有 Blizzard 歷史 API，要自己用事件記錄 |
 | [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | MiliUI_DamageMeters「米利風格」專精圖示（40 張）＋頭像卡片＋裝等：產圖流程、授權界線、使用者拍板的決定、接進插件的位置、實機狀態 |
 | [project-miliui-auraenhance.md](project-miliui-auraenhance.md) | MiliUI_AuraEnhance「米利的光環美化」——從套組拆出的獨立插件，兩條遷移來源、字型存路徑還是 LSM 名稱、圖示樣式三代演進（鏡射→Masque→自製 1px；驅散色受限下四條路全封）、暴雪只在部分語系每幀 SetFontObject 所以新按鈕要自己套、SetText 掛勾裡不要每次 SetFont |
+| [project-miliui-bloodlustmusic.md](project-miliui-bloodlustmusic.md) | MiliUI_BloodlustMusic 自訂曲目（2026-11-04）：路徑放寬到整個 Interface、舊 filename 載入時遷移、可從 LSM 加曲目；只有 LSM 曲目走 C_Sound.IsPlaying 提早還原音量，尚未實機驗證 |
 | [project-miliui-bonusroll-filter.md](project-miliui-bonusroll-filter.md) | 星雲之核骰裝提示的兩支強化（MiliUI_QoL/Modules/BonusRoll_Filter.lua 過濾、BonusRoll_Confirm.lua 確認框）——12.1 骰裝介面就是舊 BonusRollFrame、事件自帶 difficultyID/treasureContextLevel、+8 傳奇軌道門檻每季要驗；確認框不走 StaticPopup、要高過 DIALOG+toplevel 的貪需視窗 |
 | [project-miliui-bosstimeline.md](project-miliui-bosstimeline.md) | MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單 |
 | [project-miliui-bounty-map-column.md](project-miliui-bounty-map-column.md) | 分身列表的懸賞圖/儲物箱欄（MiliUI_InfoBar）——旗標任務 86371 不換季，BOUNTY_ITEM_ID 每季要換（抄 Plumber）；儲物箱進度讀 UI widget 殘值只能往上加；SV 是帳號層級且只在登出落地 |

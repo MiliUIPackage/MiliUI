@@ -12,8 +12,8 @@ local W = ns.W
 local ROW_H    = 26
 local TOP_AREA = 110        -- 標題＋說明＋按鈕列佔掉的高度
 
-local tab, list, editPopup, delPopup
-local previewKey            -- 現在正在試聽哪一列（source .. index）
+local tab, list, editPopup, delPopup, lsmDropdown
+local previewKey           -- 現在正在試聽哪一列（source .. index）
 local pendingDelete         -- 確認彈窗按下「確定」時要刪的自訂曲目編號
 
 local function RowKey(source, index)
@@ -30,8 +30,9 @@ local function GetTrackRows()
     end
     local db = ns.GetDB()
     for i, t in ipairs(db.customTracks or {}) do
-        local name = (t.name and t.name ~= "") and t.name or (t.filename or "?")
-        rows[#rows + 1] = { source = "custom", index = i, name = name }
+        local name = ns.TrackDisplayName(t)
+        rows[#rows + 1] = { source = "custom", index = i, lsm = t.lsm,
+                            name = t.lsm and ("[LSM] " .. name) or name }
     end
     return rows
 end
@@ -71,20 +72,22 @@ local function TogglePreview(entry)
         return
     end
 
-    if not ns.PreviewTrack(entry.source, entry.index) then
-        print(L["MSG_PREVIEW_FAIL"])
+    -- 播完自己把按鈕字改回來（試聽長度就是實際播放長度；LSM 的短音效會提早結束）
+    local function OnEnded()
+        if previewKey == key then
+            previewKey = nil
+            RefreshList()
+        end
+    end
+
+    if not ns.PreviewTrack(entry.source, entry.index, OnEnded) then
+        print(entry.lsm and L["MSG_PREVIEW_FAIL_LSM"] or L["MSG_PREVIEW_FAIL"])
         RefreshList()
         return
     end
     previewKey = key
     RefreshList()
-    -- 播完自己把按鈕字改回來（試聽長度就是實際播放長度）
-    C_Timer.After(ns.MUSIC_DURATION + 1, function()
-        if previewKey == key then
-            previewKey = nil
-            RefreshList()
-        end
-    end)
+    C_Timer.After(ns.MUSIC_DURATION + 1, OnEnded)
 end
 
 ------------------------------------------------------------
@@ -94,7 +97,7 @@ local function EnsureEditPopup()
     if editPopup then return editPopup end
     editPopup = W.CreateInputPopup(ns.Options.panel, 460, L["TRACK_ADD"], {
         { key = "name",     label = L["TRACK_NAME"],     maxLetters = 80 },
-        { key = "filename", label = L["TRACK_FILENAME"], maxLetters = 200,
+        { key = "path",     label = L["TRACK_FILENAME"], maxLetters = 200,
           hint = L["TRACK_FILENAME_HINT"] },
     })
     return editPopup
@@ -107,27 +110,36 @@ local function OpenTrackEditor(editIndex)
     local t = editIndex and db.customTracks[editIndex]
 
     EnsureEditPopup():Open(
-        t and { name = t.name, filename = t.filename } or nil,
+        t and { name = t.name, path = t.path } or nil,
         function(values)
-            if values.filename == "" then
-                print(L["MSG_TRACK_NEED_FILENAME"])
-                return false                    -- 檔名是必填，不關窗讓玩家補
+            local path, reason = ns.NormalizeTrackPath(values.path)
+            if not path then
+                print(reason == "ext" and L["MSG_TRACK_BAD_EXT"] or L["MSG_TRACK_NEED_FILENAME"])
+                return false                    -- 路徑是必填，不關窗讓玩家補
             end
-            local name = values.name ~= "" and values.name or values.filename
+            local name = values.name ~= "" and values.name or path:match("([^\\]+)$")
             local d = ns.GetDB()
             d.customTracks = d.customTracks or {}
             if editIndex then
                 local track = d.customTracks[editIndex]
                 if track then
-                    track.name, track.filename = name, values.filename
+                    track.name, track.path = name, path
                     if track.enabled == nil then track.enabled = true end
                 end
             else
-                tinsert(d.customTracks, { name = name, filename = values.filename, enabled = true })
+                tinsert(d.customTracks, { name = name, path = path, enabled = true })
             end
             RefreshList()
         end,
         editIndex and L["TRACK_EDIT"] or L["TRACK_ADD"])
+end
+
+-- LSM 曲目只存註冊名，顯示名稱也是它，沒有東西可編輯
+local function AddLSMTrack(name)
+    local d = ns.GetDB()
+    d.customTracks = d.customTracks or {}
+    tinsert(d.customTracks, { name = name, lsm = name, enabled = true })
+    RefreshList()
 end
 
 local function EnsureDelPopup()
@@ -198,7 +210,7 @@ local function UpdateRow(row, entry)
     row.preview:SetText(playing and L["STOP_PREVIEW"] or L["PREVIEW"])
 
     -- 內建曲目沒有檔名可改，也不能刪掉（否則下次更新又會冒出來，玩家會以為壞了）
-    row.edit:SetShown(entry.source == "custom")
+    row.edit:SetShown(entry.source == "custom" and not entry.lsm)
     row.del:SetShown(entry.source == "custom")
 end
 
@@ -223,6 +235,10 @@ local function Init()
     addBtn:SetPoint("TOPLEFT", 18, -(TOP_AREA - 30))
     addBtn:SetScript("OnClick", function() OpenTrackEditor(nil) end)
 
+    -- 動作型下拉：選了就加進清單，字面永遠是提示字（不記目前選中的項目，RefreshList 會蓋回來）
+    lsmDropdown = W.CreateDropdown(tab, 180, {}, AddLSMTrack)
+    lsmDropdown:SetPoint("LEFT", addBtn, "RIGHT", 8, 0)
+
     list = W.CreateRowList(tab, ns.Options.PANEL_W - 36, ns.Options.PANEL_H - TOP_AREA - 12,
         ROW_H, BuildRow)
     list:SetPoint("TOPLEFT", 18, -TOP_AREA)
@@ -231,6 +247,10 @@ end
 -- IsVisible 而不是 IsShown：分頁自己是 Show 的，但整個視窗關著時不必重畫
 RefreshList = function()
     if not (tab and tab:IsVisible()) then return end
+    local lsmItems = ns.Specs.LSMTrackItems()
+    lsmDropdown:SetItems(lsmItems)
+    lsmDropdown.text:SetText(L["TRACK_ADD_LSM"])
+    lsmDropdown:SetShown(#lsmItems > 0)     -- 沒裝 LSM、或全部都加過了
     list:Update(GetTrackRows(), UpdateRow)
 end
 
