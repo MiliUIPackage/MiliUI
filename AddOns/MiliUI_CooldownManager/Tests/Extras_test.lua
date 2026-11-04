@@ -533,6 +533,31 @@ do
     for i = #deferred, 1, -1 do deferred[i] = nil end
     Flush(jobs)
     eq("下一幀還有寬度 ⇒ 不疊字", fill.shown, false)
+    -- 12.1.5 實機（2026-11-04 玩家 log）：框寫過秘密字串後量寬永遠回秘密、上面那套只有 /reload 後第一次接得到
+    -- ⇒ 判空改看 GetText：空的秘密字串讀回明文 nil／""（暴君那格 字=nil 寬=秘密）、有字的讀回秘密值（潛獵犬 字=秘密字串）；
+    --   GetText 讀不到或回了明文字才退回量寬
+    fs.GetStringWidth = function() return Secret() end
+    fs.GetText = function() return nil end
+    for i = #deferred, 1, -1 do deferred[i] = nil end
+    fs:SetText(s2); nameHook(fs, s2)
+    check("GetText 明文 nil ⇒ 當場疊字（寬秘密也一樣）", fill.shown)
+    eq("GetText 明文 nil ⇒ 不排下一幀重量", #deferred, 0)
+    eq("GetText 明文 nil ⇒ 暴雪的框不碰", fs.text, s2)
+    fs:SetText("真名"); nameHook(fs, "真名")
+    eq("（前置）明文真名 ⇒ 疊字藏", fill.shown, false)
+    fs.GetText = function() return "" end
+    fs:SetText(s2); nameHook(fs, s2)
+    check("GetText 明文空字串 ⇒ 疊字", fill.shown)
+    fs.GetText = function() return Secret() end
+    fs:SetText(s2); nameHook(fs, s2)
+    eq("GetText 秘密值 ⇒ 有字、疊字藏", fill.shown, false)
+    eq("GetText 秘密值 ⇒ 不排下一幀重量", #deferred, 0)
+    eq("GetText 秘密值 ⇒ 暴雪的框不碰", fs.text, s2)
+    fs.GetText = function() return "舊的明文" end
+    fs.GetStringWidth = function() return 0 end
+    fs:SetText(s2); nameHook(fs, s2)
+    check("GetText 回明文字 ⇒ 退回量寬（寬 0 疊字）", fill.shown)
+    fs.GetText = nil
     -- 有長條名字的設定樣式（Text.StyleNameFill）⇒ 照設定畫，不從暴雪那行抄
     ns.Text = ns.Text or {}
     local oldStyle, styled = ns.Text.StyleNameFill, nil
