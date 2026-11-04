@@ -114,6 +114,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-autoaccept-quest-delay.md](wow-autoaccept-quest-delay.md) | 自動接任務要延遲 0.5 秒：立刻 AcceptQuest 會被伺服器丟掉、六個假設全錯；實作＝預設秒接＋查勤＋內建種子清單（週任 ID 輪替）＋逐條學習、**共用秒數只在「等過還失敗」才加**、questID 0 不查勤 |
 | [wow-gettime-stamp-multipacket.md](wow-gettime-stamp-multipacket.md) | **「一幀之內狀態不會變」是錯的**：多封包幀同一個 `GetTime()` 派送多波事件 —— 快照讀取＋終點狀態不能吃戳記跳過，「字對條錯」是指紋 |
 | [wow-getspellcooldown-isongcd-nil.md](wow-getspellcooldown-isongcd-nil.md) | `C_Spell.GetSpellCooldown` 不在 GCD 時 `isOnGCD` 是 **nil 不是 false**；判真冷卻要 `not isOnGCD`，比 `== false` 永遠不成立 |
+| [wow-inspect-ready-slots-not-settled.md](wow-inspect-ready-slots-not-settled.md) | `INSPECT_READY` 當下物品沒進快取的格子 link 與 ID **一起 nil**、跟空格分不開；觀察裝等要等值穩定 0.5 秒＋跟暴雪整數對帳才收 |
 | [wow-unit-power-update-2s.md](wow-unit-power-update-2s.md) | `UNIT_POWER_UPDATE` 在回能／衰減期間**兩秒才送一次** ——「能量要 2 秒才更新」的成因；掛 `UNIT_POWER_FREQUENT`，UPDATE 留 force 當「回滿」的保底 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按**塑形**聊天印出 `u`、`]` 之類怪字元：GlobalStrings 缺塑形的 `_SELF` 字串，客戶端把首領編號的原始位元組當訊息（**位元組當整數解回來＝lootHistory 編號**是指紋）；GlobalStrings 可從 wago.tools 整張抓；含四條看起來很像真的錯路 |
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
@@ -250,7 +251,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 176 篇）
+## 全部筆記（自動產生，共 177 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -321,6 +322,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-hasrestrictions-mouse-apis.md](wow-hasrestrictions-mouse-apis.md) | SetPassThroughButtons／SetPropagateMouseClicks／SetPropagateMouseMotion 戰鬥中對任何框都封鎖（API 文件多標 HasRestrictions）；懶建的列池會中招，要在戰鬥外預建 |
 | [wow-hyperlink-region-steals-hover.md](wow-hyperlink-region-steals-hover.md) | frame 上的超連結區是引擎另一個滑鼠焦點：游標停在連結上時 frame 收到 OnLeave 不是 OnEnter，提示要改從 OnHyperlinkEnter 顯示 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 依附在框架旁邊的圖示排，錨點必須選「面向框架的那一邊」，否則顆數一變間距就跑掉 |
+| [wow-inspect-ready-slots-not-settled.md](wow-inspect-ready-slots-not-settled.md) | INSPECT_READY 當下觀察對象的裝備格不可靠——物品還沒進客戶端快取的格子，GetInventoryItemLink 與 GetInventoryItemID 一起回 nil、跟真的空格分不開；第一次算齊的平均裝等不能直接信，要等值穩定並跟暴雪整數對帳 |
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉「全部」快捷鍵含 ESC；擷取按鍵要用顯示/隱藏覆蓋層，不要在執行期切 SetPropagateKeyboardInput |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 有四種取法（含前綴拼接），靜態掃描認不全 —— 不要自動刪「沒人用的」語系條目 |
 | [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | PLAYER_LOGIN 當下 UIParent 尺寸／GetScreenWidth 可能還不是最終值，登入時照它夾座標再寫回存檔會把正常位置打壞；三支插件踩過（傷害統計／小地圖／M+），指紋與修法 |
