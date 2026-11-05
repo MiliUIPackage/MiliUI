@@ -61,7 +61,8 @@ local function BuildDefaults()
         -- 視窗位置：main / editorOffset / overlay
         windows = {},
 
-        -- 每個分身各自記得的東西（上次開在哪個分頁…）
+        -- 每個分身各自記得的東西：上次開在哪個分頁（lastScope）、上次開著哪一筆
+        -- （lastNote／lastChar，副本分頁是 lastInst）—— 讀寫都在 UI/Window.lua
         perChar = {},
 
         -- 分組變數（時間軸用 {p:主坦} 這種變數寫，名單另外分配）
