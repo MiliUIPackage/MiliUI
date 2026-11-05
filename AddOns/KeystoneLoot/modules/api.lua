@@ -698,3 +698,8 @@ function API:UnregisterCallback(event, owner)
 end
 
 _G.KeystoneLootAPI = API;
+
+-- fix from MiliUI: 把私有命名空間露給 MiliUI/Enhance/KeystoneLoot_GearStats.lua（裝備屬性計算）。
+-- 它要用 Upgrade:BuildItemLink 與軌道資料組出「指定軌道／階級」的物品連結，公開 API 沒有這條路。
+-- 這行被上游更新洗掉不會報錯，只是「裝備屬性計算」按鈕不再出現。
+_G.KeystoneLootNS = KeystoneLoot;

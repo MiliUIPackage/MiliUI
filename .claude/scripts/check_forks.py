@@ -115,6 +115,12 @@ PATCHES = [
     P("TrueStatValues", "Core.lua", "fix from MiliUI", "設定面板字串改走 L"),
     P("TrueStatValues", "Tooltips.lua", "fix from MiliUI", "提示字串改走 L、zhTW 黑名單、物品句型 pattern"),
 
+    # ── KeystoneLoot：露出私有命名空間給 MiliUI/Enhance/KeystoneLoot_GearStats.lua ──
+    #   洗掉不報錯，症狀是視窗右上角的「裝備屬性計算」按鈕不見。
+    #   重套：python3 .claude/patches/KeystoneLoot-expose-namespace.py
+    P("KeystoneLoot", "modules/api.lua", r"^_G\.KeystoneLootNS\s*=\s*KeystoneLoot;\s*$",
+      "露出命名空間（裝備屬性計算要用 Upgrade:BuildItemLink 與軌道資料）", regex=True),
+
     # ── AztarecHelper：不在套組裡，檔案不存在會自動略過（補丁腳本留在 .claude/patches）──
     P("AztarecHelper", "Core.lua", "fix from MiliUI", "整包 zhTW 中文化"),
 ]

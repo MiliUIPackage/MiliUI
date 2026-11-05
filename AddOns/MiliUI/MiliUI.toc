@@ -63,6 +63,7 @@ Enhance\TaintLog.lua
 Enhance\DebugMode.lua
 Enhance\RaiderIO_UnitMenu.lua
 Enhance\DiGua_LoginMessage.lua
+Enhance\KeystoneLoot_GearStats.lua
 
 Fix\DeprecatedGlobals.lua
 Fix\TooltipTaintFix.lua
