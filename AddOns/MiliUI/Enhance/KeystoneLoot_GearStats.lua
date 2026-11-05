@@ -3,7 +3,14 @@
 --
 -- KeystoneLoot 視窗右上角外側多一顆「裝備屬性計算」按鈕，打開後視窗左邊貼一塊清單面板。
 -- 在 KeystoneLoot 的裝備圖示上按右鍵 →「裝備屬性計算 › 加入計算」把那件裝備放進清單；
--- 每一列可以各自切換升級軌道（英雄／神話）與階級（1/6 ～ 6/6），面板底部加總四項次要屬性。
+-- 每一列可以各自切換升級軌道（英雄／神話）與階級（1/6 ～ 6/6）。
+--
+-- 算的是「拿到這件之後的全身」：基準是身上十六格裝備的次要屬性加總，清單裡每一件
+-- 把它要取代的那一格扣掉、再加上自己。面板底部列出目前 → 模擬後、變化量與佔比。
+--   · 兩格的部位（戒指、飾品、能雙持時的單手武器）每列有一顆按鈕選要取代哪一格。
+--   · 同一格只能有一件算數：點列切換「納入／排除」，納入一件會把撞格的另一件排除。
+--   · 雙手武器進主手會連副手一起換下（身上是雙持雙手武器時例外，那時當兩格部位）。
+--   · 只比裝備本身的屬性：身上那件的附魔與寶石先從連結裡拿掉再算，兩邊才對等。
 --
 -- 掛法（都不改 KeystoneLoot 的介面檔）：
 --   · 右鍵選單：包住 KSLMenuUtil.CreateContextMenu（KeystoneLoot 自帶的選單函式庫，不是暴雪的），
@@ -20,7 +27,9 @@
 --   這支整個靜默不啟用；守門在 .claude/scripts/check_forks.py、
 --   重套跑 .claude/patches/KeystoneLoot-expose-namespace.py。
 --
--- 存檔：MiliUI_DB.kslGearStats = { open, default = { track, rank }, lists = { ["名字-伺服器"] = { { id, track, rank }, … } } }
+-- 存檔：MiliUI_DB.kslGearStats = { open, default = { track, rank },
+--         lists = { ["名字-伺服器"] = { { id, track, rank, slot, off }, … } } }
+--   slot＝兩格部位選的裝備格編號（單格部位不存）；off＝true 是排除在模擬之外
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -50,6 +59,27 @@ local STATS = {
     { key = "ITEM_MOD_MASTERY_RATING_SHORT", tag = "精", name = STAT_MASTERY or "精通",             color = { 0.30, 0.90, 0.30 } },
     { key = "ITEM_MOD_CRIT_RATING_SHORT",    tag = "致", name = STAT_CRITICAL_STRIKE or "致命一擊", color = { 1.00, 0.42, 0.20 } },
 }
+for _, stat in ipairs(STATS) do
+    stat.hex = string.format("ff%02x%02x%02x", stat.color[1] * 255, stat.color[2] * 255, stat.color[3] * 255)
+end
+
+-- 部位 → 可以放進去的裝備格。兩格的讓使用者選要取代哪一格
+local EQUIP_SLOTS = {
+    INVTYPE_HEAD = { 1 }, INVTYPE_NECK = { 2 }, INVTYPE_SHOULDER = { 3 }, INVTYPE_CLOAK = { 15 },
+    INVTYPE_CHEST = { 5 }, INVTYPE_ROBE = { 5 }, INVTYPE_WRIST = { 9 }, INVTYPE_HAND = { 10 },
+    INVTYPE_WAIST = { 6 }, INVTYPE_LEGS = { 7 }, INVTYPE_FEET = { 8 },
+    INVTYPE_FINGER = { 11, 12 }, INVTYPE_TRINKET = { 13, 14 },
+    INVTYPE_WEAPON = { 16, 17 }, INVTYPE_2HWEAPON = { 16 }, INVTYPE_WEAPONMAINHAND = { 16 },
+    INVTYPE_RANGED = { 16 }, INVTYPE_RANGEDRIGHT = { 16 },
+    INVTYPE_WEAPONOFFHAND = { 17 }, INVTYPE_HOLDABLE = { 17 }, INVTYPE_SHIELD = { 17 },
+}
+local MAIN_HAND  = { 16 }
+local BOTH_HANDS = { 16, 17 }
+local OFF_HAND   = 17
+-- 兩格部位的格名（按鈕與選單用）；單格部位直接用暴雪的部位名（_G[equipLoc]）
+local SLOT_NAME = { [11] = "戒指1", [12] = "戒指2", [13] = "飾品1", [14] = "飾品2", [16] = "主手", [17] = "副手" }
+-- 全身十六格（不含襯衣、外袍），也是平均裝等的分母
+local BODY_SLOTS = { 1, 2, 3, 15, 5, 9, 10, 6, 7, 8, 11, 12, 13, 14, 16, 17 }
 
 -- 清單照部位排，同部位照加入順序
 local SLOT_ORDER = {
@@ -69,8 +99,14 @@ local ROW_H    = 20
 local TAG      = 16     -- 屬性標籤方塊邊長
 local TAG_GAP  = 2
 local LEVEL_W  = 96     -- 「321 英雄 6/6」那一段
-local CELL_H   = 20     -- 加總區一格的高
+local SLOT_W   = 44     -- 兩格部位的「戒指1」按鈕
+local CELL_H   = 18     -- 加總區一列的高
+local COLHEAD_H = 14    -- 加總區欄名那一列
+local EMPTY_H  = 44     -- 清單是空的時候，提示文字佔的高
+local OFF_ALPHA = 0.35  -- 排除在模擬之外的列
 local DIM      = 0.65   -- 次要文字的灰階（HUD／設定視窗皮共用值）
+-- 加總區各欄的右緣（從面板內容右緣往左量）
+local COL_PCT, COL_DELTA, COL_AFTER, COL_ARROW, COL_BEFORE = 0, 44, 104, 160, 178
 
 ------------------------------------------------------------
 -- 存檔
@@ -220,6 +256,134 @@ local function Resolve(entry)
 end
 
 ------------------------------------------------------------
+-- 身上的裝備與模擬
+------------------------------------------------------------
+-- 雙手武器：主手拿著、副手空著時，平均裝等把它算兩次；進主手會把副手換下。
+-- 弓是 INVTYPE_RANGED，槍弩與魔杖共用 INVTYPE_RANGEDRIGHT —— 魔杖（子類 19）是單手
+local function IsTwoHand(item)
+    local _, _, _, equipLoc, _, classID, subClassID = C_Item.GetItemInfoInstant(item)
+    if equipLoc == "INVTYPE_2HWEAPON" or equipLoc == "INVTYPE_RANGED" then return true end
+    return equipLoc == "INVTYPE_RANGEDRIGHT" and classID == 2 and subClassID ~= 19
+end
+
+-- 身上那件的附魔與寶石（物品字串第 2～6 欄）先清掉再問屬性：清單裡的是素的，兩邊要對等
+local function BareLink(link)
+    return (link:gsub("(item:%d+):[^:|]*:[^:|]*:[^:|]*:[^:|]*:[^:|]*:", "%1::::::", 1))
+end
+
+-- 身上十六格的快照：body[格] = { link, name, ilvl, stats[1..4], twoHand }，空格是 nil。
+-- 另帶兩個旗標：dualWield（單手武器可以進副手）、titanGrip（雙手武器當單手拿）
+local function ReadEquipped()
+    local body = {}
+    for _, slot in ipairs(BODY_SLOTS) do
+        local link = GetInventoryItemLink("player", slot)
+        if link then
+            local item = { link = link, stats = {} }
+            local stats = C_Item.GetItemStats(BareLink(link))
+            for i, stat in ipairs(STATS) do
+                item.stats[i] = stats and stats[stat.key] or 0
+            end
+            item.name = C_Item.GetItemInfo(link)
+            local ok, ilvl = pcall(C_Item.GetCurrentItemLevel, ItemLocation:CreateFromEquipmentSlot(slot))
+            item.ilvl = (ok and ilvl) or C_Item.GetDetailedItemLevelInfo(link) or 0
+            item.twoHand = IsTwoHand(link)
+            body[slot] = item
+        end
+    end
+
+    local off = body[OFF_HAND]
+    local offIsWeapon = false
+    if off then
+        local _, _, _, _, _, classID = C_Item.GetItemInfoInstant(off.link)
+        offIsWeapon = classID == 2
+    end
+    body.dualWield = offIsWeapon or (type(CanDualWield) == "function" and CanDualWield()) or false
+    body.titanGrip = offIsWeapon and ((off.twoHand or (body[16] and body[16].twoHand)) and true or false)
+    return body
+end
+
+-- 這件可以放進哪幾格，以及放進主手時會不會連副手一起換下（雙手武器）
+local function SlotsFor(itemId, body)
+    local _, _, _, equipLoc = C_Item.GetItemInfoInstant(itemId)
+    local slots = EQUIP_SLOTS[equipLoc]
+    if not slots then return nil end
+    if equipLoc == "INVTYPE_WEAPON" then
+        if not body.dualWield then slots = MAIN_HAND end
+    elseif IsTwoHand(itemId) then
+        if body.titanGrip then return BOTH_HANDS, false end
+        return slots, true
+    end
+    return slots, false
+end
+
+-- 剛加入／剛被點成「納入」／剛換格的那一筆：撞格時它贏，原本佔著那格的被排除
+local priority
+
+-- 排出每一筆要取代哪一格、算不算數。回傳 plan[entry] = { slot, slots, clears }（沒有對應裝備格的不在表裡）
+--   · 單格部位沒得選；兩格的用存檔裡選的那格，沒選過（或那格現在不合法）就挑還沒被佔走的
+--   · 同一格只能有一件算數：priority 先佔，其餘照清單順序先到先得，撞格的寫成 entry.off
+local function Plan(list, body)
+    local plan, claimed = {}, {}
+    for _, entry in ipairs(list) do
+        local slots, clears = SlotsFor(entry.id, body)
+        if slots then
+            local slot
+            if #slots == 1 then
+                slot, entry.slot = slots[1], nil
+            else
+                for _, s in ipairs(slots) do
+                    if s == entry.slot then slot = s end
+                end
+                if not slot then entry.slot = nil end
+            end
+            plan[entry] = { slots = slots, clears = clears, slot = slot }
+            if slot and not entry.off then claimed[slot] = true end
+        end
+    end
+    for _, entry in ipairs(list) do
+        local p = plan[entry]
+        if p and not p.slot then
+            p.slot = p.slots[1]
+            for _, s in ipairs(p.slots) do
+                if not claimed[s] then p.slot = s break end
+            end
+            entry.slot = p.slot
+            if not entry.off then claimed[p.slot] = true end
+        end
+    end
+
+    local taken = {}
+    local function Settle(entry)
+        local p = plan[entry]
+        if not p or entry.off then return end
+        if taken[p.slot] or (p.clears and taken[OFF_HAND]) then
+            entry.off = true
+            return
+        end
+        taken[p.slot] = true
+        if p.clears then taken[OFF_HAND] = true end
+    end
+    if priority then Settle(priority) end
+    for _, entry in ipairs(list) do
+        if entry ~= priority then Settle(entry) end
+    end
+    priority = nil
+    return plan
+end
+
+-- 跟暴雪同一條規則的平均裝等：十六格相加除以十六；主手是雙手武器而副手空著時主手算兩次
+local function AverageLevel(levels, twoHandMain)
+    local sum = 0
+    for _, slot in ipairs(BODY_SLOTS) do sum = sum + (levels[slot] or 0) end
+    if twoHandMain and not levels[OFF_HAND] then sum = sum + (levels[16] or 0) end
+    return sum / #BODY_SLOTS
+end
+
+local function SignedNumber(n)
+    return (n > 0 and "+" or "-") .. BreakUpLargeNumbers(math.abs(n))
+end
+
+------------------------------------------------------------
 -- 小工具
 ------------------------------------------------------------
 local function NewText(parent, size)
@@ -285,7 +449,36 @@ end
 local function AddItem(itemId)
     if FindIndex(itemId) then return end
     local track, rank = DefaultTrackRank()
-    table.insert(GetList(), { id = itemId, track = track, rank = rank })
+    local entry = { id = itemId, track = track, rank = rank }
+    table.insert(GetList(), entry)
+    priority = entry   -- 新加入的那件算數，同一格原本算數的讓位
+end
+
+-- 把這一筆納入模擬（撞格的另一件在下一次 Plan 被排除）
+local function Claim(entry)
+    entry.off = nil
+    priority = entry
+end
+
+local body = {}   -- 最近一次 Refresh 讀到的身上裝備
+
+-- 兩格部位的「取代哪一格」選單：列出那兩格現在穿的是什麼
+local function SlotMenuItems(entry, info)
+    local items = { { text = "取代哪一格", isTitle = true } }
+    for _, slot in ipairs(info.slots) do
+        local worn = body[slot]
+        items[#items + 1] = {
+            text = string.format("%s：%s", SLOT_NAME[slot] or slot, worn and (worn.name or worn.link) or "空的"),
+            value = worn and tostring(worn.ilvl) or nil,
+            isActive = info.slot == slot,
+            onClick = function()
+                entry.slot = slot
+                Claim(entry)
+                Refresh()
+            end,
+        }
+    end
+    return items
 end
 
 local function RemoveItem(itemId)
@@ -328,11 +521,57 @@ local function RowTooltip(row)
     GameTooltip:SetOwner(row, "ANCHOR_NONE")
     GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(PAD + 4), 0)
     GameTooltip:SetHyperlink(info.link)
+    GameTooltip:AddLine(" ")
     if info.baseName then
-        GameTooltip:AddLine(" ")
         GameTooltip:AddLine("次要屬性以催化器底材計算：" .. info.baseName, 0.62, 0.36, 0.72, true)
     end
+
+    -- 模擬：取代的是哪一件、四項屬性各差多少
+    if not info.slots then
+        GameTooltip:AddLine("這件沒有對應的裝備格，不列入模擬", DIM, DIM, DIM, true)
+    else
+        local slotName = SLOT_NAME[info.slot]
+        if #info.slots == 1 then
+            local _, _, _, equipLoc = C_Item.GetItemInfoInstant(row.entry.id)
+            slotName = _G[equipLoc] or slotName or ""
+        end
+        local worn = info.replaced
+        GameTooltip:AddLine(string.format("取代 %s：%s", slotName,
+            worn and string.format("%s %d", worn.link, worn.ilvl) or "空的"), 1, 1, 1)
+        if info.alsoRemoved then
+            GameTooltip:AddLine(string.format("雙手武器，副手一併換下：%s %d",
+                info.alsoRemoved.link, info.alsoRemoved.ilvl), 1, 1, 1)
+        end
+
+        if info.delta then
+            local parts = {}
+            for i, stat in ipairs(STATS) do
+                local d = info.delta[i]
+                if d ~= 0 then
+                    parts[#parts + 1] = string.format("|c%s%s|r |cff%s%s|r", stat.hex, stat.tag,
+                        d > 0 and "40ff40" or "ff4040", SignedNumber(d))
+                end
+            end
+            GameTooltip:AddLine(#parts > 0 and table.concat(parts, "　") or "次要屬性沒有變化", DIM, DIM, DIM)
+        end
+
+        GameTooltip:AddLine(" ")
+        if info.active then
+            GameTooltip:AddLine("左鍵：排除，不算進模擬", DIM, DIM, DIM)
+        else
+            GameTooltip:AddLine("目前沒有算進模擬", 1, 0.82, 0)
+            GameTooltip:AddLine("左鍵：納入（同一格的另一件會被排除）", DIM, DIM, DIM)
+        end
+    end
     GameTooltip:Show()
+end
+
+local function SetRowDim(row, dim)
+    local alpha = dim and OFF_ALPHA or 1
+    for _, tag in ipairs(row.tags) do tag:SetAlpha(alpha) end
+    row.level:SetAlpha(alpha)
+    row.name:SetAlpha(alpha)
+    row.slotBtn:SetAlpha(alpha)
 end
 
 local function CreateRow(index)
@@ -394,19 +633,52 @@ local function CreateRow(index)
     end)
     row.remove = remove
 
+    -- 兩格部位才出現：顯示目前要取代哪一格，點它開選單換另一格
+    local slotBtn = CreateFrame("Button", nil, row)
+    slotBtn:SetSize(SLOT_W, ROW_H - 2)
+    slotBtn:SetPoint("RIGHT", remove, "LEFT", -4, 0)
+    slotBtn.bg = slotBtn:CreateTexture(nil, "BACKGROUND")
+    slotBtn.bg:SetAllPoints()
+    slotBtn.bg:SetColorTexture(1, 1, 1, 0.10)
+    slotBtn.bg:Hide()
+    slotBtn.text = NewText(slotBtn, 11)
+    slotBtn.text:SetPoint("CENTER", 0, 0)
+    slotBtn.text:SetTextColor(DIM, DIM, DIM)
+    slotBtn:SetScript("OnEnter", function(self)
+        self.bg:Show()
+        self.text:SetTextColor(1, 1, 1)
+        RowHover(row)
+    end)
+    slotBtn:SetScript("OnLeave", function(self)
+        self.bg:Hide()
+        self.text:SetTextColor(DIM, DIM, DIM)
+        RowHover(row)
+    end)
+    slotBtn:SetScript("OnClick", function(self)
+        if row.entry and row.info and row.info.slots then
+            W.Menu.Show(SlotMenuItems(row.entry, row.info), self)
+        end
+    end)
+    row.slotBtn = slotBtn
+
     row.name = NewText(row, 12)
-    row.name:SetPoint("LEFT", level, "RIGHT", 4, 0)
-    row.name:SetPoint("RIGHT", remove, "LEFT", -4, 0)
-    row.name:SetJustifyH("LEFT")
+    row.name:SetJustifyH("LEFT")   -- 錨點在 UpdateRow：右邊貼「取代哪一格」按鈕或 ×
 
     row:SetScript("OnEnter", function(self) RowHover(self); RowTooltip(self) end)
     row:SetScript("OnLeave", function(self) RowHover(self); GameTooltip:Hide() end)
     row:SetScript("OnClick", function(self)
-        -- Shift 貼連結／Ctrl 試穿：要用 GetItemInfo 回來的正式連結，自己組的那串貼不出去
-        local info = self.info
-        if info and info.realLink and IsModifierKeyDown() then
-            HandleModifiedItemClick(info.realLink)
+        local entry, info = self.entry, self.info
+        if not entry or not info then return end
+        if IsModifierKeyDown() then
+            -- Shift 貼連結／Ctrl 試穿：要用 GetItemInfo 回來的正式連結，自己組的那串貼不出去
+            if info.realLink then HandleModifiedItemClick(info.realLink) end
+            return
         end
+        if not info.slots then return end
+        -- 納入／排除模擬。重刷之後這一列還是同一筆（排序不看這個），提示跟著更新
+        if entry.off then Claim(entry) else entry.off = true end
+        Refresh()
+        if self:IsMouseOver() then RowTooltip(self) end
     end)
 
     rows[index] = row
@@ -432,6 +704,15 @@ local function UpdateRow(row, entry, info)
         row.name:SetText("載入中")
         row.name:SetTextColor(DIM, DIM, DIM)
     end
+
+    local multi = info.slots ~= nil and #info.slots > 1
+    row.slotBtn:SetShown(multi)
+    if multi then row.slotBtn.text:SetText(SLOT_NAME[info.slot] or "") end
+    row.name:ClearAllPoints()
+    row.name:SetPoint("LEFT", row.level, "RIGHT", 4, 0)
+    row.name:SetPoint("RIGHT", multi and row.slotBtn or row.remove, "LEFT", -4, 0)
+
+    SetRowDim(row, not info.active)
 end
 
 ------------------------------------------------------------
@@ -502,23 +783,36 @@ local function CreatePanel()
     panel.empty:SetTextColor(DIM, DIM, DIM)
     panel.empty:SetText("在右側的裝備圖示上按右鍵 →「加入計算」")
 
-    -- 加總區：2×2 四格，各一項次要屬性
+    -- 加總區：一項次要屬性一列 —— 全身目前的加總 → 模擬後、變化量、模擬後在四項裡的佔比
     local footer = CreateFrame("Frame", nil, panel)
     footer:SetPoint("BOTTOMLEFT", PAD, PAD)
     footer:SetPoint("BOTTOMRIGHT", -PAD, PAD)
-    footer:SetHeight(6 + CELL_H * 2 + 4 + 14)
+    footer:SetHeight(6 + COLHEAD_H + CELL_H * #STATS + 4 + 14)
     panel.footer = footer
 
     footer.line = NewHairline(footer)
     footer.line:SetPoint("TOPLEFT", 0, 0)
     footer.line:SetPoint("TOPRIGHT", 0, 0)
 
-    local cellW = (PANEL_W - PAD * 2) / 2
+    local function ColumnHead(text, point, x)
+        local fs = NewText(footer, 11)
+        fs:SetPoint(point, footer, point, x, -6)
+        fs:SetTextColor(DIM, DIM, DIM)
+        fs:SetText(text)
+        return fs
+    end
+    ColumnHead("全身裝備", "TOPLEFT", 0)
+    ColumnHead("目前", "TOPRIGHT", -COL_BEFORE)
+    ColumnHead("模擬後", "TOPRIGHT", -COL_AFTER)
+    ColumnHead("變化", "TOPRIGHT", -COL_DELTA)
+    ColumnHead("佔比", "TOPRIGHT", -COL_PCT)
+
     footer.cells = {}
     for i, stat in ipairs(STATS) do
         local cell = CreateFrame("Frame", nil, footer)
-        cell:SetSize(cellW, CELL_H)
-        cell:SetPoint("TOPLEFT", ((i - 1) % 2) * cellW, -6 - math.floor((i - 1) / 2) * CELL_H)
+        cell:SetHeight(CELL_H)
+        cell:SetPoint("TOPLEFT", 0, -6 - COLHEAD_H - (i - 1) * CELL_H)
+        cell:SetPoint("TOPRIGHT", 0, -6 - COLHEAD_H - (i - 1) * CELL_H)
 
         cell.tag = NewTag(cell, stat)
         cell.tag:SetPoint("LEFT", 0, 0)
@@ -528,13 +822,23 @@ local function CreatePanel()
         cell.name:SetText(stat.name)
 
         cell.pct = NewText(cell, 11)
-        cell.pct:SetPoint("RIGHT", -10, 0)
-        cell.pct:SetJustifyH("RIGHT")
+        cell.pct:SetPoint("RIGHT", -COL_PCT, 0)
         cell.pct:SetTextColor(DIM, DIM, DIM)
 
-        cell.value = NewText(cell, 12)
-        cell.value:SetPoint("RIGHT", -44, 0)
-        cell.value:SetJustifyH("RIGHT")
+        cell.delta = NewText(cell, 12)
+        cell.delta:SetPoint("RIGHT", -COL_DELTA, 0)
+
+        cell.after = NewText(cell, 12)
+        cell.after:SetPoint("RIGHT", -COL_AFTER, 0)
+
+        cell.arrow = NewText(cell, 11)
+        cell.arrow:SetPoint("RIGHT", -COL_ARROW, 0)
+        cell.arrow:SetTextColor(DIM, DIM, DIM)
+        cell.arrow:SetText("→")
+
+        cell.before = NewText(cell, 12)
+        cell.before:SetPoint("RIGHT", -COL_BEFORE, 0)
+        cell.before:SetTextColor(DIM, DIM, DIM)
 
         footer.cells[i] = cell
     end
@@ -546,15 +850,17 @@ local function CreatePanel()
     panel:SetScript("OnShow", function(self)
         W.Stylize(self, S.Dark.panel)   -- 每次顯示重鋪：1px 邊照當下的 UI 縮放換算
         self:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+        self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")   -- 基準是身上的裝備，換裝就重算
         Reanchor()
         Refresh()
     end)
     panel:SetScript("OnHide", function(self)
         self:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
+        self:UnregisterEvent("PLAYER_EQUIPMENT_CHANGED")
         if W.Menu.Hide then W.Menu.Hide() end
     end)
-    panel:SetScript("OnEvent", function()
-        if waiting then QueueRefresh() end
+    panel:SetScript("OnEvent", function(_, event)
+        if event ~= "GET_ITEM_INFO_RECEIVED" or waiting then QueueRefresh() end
     end)
 
     local custom = Host.CustomItemFrame
@@ -579,26 +885,63 @@ Refresh = function()
         return a.index < b.index
     end)
 
-    waiting = false
-    local totals, levelSum = {}, 0
-    for i = 1, #STATS do totals[i] = 0 end
+    -- 基準：身上十六格。before＝目前全身的加總，after 從它出發，逐件把「取代的那格」換成清單裡的
+    body = ReadEquipped()
+    local plan = Plan(list, body)
 
+    local before, after, levels = {}, {}, {}
+    for s = 1, #STATS do before[s] = 0 end
+    for _, slot in ipairs(BODY_SLOTS) do
+        local worn = body[slot]
+        if worn then
+            levels[slot] = worn.ilvl
+            for s = 1, #STATS do before[s] = before[s] + worn.stats[s] end
+        end
+    end
+    for s = 1, #STATS do after[s] = before[s] end
+    local twoHandMain = body[16] ~= nil and body[16].twoHand
+    local levelBefore = AverageLevel(levels, twoHandMain)
+
+    waiting = false
+    local counted = 0
     local y = -(HEADER_H + 4)
     for i, item in ipairs(view) do
         local row = rows[i] or CreateRow(i)
-        local info = Resolve(item.entry)
+        local entry = item.entry
+        local info = Resolve(entry)
         if info.loading then waiting = true end
+
+        local p = plan[entry]
+        if p then
+            info.slot, info.slots = p.slot, p.slots
+            info.replaced = body[p.slot]
+            info.alsoRemoved = p.clears and body[OFF_HAND] or nil
+            info.active = not entry.off
+            if not info.loading then
+                info.delta = {}
+                for s = 1, #STATS do
+                    info.delta[s] = (info.stats[s] or 0)
+                        - (info.replaced and info.replaced.stats[s] or 0)
+                        - (info.alsoRemoved and info.alsoRemoved.stats[s] or 0)
+                end
+                if info.active then
+                    counted = counted + 1
+                    for s = 1, #STATS do after[s] = after[s] + info.delta[s] end
+                    levels[p.slot] = info.ilvl
+                    if p.clears then levels[OFF_HAND] = nil end
+                    if p.slot == 16 then twoHandMain = IsTwoHand(entry.id) end
+                end
+            end
+        end
 
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", PAD, y)
         row:SetPoint("TOPRIGHT", -PAD, y)
-        UpdateRow(row, item.entry, info)
+        UpdateRow(row, entry, info)
         row:Show()
         y = y - ROW_H
-
-        levelSum = levelSum + info.ilvl
-        for s = 1, #STATS do totals[s] = totals[s] + (info.stats[s] or 0) end
     end
+    local levelAfter = AverageLevel(levels, twoHandMain)
     for i = #view + 1, #rows do
         rows[i]:Hide()
         rows[i].entry, rows[i].info = nil, nil
@@ -611,23 +954,42 @@ Refresh = function()
     local count = #view
     local hasItems = count > 0
     panel.empty:SetShown(not hasItems)
-    panel.footer:SetShown(hasItems)
     panel.clear:SetEnabled(hasItems)
     panel.setAll:SetEnabled(hasItems)
 
-    if hasItems then
-        local sum = 0
-        for s = 1, #STATS do sum = sum + totals[s] end
-        for s, cell in ipairs(panel.footer.cells) do
-            PaintTag(cell.tag, totals[s] > 0)
-            cell.value:SetText(BreakUpLargeNumbers(totals[s]))
-            cell.pct:SetText(sum > 0 and string.format("%d%%", math.floor(totals[s] / sum * 100 + 0.5)) or "")
+    -- 加總區永遠在（清單是空的也看得到目前全身的數字）
+    local sum = 0
+    for s = 1, #STATS do sum = sum + after[s] end
+    for s, cell in ipairs(panel.footer.cells) do
+        local d = after[s] - before[s]
+        PaintTag(cell.tag, after[s] > 0)
+        cell.before:SetText(BreakUpLargeNumbers(before[s]))
+        cell.after:SetText(BreakUpLargeNumbers(after[s]))
+        if d ~= 0 then
+            cell.delta:SetText(SignedNumber(d))
+            if d > 0 then cell.delta:SetTextColor(0.25, 1, 0.25) else cell.delta:SetTextColor(1, 0.25, 0.25) end
+        else
+            cell.delta:SetText("")
         end
-        panel.footer.summary:SetText(string.format("%d 件 · 平均裝等 %.1f", count, levelSum / count))
-        panel:SetHeight(HEADER_H + 4 + count * ROW_H + 6 + panel.footer:GetHeight() + PAD)
-    else
-        panel:SetHeight(HEADER_H + 52)
+        cell.pct:SetText(sum > 0 and string.format("%d%%", math.floor(after[s] / sum * 100 + 0.5)) or "")
     end
+
+    -- 裝等：顯示的「目前」用暴雪的已裝備平均（跟角色面板同一個數字），變化量用我們自己照同一條規則算的差
+    local _, equippedLevel = GetAverageItemLevel()
+    equippedLevel = equippedLevel or levelBefore
+    local levelText
+    if counted > 0 then
+        levelText = string.format("裝等 %.1f → %.1f", equippedLevel, equippedLevel + (levelAfter - levelBefore))
+    else
+        levelText = string.format("裝等 %.1f", equippedLevel)
+    end
+    if hasItems then
+        panel.footer.summary:SetText(string.format("納入 %d／%d 件 · %s", counted, count, levelText))
+    else
+        panel.footer.summary:SetText(levelText)
+    end
+
+    panel:SetHeight(HEADER_H + 4 + (hasItems and count * ROW_H or EMPTY_H) + 6 + panel.footer:GetHeight() + PAD)
 end
 
 ------------------------------------------------------------
