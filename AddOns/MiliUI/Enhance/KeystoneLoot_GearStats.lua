@@ -6,8 +6,9 @@
 -- 每一列可以各自切換升級軌道（英雄／神話）與階級（1/6 ～ 6/6）。
 --
 -- 算的是「拿到這件之後的全身」：基準是身上十六格裝備的次要屬性加總，清單裡每一件
--- 把它要取代的那一格扣掉、再加上自己。面板底部列出目前 → 模擬後、變化量與佔比。
---   · 兩格的部位（戒指、飾品、能雙持時的單手武器）每列有一顆按鈕選要取代哪一格。
+-- 把它要取代的那一格扣掉、再加上自己。面板底部列出模擬後的全身數值與變化量。
+--   · 每一列後半段寫著它取代身上哪一件；兩格的部位（戒指、飾品、能雙持時的單手武器）
+--     點那一段可以換成取代另一格，預設挑第一個還沒被清單佔走的格。
 --   · 同一格只能有一件算數：點列切換「納入／排除」，納入一件會把撞格的另一件排除。
 --   · 雙手武器進主手會連副手一起換下（身上是雙持雙手武器時例外，那時當兩格部位）。
 --   · 只比裝備本身的屬性：身上那件的附魔與寶石先從連結裡拿掉再算，兩邊才對等。
@@ -92,21 +93,19 @@ local SLOT_ORDER = {
 }
 
 -- 版面
-local PANEL_W  = 400
+local PANEL_W  = 580
 local PAD      = 8
 local HEADER_H = 32
 local ROW_H    = 20
 local TAG      = 16     -- 屬性標籤方塊邊長
 local TAG_GAP  = 2
 local LEVEL_W  = 96     -- 「321 英雄 6/6」那一段
-local SLOT_W   = 44     -- 兩格部位的「戒指1」按鈕
-local CELL_H   = 18     -- 加總區一列的高
-local COLHEAD_H = 14    -- 加總區欄名那一列
+local REPL_W   = 184    -- 「→ 戒指1 [身上那件]」那一段
+local CELL_H   = 20     -- 加總區一格的高
 local EMPTY_H  = 44     -- 清單是空的時候，提示文字佔的高
 local OFF_ALPHA = 0.35  -- 排除在模擬之外的列
 local DIM      = 0.65   -- 次要文字的灰階（HUD／設定視窗皮共用值）
--- 加總區各欄的右緣（從面板內容右緣往左量）
-local COL_PCT, COL_DELTA, COL_AFTER, COL_ARROW, COL_BEFORE = 0, 44, 104, 160, 178
+local DIM_HEX  = "ffa6a6a6"
 
 ------------------------------------------------------------
 -- 存檔
@@ -283,7 +282,8 @@ local function ReadEquipped()
             for i, stat in ipairs(STATS) do
                 item.stats[i] = stats and stats[stat.key] or 0
             end
-            item.name = C_Item.GetItemInfo(link)
+            local name, _, quality = C_Item.GetItemInfo(link)
+            item.name, item.quality = name, quality
             local ok, ilvl = pcall(C_Item.GetCurrentItemLevel, ItemLocation:CreateFromEquipmentSlot(slot))
             item.ilvl = (ok and ilvl) or C_Item.GetDetailedItemLevelInfo(link) or 0
             item.twoHand = IsTwoHand(link)
@@ -571,7 +571,8 @@ local function SetRowDim(row, dim)
     for _, tag in ipairs(row.tags) do tag:SetAlpha(alpha) end
     row.level:SetAlpha(alpha)
     row.name:SetAlpha(alpha)
-    row.slotBtn:SetAlpha(alpha)
+    row.arrow:SetAlpha(alpha)
+    row.repl:SetAlpha(alpha)
 end
 
 local function CreateRow(index)
@@ -633,36 +634,55 @@ local function CreateRow(index)
     end)
     row.remove = remove
 
-    -- 兩格部位才出現：顯示目前要取代哪一格，點它開選單換另一格
-    local slotBtn = CreateFrame("Button", nil, row)
-    slotBtn:SetSize(SLOT_W, ROW_H - 2)
-    slotBtn:SetPoint("RIGHT", remove, "LEFT", -4, 0)
-    slotBtn.bg = slotBtn:CreateTexture(nil, "BACKGROUND")
-    slotBtn.bg:SetAllPoints()
-    slotBtn.bg:SetColorTexture(1, 1, 1, 0.10)
-    slotBtn.bg:Hide()
-    slotBtn.text = NewText(slotBtn, 11)
-    slotBtn.text:SetPoint("CENTER", 0, 0)
-    slotBtn.text:SetTextColor(DIM, DIM, DIM)
-    slotBtn:SetScript("OnEnter", function(self)
-        self.bg:Show()
-        self.text:SetTextColor(1, 1, 1)
+    -- 取代身上的哪一件。兩格部位可以點它換成另一格；滑過看身上那件的提示
+    local repl = CreateFrame("Button", nil, row)
+    repl:SetSize(REPL_W, ROW_H - 2)
+    repl:SetPoint("RIGHT", remove, "LEFT", -4, 0)
+    repl.bg = repl:CreateTexture(nil, "BACKGROUND")
+    repl.bg:SetAllPoints()
+    repl.bg:SetColorTexture(1, 1, 1, 0.10)
+    repl.bg:Hide()
+    repl.text = NewText(repl, 12)
+    repl.text:SetPoint("LEFT", 3, 0)
+    repl.text:SetPoint("RIGHT", -3, 0)
+    repl.text:SetJustifyH("LEFT")
+    repl:SetScript("OnEnter", function(self)
+        if self.multi then self.bg:Show() end
         RowHover(row)
+        local info = row.info
+        if info and info.slot and info.replaced then
+            GameTooltip:SetOwner(self, "ANCHOR_NONE")
+            GameTooltip:SetPoint("TOPRIGHT", row, "TOPLEFT", -(PAD + 4), 0)
+            GameTooltip:SetInventoryItem("player", info.slot)
+            if self.multi then
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine("左鍵：改成取代另一格", DIM, DIM, DIM)
+            end
+            GameTooltip:Show()
+        end
     end)
-    slotBtn:SetScript("OnLeave", function(self)
+    repl:SetScript("OnLeave", function(self)
         self.bg:Hide()
-        self.text:SetTextColor(DIM, DIM, DIM)
         RowHover(row)
+        GameTooltip:Hide()
     end)
-    slotBtn:SetScript("OnClick", function(self)
-        if row.entry and row.info and row.info.slots then
+    repl:SetScript("OnClick", function(self)
+        if self.multi and row.entry and row.info then
+            GameTooltip:Hide()
             W.Menu.Show(SlotMenuItems(row.entry, row.info), self)
         end
     end)
-    row.slotBtn = slotBtn
+    row.repl = repl
+
+    row.arrow = NewText(row, 11)
+    row.arrow:SetPoint("RIGHT", repl, "LEFT", -2, 0)
+    row.arrow:SetTextColor(DIM, DIM, DIM)
+    row.arrow:SetText("→")
 
     row.name = NewText(row, 12)
-    row.name:SetJustifyH("LEFT")   -- 錨點在 UpdateRow：右邊貼「取代哪一格」按鈕或 ×
+    row.name:SetPoint("LEFT", level, "RIGHT", 4, 0)
+    row.name:SetPoint("RIGHT", row.arrow, "LEFT", -4, 0)
+    row.name:SetJustifyH("LEFT")
 
     row:SetScript("OnEnter", function(self) RowHover(self); RowTooltip(self) end)
     row:SetScript("OnLeave", function(self) RowHover(self); GameTooltip:Hide() end)
@@ -705,12 +725,26 @@ local function UpdateRow(row, entry, info)
         row.name:SetTextColor(DIM, DIM, DIM)
     end
 
-    local multi = info.slots ~= nil and #info.slots > 1
-    row.slotBtn:SetShown(multi)
-    if multi then row.slotBtn.text:SetText(SLOT_NAME[info.slot] or "") end
-    row.name:ClearAllPoints()
-    row.name:SetPoint("LEFT", row.level, "RIGHT", 4, 0)
-    row.name:SetPoint("RIGHT", multi and row.slotBtn or row.remove, "LEFT", -4, 0)
+    -- 後半段：取代身上的哪一件。兩格部位前面多標格名（戒指1／飾品2／主手…）
+    local repl = row.repl
+    repl.multi = info.slots ~= nil and #info.slots > 1
+    row.arrow:SetShown(info.slots ~= nil)
+    if not info.slots then
+        repl.text:SetText("")
+    else
+        local worn = info.replaced
+        local text
+        if worn then
+            local color = ITEM_QUALITY_COLORS[worn.quality or 4] or ITEM_QUALITY_COLORS[4]
+            text = string.format("%s[%s]|r", color.hex, worn.name or "載入中")
+        else
+            text = string.format("|c%s空格|r", DIM_HEX)
+        end
+        if repl.multi then
+            text = string.format("|c%s%s|r %s", DIM_HEX, SLOT_NAME[info.slot] or "", text)
+        end
+        repl.text:SetText(text)
+    end
 
     SetRowDim(row, not info.active)
 end
@@ -783,36 +817,23 @@ local function CreatePanel()
     panel.empty:SetTextColor(DIM, DIM, DIM)
     panel.empty:SetText("在右側的裝備圖示上按右鍵 →「加入計算」")
 
-    -- 加總區：一項次要屬性一列 —— 全身目前的加總 → 模擬後、變化量、模擬後在四項裡的佔比
+    -- 加總區：2×2 四格，各一項次要屬性 —— 模擬後的全身數值，後面接跟目前比的變化量
     local footer = CreateFrame("Frame", nil, panel)
     footer:SetPoint("BOTTOMLEFT", PAD, PAD)
     footer:SetPoint("BOTTOMRIGHT", -PAD, PAD)
-    footer:SetHeight(6 + COLHEAD_H + CELL_H * #STATS + 4 + 14)
+    footer:SetHeight(6 + CELL_H * 2 + 4 + 14)
     panel.footer = footer
 
     footer.line = NewHairline(footer)
     footer.line:SetPoint("TOPLEFT", 0, 0)
     footer.line:SetPoint("TOPRIGHT", 0, 0)
 
-    local function ColumnHead(text, point, x)
-        local fs = NewText(footer, 11)
-        fs:SetPoint(point, footer, point, x, -6)
-        fs:SetTextColor(DIM, DIM, DIM)
-        fs:SetText(text)
-        return fs
-    end
-    ColumnHead("全身裝備", "TOPLEFT", 0)
-    ColumnHead("目前", "TOPRIGHT", -COL_BEFORE)
-    ColumnHead("模擬後", "TOPRIGHT", -COL_AFTER)
-    ColumnHead("變化", "TOPRIGHT", -COL_DELTA)
-    ColumnHead("佔比", "TOPRIGHT", -COL_PCT)
-
+    local cellW = (PANEL_W - PAD * 2) / 2
     footer.cells = {}
     for i, stat in ipairs(STATS) do
         local cell = CreateFrame("Frame", nil, footer)
-        cell:SetHeight(CELL_H)
-        cell:SetPoint("TOPLEFT", 0, -6 - COLHEAD_H - (i - 1) * CELL_H)
-        cell:SetPoint("TOPRIGHT", 0, -6 - COLHEAD_H - (i - 1) * CELL_H)
+        cell:SetSize(cellW, CELL_H)
+        cell:SetPoint("TOPLEFT", ((i - 1) % 2) * cellW, -6 - math.floor((i - 1) / 2) * CELL_H)
 
         cell.tag = NewTag(cell, stat)
         cell.tag:SetPoint("LEFT", 0, 0)
@@ -821,24 +842,13 @@ local function CreatePanel()
         cell.name:SetPoint("LEFT", cell.tag, "RIGHT", 5, 0)
         cell.name:SetText(stat.name)
 
-        cell.pct = NewText(cell, 11)
-        cell.pct:SetPoint("RIGHT", -COL_PCT, 0)
-        cell.pct:SetTextColor(DIM, DIM, DIM)
-
         cell.delta = NewText(cell, 12)
-        cell.delta:SetPoint("RIGHT", -COL_DELTA, 0)
+        cell.delta:SetPoint("RIGHT", -16, 0)
+        cell.delta:SetJustifyH("RIGHT")
 
-        cell.after = NewText(cell, 12)
-        cell.after:SetPoint("RIGHT", -COL_AFTER, 0)
-
-        cell.arrow = NewText(cell, 11)
-        cell.arrow:SetPoint("RIGHT", -COL_ARROW, 0)
-        cell.arrow:SetTextColor(DIM, DIM, DIM)
-        cell.arrow:SetText("→")
-
-        cell.before = NewText(cell, 12)
-        cell.before:SetPoint("RIGHT", -COL_BEFORE, 0)
-        cell.before:SetTextColor(DIM, DIM, DIM)
+        cell.value = NewText(cell, 12)
+        cell.value:SetPoint("RIGHT", -84, 0)
+        cell.value:SetJustifyH("RIGHT")
 
         footer.cells[i] = cell
     end
@@ -958,20 +968,17 @@ Refresh = function()
     panel.setAll:SetEnabled(hasItems)
 
     -- 加總區永遠在（清單是空的也看得到目前全身的數字）
-    local sum = 0
-    for s = 1, #STATS do sum = sum + after[s] end
     for s, cell in ipairs(panel.footer.cells) do
         local d = after[s] - before[s]
         PaintTag(cell.tag, after[s] > 0)
-        cell.before:SetText(BreakUpLargeNumbers(before[s]))
-        cell.after:SetText(BreakUpLargeNumbers(after[s]))
+        cell.value:SetText(BreakUpLargeNumbers(after[s]))
         if d ~= 0 then
             cell.delta:SetText(SignedNumber(d))
             if d > 0 then cell.delta:SetTextColor(0.25, 1, 0.25) else cell.delta:SetTextColor(1, 0.25, 0.25) end
         else
-            cell.delta:SetText("")
+            cell.delta:SetText(counted > 0 and "±0" or "")
+            cell.delta:SetTextColor(DIM, DIM, DIM)
         end
-        cell.pct:SetText(sum > 0 and string.format("%d%%", math.floor(after[s] / sum * 100 + 0.5)) or "")
     end
 
     -- 裝等：顯示的「目前」用暴雪的已裝備平均（跟角色面板同一個數字），變化量用我們自己照同一條規則算的差
