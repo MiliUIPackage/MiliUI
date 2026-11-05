@@ -38,13 +38,23 @@ local function PaintBar(W, bar, src, ctx, rank)
     -- ⚠ 還要連解析出來的專精一起記：別人的 specIconID 常常是 nil，專精是查觀察快取
     --   （照這一段綁的專精表）補的。觀察問到、切到換專精之前的分段、同職業兩個隊友換排名，
     --   職業與 specIconID 都沒變，只比輸入就會停在舊圖。
-    --   戰鬥中 GUID 是秘密值、查不了快取：解不出來就當作沒變，沿用上一次畫的。
-    local classFile = src.classFilename
-    local specIcon  = src.specIconID
-    local spec      = D.SourceSpec(src, ctx.specMap)
-    if spec == nil and D.IsSecret(src.sourceGUID) then spec = bar._spec end
-    if classFile ~= bar._class or specIcon ~= bar._specIcon or spec ~= bar._spec then
-        bar._class    = classFile
+    -- ⚠ 職業與 specIconID 文件都標 NeverSecret，**specIconID 實測戰鬥中是秘密值**
+    --   （2026-11-06，直接拿來比就是每次重畫一個錯）。兩個都先過守衛再進備忘：
+    --   備忘裡只放明碼，秘密的那一項這一趟不比。
+    --   看不見專精的時候（specIconID 是秘密值；或沒給、而 GUID 是秘密值查不了快取）
+    --   專精當作沒變，沿用上一次畫的 —— 職業變了照樣重畫，那時備忘記的是 nil
+    --   （「這一格畫的是沒有專精的圖」），脫戰讀得到就會再畫一次。
+    local classFile  = D.SafeClass(src.classFilename)
+    local classKey   = classFile or ""      -- 不用 nil：清過備忘的列第一次一定要畫（把圖示藏掉）
+    local specIcon   = src.specIconID
+    local iconSecret = D.IsSecret(specIcon)
+    if iconSecret then specIcon = nil end
+    local spec  = D.SourceSpec(src, ctx.specMap)
+    local blind = spec == nil and (iconSecret or D.IsSecret(src.sourceGUID))
+    if classKey ~= bar._class
+        or (not iconSecret and specIcon ~= bar._specIcon)
+        or (not blind and spec ~= bar._spec) then
+        bar._class    = classKey
         bar._specIcon = specIcon
         bar._spec     = spec
         bar._colorClass = nil
@@ -68,9 +78,9 @@ local function PaintBar(W, bar, src, ctx, rank)
 
     -- 顏色：職業色模式下只在職業變了才重設；固定色只在整批重建時設一次
     if s.barColorMode == "class" then
-        if classFile ~= bar._colorClass then
-            bar._colorClass = classFile
-            target:SetStatusBarColor(Win.BarColor(s, D.SafeClass(classFile), ctx.dmType))
+        if classKey ~= bar._colorClass then
+            bar._colorClass = classKey
+            target:SetStatusBarColor(Win.BarColor(s, classFile, ctx.dmType))
         end
     elseif ctx.fullRebuild or bar._colorClass ~= false then
         bar._colorClass = false
