@@ -185,7 +185,7 @@ DAMAGE_METER_CURRENT_SESSION_UPDATED     -- 「Current 剛剛換了」的權威�
 - **`src.isLocalPlayer` 是 documented NeverSecret**，是唯一安全的身分判斷。文件寫錯的話
   也要退化成「不是自己」，不能退化成 throw。
 - `classFilename` 可能是秘密 → `RAID_CLASS_COLORS[classFile]` 前必須 `issecretvalue` 擋。
-- `sourceGUID` 可能是秘密 → **絕對不能當 table key**。要逐列記狀態就用 `deathRecapID`（NeverSecret，文件標的還有 `classFilename`／`specIconID`／`isLocalPlayer`）。
+- `sourceGUID` 可能是秘密 → **絕對不能當 table key**。要逐列記狀態就用 `deathRecapID`（NeverSecret，文件標的還有 `classFilename`／`specIconID`／`isLocalPlayer`——**但 `specIconID` 實測 2026-11-06 戰鬥中就是秘密值**，文件的 NeverSecret 標記一律當「可能錯」：讀之前過守衛，別直接比較或備忘）。
 - `specIconID` 可能是秘密 → 拿它查專精表前要擋（查表是硬錯），擋掉就退回暴雪圖示。
 - **秘密值 → 一律寫入，永不備忘。** 名字／數字可能是秘密，`SetText(secret)` 合法（顯示得出來），
   但 `~=` 比較會 throw。所以形狀固定是：

@@ -478,11 +478,30 @@ end
 --   脫戰自動排隊問隊友）。戰鬥中 GUID 是秘密值查不了快取，那時只剩 specIconID。
 -- specMap＝這一列所在分段的專精表（IL.SpecMap）：換專精之前的分段要畫當時的專精，
 --   不是他現在的。nil＝目前的專精。
+-- ⚠ **specIconID 自己也會是秘密值**（實測 2026-11-06，戰鬥中；文件標的 NeverSecret 不可信）。
+--   那時連自己那一列都解不出專精，而自己又不在觀察快取裡（專精本來是暴雪給的）——
+--   所以自己那一列最後再退一步問「我現在的專精」。戰鬥中換不了專精，目前這一段一定對；
+--   戰鬥中回頭看換專精之前的分段會畫成現在的，脫戰 specIconID 讀得到就回正。
+local CSI = C_SpecializationInfo
+local GetSpecIndex = (CSI and CSI.GetSpecialization) or GetSpecialization
+local GetSpecInfo  = (CSI and CSI.GetSpecializationInfo) or GetSpecializationInfo
+local function PlayerSpec()
+    local idx = GetSpecIndex and GetSpecIndex()
+    if not idx or not GetSpecInfo then return nil end
+    return D.SpecInfoByID((GetSpecInfo(idx)))
+end
+
 function D.SourceSpec(src, specMap)
     local info = D.SpecInfo(src.specIconID)
     if info then return info end
     local IL = ns.ItemLevel
-    return IL and D.SpecInfoByID(IL.SpecIn(specMap, src.sourceGUID or src.guid))
+    info = IL and D.SpecInfoByID(IL.SpecIn(specMap, src.sourceGUID or src.guid))
+    if info then return info end
+    -- src.isOwn＝頭像卡片自己組的 src（Meter/Card.lua），沒有 isLocalPlayer
+    if issecret(src.specIconID) and (src.isOwn == true or D.IsOwnRow(src)) then
+        return PlayerSpec()
+    end
+    return nil
 end
 
 -- 除錯報告用：整張對照表一行一個專精，照職業與暴雪順序排（驗 SPEC_KEYS 有沒有錯位）
