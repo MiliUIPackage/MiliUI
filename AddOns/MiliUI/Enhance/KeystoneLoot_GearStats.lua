@@ -6,12 +6,16 @@
 -- 每一列可以各自切換升級軌道（英雄／神話）與階級（1/6 ～ 6/6）。
 --
 -- 算的是「拿到這件之後的全身」：基準是身上十六格裝備的次要屬性加總，清單裡每一件
--- 把它要取代的那一格扣掉、再加上自己。面板底部列出模擬後的全身數值與變化量。
+-- 把它要取代的那一格扣掉、再加上自己。面板底部是一張表：角色面板目前的評等與百分比、
+-- 這批替換帶來的變化量、替換後的評等與百分比。
 --   · 每一列後半段寫著它取代身上哪一件；兩格的部位（戒指、飾品、能雙持時的單手武器）
 --     點那一段可以換成取代另一格，預設挑第一個還沒被清單佔走的格。
 --   · 同一格只能有一件算數：點列切換「納入／排除」，納入一件會把撞格的另一件排除。
 --   · 雙手武器進主手會連副手一起換下（身上是雙持雙手武器時例外，那時當兩格部位）。
 --   · 只比裝備本身的屬性：身上那件的附魔與寶石先從連結裡拿掉再算，兩邊才對等。
+--   · 百分比不抄換算表：問 GetCombatRatingBonusForCombatRatingValue「這個評等值是多少 %」，
+--     再把評等以外的來源（基礎值、增益、精通係數）照角色面板的算法接回去。戰鬥中與受限內容裡
+--     屬性 API 回秘密值，那時「目前／替換後」兩列顯示「—」，只剩變化量。
 --
 -- 掛法（都不改 KeystoneLoot 的介面檔）：
 --   · 右鍵選單：包住 KSLMenuUtil.CreateContextMenu（KeystoneLoot 自帶的選單函式庫，不是暴雪的），
@@ -101,7 +105,9 @@ local TAG      = 16     -- 屬性標籤方塊邊長
 local TAG_GAP  = 2
 local LEVEL_W  = 96     -- 「321 英雄 6/6」那一段
 local REPL_W   = 184    -- 「→ 戒指1 [身上那件]」那一段
-local CELL_H   = 20     -- 加總區一格的高
+local CELL_H   = 18     -- 加總表一列的高
+local TABLE_HEAD_H = 20 -- 加總表的欄名列（屬性標籤＋名字）
+local TABLE_LABEL_W = 52 -- 加總表最左邊的列名欄（目前／變化／替換後）
 local EMPTY_H  = 44     -- 清單是空的時候，提示文字佔的高
 local OFF_ALPHA = 0.35  -- 排除在模擬之外的列
 local DIM      = 0.65   -- 次要文字的灰階（HUD／設定視窗皮共用值）
@@ -377,6 +383,80 @@ local function AverageLevel(levels, twoHandMain)
     for _, slot in ipairs(BODY_SLOTS) do sum = sum + (levels[slot] or 0) end
     if twoHandMain and not levels[OFF_HAND] then sum = sum + (levels[16] or 0) end
     return sum / #BODY_SLOTS
+end
+
+------------------------------------------------------------
+-- 角色面板上的次要屬性（評等與百分比）
+------------------------------------------------------------
+-- 明碼數字才回傳。戰鬥中這些 API 回秘密值，拿來比較或算術會直接拋錯
+local function Plain(v)
+    if issecretvalue and issecretvalue(v) then return nil end
+    return type(v) == "number" and v or nil
+end
+
+-- 角色面板挑哪一種致命一擊（PaperDollFrame 的挑法：法術系取最低，再跟遠程、近戰比誰高）
+local function PickCrit()
+    local melee, ranged = Plain(GetCritChance()), Plain(GetRangedCritChance())
+    local spell = Plain(GetSpellCritChance(2))
+    if not melee or not ranged or not spell then return nil end
+    for school = 3, MAX_SPELL_SCHOOLS or 7 do
+        local v = Plain(GetSpellCritChance(school))
+        if not v then return nil end
+        if v < spell then spell = v end
+    end
+    if spell >= ranged and spell >= melee then return spell, CR_CRIT_SPELL end
+    if ranged >= melee then return ranged, CR_CRIT_RANGED end
+    return melee, CR_CRIT_MELEE
+end
+
+-- 四項次要屬性在角色面板上的現況，順序同 STATS：
+--   { cr, rating＝評等, bonus＝評等換來的 %, pct＝面板顯示的 %, mul＝加速（跟增益相乘）, coeff＝精通係數 }
+-- 任何一個值讀不到（秘密值）就整張回 nil
+local function ReadPanel()
+    local crit, critCR = PickCrit()
+    local mastery, coeff = GetMasteryEffect()
+    local versCR = CR_VERSATILITY_DAMAGE_DONE
+    local versRating, versFlat = Plain(GetCombatRatingBonus(versCR)), Plain(GetVersatilityBonus(versCR))
+    local defs = {
+        { cr = versCR, pct = versRating and versFlat and versRating + versFlat },
+        { cr = CR_HASTE_MELEE, pct = Plain(GetHaste()), mul = true },
+        { cr = CR_MASTERY, pct = Plain(mastery), coeff = Plain(coeff) or 1 },
+        { cr = critCR, pct = crit },
+    }
+    for _, def in ipairs(defs) do
+        if not def.cr or not def.pct then return nil end
+        def.rating = Plain(GetCombatRating(def.cr))
+        def.bonus = Plain(GetCombatRatingBonus(def.cr))
+        if not def.rating or not def.bonus then return nil end
+    end
+    return defs
+end
+
+-- 評等變成 rating 之後面板上會是多少 %。回傳 pct, exact
+--   exact＝false：換算函式跟面板現值對不上（它沒算遞減）或根本沒有這支函式，只能照現在的斜率估
+local function ProjectPct(def, rating)
+    if rating == def.rating then return def.pct, true end
+    local ForValue = GetCombatRatingBonusForCombatRatingValue
+    local atNow = ForValue and Plain(ForValue(def.cr, def.rating))
+    local atNew = ForValue and Plain(ForValue(def.cr, rating))
+    local bonus, exact
+    if atNow and atNew then
+        exact = math.abs(atNow - def.bonus) < 0.005
+        bonus = exact and atNew or def.bonus + (atNew - atNow)
+    elseif def.rating > 0 then
+        bonus, exact = def.bonus * rating / def.rating, false
+    else
+        return nil
+    end
+    if def.mul then
+        return ((1 + def.pct / 100) / (1 + def.bonus / 100) * (1 + bonus / 100) - 1) * 100, exact
+    end
+    return def.pct + (bonus - def.bonus) * (def.coeff or 1), exact
+end
+
+local function RatingText(rating, pct, exact)
+    if not pct then return BreakUpLargeNumbers(rating) end
+    return string.format("%s (%s%.2f%%)", BreakUpLargeNumbers(rating), exact and "" or "≈", pct)
 end
 
 local function SignedNumber(n)
@@ -817,38 +897,48 @@ local function CreatePanel()
     panel.empty:SetTextColor(DIM, DIM, DIM)
     panel.empty:SetText("在右側的裝備圖示上按右鍵 →「加入計算」")
 
-    -- 加總區：2×2 四格，各一項次要屬性 —— 模擬後的全身數值，後面接跟目前比的變化量
+    -- 加總表：四欄各一項次要屬性，三列 —— 目前（角色面板）／變化（這批替換的淨值）／替換後
     local footer = CreateFrame("Frame", nil, panel)
     footer:SetPoint("BOTTOMLEFT", PAD, PAD)
     footer:SetPoint("BOTTOMRIGHT", -PAD, PAD)
-    footer:SetHeight(6 + CELL_H * 2 + 4 + 14)
+    footer:SetHeight(6 + TABLE_HEAD_H + CELL_H * 3 + 4 + 14)
     panel.footer = footer
 
     footer.line = NewHairline(footer)
     footer.line:SetPoint("TOPLEFT", 0, 0)
     footer.line:SetPoint("TOPRIGHT", 0, 0)
 
-    local cellW = (PANEL_W - PAD * 2) / 2
+    local ROW_LABELS = { "目前", "變化", "替換後" }
+    for r, label in ipairs(ROW_LABELS) do
+        local fs = NewText(footer, 11)
+        fs:SetPoint("LEFT", footer, "TOPLEFT", 0, -6 - TABLE_HEAD_H - (r - 0.5) * CELL_H)
+        fs:SetTextColor(DIM, DIM, DIM)
+        fs:SetText(label)
+    end
+
+    local colW = (PANEL_W - PAD * 2 - TABLE_LABEL_W) / #STATS
     footer.cells = {}
     for i, stat in ipairs(STATS) do
         local cell = CreateFrame("Frame", nil, footer)
-        cell:SetSize(cellW, CELL_H)
-        cell:SetPoint("TOPLEFT", ((i - 1) % 2) * cellW, -6 - math.floor((i - 1) / 2) * CELL_H)
+        cell:SetSize(colW, TABLE_HEAD_H + CELL_H * 3)
+        cell:SetPoint("TOPLEFT", TABLE_LABEL_W + (i - 1) * colW, -6)
 
         cell.tag = NewTag(cell, stat)
-        cell.tag:SetPoint("LEFT", 0, 0)
+        cell.tag:SetPoint("LEFT", cell, "TOPLEFT", 0, -TABLE_HEAD_H / 2)
 
         cell.name = NewText(cell, 12)
         cell.name:SetPoint("LEFT", cell.tag, "RIGHT", 5, 0)
         cell.name:SetText(stat.name)
 
-        cell.delta = NewText(cell, 12)
-        cell.delta:SetPoint("RIGHT", -16, 0)
-        cell.delta:SetJustifyH("RIGHT")
-
-        cell.value = NewText(cell, 12)
-        cell.value:SetPoint("RIGHT", -84, 0)
-        cell.value:SetJustifyH("RIGHT")
+        local function Line(r)
+            local fs = NewText(cell, 12)
+            fs:SetPoint("LEFT", cell, "TOPLEFT", 0, -TABLE_HEAD_H - (r - 0.5) * CELL_H)
+            return fs
+        end
+        cell.now = Line(1)
+        cell.now:SetTextColor(DIM, DIM, DIM)
+        cell.delta = Line(2)
+        cell.result = Line(3)
 
         footer.cells[i] = cell
     end
@@ -967,17 +1057,31 @@ Refresh = function()
     panel.clear:SetEnabled(hasItems)
     panel.setAll:SetEnabled(hasItems)
 
-    -- 加總區永遠在（清單是空的也看得到目前全身的數字）
+    -- 加總表永遠在（清單是空的也看得到目前的數字）。
+    -- 評等與百分比讀角色面板的；戰鬥中是秘密值，讀不到就只剩變化量
+    local okPanel, stats = pcall(ReadPanel)
+    if not okPanel then stats = nil end
     for s, cell in ipairs(panel.footer.cells) do
         local d = after[s] - before[s]
-        PaintTag(cell.tag, after[s] > 0)
-        cell.value:SetText(BreakUpLargeNumbers(after[s]))
+        PaintTag(cell.tag, true)
+
         if d ~= 0 then
             cell.delta:SetText(SignedNumber(d))
             if d > 0 then cell.delta:SetTextColor(0.25, 1, 0.25) else cell.delta:SetTextColor(1, 0.25, 0.25) end
         else
             cell.delta:SetText(counted > 0 and "±0" or "")
             cell.delta:SetTextColor(DIM, DIM, DIM)
+        end
+
+        local def = stats and stats[s]
+        if def then
+            cell.now:SetText(RatingText(def.rating, def.pct, true))
+            local rating = math.max(0, def.rating + d)
+            local okPct, pct, exact = pcall(ProjectPct, def, rating)
+            cell.result:SetText(RatingText(rating, okPct and pct or nil, exact))
+        else
+            cell.now:SetText("—")
+            cell.result:SetText("—")
         end
     end
 
