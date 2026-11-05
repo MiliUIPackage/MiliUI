@@ -73,6 +73,10 @@ PATCHES = [
     #   兩支本來就支援經典服，程式不用改；重套就是把 `, 16001` 補回 Interface 行尾。
     P("!BugGrabber", "!BugGrabber.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
     P("BugSack", "BugSack.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
+    #   永恆沒有 CharacterFrameTabTemplate（角色面板被 Camelot 版整檔取代），開錯誤視窗會報
+    #   「Couldn't find inherited node」→ 分頁改用父模板。上游新版（TOC 自帶 16001 那版起）本來就用
+    #   PanelTabButtonTemplate，所以這條守的字串對「我們的修補」與「上游新版」都成立。
+    P("BugSack", "sack.lua", "PanelTabButtonTemplate", "永恆的分頁模板（CharacterFrameTabTemplate 不存在）"),
 
     # ── MRT：12.1 光環秘密值閘 ──────────────────────────────────────────
     #   2026-10-18 重套（只剩 CheckPotionsOnPull；UpdateData 上游 5335 已自帶外層閘）。

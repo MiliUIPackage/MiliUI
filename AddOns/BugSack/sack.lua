@@ -4,6 +4,13 @@ if not addon.healthCheck then
 end
 local L = addon.L
 local isRetail = addon.isRetail
+-- fix from MiliUI: 《魔獸世界：永恆》（camelot）的角色面板是 Camelot 版整檔取代，正式服的
+-- CharacterFrameTabTemplate 不存在（經典服的 CharacterFrameTabButtonTemplate 也沒有），開錯誤視窗會報
+-- 「Couldn't find inherited node」。改用它的父模板 PanelTabButtonTemplate（上游新版也是用這個）。
+local isForever = WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT
+local tabTemplate = isForever and "PanelTabButtonTemplate"
+	or isRetail and "CharacterFrameTabTemplate"
+	or "CharacterFrameTabButtonTemplate"
 
 -- The sack
 local window = nil
@@ -432,7 +439,7 @@ local function createBugSack()
 		"Button",
 		"BugSackTabAll",
 		window,
-		isRetail and "CharacterFrameTabTemplate" or "CharacterFrameTabButtonTemplate"
+		tabTemplate
 	)
 	all:SetFrameStrata("FULLSCREEN")
 	all:SetPoint("TOPLEFT", window, "BOTTOMLEFT", isRetail and 10 or 0, isRetail and 6 or 8)
@@ -446,7 +453,7 @@ local function createBugSack()
 		"Button",
 		"BugSackTabSession",
 		window,
-		isRetail and "CharacterFrameTabTemplate" or "CharacterFrameTabButtonTemplate"
+		tabTemplate
 	)
 	session:SetFrameStrata("FULLSCREEN")
 	session:SetPoint("LEFT", all, "RIGHT")
@@ -460,7 +467,7 @@ local function createBugSack()
 		"Button",
 		"BugSackTabLast",
 		window,
-		isRetail and "CharacterFrameTabTemplate" or "CharacterFrameTabButtonTemplate"
+		tabTemplate
 	)
 	last:SetFrameStrata("FULLSCREEN")
 	last:SetPoint("LEFT", session, "RIGHT")

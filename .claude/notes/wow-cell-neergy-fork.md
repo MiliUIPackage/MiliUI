@@ -152,8 +152,9 @@ Widgets 的 nameFormat。對照法：`diff neergy-new/X neergy-new/Forever/X`（
   快速協助／快速施法、版面自動切換；CellDB 整帳號共用、快速協助直接拿 specID 當 key，所以不能像他們用 0）、
   名稱「沒有專精」／圖示 134400、角色只信 `UnitGroupRolesAssigned("player")`（desecret）否則 DAMAGER，
   `PLAYER_ROLES_ASSIGNED` 重算；`ACTIVE_TALENT_GROUP_CHANGED` 在永恆改讀 `C_SpecializationInfo.GetSpecialization()`、
-  nil 收成 0 當訊號，**PLAYER_LOGIN 主動跑一次**（永恆會不會在登入時發這個事件沒把握，playerSpecID 沒值
-  PreUpdateLayout 直接 return ＝ 框架整個不出來）。首次啟動的分專精表只建 `-classID` 一格；
+  nil 收成 0 當訊號。~~PLAYER_LOGIN 主動跑一次~~ **2026-11-05 實機後拿掉**：那一下在 groupType／playerNameShort
+  還沒設時就 Fire("SpecChanged")，登入直接報錯、PLAYER_LOGIN 後半不跑；第一次 UpdateSpecVars 本來就由
+  PLAYER_LOGIN 裡那行無條件的 `UpdateSpecVars()` 負責（見 [[wow-forever-vs-retail-api]] 實機回報）。首次啟動的分專精表只建 `-classID` 一格；
   複製正式服 CellDB 到永恆的情況在 ADDON_LOADED 補 `clickCastings[class][-classID]`／`alwaysTargeting[-classID]`。
   不用 `C_SpecializationInfo.GetSpecializationInfo(idx)` 取名字／角色：查回來是正式服專精資料，德魯伊第三棵
   在 1.x 是恢復、正式服是守護者，寧可顯示「沒有專精」。LibGroupInfo（我們的副本）對 player 在永恆跳過
@@ -194,8 +195,8 @@ Revise 的 clearedBadDefaultActions（他們 CVar 備份期的遺物，我們永
 拔發光（他們是 LibCustomGlow 共用池崩潰，我們是 MiliUIGlow）；Buff Tracker 單人模式（功能）；
 血量文字 deficit 改 UnitHealthMissing（非永恆專屬）；RaidDebuffs tab 的長篇說明（我們只做防呆）。
 
-**待永恆實機驗證**（本機 `_forever_` 已裝客戶端）：登入零錯誤、團隊框有出來（PLAYER_LOGIN 那次主動
-UpdateSpecVars 是關鍵）；`/cab` 看 AuraContainer probe 是否支援、團隊框顯示 1.x 增減益；治療者指示器顯示
+**待永恆實機驗證**（本機 `_forever_` 已裝客戶端）：登入零錯誤、團隊框有出來（2026-11-05 第一次實機：登入三筆錯，
+已修，待重測）；`/cab` 看 AuraContainer probe 是否支援、團隊框顯示 1.x 增減益；治療者指示器顯示
 自己各階 HoT（回春術 774／癒合 8936／恢復 139／真言術：盾 17 的第一階 ID 跟正式服相同，靠 ExpandSpellRanks
 補其餘階）；`C_SpellBook.GetSpellBookItemInfo` 在永恆的欄位（`name`／`subName`＝「等級 N」／`itemType`／
 `isOffSpec`）—— 階數解析全押在 subName；點擊施法清單有 1.x 法術與等級子選單、選一階綁定後真的施放該階
