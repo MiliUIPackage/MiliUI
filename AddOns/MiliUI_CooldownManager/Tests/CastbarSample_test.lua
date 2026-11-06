@@ -3,8 +3,10 @@
 --
 --   lua  AddOns/MiliUI_CooldownManager/Tests/CastbarSample_test.lua
 --
--- 樣本條（ns.Castbar.CreateSample／ns.FocusCastbar.CreateSample）跟畫面上那條共用上色、發光、名字、打斷畫面那幾支
--- （PaintColorOn／ShowGlowOn／PaintNameOn／PaintInterruptedOn…），這裡用假的框把兩條樣本真的建出來、每種狀態跑一輪：
+-- 樣本條（ns.Castbar.CreateSample／ns.FocusCastbar.CreateSample）跟畫面上那條是同一批函式：零件 BuildParts、版面與疊層
+-- LayoutParts、上色／發光／名字／火花／延遲區／打斷畫面（PaintColorOn／ShowGlowOn／PaintNameOn／ShowSparkOn／DrawMarksOn／
+-- PaintInterruptedOn…）。這裡用假的框把兩條樣本真的建出來、每種狀態跑一輪——那批函式畫面上那條也在用，所以這支同時是
+-- 它們唯一的離線覆蓋：
 --   1. 整條路不丟錯（零件、版面、效果層、每幀更新）
 --   2. 樣本上的顏色／文字／發光就是設定裡的那一個（三態色、打斷色、斷法就緒染色、動畫材質底色白、「!」、發光開關）
 --   3. 設定關著的東西樣本也不畫（glowImportant／bangImportant）
@@ -178,11 +180,21 @@ do
     local s = CB.CreateSample(Mock("parent"))
     local ok, err = pcall(s.Refresh, s, 500)
     check("施法條樣本：建得出來、Refresh 不丟錯", ok, err)
-    eq("施法條樣本：寬照設定", s.frame._w, 300)
+    eq("施法條樣本：寬照設定", s._w, 300)
     eq("施法條樣本：名字", Arg(s.nameText, "SetText"), "Preview cast")
     eq("施法條樣本：圖示在", s.iconFrame._shown, true)
     eq("施法條樣本：施法色", Fill(s.bar), "0.1,0.2,0.3")
-    ok, err = pcall(Tick, s.frame, 80)
+    -- 疊層照 LayoutParts（畫面上那條的同一支）：底 L → 條 L+1 → 效果層 L+2 → 刻度與火花 L+3 → 文字 L+4；圖示 L+1
+    eq("施法條樣本：疊層", table.concat({ Arg(s.barHolder, "SetFrameLevel"), Arg(s.bar, "SetFrameLevel"),
+        Arg(s.flowClip, "SetFrameLevel"), Arg(s.marks, "SetFrameLevel"), Arg(s.textFrame, "SetFrameLevel"),
+        Arg(s.iconFrame, "SetFrameLevel") }, ","), "1,2,3,4,5,2")
+    eq("施法條樣本：延遲區照畫（同頁首預覽的假延遲）", s.latency._shown, true)
+    castCfg.latency = false
+    s:Refresh(500)
+    eq("施法條樣本：延遲關掉 ⇒ 不畫", s.latency._shown, false)
+    castCfg.latency = nil
+    s:Refresh(500)
+    ok, err = pcall(Tick, s, 80)
     check("施法條樣本：每幀更新不丟錯（跑過一整輪）", ok, err)
     check("施法條樣本：時間文字有寫", type(Arg(s.timeText, "SetText")) == "string" and Arg(s.timeText, "SetText") ~= "")
 
@@ -202,13 +214,13 @@ do
     ok, err = pcall(s.Refresh, s, 120)
     check("施法條樣本：動畫材質不丟錯", ok, err)
     eq("施法條樣本：動畫材質底色白", Fill(s.bar), "1,1,1")
-    eq("施法條樣本：效果層開著", s.fxOn, true)
+    eq("施法條樣本：效果層開著", s.st.flow, true)
     eq("施法條樣本：效果層三層都在播", #s.fxActive, 3)
-    eq("施法條樣本：放不下縮到可用寬", s.frame._w, 120)
+    eq("施法條樣本：放不下縮到可用寬", s._w, 120)
     eq("施法條樣本：圖示關了", s.iconFrame._shown, false)
     castCfg.animate = false
     s:Refresh(500)
-    eq("施法條樣本：關掉動畫 ⇒ 效果層收掉", s.fxOn, false)
+    eq("施法條樣本：關掉動畫 ⇒ 效果層收掉", s.st.flow, false)
     castCfg.texture, castCfg.showIcon, castCfg.fillDirection, castCfg.animate = "Flat", nil, nil, nil
 end
 
@@ -228,6 +240,10 @@ do
     eq("專注樣本：斷法圖示", Arg(s.kickIcon, "SetTexture"), "kick-96231")
     eq("專注樣本：斷法就緒 ⇒ 圖示亮", Arg(s.kickIcon, "SetAlpha"), 1)
     eq("專注樣本：打向自己", Arg(s.targetText, "SetText"), "米利")
+    -- 疊層照 LayoutParts：底 L → 條 L+1 → 文字 L+3；圖示與斷法圖示 L+1；發光宿主 L+20
+    eq("專注樣本：疊層", table.concat({ Arg(s.barHolder, "SetFrameLevel"), Arg(s.bar, "SetFrameLevel"),
+        Arg(s.textFrame, "SetFrameLevel"), Arg(s.iconFrame, "SetFrameLevel"), Arg(s.kickFrame, "SetFrameLevel"),
+        Arg(s.glowHosts.pixel, "SetFrameLevel") }, ","), "1,2,4,2,2,21")
     ok, err = pcall(Tick, s, 80)
     check("專注樣本：每幀更新不丟錯", ok, err)
 
