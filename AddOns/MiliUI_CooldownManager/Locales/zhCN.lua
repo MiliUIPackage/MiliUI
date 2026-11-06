@@ -1237,4 +1237,3 @@ L["Blizzard reset this spec's Cooldown Manager order during a spec switch (a Bli
 L["Not learned with your current talents, so it isn't shown on screen. It keeps this spot and shows up here once you pick the talent."] = "当前天赋没点，界面上不显示。位置会保留，点了这个天赋就出现在这里。"
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "醉拳显示百分比"
-L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "显示醉拳占最大生命值的百分之几，不显示数值。副本战斗中数值偶尔读不到，那几下先沿用上一次的百分比，一直读不到就改为显示数值，读得到再换回来。"

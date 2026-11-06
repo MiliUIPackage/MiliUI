@@ -1177,4 +1177,3 @@ L["Show your interrupt at the end of the bar"] = "바 끝에 내 차단 기술 �
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "차단 기술 아이콘이 바 반대쪽 끝에 재사용 대기시간 스윕과 함께 표시됩니다. 준비되면 밝게, 대기 중에는 어둡게. 이 전문화에 차단 기술이 없으면 숨겨집니다."
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "시간차를 백분율로"
-L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "시간차 피해량 대신 최대 생명력에서 차지하는 비율을 표시합니다. 인스턴스 전투 중에는 수치를 가끔 읽을 수 없으며, 그때는 잠시 마지막 백분율을 유지하다가 다시 읽을 수 있을 때까지 수치를 표시합니다."

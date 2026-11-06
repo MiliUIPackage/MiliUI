@@ -2298,7 +2298,7 @@ that frame implicitly protected as well"（被錨的是保護框、「那個框�
 - **格距 0**：每格自帶 1px 黑邊，間距 0 時兩條邊並排成 2px ⇒ 一格一框的（點數型、自訂格子）重疊 1 實體像素共用一條邊
   （`R.SegLayout`），引擎畫的格子裝飾第 2 格起不畫左邊（`AuraBar.lua` 的 `LayoutDecor`）。
 - **法力數字**：`manaAbbrev` = none／k（K、M）／wan（萬、億；中韓預設）；`manaPercent` 印百分比。`manaAbbrev` 同時是血量與醉仙緩勁（無視苦痛的退路也是）的大數字格式——設定視窗裡法力、血量、醉仙緩勁三種都有這個下拉，存的是同一格（P6 只搬顯示位置、不搬存放位置）。
-- **醉仙緩勁印百分比**（2026-11-06，玩家要求）：`staggerPercent`（預設關）印「醉仙緩勁佔最大生命的百分之幾」，跟換色門檻同一個算法、可以超過 100（`R.SetStaggerText`，Resources_Rows.lua）。醉仙緩勁不是 power type、**沒有引擎端的百分比 API**（法力有 `UnitPowerPercent`、血量有 `UnitHealthPercent`），`UnitStagger`／`UnitHealthMax` 任一是秘密值就算不出來：先沿用上一次明文算出來的百分比（`staggerLast.pct`／`pctAt`），連續 `R.STAGGER_PCT_HOLD`（2）秒都讀不到就改印數值，讀得到再換回百分比——條是引擎畫的、一直是對的，文字不能停在舊的百分比上。
+- **醉仙緩勁印百分比**（2026-11-06，玩家要求）：`staggerPercent`（**預設開**，設定列不附說明——使用者 2026-11-06 指定）印「醉仙緩勁佔最大生命的百分之幾」，跟換色門檻同一個算法、可以超過 100（`R.SetStaggerText`，Resources_Rows.lua）。醉仙緩勁不是 power type、**沒有引擎端的百分比 API**（法力有 `UnitPowerPercent`、血量有 `UnitHealthPercent`），`UnitStagger`／`UnitHealthMax` 任一是秘密值就算不出來：先沿用上一次明文算出來的百分比（`staggerLast.pct`／`pctAt`），連續 `R.STAGGER_PCT_HOLD`（2）秒都讀不到就改印數值，讀得到再換回百分比——條是引擎畫的、一直是對的，文字不能停在舊的百分比上。
 - **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
   `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_SPELL_HASTE`（法師：秘法靈魂印 GCD 時，GCD 長度變了才重排），

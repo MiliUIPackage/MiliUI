@@ -1656,8 +1656,8 @@ do
         env.AbbreviateNumbers = nil
         local savePct, saveAt = R.staggerLast.pct, R.staggerLast.pctAt
         R.staggerLast.pct, R.staggerLast.pctAt = nil, nil
-        check("百分比：預設關", cfgR.staggerPercent == false)
-        R.SetStaggerText(fs, 45000, 100000, { manaAbbrev = "k" })
+        check("百分比：預設開", cfgR.staggerPercent == true)
+        R.SetStaggerText(fs, 45000, 100000, { manaAbbrev = "k", staggerPercent = false })
         eq("百分比關：照大數字縮寫", fs.t, "45K")
         R.SetStaggerText(fs, SECRET, SECRET, { staggerPercent = true })
         eq("百分比：從沒讀到明文 ⇒ 印數值（秘密值原樣傳下去）", fs.t[2], SECRET)
