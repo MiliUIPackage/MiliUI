@@ -528,9 +528,10 @@ local function SetTimeText(text)
     f.timeText:SetText(text)
 end
 
-local function ShowSpark()
-    f.spark:SetShown((Cfg() or {}).showSpark ~= false)
+local function ShowSparkOn(h)
+    h.spark:SetShown((Cfg() or {}).showSpark ~= false)
 end
+local function ShowSpark() ShowSparkOn(f) end
 
 -- 斷法圖示：圖示（自己的法術，明文）、冷卻轉圈（duration 物件原封轉交）、就緒亮／冷卻中暗（IsZero 的布林只餵 alpha）。
 -- 餵不進去就 Clear（圖示留著）。開唱、SPELL_UPDATE_COOLDOWN（條顯示中）、預覽、套用設定時叫
@@ -938,9 +939,11 @@ function FC.IsPreviewing() return f and S.preview or false end
 
 ------------------------------------------------------------
 -- 設定頁的內嵌樣本（Options/Tab_FocusCast.lua「材質」上方那一列）：一條自己循環填滿的假施法條。
--- **零件、版面、上色、發光、名字、斷法圖示、打斷畫面全部是畫面上那條用的同一批函式**（BuildParts／LayoutParts／
--- PaintColorOn／ShowGlowOn／PaintNameOn／PaintKick…On／PaintInterruptedOn／PaintSpellTargetOn），樣本只負責餵明文的假狀態
--- ⇒ 樣本上的樣式與上色就是實際的套用結果（使用者 2026-11-06 指定：要能順便看樣式或上色有沒有錯）。
+-- **零件、版面、上色、發光、名字、斷法圖示、火花、打斷畫面全部是畫面上那條用的同一批函式**（BuildParts／LayoutParts／
+-- PaintColorOn／ShowGlowOn／PaintNameOn／PaintKick…On／ShowSparkOn／PaintInterruptedOn／PaintSpellTargetOn），
+-- **呼叫順序照 StartDisplay／StartPreview、疊層照 LayoutParts**，樣本只是另一個框 h、只負責餵明文的假狀態
+-- ⇒ 樣本上的樣式與上色就是實際的套用結果（使用者 2026-11-06 指定：套用方式、呼叫順序、疊層都要跟實際一模一樣，
+-- 才能順便拿它看樣式或上色有沒有錯）。**要改畫法就改那批共用函式，不要在這裡另外寫。**
 -- 所以設定關著的東西樣本也不畫：glowImportant／bangImportant 關著時，「重要法術」那兩顆按鈕按了沒有畫面。
 -- 不碰畫面上那條的狀態（S）與任何施法 API。
 --   local s = FC.CreateSample(parent)    s 是框，位置由呼叫端擺
@@ -958,7 +961,6 @@ FC.SAMPLE_MAX_H = 24
 function FC.CreateSample(parent)
     local s = CreateFrame("Frame", nil, parent)
     BuildParts(s)
-    s.icon:SetTexture(PREVIEW_ICON)
     s.state, s.glowOn, s.bangOn = "ready", true, true
 
     local t, acc, wantSpark, lastTime, glowSig = 0, 1, true, nil, nil
@@ -984,31 +986,12 @@ function FC.CreateSample(parent)
         local st = self.state
         local me = UnitName and UnitName("player") or nil
         local class = ns.playerClass or (UnitClassBase and UnitClassBase("player")) or nil
-        lastTime = nil
+
+        -- 開唱：以下照 StartDisplay／StartPreview 的順序，一支都不換位置
+        self.icon:SetTexture(PREVIEW_ICON)
         self.timeText:SetTextColor(1, 1, 1)
-
-        -- 斷法圖示：冷卻不演（沒有真的冷卻可以餵），只有就緒亮／冷卻中暗
-        if self.kickFrame:IsShown() then
-            local id = KickSpell(cfg)
-            if id then PaintKickIconOn(self, id) end
-            if self.kickCD and self.kickCD.Clear then pcall(self.kickCD.Clear, self.kickCD) end
-            PaintKickReadyOn(self, st ~= "cd")
-        end
-
-        if st == "interrupted" then
-            glowSig = nil
-            PaintInterruptedOn(self, cfg.showInterrupter ~= false and me or nil, class)
-            return
-        end
-
-        PaintColorOn(self, st == "immune", st == "ready", true)
         PaintNameOn(self, L["Preview cast"], self.bangOn, L["Focus target"])
-        if cfg.showTarget ~= false and me ~= nil then
-            PaintSpellTargetOn(self, me, class)          -- 範例：打向自己（同頁首的預覽）
-        else
-            ClearSpellTargetOn(self)
-        end
-        -- 發光：開著的那一份照開的那一刻的顏色與尺寸畫（畫面上那條每次開唱都是新的一份）⇒ 這幾樣變了就先停再開
+        -- 發光：畫面上那條每次開唱都是新的一份（照開的那一刻的顏色與尺寸畫）⇒ 這幾樣變了就當成新的一次開唱，先停再開
         local c = Colors().glow
         local sig = table.concat({ GlowStyle(), tostring(type(c) == "table" and c.r), tostring(type(c) == "table" and c.g),
             tostring(type(c) == "table" and c.b), self:GetWidth(), self:GetHeight() }, "|")
@@ -1017,6 +1000,30 @@ function FC.CreateSample(parent)
             StopGlowOn(self)
         end
         ShowGlowOn(self, self.glowOn)
+        lastTime = nil
+        self.timeText:SetText("")
+        if cfg.showTarget ~= false and me ~= nil then
+            PaintSpellTargetOn(self, me, class)          -- 範例：打向自己（同頁首的預覽）
+        else
+            ClearSpellTargetOn(self)
+        end
+        -- 斷法圖示（UpdateKick 的三步）：圖、冷卻轉圈（沒有真的冷卻可以餵 ⇒ 清掉）、就緒亮／冷卻中暗
+        if self.kickFrame:IsShown() then
+            local id = KickSpell(cfg)
+            if id then
+                PaintKickIconOn(self, id)
+                if self.kickCD and self.kickCD.Clear then pcall(self.kickCD.Clear, self.kickCD) end
+                PaintKickReadyOn(self, st ~= "cd")
+            end
+        end
+        PaintColorOn(self, st == "immune", st == "ready", true)
+        self.bar:SetMinMaxValues(0, 1)
+        ShowSparkOn(self)
+
+        -- 被打斷：接在一次開唱後面（畫面上也是唱到一半才被斷），照 ShowInterrupted
+        if st == "interrupted" then
+            PaintInterruptedOn(self, cfg.showInterrupter ~= false and me or nil, class)
+        end
     end
 
     function s:Refresh(maxW)

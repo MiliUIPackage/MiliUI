@@ -73,7 +73,7 @@ local function SampleRow()
     return { type = "custom", label = L["Preview"], h = SAMPLE_ROW_H, noReset = true,
         build = function(parent, x, y, width, ctx)
             local s = ns.Castbar.CreateSample(parent)
-            s.frame:SetPoint("LEFT", parent, "TOPLEFT", x, y - SAMPLE_ROW_H / 2)
+            s:SetPoint("LEFT", parent, "TOPLEFT", x, y - SAMPLE_ROW_H / 2)
             local function Refresh() s:Refresh(width) end
             local apply = ctx.apply
             ctx.apply = function(...)
