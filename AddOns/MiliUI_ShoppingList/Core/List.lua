@@ -5,8 +5,9 @@
 --   配方項目   存「每做一份要什麼材料」＋「要做幾份」，材料需求是兩者相乘
 --   採購清單   把所有配方（＋額外物品）的材料彙總成一張表，
 --              同一種材料的各品質以 1★ 的 itemID 當 key 合併成一組
---   採購列     一組可以有兩列（1★／2★）—— 需要／持有／需買是**整組**的數字，
---              單價／在售／購買才是那一列自己的
+--   採購列     一組一列，品質是玩家在列上挑的。需要是**整組**的數字；
+--              持有／需買只算「挑的那個品質」（見 TierCounts）；
+--              單價／在售／購買是挑的那個品質自己的
 --
 -- ⚠ 名字與圖示一律**現查不存檔**。加入清單那一刻物品快取常常還是空的，存下去
 --   就會在 SavedVariables 裡留一筆永遠的「未知」，而且之後怎麼重整都不會變。
@@ -444,26 +445,28 @@ local function IncludeBank()
     return ns.db.settings.includeBank and true or false
 end
 
--- 一組（＝同一材料的所有品質）的持有量：背包／銀行／還在信箱
-local function GroupCounts(starIDs)
-    local bags, bank, transit = 0, 0, 0
-    local seen = {}
-    for _, id in pairs(starIDs) do
-        if id and not seen[id] then
-            seen[id] = true
-            local b, k = List.Counts(id)
-            bags, bank = bags + b, bank + k
-            transit = transit + List.InTransit(id)
-        end
-    end
-    return bags, bank, transit
+-- 玩家挑的那個品質的持有量：背包／銀行／還在信箱
+--
+-- ⚠ 只算**挑的那個品質本身**，不是整組加總，比它高的也不算。
+--   挑 2★ 的意思是「我要 2★ 的成品」，背包裡那 94 個 1★ 幫不上忙 —— 整組加總的話
+--   清單會說「已齊」，購買鈕跟著變灰，玩家連想補都補不了（實測回報：6 個 2★＋
+--   94 個 1★ 顯示成持有 100）。
+--   「挑 1★ 時手上的 2★ 也算」試過，使用者明講不要：列上的數字要跟那一列的圖示
+--   是同一樣東西，背包裡數得出來才對得了帳。
+local function TierCounts(starIDs, tier)
+    local id = starIDs[tier]
+    if not id then return 0, 0, 0 end
+    local bags, bank = List.Counts(id)
+    return bags, bank, List.InTransit(id)
 end
 
 function List.RecipeDetail(entry)
     local lines, missing = {}, 0
     for _, r in ipairs(entry.reagents or {}) do
         local starIDs = List.StarIDs(r.itemID, r.alts)
-        local bags, bank, transit = GroupCounts(starIDs)
+        -- 跟採購表看同一個真相：品質的 key 與挑選都照 Shopping 的算法
+        local tier = List.ChosenTier(starIDs[1] or r.itemID, starIDs)
+        local bags, bank, transit = TierCounts(starIDs, tier)
         local have = bags + transit + (IncludeBank() and bank or 0)
         local need = (r.perCraft or 1) * (entry.quantity or 1)
         local buy  = math.max(0, need - have)
@@ -552,13 +555,13 @@ function List.Shopping(opts)
     local hideVendor  = ns.db.settings.hideVendor and not showHidden
                         and not (opts and opts.includeReady)
     for _, g in ipairs(order) do
-        local bags, bank, transit = GroupCounts(g.starIDs)
+        local tier   = List.ChosenTier(g.key, g.starIDs)
+        local itemID = g.starIDs[tier]
+
+        local bags, bank, transit = TierCounts(g.starIDs, tier)
         local have = bags + transit + (IncludeBank() and bank or 0)
         local buy  = math.max(0, g.need - have)
         if buy > 0 then missingRows = missingRows + 1 end
-
-        local tier   = List.ChosenTier(g.key, g.starIDs)
-        local itemID = g.starIDs[tier]
         local quote  = ns.Auction and ns.Auction.Quote(itemID)
         local vendor = List.IsVendorItem(itemID)
         local ignored = List.IsIgnored(g.key)
