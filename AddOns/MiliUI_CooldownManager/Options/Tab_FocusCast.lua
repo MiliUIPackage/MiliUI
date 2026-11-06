@@ -212,8 +212,6 @@ local function Controls()
             fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } }),
         { type = "header", label = L["Effects"] },
         BS("toggle", "showSpark", L["Spark at the leading edge"]),
-        BS("toggle", "castShake", L["Shake when an interruptible cast starts"]),
-        Note(L["The bar gives a short shake when your focus starts a cast you can interrupt, or when a cast becomes interruptible midway. Non-interruptible casts stay still."]),
         BS("toggle", "showInterrupter", L["Show who interrupted it"]),
         Note(L["When the cast is interrupted, the bar turns red and shows the interrupter's name in class color for a second."]),
         { type = "header", label = L["Visibility"] },

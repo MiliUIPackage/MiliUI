@@ -336,58 +336,5 @@ do
     eq("專注樣本：沒有斷法 ⇒ 斷法圖示藏起來", s.kickFrame._shown, false)
 end
 
-------------------------------------------------------------
--- 3. 專注目標施法條的開唱震動（分身＋互補 alpha；明文路徑。秘密布林那條路只差在 alpha 由 SetAlphaFromBoolean 餵）
-------------------------------------------------------------
-do
-    local h = Mock("Frame")
-    local g = FC.BuildTwin(h, Mock("parent"))
-    check("震動：分身建得出來、平常藏著", h.twin == g and g._shown == false and h.twinOn == false)
-    check("震動：分身的零件是同一支 BuildParts", g.bar ~= nil and g.icon ~= nil and g.nameText ~= nil and g.glowHosts ~= nil)
-
-    -- 可以斷（明文 false）：本尊 0、分身 1、分身在震
-    FC.ArmShakeOn(h, false)
-    eq("震動：可以斷 ⇒ 帶分身", h.twinOn, true)
-    FC.GoShakeOn(h, false)
-    eq("震動：可以斷 ⇒ 本尊透明", Arg(h, "SetAlpha"), 0)
-    eq("震動：可以斷 ⇒ 分身不透明", Arg(g, "SetAlpha"), 1)
-    check("震動：可以斷 ⇒ 分身顯示、動畫在播", g._shown == true and g.shake._playing == true)
-
-    -- 震完（動畫組的 OnFinished）：分身收掉、本尊 alpha 回 1
-    g.shake._scripts.OnFinished()
-    check("震動：震完 ⇒ 分身藏起來、本尊 alpha 回 1", h.twinOn == false and g._shown == false and Arg(h, "SetAlpha") == 1)
-    local ok, err = pcall(FC.EndShakeOn, h)
-    check("震動：重複收不丟錯", ok, err)
-
-    -- 不可中斷（明文 true）：不開分身、本尊不動
-    FC.ArmShakeOn(h, true)
-    FC.GoShakeOn(h, true)
-    check("震動：不可中斷 ⇒ 不帶分身、分身照樣藏著", h.twinOn == false and g._shown == false)
-    eq("震動：不可中斷 ⇒ 本尊 alpha 沒被動", Arg(h, "SetAlpha"), 1)
-
-    -- 還沒震完又開唱：先收再開
-    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
-    FC.ArmShakeOn(h, true)
-    check("震動：連續開唱 ⇒ 上一次的先收掉", h.twinOn == false and g._shown == false and Arg(h, "SetAlpha") == 1)
-
-    -- 設定關掉：都不震
-    focusCfg.castShake = false
-    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
-    check("震動：設定關掉 ⇒ 不帶分身", h.twinOn == false and g._shown == false)
-    h.shake._playing = false
-    FC.JoltOn(h)
-    eq("震動：設定關掉 ⇒ 中途變可斷也不震", h.shake._playing, false)
-    focusCfg.castShake = nil
-
-    -- 施法中途變成可以斷：震本尊；分身還在震就不疊
-    FC.JoltOn(h)
-    eq("震動：中途變可斷 ⇒ 震本尊", h.shake._playing, true)
-    h.shake._playing = false
-    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
-    FC.JoltOn(h)
-    eq("震動：分身還在震 ⇒ 本尊不疊", h.shake._playing, false)
-    FC.EndShakeOn(h)
-end
-
 print(("CastbarSample_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

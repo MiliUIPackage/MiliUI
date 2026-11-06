@@ -549,7 +549,6 @@ FocusCastDefaults = function()
         timeOffset    = { x = -4, y = 0 },
         showSpark     = true,
         showInterrupter = true,            -- 被打斷時右側印斷法者的名字（職業色）
-        castShake     = true,              -- 開始唱可以斷的法術（或施法中途變成可以斷）時整條震一下（2026-11-06；舊存檔沒有 ＝ 開）
         -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色（2026-10-19 使用者指定，
         -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號）
         showTarget       = true,

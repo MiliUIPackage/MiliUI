@@ -2680,15 +2680,6 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   「!」版的名字是另一顆 FontString（`f.bangText`，疊在 `nameText` 上），兩顆 alpha 互補（`SetAlphaFromBoolean(important, 1, 0)` ／ `(important, 0, 1)`）。
   樣式 `glowStyle`：像素跑線（條外框，2px 往外推 1px）／自動施放閃點（條外框）／觸發發光（圖示）；引擎 vendor 的 `MiliUIGlow`，`Start` 系列失敗（pcall）就不亮。
   施法結束、被打斷、換樣式都 `StopGlow`。
-- **開唱震動**（`castShake`，預設開，2026-11-06）：專注目標開始唱可以斷的法術時整條震一下（0.3 秒、六段位移加總歸零）。
-  可不可以斷在受限內容是秘密布林，而位移類 API（`Translation:SetOffset`／`SetPoint`／`SetScale`）的 `SecretArguments` 都是
-  `AllowedWhenUntainted`，插件餵不進秘密值 ⇒ 沒辦法「可斷才位移」。做法是「!」版名字那一招放大到整條：`BuildTwin` 多建一條
-  一模一樣的**分身**（`f.twin`，`f` 的兄弟框、同一支 `BuildParts`／`LayoutParts`），震動掛在分身上、每次開唱都播，本尊與分身的
-  alpha 餵同一個布林、互補（可斷 ⇒ 看到在震的分身；不可中斷 ⇒ 看到沒動的本尊），震完分身藏起來、本尊 alpha 回 1。
-  三步 `ArmShakeOn`（開唱一開始）→ `GoShakeOn`（畫完）→ `EndShakeOn`（震完／收條／被打斷／下一次開唱）；**從 Arm 到 Go 之間畫到 `f`
-  的東西一律經 `Each(f, …On, …)`**，分身才會跟本尊長得一樣——之後這條多畫什麼新東西，記得也走 `Each`，不然震的那 0.3 秒會少一塊。
-  明文模式（脫戰、頁首的「預覽」）走同一條路；明文的不可中斷連分身都不開。施法中途變成可以斷（`UNIT_SPELLCAST_INTERRUPTIBLE`，
-  事件名稱是明文）直接震本尊（`JoltOn`）。設定頁的內嵌樣本不震（它每 3.6 秒循環一次）。**秘密模式那條路未實機。**
 - **被打斷**（`showInterrupter`，預設開）：`UNIT_SPELLCAST_INTERRUPTED` 第 4 參數／`CHANNEL_STOP` 第 4／`EMPOWER_STOP` 第 5 是 interrupterGUID（只比 nil）。
   凍結滿條變紅、名字換「已打斷」、右側 `timeText` 印斷法者（`UnitNameFromGUID` ＋ `GetPlayerInfoByGUID` 的職業 → `C_ClassColor`；
   **職業是秘密字串就白字**，秘密值不能當 table key、`SetTextColor` 不收秘密值），停留 1 秒再淡出（玩家施法條是 0.4 秒；這條要讀得到名字）。
