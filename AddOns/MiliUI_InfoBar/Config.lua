@@ -182,8 +182,8 @@ blockDefaults.ms.source = "world"
 
 ns.DB_DEFAULTS = {
     enabled      = true,
-    -- x / y 刻意不放預設：nil = 玩家沒拖過，位置跟隨官方微型選單那排
-    -- （Core/Bar.lua 的 DefaultPosition）。CopyDefaults 只補 nil 欄位，
+    -- x / y 刻意不放預設：nil = 玩家沒拖過，位置是畫面正上方置中
+    -- （Core/Bar.lua 的 ApplyDefaultPosition）。CopyDefaults 只補 nil 欄位，
     -- 放了預設值反而把「沒拖過」這個狀態蓋掉。
     height       = 26,
     fontSize     = 12,

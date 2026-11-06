@@ -86,8 +86,10 @@ function ns.InitDB()
     db = MiliUI_InfoBar_DB
     CopyDefaults(ns.DB_DEFAULTS, db)
     -- 一次性遷移：v1 的預設位置寫死 (0,-420) 而且當時拖曳是壞的，清掉讓
-    -- 「跟隨官方微型選單那排」的新預設接手。真的拖去那個座標的人不存在
-    -- （拖曳從沒動過）。
+    -- 「沒拖過＝nil」的預設接手。真的拖去那個座標的人不存在（拖曳從沒動過）。
+    -- 之後預設位置再改（2026-11-06：跟隨官方微型選單那排 → 畫面正上方置中）
+    -- 都不必再遷移：沒拖過的存檔裡根本沒有座標，直接吃新的預設；拖過的有
+    -- 座標，照舊擺在玩家放的地方。
     if db.posVersion == nil then
         db.posVersion = 2
         if db.x == 0 and db.y == -420 then
@@ -773,23 +775,15 @@ end
 -- 位置：CENTER 偏移存 SavedVariables（跟解析度/UI 縮放脫鉤），
 -- 編輯模式拖曳來改。做法照 wow-editmode-draggable 技能。
 --
--- 玩家沒拖過（db.x/db.y 為 nil）時，預設位置**跟隨官方微型選單那排**——
--- 讀 MicroMenuContainer 的中心（讀取不污染；被我們藏起來也還有 rect，
--- 錨點都在）。GetCenter 回的是框自己座標系的值，要用有效縮放換到
--- UIParent 座標才能當 CENTER 偏移。
+-- 玩家沒拖過（db.x/db.y 為 nil）時，預設位置是**畫面正上方置中**——
+-- 直接把上緣錨在 UIParent 的上緣，不換算成 CENTER 偏移：改條的高度、
+-- 換解析度／UI 縮放、登入那一刻 UIParent 尺寸還不是最終值，引擎都會
+-- 自己跟上，不必重算。Mac 瀏海那一截暴雪已經從 UIParent 的上緣扣掉了。
+-- （2026-11-06 以前是跟隨官方微型選單那排。）
 ----------------------------------------------------------------------
-local function DefaultPosition()
-    local c = _G.MicroMenuContainer
-    if c and c.GetCenter then
-        local cx, cy = c:GetCenter()
-        if cx and cy then
-            local scale = (c.GetEffectiveScale and c:GetEffectiveScale() or 1)
-                        / UIParent:GetEffectiveScale()
-            local ux, uy = UIParent:GetCenter()
-            return math.floor(cx * scale - ux + 0.5), math.floor(cy * scale - uy + 0.5)
-        end
-    end
-    return 0, -420
+local function ApplyDefaultPosition()
+    bar:ClearAllPoints()
+    bar:SetPoint("TOP", UIParent, "TOP", 0, 0)
 end
 
 ----------------------------------------------------------------------
@@ -1004,7 +998,8 @@ local function ApplyPosition()
     end
     local x, y = db.x, db.y
     if x == nil or y == nil then
-        x, y = DefaultPosition()
+        ApplyDefaultPosition()
+        return
     end
     bar:ClearAllPoints()
     bar:SetPoint("CENTER", UIParent, "CENTER", x, y)
@@ -1447,8 +1442,6 @@ ns.Events.Register("PLAYER_LOGIN", "boot", function()
     ns.ApplyAll()
 end)
 -- 載入畫面會重置一些外部狀態（暴雪那排的可見度），進世界後強制重推一次。
--- 沒拖過的預設位置也在這裡重算：登入那一刻 MicroMenuContainer 的 rect
--- 不一定就緒，進世界後 Edit Mode 版面已套完，讀得到正確位置。
 -- 外力把 UIParent 的錨點重設之後把內縮貼回去：當下一次、0.5 秒後再一次保險
 -- （暴雪套版面的時機不保證在我們之前）。使用者實測會重設的時機：鑰石開始
 --（CHALLENGE_MODE_START）；載入畫面保險起見一起接。
@@ -1466,7 +1459,6 @@ end
 
 ns.Events.Register("PLAYER_ENTERING_WORLD", "bar-repair", function()
     if ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
-    if db and (db.x == nil or db.y == nil) then ApplyPosition() end
     RepairInset()
     -- 1px 邊的粗細重新換算一次（登入那一刻的縮放可能不是最終值；排版裡比對過才重設）
     if db and bar then ns.RequestLayout() end
