@@ -1237,3 +1237,8 @@ L["Blizzard reset this spec's Cooldown Manager order during a spec switch (a Bli
 L["Not learned with your current talents, so it isn't shown on screen. It keeps this spot and shows up here once you pick the talent."] = "当前天赋没点，界面上不显示。位置会保留，点了这个天赋就出现在这里。"
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "醉拳显示百分比"
+-- 專注目標施法頁的樣本條：挑假施法狀態的六顆按鈕（Options/Tab_FocusCast.lua 的 SampleRow，2026-11-06）
+L["Kick ready"] = "打断就绪"
+L["Kick on CD"] = "打断冷却中"
+L["Important spell: glow"] = "重要法术发光"
+L["Important spell: \"!\""] = "重要法术惊叹号"

@@ -1177,3 +1177,8 @@ L["Show your interrupt at the end of the bar"] = "Показывать своё 
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "Значок вашего прерывания стоит на дальнем конце полосы с анимацией восстановления: яркий, когда готов, тусклый во время восстановления. Скрыт, если у этой специализации нет прерывания."
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "Пошатывание в процентах"
+-- 專注目標施法頁的樣本條：挑假施法狀態的六顆按鈕（Options/Tab_FocusCast.lua 的 SampleRow，2026-11-06）
+L["Kick ready"] = "Прерывание готово"
+L["Kick on CD"] = "Прерывание восстанавливается"
+L["Important spell: glow"] = "Важное заклинание: свечение"
+L["Important spell: \"!\""] = "Важное заклинание: «!»"

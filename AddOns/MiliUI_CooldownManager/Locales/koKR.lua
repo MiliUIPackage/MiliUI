@@ -1177,3 +1177,8 @@ L["Show your interrupt at the end of the bar"] = "바 끝에 내 차단 기술 �
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "차단 기술 아이콘이 바 반대쪽 끝에 재사용 대기시간 스윕과 함께 표시됩니다. 준비되면 밝게, 대기 중에는 어둡게. 이 전문화에 차단 기술이 없으면 숨겨집니다."
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "시간차를 백분율로"
+-- 專注目標施法頁的樣本條：挑假施法狀態的六顆按鈕（Options/Tab_FocusCast.lua 的 SampleRow，2026-11-06）
+L["Kick ready"] = "차단기 준비됨"
+L["Kick on CD"] = "차단기 재사용 대기 중"
+L["Important spell: glow"] = "중요 주문: 발광"
+L["Important spell: \"!\""] = "중요 주문: \"!\""

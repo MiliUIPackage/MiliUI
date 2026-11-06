@@ -684,10 +684,11 @@ local function EmpowerStage()
     return r
 end
 
-local function BaseColor()
+-- st ＝ 施法狀態表（畫面上那條是 S；設定頁的樣本是它自己的小表）
+local function BaseColor(st)
     local cfg = Cfg() or {}
     local c = Colors()
-    if S.castEmpowered then
+    if st.castEmpowered then
         return C(c["empowerStage" .. EmpowerStage()], 0.35, 0.75, 0.35)
     end
     -- 動畫材質：底色白（施法色／職業色不染），上面的狀態色照舊乘上去
@@ -696,7 +697,7 @@ local function BaseColor()
         local r, g, b = ns.Style.Accent()
         return r, g, b
     end
-    if S.castChannel then return C(c.channel, 0.906, 0.424, 0.2) end
+    if st.castChannel then return C(c.channel, 0.906, 0.424, 0.2) end
     return C(c.cast, 0.906, 0.424, 0.2)
 end
 
@@ -708,12 +709,15 @@ end
 -- 曲線串接的保險：第一次被擋就永久放掉斷法就緒色，保住「不可打斷灰」
 local chainOK = true
 
-local function ApplyColor()
-    local tex = f.bar:GetStatusBarTexture()
+-- **畫面上那條（h ＝ f、st ＝ S）與設定頁的樣本（CB.CreateSample）共用**：樣本不另寫一份上色，餵明文的假狀態走同一條路
+-- ⇒ 樣本上看到的就是實際的套用結果（斷法就緒染色、動畫讓位都照演），這裡寫錯兩邊一起錯、看得出來。
+-- st 要有 castEmpowered／castChannel／castNotInterruptible／flow
+local function PaintColorOn(h, st)
+    local tex = h.bar:GetStatusBarTexture()
     if not tex then return end
     local cfg = Cfg() or {}
     local c = Colors()
-    local br, bg, bb = BaseColor()
+    local br, bg, bb = BaseColor(st)
     local r, g, b = br, bg, bb
     local tinted = false
     local flowReady                           -- 效果層要讓位的「斷法就緒」旗標（nil ＝ 沒這回事）
@@ -733,7 +737,7 @@ local function ApplyColor()
         end
     end
     -- 不可打斷（可能是秘密布林：只餵曲線）
-    local ni = S.castNotInterruptible
+    local ni = st.castNotInterruptible
     if ni ~= nil then
         if IsSecret(ni) then
             if Eval then
@@ -751,11 +755,12 @@ local function ApplyColor()
     end
     tex:SetVertexColor(r, g, b, 1)
     -- 效果層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
-    if S.flow and f.flowClip then
-        FlowAlpha(f.flowClip, ni)
-        FlowAlpha(f.flowHost, flowReady)
+    if st.flow and h.flowClip then
+        FlowAlpha(h.flowClip, ni)
+        FlowAlpha(h.flowHost, flowReady)
     end
 end
+local function ApplyColor() PaintColorOn(f, S) end
 
 ------------------------------------------------------------
 -- 刻度／蓄力分階／延遲區
@@ -1015,11 +1020,12 @@ local function PlainOnUpdate(self, dt)
     end
 end
 
-local function SetName(name)
+local function PaintNameOn(h, name)
     local cfg = Cfg() or {}
     -- 秘密字串照樣餵 SetText（C 端吃得下），只是不截字
-    f.nameText:SetText(CB.Truncate(name, cfg.nameMaxChars) or "")
+    h.nameText:SetText(CB.Truncate(name, cfg.nameMaxChars) or "")
 end
+local function SetName(name) PaintNameOn(f, name) end
 
 local function StartDisplay()
     local cfg = Cfg()
@@ -1228,9 +1234,14 @@ function CB.IsPreviewing() return f and S.preview or false end
 
 ------------------------------------------------------------
 -- 設定頁的內嵌樣本（Options/Tab_Castbar.lua「材質」上方那一列）：一條自己循環填滿的假施法條，
--- 換材質／動畫當場看得到，不用去畫面上找那條真的。材質、動畫與速度、底色、填充方向、施法色（職業色）、火花、陰影
--- 照目前的設定；圖示、文字、刻度不畫。只有 Frame／StatusBar／Texture，不碰玩家施法條的狀態（S）與任何施法 API。
--- 寬 ＝ 實際的條寬（放不下縮到 maxW）、高 ＝ 實際的高（上限 CB.SAMPLE_MAX_H：列高是固定的），材質的比例才跟畫面上一樣。
+-- 換材質／動畫當場看得到，不用去畫面上找那條真的。照目前設定畫的：圖示（顯示、左右、間距）、材質、動畫與速度、底色、
+-- 填充方向、火花、陰影、法術名與時間（顯示、字型、字級、位移、截字、時間格式）；刻度、延遲不畫。
+-- **上色、名字、效果層是畫面上那條用的同一批函式**（PaintColorOn／PaintNameOn／Fx…）：樣本當成一個一般的可打斷施法餵進去，
+-- 所以「斷法就緒時染色」開著、斷法又剛好就緒時，樣本也會染色、動畫也會讓位——那就是畫面上實際的樣子
+-- （使用者 2026-11-06 指定：樣式的套用要跟實際一樣，才能順便看有沒有錯）。
+-- 只有 Frame／StatusBar／Texture／FontString，不碰玩家施法條的狀態（S）與任何施法 API。版面照 CB.Layout 抄
+-- （那支跟刻度、效果層、施法狀態纏在一起，抽不成共用的；改那邊的排法時這裡要跟著改）。
+-- 寬 ＝ 實際的寬（放不下縮到 maxW）、高 ＝ 實際的高（上限 CB.SAMPLE_MAX_H：列高是固定的），材質的比例才跟畫面上一樣。
 --   local s = CB.CreateSample(parent)   s.frame 由呼叫端擺位置；s:Refresh(maxW) 照目前設定重畫
 -- 填充每 SAMPLE_TIME 秒跑一輪、滿了停 SAMPLE_HOLD 秒（OnUpdate 只在看得到時跑）
 ------------------------------------------------------------
@@ -1239,8 +1250,11 @@ CB.SAMPLE_MAX_H = 24
 
 function CB.CreateSample(parent)
     local s = { frame = CreateFrame("Frame", nil, parent) }
+    s.iconFrame = CreateFrame("Frame", nil, s.frame, "BackdropTemplate")
+    s.icon = NoSnap(s.iconFrame:CreateTexture(nil, "ARTWORK"))
+    s.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    s.icon:SetTexture(PREVIEW_ICON)
     s.holder = CreateFrame("Frame", nil, s.frame, "BackdropTemplate")
-    s.holder:SetAllPoints(s.frame)
     s.bgTex = NoSnap(s.holder:CreateTexture(nil, "BACKGROUND"))
     s.bgTex:SetTexture(SOLID)
     s.bar = CreateFrame("StatusBar", nil, s.holder)
@@ -1253,35 +1267,72 @@ function CB.CreateSample(parent)
     s.spark = s.top:CreateTexture(nil, "OVERLAY")
     s.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
     s.spark:SetBlendMode("ADD")
+    s.textFrame = CreateFrame("Frame", nil, s.frame)
+    s.textFrame:SetAllPoints(s.holder)
+    -- ⚠ 先給字型才能 SetText
+    s.nameText = s.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(s.nameText, 12, "OUTLINE")
+    s.nameText:SetJustifyH("LEFT")
+    s.nameText:SetWordWrap(false)
+    s.timeText = s.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(s.timeText, 12, "OUTLINE")
+    s.timeText:SetJustifyH("RIGHT")
+    s.timeText:SetWordWrap(false)
 
-    local t, wantSpark = 0, true
+    -- 假施法的狀態：一般的可打斷施法（同頁首預覽餵給 S 的那幾格）；flow 在 Refresh 裡寫
+    s.st = { castEmpowered = false, castChannel = false, castNotInterruptible = false, flow = false }
+
+    local t, acc, wantSpark, lastTime = 0, 1, true, nil
     s.frame:SetScript("OnUpdate", function(_, dt)
         t = t + dt
         if t >= SAMPLE_TIME + SAMPLE_HOLD then t = t % (SAMPLE_TIME + SAMPLE_HOLD) end
         local filling = t < SAMPLE_TIME
         s.bar:SetValue(filling and t / SAMPLE_TIME or 1)
         s.spark:SetShown(wantSpark and filling)
+        acc = acc + dt
+        if acc < 0.05 then return end
+        acc = 0
+        local text = FormatTime((Cfg() or {}).timeFormat, filling and t or SAMPLE_TIME, SAMPLE_TIME)
+        if text ~= lastTime then
+            lastTime = text
+            s.timeText:SetText(text)
+        end
+        PaintColorOn(s, s.st)                 -- 我方斷法冷卻會變（同畫面上那條的 PlainOnUpdate）
     end)
 
-    local sig
+    local texToken, fxSig = false, nil
     function s:Refresh(maxW)
         local cfg = Cfg() or {}
-        local W, H = Width(cfg), tonumber(cfg.height) or 20
+        local W, H = ns.P.Scale(Width(cfg)), ns.P.Scale(tonumber(cfg.height) or 20)
         if maxW and W > maxW then W = maxW end
-        if W < 40 then W = 40 end
+        if W < 80 then W = 80 end
         if H > CB.SAMPLE_MAX_H then H = CB.SAMPLE_MAX_H elseif H < 6 then H = 6 end
-        -- 畫面上看得到的東西都沒變就不重設：重設會讓動畫從頭播，改別的設定（文字、錨定…）時樣本不該跟著跳一下
-        local bgc, cc = cfg.bgColor or {}, Colors().cast or {}
-        local ar, ag, ab = ns.Style.Accent()
-        local now = table.concat({ W, H, tostring(cfg.texture), tostring(cfg.animate), tostring(cfg.animSpeed),
-            tostring(ns.FillReversed(cfg)), tostring(cfg.useClassColor), tostring(cfg.showSpark),
-            tostring(cfg.shadow), tostring(cfg.shadowSize), tostring(cfg.shadowAlpha),
-            tostring(bgc.r), tostring(bgc.g), tostring(bgc.b), tostring(bgc.a),
-            tostring(cc.r), tostring(cc.g), tostring(cc.b), tostring(ar), tostring(ag), tostring(ab) }, "|")
-        if now == sig then return end
-        sig = now
         self.frame:SetSize(W, H)
 
+        -- 圖示
+        local showIcon = cfg.showIcon ~= false
+        local iconW = showIcon and H or 0
+        local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
+        local left = cfg.iconSide ~= "RIGHT"
+        self.iconFrame:SetShown(showIcon)
+        self.iconFrame:ClearAllPoints()
+        self.iconFrame:SetSize(iconW > 0 and iconW or 1, H)
+        self.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", self.frame, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
+        local edge = ns.P.Pixel(1)
+        self.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+        if ns.NoSnapBackdrop then ns.NoSnapBackdrop(self.iconFrame) end
+        self.iconFrame:SetBackdropColor(0, 0, 0, 1)
+        self.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
+        self.icon:ClearAllPoints()
+        self.icon:SetPoint("TOPLEFT", self.iconFrame, "TOPLEFT", edge, -edge)
+        self.icon:SetPoint("BOTTOMRIGHT", self.iconFrame, "BOTTOMRIGHT", -edge, edge)
+
+        -- 條身
+        local barW = W - iconW - gap
+        if barW < 4 then barW = 4 end
+        self.holder:ClearAllPoints()
+        self.holder:SetSize(barW, H)
+        self.holder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", self.frame, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
         local inset = ns.Media.BorderInset(1)
         self.holder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
         if ns.NoSnapBackdrop then ns.NoSnapBackdrop(self.holder) end
@@ -1294,7 +1345,12 @@ function CB.CreateSample(parent)
         self.bar:ClearAllPoints()
         self.bar:SetPoint("TOPLEFT", self.holder, "TOPLEFT", inset, -inset)
         self.bar:SetPoint("BOTTOMRIGHT", self.holder, "BOTTOMRIGHT", -inset, inset)
-        SetFillTexture(self.bar, cfg.texture)
+        -- 材質只在換了的時候重設：效果層的裁切框錨在填充貼圖上
+        local token = cfg.texture
+        if token ~= texToken then
+            SetFillTexture(self.bar, token)
+            texToken, fxSig = token, nil
+        end
         local reversed = ns.FillReversed(cfg)
         self.bar:SetReverseFill(reversed)
 
@@ -1303,42 +1359,56 @@ function CB.CreateSample(parent)
         self.bar:SetFrameLevel(lvl + 1)
         self.flowClip:SetFrameLevel(lvl + 2)
         self.top:SetFrameLevel(lvl + 3)
+        self.textFrame:SetFrameLevel(lvl + 4)
+        self.iconFrame:SetFrameLevel(lvl + 1)
 
         local SH = ns.Shape
         if SH then
             local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
             SH.EdgeShadow(self.frame, self.holder, spx, sa)
+            SH.EdgeShadow(self.frame, self.iconFrame, showIcon and spx or nil, sa)
         end
 
-        -- 顏色：一般施法那一套（動畫材質底色白、職業色、施法色），狀態色不演
+        -- 名字與時間（字型、字級、位移照 CB.Layout）
+        local general = ns.Setting(nil, "font")
+        local outline = ns.Media.ThemeOutline()
+        ns.Media.SetFont(self.nameText, tonumber(cfg.textSize) or 12, outline, ns.Media.ElementFont(cfg.font, general))
+        ns.Media.SetFont(self.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
+        local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
+        local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}
+        self.timeText:ClearAllPoints()
+        self.timeText:SetPoint("RIGHT", self.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
+        self.nameText:ClearAllPoints()
+        self.nameText:SetPoint("LEFT", self.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
+        self.nameText:SetPoint("RIGHT", self.timeText, "LEFT", -4, 0)
+        self.nameText:SetShown(cfg.showName ~= false)
+        self.timeText:SetShown(cfg.showTime ~= false)
+        PaintNameOn(self, L["Preview cast"])
+        lastTime = nil
         local tex = self.bar:GetStatusBarTexture()
-        if tex then
-            local r, g, b
-            if CB.IsFx(cfg.texture) then
-                r, g, b = 1, 1, 1
-            elseif cfg.useClassColor then
-                r, g, b = ns.Style.Accent()
-            else
-                r, g, b = C(Colors().cast, 0.906, 0.424, 0.2)
-            end
-            tex:SetVertexColor(r, g, b, 1)
-        end
 
         wantSpark = cfg.showSpark ~= false
         self.spark:SetSize(10, H * 2.2)
         self.spark:ClearAllPoints()
         if tex then self.spark:SetPoint("CENTER", tex, reversed and "LEFT" or "RIGHT", 0, 0) end
 
-        -- 效果層：先停再設（秒數、方向可能都換了），設得起來就一直播
-        FxStop(self)
-        local layers = tex and FxWanted(cfg) or nil
-        local okFx, overflow = false, 0
-        if layers then okFx, overflow = FxSetup(self, layers, cfg, reversed, H - inset * 2) else FxHideAll(self) end
-        self.fxOn = okFx
-        if okFx then
-            FxAnchor(self, tex, reversed, overflow)
-            FxPlay(self)
+        -- 效果層：看得到的那幾樣沒變就不重設——重設會讓動畫從頭播，改別的設定（文字、顏色…）時不該跟著跳一下
+        local sig = table.concat({ barW, H, tostring(token), tostring(cfg.animate), tostring(cfg.animSpeed), tostring(reversed) }, "|")
+        if sig ~= fxSig then
+            fxSig = sig
+            FxStop(self)
+            local layers = tex and FxWanted(cfg) or nil
+            local okFx, overflow = false, 0
+            if layers then okFx, overflow = FxSetup(self, layers, cfg, reversed, H - inset * 2) else FxHideAll(self) end
+            self.fxOn = okFx
+            if okFx then
+                FxAnchor(self, tex, reversed, overflow)
+                FxPlay(self)
+            end
         end
+        -- 顏色最後畫（要先知道效果層有沒有開）：一般的可打斷施法，走畫面上那條的同一支
+        self.st.flow = self.fxOn
+        PaintColorOn(self, self.st)
     end
     -- 框藏起來時動畫組會停（換頁、換表單、關視窗）；簽章沒變的話 Refresh 不會重設 ⇒ 重新顯示時自己接著播
     s.frame:SetScript("OnShow", function()

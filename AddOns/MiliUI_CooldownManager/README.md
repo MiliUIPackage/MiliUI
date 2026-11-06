@@ -320,7 +320,7 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
 | `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」、「材質」上方的內嵌樣本條） |
-| `Options/Tab_FocusCast.lua` | 專注目標施法頁（頁首「預覽」：十秒假施法、當重要法術） |
+| `Options/Tab_FocusCast.lua` | 專注目標施法頁（頁首「預覽」：十秒假施法、當重要法術；「材質」上方的內嵌樣本條＋六顆狀態按鈕） |
 | `Options/Tab_Assist.lua` | 戰鬥助手頁：下一招醒目標示（主題層）＋下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
 
@@ -2642,7 +2642,7 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。
-- **內嵌樣本條**（2026-11-06）：設定頁「材質」正上方多一列「預覽」（`Tab_Castbar.lua` 的 `SampleRow` → 引擎 `CB.CreateSample`），一條自己循環填滿（3 秒一輪、滿了停 0.6 秒）的假施法條，換材質／動畫當場看得到，不用去畫面上找那條真的。照目前設定畫的只有：材質、動畫與速度、底色、填充方向、施法色（職業色；動畫材質底色白）、火花、陰影；圖示、文字、刻度、狀態色不畫。寬＝實際條寬（放不下縮到表單可用寬）、高＝實際的高但上限 `CB.SAMPLE_MAX_H`（24；列高固定，上下留的空間夠火舌竄出去）。只有 Frame／StatusBar／Texture，不碰 `S` 與任何施法 API。**效果層因此改成收宿主 `h`**（`CB.FxHost(h, bar)` 建 `flowClip／flowHost／fxScroll／fxFlip／fxActive`，`FxSetup／FxAnchor／FxPlay／FxStop／FxHideAll` 都收 `h`）：玩家施法條的宿主是 `f` 自己，樣本另有一份，兩邊各用各的貼圖池。樣本有簽章（看得到的那幾樣設定＋尺寸），沒變就不重設——重設會讓動畫從頭播，改文字、錨定時不該跟著跳一下。
+- **內嵌樣本條**（2026-11-06）：設定頁「材質」正上方多一列「預覽」（`Tab_Castbar.lua` 的 `SampleRow` → 引擎 `CB.CreateSample`），一條自己循環填滿（3 秒一輪、滿了停 0.6 秒）的假施法條，換材質／動畫當場看得到，不用去畫面上找那條真的。畫的有：圖示（顯示、左右、間距）、材質、動畫與速度、底色、填充方向、火花、陰影、法術名與時間（顯示、字型、字級、位移、截字、時間格式）；刻度、延遲不畫。寬＝實際的寬（放不下縮到表單可用寬）、高＝實際的高但上限 `CB.SAMPLE_MAX_H`（24；列高固定，上下留的空間夠火舌竄出去）。**上色、名字、效果層是畫面上那條用的同一批函式**（使用者同日指定「樣式的套用方式和實際要一樣，這樣我順便能看樣式或上色有無錯誤」）：`PaintColorOn(h, st)`（`ApplyColor` ＝ `PaintColorOn(f, S)`；樣本餵自己的小表 `{ castEmpowered = false, castChannel = false, castNotInterruptible = false, flow }`，等於一個一般的可打斷施法）、`PaintNameOn(h, name)`、效果層收宿主 `h`（`CB.FxHost(h, bar)` 建 `flowClip／flowHost／fxScroll／fxFlip／fxActive`，`FxSetup／FxAnchor／FxPlay／FxStop／FxHideAll` 都收 `h`，兩邊各用各的貼圖池）。所以「斷法就緒時染色」開著、斷法又剛好就緒時，樣本也染色、動畫也讓位——那就是實際的樣子；樣本每 0.05 秒重上一次色（同 `PlainOnUpdate`）。版面是照 `CB.Layout` 抄的（那支跟刻度、效果層、施法狀態纏在一起，抽不成共用；**改那邊的排法時樣本要跟著改**）。效果層有簽章（條寬、高、材質、動畫開關與速度、方向），沒變就不重設——重設會讓動畫從頭播。離線測試 `Tests/CastbarSample_test.lua`（假的框把兩條樣本真的建出來、每種狀態跑一輪）。
 
 ### 專注目標施法條（`Modules/FocusCastbar.lua`、`Options/Tab_FocusCast.lua`，2026-10-15）
 
@@ -2692,8 +2692,9 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   事件 `FocusCastBarChanged`（開關／設定套用時廣播）。專注目標助手的 `Modules/CastBar.lua` 問它決定自己那條要不要讓位（`Monitoring()`），
   設定頁「施法條」分頁在開關底下多一行黃字說明被接手了。兩邊都裝的人預設只會看到這一條。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑、當重要法術：看得到「!」與發光），再按一次停；專注目標真的開唱就讓位；離開那一頁自動停。
+- **內嵌樣本條＋六顆狀態按鈕**（2026-11-06）：設定頁「材質」正上方（`Tab_FocusCast.lua` 的 `SampleRow` → 引擎 `FC.CreateSample`）。樣本是一條自己循環填滿的假施法條，**零件、版面、上色、發光、名字、斷法圖示、打斷畫面全部是畫面上那條用的同一批函式**——`BuildParts(h)`／`LayoutParts(h, cfg, W, H)`（`Build`／`FC.Layout` 也是叫它們）、`PaintColorOn(h, ni, ready, has)`、`ShowGlowOn／StopGlowOn(h, …)`（亮著哪一種記在 `h.glowShown`，不再放 `S`）、`PaintNameOn`、`PaintKickIconOn／PaintKickReadyOn`、`PaintSpellTargetOn／ClearSpellTargetOn`、`PaintInterruptedOn(h, who, class)`；原本的 `ApplyColor／ShowGlow／SetName／…` 變成 `…On(f, …)` 的一行包裝。樣本只負責餵明文的假狀態，所以它同時是「樣式有沒有套對」的檢查（使用者指定）。按鈕兩排、選中＝primary：第一排四選一 `s.state`（斷法就緒／斷法冷卻中／不可中斷／已打斷；打斷＝滿條、打斷色、「已打斷」、右側印自己的名字與職業色），第二排各自開關 `s.glowOn`／`s.bangOn`（這個法術算不算重要法術，發光與「!」各餵各的）。**設定關著的東西樣本也不畫**（`glowImportant`／`bangImportant` 關著時那顆按鈕壓暗、按了沒有畫面——實際上也不會出現）。發光有簽章（樣式、顏色、尺寸），變了才先停再開。斷法圖示的冷卻轉圈不演（沒有真的冷卻可餵），只有就緒亮／冷卻中暗。**專注目標施法條沒有動畫效果層**（動畫材質在這條只有靜態底圖，樣本也一樣）。
 - `/mcdm debug` 多一行「專注目標施法條：…」（狀態、秘密模式、明文時間軸、發光樣式、alpha）。
-- 離線測試 `Tests/FocusCastbar_test.lua`（預設值／面板登記／顯示條件／排開）。
+- 離線測試 `Tests/FocusCastbar_test.lua`（預設值／面板登記／顯示條件／排開）；樣本條與共用的上色／發光／名字／打斷畫面在 `Tests/CastbarSample_test.lua`。
 
 ### 公開 API（契約：回傳形狀之後不改）
 

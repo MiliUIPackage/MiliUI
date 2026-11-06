@@ -1177,3 +1177,8 @@ L["Show your interrupt at the end of the bar"] = "Eigenes Unterbrechen am Ende d
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "Das Symbol eures Unterbrechens sitzt am anderen Ende mit seiner Abklingzeit: hell, wenn bereit, gedimmt während der Abklingzeit. Ausgeblendet, wenn diese Spezialisierung kein Unterbrechen hat."
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "Staffelung in Prozent"
+-- 專注目標施法頁的樣本條：挑假施法狀態的六顆按鈕（Options/Tab_FocusCast.lua 的 SampleRow，2026-11-06）
+L["Kick ready"] = "Unterbrechung bereit"
+L["Kick on CD"] = "Unterbrechung auf Abklingzeit"
+L["Important spell: glow"] = "Wichtiger Zauber: Leuchten"
+L["Important spell: \"!\""] = "Wichtiger Zauber: „!“"

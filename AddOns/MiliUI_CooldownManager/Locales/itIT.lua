@@ -1177,3 +1177,8 @@ L["Show your interrupt at the end of the bar"] = "Mostra la tua interruzione in 
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "L'icona della tua interruzione sta all'altra estremità con la sua ricarica: luminosa quando è pronta, scura durante la ricarica. Nascosta se questa specializzazione non ha interruzioni."
 -- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
 L["Stagger as percent"] = "Barcollamento in percentuale"
+-- 專注目標施法頁的樣本條：挑假施法狀態的六顆按鈕（Options/Tab_FocusCast.lua 的 SampleRow，2026-11-06）
+L["Kick ready"] = "Interruzione pronta"
+L["Kick on CD"] = "Interruzione in ricarica"
+L["Important spell: glow"] = "Incantesimo importante: bagliore"
+L["Important spell: \"!\""] = "Incantesimo importante: \"!\""

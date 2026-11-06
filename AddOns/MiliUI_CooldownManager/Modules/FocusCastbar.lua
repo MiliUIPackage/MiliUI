@@ -100,188 +100,198 @@ local function C4(c, dr, dg, db, da)
     return dr, dg, db, da
 end
 
-local function Build()
-    f = CreateFrame("Frame", nil, container)
-    f:SetAllPoints(container)
+-- 一條專注目標施法條的零件（圖示、條、火花、斷法圖示、文字、發光宿主表）建在框 h 上。畫面上那條（f）與設定頁的
+-- 內嵌樣本（FC.CreateSample）各建一份，版面也走同一支 LayoutParts ⇒ 樣本跟畫面上的不會各排各的
+local function BuildParts(h)
+    h.iconFrame = CreateFrame("Frame", nil, h, "BackdropTemplate")
+    h.icon = NoSnap(h.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
+    h.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.icon = NoSnap(f.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
-    f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    h.barHolder = CreateFrame("Frame", nil, h, "BackdropTemplate")
+    h.bgTex = NoSnap(h.barHolder:CreateTexture(nil, "BACKGROUND"))
+    h.bgTex:SetTexture(SOLID)
+    h.bar = CreateFrame("StatusBar", nil, h.barHolder)
+    h.bar:SetStatusBarTexture(SOLID)
+    h.bar:SetMinMaxValues(0, 1)
+    h.bar:SetValue(0)
 
-    f.barHolder = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.bgTex = NoSnap(f.barHolder:CreateTexture(nil, "BACKGROUND"))
-    f.bgTex:SetTexture(SOLID)
-    f.bar = CreateFrame("StatusBar", nil, f.barHolder)
-    f.bar:SetStatusBarTexture(SOLID)
-    f.bar:SetMinMaxValues(0, 1)
-    f.bar:SetValue(0)
-
-    f.spark = f.bar:CreateTexture(nil, "OVERLAY")
-    f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
-    f.spark:SetBlendMode("ADD")
-    f.spark:Hide()
+    h.spark = h.bar:CreateTexture(nil, "OVERLAY")
+    h.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    h.spark:SetBlendMode("ADD")
+    h.spark:Hide()
 
     -- 條尾的斷法圖示（圖示的對邊）：邊框＋圖示＋冷卻轉圈（不畫數字、不畫邊緣線、不畫閃光）
-    f.kickFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.kickIcon = NoSnap(f.kickFrame:CreateTexture(nil, "ARTWORK"))
-    f.kickIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    local okCD, kcd = pcall(CreateFrame, "Cooldown", nil, f.kickFrame, "CooldownFrameTemplate")
+    h.kickFrame = CreateFrame("Frame", nil, h, "BackdropTemplate")
+    h.kickIcon = NoSnap(h.kickFrame:CreateTexture(nil, "ARTWORK"))
+    h.kickIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local okCD, kcd = pcall(CreateFrame, "Cooldown", nil, h.kickFrame, "CooldownFrameTemplate")
     if okCD and kcd then
         if kcd.SetDrawBling then kcd:SetDrawBling(false) end
         if kcd.SetDrawEdge then kcd:SetDrawEdge(false) end
         if kcd.SetHideCountdownNumbers then kcd:SetHideCountdownNumbers(true) end
         kcd:EnableMouse(false)
-        f.kickCD = kcd
+        h.kickCD = kcd
     end
-    f.kickFrame:Hide()
+    h.kickFrame:Hide()
 
-    f.textFrame = CreateFrame("Frame", nil, f)
-    f.textFrame:SetAllPoints(f.barHolder)
+    h.textFrame = CreateFrame("Frame", nil, h)
+    h.textFrame:SetAllPoints(h.barHolder)
     -- ⚠ 先給字型才能 SetText
-    f.nameText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.nameText, 12, "OUTLINE")
-    f.nameText:SetJustifyH("LEFT")
-    f.nameText:SetWordWrap(false)
+    h.nameText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.nameText, 12, "OUTLINE")
+    h.nameText:SetJustifyH("LEFT")
+    h.nameText:SetWordWrap(false)
     -- 重要法術版的名字（前面加「!」）疊在同一個位置：是不是重要是秘密布林，不能在 Lua 挑要寫哪段字，
     -- 兩段都寫好、交給 SetAlphaFromBoolean 二選一
-    f.bangText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.bangText, 12, "OUTLINE")
-    f.bangText:SetJustifyH("LEFT")
-    f.bangText:SetWordWrap(false)
-    f.bangText:SetAlpha(0)
-    f.timeText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.timeText, 12, "OUTLINE")
-    f.timeText:SetJustifyH("RIGHT")
-    f.timeText:SetWordWrap(false)
+    h.bangText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.bangText, 12, "OUTLINE")
+    h.bangText:SetJustifyH("LEFT")
+    h.bangText:SetWordWrap(false)
+    h.bangText:SetAlpha(0)
+    h.timeText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.timeText, 12, "OUTLINE")
+    h.timeText:SetJustifyH("RIGHT")
+    h.timeText:SetWordWrap(false)
     -- 法術打向誰：條下方右靠齊、比法術名小一號（位置與字級在 Layout）
-    f.targetText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.targetText, 10, "OUTLINE")
-    f.targetText:SetJustifyH("RIGHT")
-    f.targetText:SetWordWrap(false)
+    h.targetText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.targetText, 10, "OUTLINE")
+    h.targetText:SetJustifyH("RIGHT")
+    h.targetText:SetWordWrap(false)
 
-    f.glowHosts = {}
+    h.glowHosts = {}
+end
+
+local function Build()
+    f = CreateFrame("Frame", nil, container)
+    f:SetAllPoints(container)
+    BuildParts(f)
     f:Hide()
 end
 
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
 ------------------------------------------------------------
-function FC.Layout()
-    if not f then return end
-    local cfg = Cfg() or {}
-    local W, H = Width(cfg), tonumber(cfg.height) or 20
-    W, H = ns.P.Scale(W), ns.P.Scale(H)
-    ns.Bars.SetPanelSize(KEY, W, H)
-
+-- 零件的版面：W／H 是整條的寬高（呼叫端已經換算好）。回傳是不是反向填充。火花要不要顯示由呼叫端決定
+local function LayoutParts(h, cfg, W, H)
     local showIcon = cfg.showIcon ~= false
     local iconW = showIcon and H or 0
     local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
     local left = cfg.iconSide ~= "RIGHT"
-    f.iconFrame:SetShown(showIcon)
-    f.iconFrame:ClearAllPoints()
-    f.iconFrame:SetSize(iconW > 0 and iconW or 1, H)
-    f.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", f, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
+    h.iconFrame:SetShown(showIcon)
+    h.iconFrame:ClearAllPoints()
+    h.iconFrame:SetSize(iconW > 0 and iconW or 1, H)
+    h.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", h, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
     local edge = ns.P.Pixel(1)
-    f.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
-    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.iconFrame) end
-    f.iconFrame:SetBackdropColor(0, 0, 0, 1)
-    f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
-    f.icon:ClearAllPoints()
-    f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", edge, -edge)
-    f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -edge, edge)
+    h.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(h.iconFrame) end
+    h.iconFrame:SetBackdropColor(0, 0, 0, 1)
+    h.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
+    h.icon:ClearAllPoints()
+    h.icon:SetPoint("TOPLEFT", h.iconFrame, "TOPLEFT", edge, -edge)
+    h.icon:SetPoint("BOTTOMRIGHT", h.iconFrame, "BOTTOMRIGHT", -edge, edge)
 
     -- 斷法圖示在圖示的對邊（圖示左 ⇒ 斷法右），跟圖示同大小、同間距；沒有斷法就不佔寬
     local kickID = KickSpell(cfg)
     local kickW = kickID and H or 0
     local kickGap = kickID and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
-    f.kickFrame:SetShown(kickID ~= nil)
-    f.kickFrame:ClearAllPoints()
-    f.kickFrame:SetSize(kickW > 0 and kickW or 1, H)
-    f.kickFrame:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
-    f.kickFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
-    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.kickFrame) end
-    f.kickFrame:SetBackdropColor(0, 0, 0, 1)
-    f.kickFrame:SetBackdropBorderColor(0, 0, 0, 1)
-    f.kickIcon:ClearAllPoints()
-    f.kickIcon:SetPoint("TOPLEFT", f.kickFrame, "TOPLEFT", edge, -edge)
-    f.kickIcon:SetPoint("BOTTOMRIGHT", f.kickFrame, "BOTTOMRIGHT", -edge, edge)
-    if f.kickCD then
-        f.kickCD:ClearAllPoints()
-        f.kickCD:SetAllPoints(f.kickIcon)
-        if f.kickCD.SetSwipeColor then
-            f.kickCD:SetSwipeColor(C4(ns.Setting("theme", "icon.swipeColor"), 0, 0, 0, 0.8))
+    h.kickFrame:SetShown(kickID ~= nil)
+    h.kickFrame:ClearAllPoints()
+    h.kickFrame:SetSize(kickW > 0 and kickW or 1, H)
+    h.kickFrame:SetPoint(left and "TOPRIGHT" or "TOPLEFT", h, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
+    h.kickFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(h.kickFrame) end
+    h.kickFrame:SetBackdropColor(0, 0, 0, 1)
+    h.kickFrame:SetBackdropBorderColor(0, 0, 0, 1)
+    h.kickIcon:ClearAllPoints()
+    h.kickIcon:SetPoint("TOPLEFT", h.kickFrame, "TOPLEFT", edge, -edge)
+    h.kickIcon:SetPoint("BOTTOMRIGHT", h.kickFrame, "BOTTOMRIGHT", -edge, edge)
+    if h.kickCD then
+        h.kickCD:ClearAllPoints()
+        h.kickCD:SetAllPoints(h.kickIcon)
+        if h.kickCD.SetSwipeColor then
+            h.kickCD:SetSwipeColor(C4(ns.Setting("theme", "icon.swipeColor"), 0, 0, 0, 0.8))
         end
     end
 
     local barW = W - iconW - gap - kickW - kickGap
     if barW < 4 then barW = 4 end
-    f.barHolder:ClearAllPoints()
-    f.barHolder:SetSize(barW, H)
-    f.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f.kickFrame, left and "TOPLEFT" or "TOPRIGHT", left and -kickGap or kickGap, 0)
+    h.barHolder:ClearAllPoints()
+    h.barHolder:SetSize(barW, H)
+    h.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", h.kickFrame, left and "TOPLEFT" or "TOPRIGHT", left and -kickGap or kickGap, 0)
     local inset = ns.Media.BorderInset(1)
-    f.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
-    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.barHolder) end
-    f.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
-    f.bgTex:ClearAllPoints()
-    f.bgTex:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)
-    f.bgTex:SetPoint("BOTTOMRIGHT", f.barHolder, "BOTTOMRIGHT", -inset, inset)
+    h.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(h.barHolder) end
+    h.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
+    h.bgTex:ClearAllPoints()
+    h.bgTex:SetPoint("TOPLEFT", h.barHolder, "TOPLEFT", inset, -inset)
+    h.bgTex:SetPoint("BOTTOMRIGHT", h.barHolder, "BOTTOMRIGHT", -inset, inset)
     local bg = cfg.bgColor or { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }
-    f.bgTex:SetVertexColor(bg.r or 0.1, bg.g or 0.1, bg.b or 0.1, bg.a or 0.8)
-    f.bar:ClearAllPoints()
-    f.bar:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)
-    f.bar:SetPoint("BOTTOMRIGHT", f.barHolder, "BOTTOMRIGHT", -inset, inset)
-    CB().SetFillTexture(f.bar, cfg.texture)
-    S.reversed = ns.FillReversed(cfg)
-    f.bar:SetReverseFill(S.reversed)
+    h.bgTex:SetVertexColor(bg.r or 0.1, bg.g or 0.1, bg.b or 0.1, bg.a or 0.8)
+    h.bar:ClearAllPoints()
+    h.bar:SetPoint("TOPLEFT", h.barHolder, "TOPLEFT", inset, -inset)
+    h.bar:SetPoint("BOTTOMRIGHT", h.barHolder, "BOTTOMRIGHT", -inset, inset)
+    CB().SetFillTexture(h.bar, cfg.texture)
+    local reversed = ns.FillReversed(cfg)
+    h.bar:SetReverseFill(reversed)
 
     -- 層級：底 L → 條 L+1 → 文字 L+3；圖示 L+1；發光宿主 L+20（GlowHost）
-    local lvl = f:GetFrameLevel()
-    f.barHolder:SetFrameLevel(lvl)
-    f.bar:SetFrameLevel(lvl + 1)
-    f.textFrame:SetFrameLevel(lvl + 3)
-    f.iconFrame:SetFrameLevel(lvl + 1)
-    f.kickFrame:SetFrameLevel(lvl + 1)
+    local lvl = h:GetFrameLevel()
+    h.barHolder:SetFrameLevel(lvl)
+    h.bar:SetFrameLevel(lvl + 1)
+    h.textFrame:SetFrameLevel(lvl + 3)
+    h.iconFrame:SetFrameLevel(lvl + 1)
+    h.kickFrame:SetFrameLevel(lvl + 1)
 
-    -- 邊緣陰影（Core/Shape.lua，同玩家施法條）：條身、圖示、斷法圖示各一圈，層級都在 f − 1；藏著的那顆不畫
+    -- 邊緣陰影（Core/Shape.lua，同玩家施法條）：條身、圖示、斷法圖示各一圈，層級都在 h − 1；藏著的那顆不畫
     local SH = ns.Shape
     if SH then
         local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
-        SH.EdgeShadow(f, f.barHolder, spx, sa)
-        SH.EdgeShadow(f, f.iconFrame, showIcon and spx or nil, sa)
-        SH.EdgeShadow(f, f.kickFrame, kickID and spx or nil, sa)
+        SH.EdgeShadow(h, h.barHolder, spx, sa)
+        SH.EdgeShadow(h, h.iconFrame, showIcon and spx or nil, sa)
+        SH.EdgeShadow(h, h.kickFrame, kickID and spx or nil, sa)
     end
 
     local general = ns.Setting(nil, "font")
     local outline = ns.Media.ThemeOutline()
     local nameFont = ns.Media.ElementFont(cfg.font, general)
     local nameSize = tonumber(cfg.textSize) or 12
-    ns.Media.SetFont(f.nameText, nameSize, outline, nameFont)
-    ns.Media.SetFont(f.bangText, nameSize, outline, nameFont)
-    ns.Media.SetFont(f.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
+    ns.Media.SetFont(h.nameText, nameSize, outline, nameFont)
+    ns.Media.SetFont(h.bangText, nameSize, outline, nameFont)
+    ns.Media.SetFont(h.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
     local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
     local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}
-    f.timeText:ClearAllPoints()
-    f.timeText:SetPoint("RIGHT", f.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
-    f.nameText:ClearAllPoints()
-    f.nameText:SetPoint("LEFT", f.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
-    f.nameText:SetPoint("RIGHT", f.timeText, "LEFT", -4, 0)
-    f.bangText:ClearAllPoints()
-    f.bangText:SetAllPoints(f.nameText)
+    h.timeText:ClearAllPoints()
+    h.timeText:SetPoint("RIGHT", h.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
+    h.nameText:ClearAllPoints()
+    h.nameText:SetPoint("LEFT", h.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
+    h.nameText:SetPoint("RIGHT", h.timeText, "LEFT", -4, 0)
+    h.bangText:ClearAllPoints()
+    h.bangText:SetAllPoints(h.nameText)
     local showName = cfg.showName ~= false
-    f.nameText:SetShown(showName)
-    f.bangText:SetShown(showName)
-    f.timeText:SetShown(cfg.showTime ~= false)
-    ns.Media.SetFont(f.targetText, tonumber(cfg.targetTextSize) or 10, outline, nameFont)
+    h.nameText:SetShown(showName)
+    h.bangText:SetShown(showName)
+    h.timeText:SetShown(cfg.showTime ~= false)
+    ns.Media.SetFont(h.targetText, tonumber(cfg.targetTextSize) or 10, outline, nameFont)
     local tg = type(cfg.targetOffset) == "table" and cfg.targetOffset or {}
-    f.targetText:ClearAllPoints()
-    f.targetText:SetPoint("TOPRIGHT", f.barHolder, "BOTTOMRIGHT", tonumber(tg.x) or -2, tonumber(tg.y) or 0)
-    f.targetText:SetPoint("TOPLEFT",  f.barHolder, "BOTTOMLEFT",  0,                     tonumber(tg.y) or 0)
-    f.targetText:SetShown(cfg.showTarget ~= false)
+    h.targetText:ClearAllPoints()
+    h.targetText:SetPoint("TOPRIGHT", h.barHolder, "BOTTOMRIGHT", tonumber(tg.x) or -2, tonumber(tg.y) or 0)
+    h.targetText:SetPoint("TOPLEFT",  h.barHolder, "BOTTOMLEFT",  0,                     tonumber(tg.y) or 0)
+    h.targetText:SetShown(cfg.showTarget ~= false)
 
-    f.spark:SetSize(10, H * 2.2)
-    f.spark:ClearAllPoints()
-    local tex = f.bar:GetStatusBarTexture()
-    if tex then f.spark:SetPoint("CENTER", tex, S.reversed and "LEFT" or "RIGHT", 0, 0) end
+    h.spark:SetSize(10, H * 2.2)
+    h.spark:ClearAllPoints()
+    local tex = h.bar:GetStatusBarTexture()
+    if tex then h.spark:SetPoint("CENTER", tex, reversed and "LEFT" or "RIGHT", 0, 0) end
+    return reversed
+end
+
+function FC.Layout()
+    if not f then return end
+    local cfg = Cfg() or {}
+    local W, H = Width(cfg), tonumber(cfg.height) or 20
+    W, H = ns.P.Scale(W), ns.P.Scale(H)
+    ns.Bars.SetPanelSize(KEY, W, H)
+    S.reversed = LayoutParts(f, cfg, W, H)
     f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
 end
 
@@ -307,8 +317,12 @@ end
 -- 曲線串接的保險：第一次被擋就永久放掉斷法就緒色，保住「不可打斷灰」
 local chainOK = true
 
-local function ApplyColor()
-    local tex = f.bar:GetStatusBarTexture()
+-- ⚠ 以下「…On(h, …)」這幾支是**畫面上那條（f）與設定頁的樣本（FC.CreateSample）共用**的：樣本不另寫一份上色／
+-- 發光／名字／打斷畫面，餵明文的假狀態走同一條路 ⇒ 樣本上看到的就是實際的套用結果，這裡寫錯兩邊一起錯、看得出來。
+-- ready／has ＝ 我方斷法就緒與否、這個專精有沒有斷法（Modules/Interrupt.lua 的 IsReady 兩個回傳，ready 可能是秘密布林）；
+-- ni ＝ 不可打斷（nil／明文／秘密布林）
+local function PaintColorOn(h, ni, ready, has)
+    local tex = h.bar:GetStatusBarTexture()
     if not tex then return end
     local c = Colors()
     local br, bg, bb = C(c.cd, 0.906, 0.424, 0.2)
@@ -316,20 +330,16 @@ local function ApplyColor()
     if CB().IsFx and CB().IsFx((Cfg() or {}).texture) then br, bg, bb = 1, 1, 1 end
     local r, g, b = br, bg, bb
     local tinted = false
-    if chainOK and ns.Interrupt then
-        local ready, has = ns.Interrupt.IsReady()
-        if has then
-            if IsSecret(ready) then
-                if Eval then
-                    local ok, rr, gg, b2 = pcall(EvalTriple, ready, c.ready, r, g, b)
-                    if ok then r, g, b = rr, gg, b2; tinted = true end
-                end
-            elseif ready then
-                r, g, b = C(c.ready, 1, 0.741, 0)
+    if chainOK and has then
+        if IsSecret(ready) then
+            if Eval then
+                local ok, rr, gg, b2 = pcall(EvalTriple, ready, c.ready, r, g, b)
+                if ok then r, g, b = rr, gg, b2; tinted = true end
             end
+        elseif ready then
+            r, g, b = C(c.ready, 1, 0.741, 0)
         end
     end
-    local ni = S.castNotInterruptible
     if ni ~= nil then
         if IsSecret(ni) then
             if Eval then
@@ -348,6 +358,12 @@ local function ApplyColor()
     tex:SetVertexColor(r, g, b, 1)
 end
 
+local function ApplyColor()
+    local ready, has
+    if ns.Interrupt then ready, has = ns.Interrupt.IsReady() end
+    PaintColorOn(f, S.castNotInterruptible, ready, has)
+end
+
 ------------------------------------------------------------
 -- 重要法術發光
 --
@@ -364,61 +380,70 @@ local function GlowStyle()
     return GLOW_STYLES[st] and st or "pixel"
 end
 
-local function GlowHost(style)
-    local host = f.glowHosts[style]
+-- h ＝ 帶 glowHosts 的那條（畫面上的 f、設定頁的樣本）
+local function GlowHost(h, style)
+    local host = h.glowHosts[style]
     if host then return host end
-    local target = (style == "proc") and f.iconFrame or f
+    local target = (style == "proc") and h.iconFrame or h
     host = CreateFrame("Frame", nil, target)
     host:SetAllPoints(target)
-    host:SetFrameLevel(f:GetFrameLevel() + 20)
-    f.glowHosts[style] = host
+    host:SetFrameLevel(h:GetFrameLevel() + 20)
+    h.glowHosts[style] = host
     return host
 end
 
-local function StopGlow()
-    if not (f and S.glowShown and LCG) then S.glowShown = nil return end
-    local host = f.glowHosts[S.glowShown]
-    if host then
-        if S.glowShown == "pixel" then
-            pcall(LCG.PixelGlow_Stop, host)
-        elseif S.glowShown == "autocast" then
-            pcall(LCG.AutoCastGlow_Stop, host)
-        else
-            pcall(LCG.ProcGlow_Stop, host)
-        end
+-- 在宿主上開／關一種樣式的發光（color ＝ { r, g, b, a }）。開的回傳成功與否
+local function GlowStart(host, style, color)
+    if style == "pixel" then
+        -- 2px、往外推 1px：蓋住條本身的 1px 黑邊再多出去 1px。border=false：條自己有底
+        return (pcall(LCG.PixelGlow_Start, host, color, 8, 0.25, nil, 2, 1, 1, false))
+    elseif style == "autocast" then
+        return (pcall(LCG.AutoCastGlow_Start, host, color, 6, 0.125, 1.2, 1, 1))
     end
-    S.glowShown = nil
+    return (pcall(LCG.ProcGlow_Start, host, { color = color }))
 end
 
--- important：明文或秘密布林；nil ＝ 不問直接亮（預覽）
-local function ShowGlow(important)
-    local cfg = Cfg() or {}
-    if not cfg.glowImportant or not LCG then StopGlow() return end
-    local style = GlowStyle()
-    if S.glowShown ~= style then
-        StopGlow()
-        local host = GlowHost(style)
-        local cr, cg, cb = C(Colors().glow, 0.95, 0.95, 0.32)
-        local color = { cr, cg, cb, 1 }
-        local ok
-        if style == "pixel" then
-            -- 2px、往外推 1px：蓋住條本身的 1px 黑邊再多出去 1px。border=false：條自己有底
-            ok = pcall(LCG.PixelGlow_Start, host, color, 8, 0.25, nil, 2, 1, 1, false)
-        elseif style == "autocast" then
-            ok = pcall(LCG.AutoCastGlow_Start, host, color, 6, 0.125, 1.2, 1, 1)
-        else
-            ok = pcall(LCG.ProcGlow_Start, host, { color = color })
-        end
-        if not ok then return end
-        S.glowShown = style
+local function GlowStop(host, style)
+    if style == "pixel" then
+        pcall(LCG.PixelGlow_Stop, host)
+    elseif style == "autocast" then
+        pcall(LCG.AutoCastGlow_Stop, host)
+    else
+        pcall(LCG.ProcGlow_Stop, host)
     end
-    local host = f.glowHosts[style]
+end
+
+-- 亮著哪一種樣式記在那條自己身上（h.glowShown）
+local function StopGlowOn(h)
+    if not h then return end
+    if h.glowShown and LCG then
+        local host = h.glowHosts[h.glowShown]
+        if host then GlowStop(host, h.glowShown) end
+    end
+    h.glowShown = nil
+end
+local function StopGlow() StopGlowOn(f) end
+
+-- important：明文或秘密布林；nil ＝ 不問直接亮（頁首的預覽）
+local function ShowGlowOn(h, important)
+    local cfg = Cfg() or {}
+    if not cfg.glowImportant or not LCG then StopGlowOn(h) return end
+    local style = GlowStyle()
+    if h.glowShown ~= style then
+        StopGlowOn(h)
+        local host = GlowHost(h, style)
+        local cr, cg, cb = C(Colors().glow, 0.95, 0.95, 0.32)
+        if not GlowStart(host, style, { cr, cg, cb, 1 }) then return end
+        h.glowShown = style
+    end
+    local host = h.glowHosts[style]
     if important == nil then
         host:SetAlpha(1)
     else
         host:SetAlphaFromBoolean(important, 1, 0)
     end
 end
+local function ShowGlow(important) ShowGlowOn(f, important) end
 
 -- spellID 可能是秘密值：只比 nil、原封不動交給 C 端。回傳 nil ＝ 判斷不了（不發光、不加「!」）
 local function QueryImportant(spellID)
@@ -438,39 +463,42 @@ function FC.DisplayName(caster, spell, showCaster, maxChars)
 end
 
 -- 名字：important ＝ 明文或秘密布林，nil ＝ 不標。caster ＝ 施法者名字（nil ＝ 不印）。都可能是秘密字串：只串接、只交給 SetText
-local function SetName(name, important, caster)
+local function PaintNameOn(h, name, important, caster)
     local cfg = Cfg() or {}
     local shown = FC.DisplayName(caster, name, cfg.showCaster, cfg.nameMaxChars)
-    f.nameText:SetText(shown)
+    h.nameText:SetText(shown)
     if important == nil or not cfg.bangImportant then
-        f.bangText:SetAlpha(0)
-        f.nameText:SetAlpha(1)
+        h.bangText:SetAlpha(0)
+        h.nameText:SetAlpha(1)
         return
     end
     local cr, cg, cb = C(Colors().glow, 0.95, 0.95, 0.32)
-    f.bangText:SetText(string.format("|cff%02x%02x%02x!|r ", cr * 255, cg * 255, cb * 255) .. shown)
-    f.bangText:SetAlphaFromBoolean(important, 1, 0)
-    f.nameText:SetAlphaFromBoolean(important, 0, 1)
+    h.bangText:SetText(string.format("|cff%02x%02x%02x!|r ", cr * 255, cg * 255, cb * 255) .. shown)
+    h.bangText:SetAlphaFromBoolean(important, 1, 0)
+    h.nameText:SetAlphaFromBoolean(important, 0, 1)
 end
+local function SetName(name, important, caster) PaintNameOn(f, name, important, caster) end
 
 -- 法術打向誰（條右下角、職業色）。name 可能是秘密字串（只交給 SetText）；class 明文或秘密 token（只交給 GetClassColor）
-local function ClearSpellTarget()
-    f.targetText:SetText("")
-    f.targetText:SetAlpha(1)
-    f.targetText:SetTextColor(1, 1, 1)
+local function ClearSpellTargetOn(h)
+    h.targetText:SetText("")
+    h.targetText:SetAlpha(1)
+    h.targetText:SetTextColor(1, 1, 1)
 end
+local function ClearSpellTarget() ClearSpellTargetOn(f) end
 
-local function PaintSpellTarget(name, class)
-    f.targetText:SetAlpha(1)
+local function PaintSpellTargetOn(h, name, class)
+    h.targetText:SetAlpha(1)
     local r, g, b = 1, 1, 1
     if class ~= nil and (Cfg() or {}).targetClassColor ~= false then
         local color = C_ClassColor and C_ClassColor.GetClassColor(class)
             or (not IsSecret(class) and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
         if color then r, g, b = color:GetRGB() end
     end
-    f.targetText:SetTextColor(r, g, b)
-    f.targetText:SetText(name)
+    h.targetText:SetTextColor(r, g, b)
+    h.targetText:SetText(name)
 end
+local function PaintSpellTarget(name, class) PaintSpellTargetOn(f, name, class) end
 
 local function SetSpellTarget()
     local cfg = Cfg() or {}
@@ -506,15 +534,29 @@ end
 
 -- 斷法圖示：圖示（自己的法術，明文）、冷卻轉圈（duration 物件原封轉交）、就緒亮／冷卻中暗（IsZero 的布林只餵 alpha）。
 -- 餵不進去就 Clear（圖示留著）。開唱、SPELL_UPDATE_COOLDOWN（條顯示中）、預覽、套用設定時叫
+-- 兩段畫面共用（見 PaintColorOn 上面的說明）：圖示的圖、就緒亮／冷卻中暗（zero ＝ 冷卻是不是 0：nil 不知道／明文／秘密布林）
+local function PaintKickIconOn(h, id)
+    local getTex = C_Spell and C_Spell.GetSpellTexture
+    if getTex then
+        local ok, tex = pcall(getTex, id)
+        if ok and tex ~= nil then h.kickIcon:SetTexture(tex) end
+    end
+end
+local function PaintKickReadyOn(h, zero)
+    if zero == nil then
+        h.kickIcon:SetAlpha(1)
+    elseif IsSecret(zero) then
+        if not pcall(h.kickIcon.SetAlphaFromBoolean, h.kickIcon, zero, 1, 0.55) then h.kickIcon:SetAlpha(1) end
+    else
+        h.kickIcon:SetAlpha(zero and 1 or 0.55)
+    end
+end
+
 local function UpdateKick()
     if not (f and f.kickFrame:IsShown()) then return end
     local id = KickSpell()
     if not id then return end
-    local getTex = C_Spell and C_Spell.GetSpellTexture
-    if getTex then
-        local ok, tex = pcall(getTex, id)
-        if ok and tex ~= nil then f.kickIcon:SetTexture(tex) end
-    end
+    PaintKickIconOn(f, id)
     local dur
     local getDur = C_Spell and C_Spell.GetSpellCooldownDuration
     if getDur then
@@ -534,13 +576,7 @@ local function UpdateKick()
         local ok, z = pcall(dur.IsZero, dur)
         if ok then zero = z end
     end
-    if zero == nil then
-        f.kickIcon:SetAlpha(1)
-    elseif IsSecret(zero) then
-        if not pcall(f.kickIcon.SetAlphaFromBoolean, f.kickIcon, zero, 1, 0.55) then f.kickIcon:SetAlpha(1) end
-    else
-        f.kickIcon:SetAlpha(zero and 1 or 0.55)
-    end
+    PaintKickReadyOn(f, zero)
 end
 FC.UpdateKick = UpdateKick
 
@@ -602,22 +638,37 @@ end
 
 -- 被打斷：凍結滿條變紅、名字換「已打斷」、右側印斷法者（職業色），停留後淡出。
 -- interrupterGUID 只比 nil；名字可能是秘密字串（SetText 收得下）；職業是秘密字串就維持白字
+-- 打斷畫面本身（共用，見 PaintColorOn 上面的說明）：滿條、打斷色、名字換「已打斷」、右側印斷法者。
+-- who ＝ 斷法者的名字（nil ＝ 不印；可能是秘密字串）、class ＝ 職業 token（秘密字串就維持白字）
+local function PaintInterruptedOn(h, who, class)
+    h.spark:Hide()
+    StopGlowOn(h)                              -- 施法已經斷了，紅條不再標重要
+    h.bar:SetMinMaxValues(0, 1)
+    h.bar:SetValue(1)
+    local tex = h.bar:GetStatusBarTexture()
+    if tex then tex:SetVertexColor(C(Colors().interrupted, 1, 0.204, 0.145)) end
+    PaintNameOn(h, L["Interrupted"], nil)
+    h.timeText:SetText("")
+    ClearSpellTargetOn(h)                      -- 施法斷了，打向誰已經不重要
+    if who ~= nil then
+        local r, g, b = 1, 1, 1
+        if class ~= nil and not IsSecret(class) then
+            local color = C_ClassColor and C_ClassColor.GetClassColor(class)
+                or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+            if color then r, g, b = color:GetRGB() end
+        end
+        h.timeText:SetTextColor(r, g, b)
+        h.timeText:SetText(who)
+    end
+end
+
 local function ShowInterrupted(interrupterGUID)
     S.active = false
     S.castState = 4
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f:SetScript("OnUpdate", nil)
-    f.spark:Hide()
-    StopGlow()                                 -- 施法已經斷了，紅條不再標重要
-    f.bar:SetMinMaxValues(0, 1)
-    f.bar:SetValue(1)
-    local tex = f.bar:GetStatusBarTexture()
-    if tex then tex:SetVertexColor(C(Colors().interrupted, 1, 0.204, 0.145)) end
-    SetName(L["Interrupted"], nil)
-    f.timeText:SetText("")
-    ClearSpellTarget()                         -- 施法斷了，打向誰已經不重要
+    local name, class
     if interrupterGUID ~= nil and (Cfg() or {}).showInterrupter ~= false then
-        local name, class
         if UnitNameFromGUID then
             local ok, n = pcall(UnitNameFromGUID, interrupterGUID)
             if ok then name = n end
@@ -632,17 +683,8 @@ local function ShowInterrupted(interrupterGUID)
                 class = UnitClassBase and UnitClassBase(u) or nil
             end
         end
-        if name ~= nil then
-            local r, g, b = 1, 1, 1
-            if class ~= nil and not IsSecret(class) then
-                local color = C_ClassColor and C_ClassColor.GetClassColor(class)
-                    or RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
-                if color then r, g, b = color:GetRGB() end
-            end
-            f.timeText:SetTextColor(r, g, b)
-            f.timeText:SetText(name)
-        end
     end
+    PaintInterruptedOn(f, name, class)
     S.displayToken = S.displayToken + 1
     local tok = S.displayToken
     C_Timer.After(INTERRUPT_HOLD, function()
@@ -894,6 +936,103 @@ end
 
 function FC.IsPreviewing() return f and S.preview or false end
 
+------------------------------------------------------------
+-- 設定頁的內嵌樣本（Options/Tab_FocusCast.lua「材質」上方那一列）：一條自己循環填滿的假施法條。
+-- **零件、版面、上色、發光、名字、斷法圖示、打斷畫面全部是畫面上那條用的同一批函式**（BuildParts／LayoutParts／
+-- PaintColorOn／ShowGlowOn／PaintNameOn／PaintKick…On／PaintInterruptedOn／PaintSpellTargetOn），樣本只負責餵明文的假狀態
+-- ⇒ 樣本上的樣式與上色就是實際的套用結果（使用者 2026-11-06 指定：要能順便看樣式或上色有沒有錯）。
+-- 所以設定關著的東西樣本也不畫：glowImportant／bangImportant 關著時，「重要法術」那兩顆按鈕按了沒有畫面。
+-- 不碰畫面上那條的狀態（S）與任何施法 API。
+--   local s = FC.CreateSample(parent)    s 是框，位置由呼叫端擺
+--   s:Refresh(maxW)                      照目前設定重排重畫（寬放不下縮到 maxW、高上限 FC.SAMPLE_MAX_H：列高是固定的）
+--   s.state ＝ "ready"｜"cd"｜"immune"｜"interrupted"   假施法的狀態，四選一：
+--       ready        可斷法、我方斷法就緒        cd   可斷法、我方斷法冷卻中
+--       immune       不可中斷                    interrupted   被打斷（斷法者＝自己）
+--   s.glowOn／s.bangOn                   這個法術算不算重要法術——發光與「!」各餵各的（實際上是同一個布林，
+--                                        分開是為了兩種標示可以各自看）
+--   s:Paint()                            改了上面三個欄位之後叫
+------------------------------------------------------------
+local SAMPLE_TIME, SAMPLE_HOLD = 3, 0.6
+FC.SAMPLE_MAX_H = 24
+
+function FC.CreateSample(parent)
+    local s = CreateFrame("Frame", nil, parent)
+    BuildParts(s)
+    s.icon:SetTexture(PREVIEW_ICON)
+    s.state, s.glowOn, s.bangOn = "ready", true, true
+
+    local t, acc, wantSpark, lastTime, glowSig = 0, 1, true, nil, nil
+    s:SetScript("OnUpdate", function(self, dt)
+        if self.state == "interrupted" then return end
+        t = t + dt
+        if t >= SAMPLE_TIME + SAMPLE_HOLD then t = t % (SAMPLE_TIME + SAMPLE_HOLD) end
+        local filling = t < SAMPLE_TIME
+        self.bar:SetValue(filling and t / SAMPLE_TIME or 1)
+        self.spark:SetShown(wantSpark and filling)
+        acc = acc + dt
+        if acc < 0.05 then return end
+        acc = 0
+        local text = CB().FormatTime((Cfg() or {}).timeFormat, filling and t or SAMPLE_TIME, SAMPLE_TIME)
+        if text ~= lastTime then
+            lastTime = text
+            self.timeText:SetText(text)
+        end
+    end)
+
+    function s:Paint()
+        local cfg = Cfg() or {}
+        local st = self.state
+        local me = UnitName and UnitName("player") or nil
+        local class = ns.playerClass or (UnitClassBase and UnitClassBase("player")) or nil
+        lastTime = nil
+        self.timeText:SetTextColor(1, 1, 1)
+
+        -- 斷法圖示：冷卻不演（沒有真的冷卻可以餵），只有就緒亮／冷卻中暗
+        if self.kickFrame:IsShown() then
+            local id = KickSpell(cfg)
+            if id then PaintKickIconOn(self, id) end
+            if self.kickCD and self.kickCD.Clear then pcall(self.kickCD.Clear, self.kickCD) end
+            PaintKickReadyOn(self, st ~= "cd")
+        end
+
+        if st == "interrupted" then
+            glowSig = nil
+            PaintInterruptedOn(self, cfg.showInterrupter ~= false and me or nil, class)
+            return
+        end
+
+        PaintColorOn(self, st == "immune", st == "ready", true)
+        PaintNameOn(self, L["Preview cast"], self.bangOn, L["Focus target"])
+        if cfg.showTarget ~= false and me ~= nil then
+            PaintSpellTargetOn(self, me, class)          -- 範例：打向自己（同頁首的預覽）
+        else
+            ClearSpellTargetOn(self)
+        end
+        -- 發光：開著的那一份照開的那一刻的顏色與尺寸畫（畫面上那條每次開唱都是新的一份）⇒ 這幾樣變了就先停再開
+        local c = Colors().glow
+        local sig = table.concat({ GlowStyle(), tostring(type(c) == "table" and c.r), tostring(type(c) == "table" and c.g),
+            tostring(type(c) == "table" and c.b), self:GetWidth(), self:GetHeight() }, "|")
+        if sig ~= glowSig then
+            glowSig = sig
+            StopGlowOn(self)
+        end
+        ShowGlowOn(self, self.glowOn)
+    end
+
+    function s:Refresh(maxW)
+        local cfg = Cfg() or {}
+        local W, H = ns.P.Scale(Width(cfg)), ns.P.Scale(tonumber(cfg.height) or 20)
+        if maxW and W > maxW then W = maxW end
+        if W < 80 then W = 80 end
+        if H > FC.SAMPLE_MAX_H then H = FC.SAMPLE_MAX_H elseif H < 6 then H = 6 end
+        self:SetSize(W, H)
+        LayoutParts(self, cfg, W, H)
+        wantSpark = cfg.showSpark ~= false
+        self:Paint()
+    end
+    return s
+end
+
 -- 施法中、淡出中、打斷停留中、預覽中都算（Visibility 的 hideWhenNotCasting 看這個）
 function FC.IsActive()
     return (f and S.castState ~= nil) and true or false
@@ -1032,7 +1171,7 @@ function FC.DebugLines()
     out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  斷法圖示 %s  alpha %s")
         :format(cfg.enabled ~= false and "開" or "關", STATE_NAME[S.castState] or "閒置",
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否",
-                S.tStart and "有" or "無", S.total or 0, tostring(S.glowShown or "無"),
+                S.tStart and "有" or "無", S.total or 0, tostring(f and f.glowShown or "無"),
                 tostring(KickSpell(cfg) or "無"),
                 tostring(ns.Visibility and ns.Visibility.Current(KEY)))
     return out
