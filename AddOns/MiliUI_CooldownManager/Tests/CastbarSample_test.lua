@@ -136,7 +136,7 @@ local ns = {
     },
 }
 local FX = { Anim = { { kind = "scroll", tex = "a", period = 3 },
-                      { kind = "flip", tex = "b", cols = 2, rows = 2, frames = 4, time = 1, pause = 0.5, overflow = 0.5 },
+                      { kind = "flip", tex = "b", cols = 2, rows = 2, frames = 4, time = 1, pause = 0.5, overflow = 0.5, alpha = 0.5 },
                       { kind = "scroll", tex = "c", period = 2, twinkle = { lo = 0.4, period = 1 } } } }
 ns.Media = {
     SetFont = function() end,
@@ -303,12 +303,20 @@ do
     eq("專注樣本：動畫材質＋冷卻中 ⇒ 底色白", Fill(s.bar), "1,1,1")
     eq("專注樣本：動畫材質 ⇒ 效果層開著、三層都在", (s.fxOn and "on" or "off") .. #s.fxActive, "on3")
     eq("專注樣本：冷卻中 ⇒ 動畫在播", s.fxActive[1].group._playing, true)
-    eq("專注樣本：冷卻中 ⇒ 效果層不讓位", Arg(s.flowClip, "SetAlpha") .. "," .. Arg(s.flowHost, "SetAlpha"), "1,1")
+    -- 效果層照播、整層染上跟填充同一個顏色（不讓位）；各層登記的 alpha 要帶著
+    local function Tint(i)
+        local t = s.fxActive[i].tex._set.SetVertexColor
+        return table.concat(t, ",")
+    end
+    eq("專注樣本：冷卻中 ⇒ 效果層是圖自己的顏色", Tint(1), "1,1,1,1")
     s.state = "ready"; s:Paint()
     eq("專注樣本：動畫材質＋就緒 ⇒ 就緒色", Fill(s.bar), "1,0,0")
-    eq("專注樣本：就緒 ⇒ 效果層讓位（host 透明）", Arg(s.flowClip, "SetAlpha") .. "," .. Arg(s.flowHost, "SetAlpha"), "1,0")
+    eq("專注樣本：就緒 ⇒ 效果層染就緒色", Tint(1) .. " " .. Tint(2), "1,0,0,1 1,0,0,0.5")
+    eq("專注樣本：就緒 ⇒ 動畫照播", s.fxActive[1].group._playing, true)
+    eq("專注樣本：就緒 ⇒ 效果層沒有被壓透明", tostring(Arg(s.flowClip, "SetAlpha")) .. "," .. tostring(Arg(s.flowHost, "SetAlpha")), "nil,nil")
     s.state = "immune"; s:Paint()
-    eq("專注樣本：不可中斷 ⇒ 效果層讓位（裁切框透明）", Arg(s.flowClip, "SetAlpha"), 0)
+    eq("專注樣本：不可中斷 ⇒ 效果層染不可中斷色", Tint(1), "0,0,1,1")
+    eq("專注樣本：不可中斷 ⇒ 動畫照播", s.fxActive[1].group._playing, true)
     s.state = "interrupted"; s:Paint()
     eq("專注樣本：被打斷 ⇒ 動畫停", s.fxActive[1].group._playing, false)
     eq("專注樣本：被打斷 ⇒ 效果層收起來", s.flowClip._shown, false)
