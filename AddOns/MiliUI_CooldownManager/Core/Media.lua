@@ -57,7 +57,7 @@ M.BAR_TEXTURE_NAME = "MiliUI Satin"
 -- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰；玩家問「施法條能不能多點皮膚」）。
 -- 貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、其餘四款是 miliui-cdm-castbar-fx。
 --   tex     靜態那張：當 StatusBar 填充（進度前進時逐段露出），也是登記進 LSM 的那張 ⇒ 本插件所有長條的材質下拉都選得到
---   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；只有玩家施法條做），由下往上：
+--   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；玩家施法條與專注目標施法條都做，後者借 ns.Castbar.Fx），由下往上：
 --     kind = "scroll"  整條寬、REPEAT 平鋪，貼圖座標動畫橫向捲，period 秒捲完一輪（貼圖兩端要接得起來）；
 --                      blend（預設一般混色，"ADD" ＝ 黑底貼圖加亮）、alpha、twinkle = { lo, period }（alpha 在 lo～原值之間來回）
 --     kind = "flip"    序列圖 cols × rows 共 frames 格，time 秒播完一輪、之後看不見 pause 秒（0 ＝ 連續循環）；

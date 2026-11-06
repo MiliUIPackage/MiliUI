@@ -240,10 +240,12 @@ do
     eq("專注樣本：斷法圖示", Arg(s.kickIcon, "SetTexture"), "kick-96231")
     eq("專注樣本：斷法就緒 ⇒ 圖示亮", Arg(s.kickIcon, "SetAlpha"), 1)
     eq("專注樣本：打向自己", Arg(s.targetText, "SetText"), "米利")
-    -- 疊層照 LayoutParts：底 L → 條 L+1 → 文字 L+3；圖示與斷法圖示 L+1；發光宿主 L+20
+    -- 疊層照 LayoutParts：底 L → 條 L+1 → 效果層 L+2 → 火花 L+3 → 文字 L+4；圖示與斷法圖示 L+1；發光宿主 L+20
     eq("專注樣本：疊層", table.concat({ Arg(s.barHolder, "SetFrameLevel"), Arg(s.bar, "SetFrameLevel"),
-        Arg(s.textFrame, "SetFrameLevel"), Arg(s.iconFrame, "SetFrameLevel"), Arg(s.kickFrame, "SetFrameLevel"),
-        Arg(s.glowHosts.pixel, "SetFrameLevel") }, ","), "1,2,4,2,2,21")
+        Arg(s.flowClip, "SetFrameLevel"), Arg(s.top, "SetFrameLevel"), Arg(s.textFrame, "SetFrameLevel"),
+        Arg(s.iconFrame, "SetFrameLevel"), Arg(s.kickFrame, "SetFrameLevel"),
+        Arg(s.glowHosts.pixel, "SetFrameLevel") }, ","), "1,2,3,4,5,2,2,21")
+    eq("專注樣本：一般材質沒有效果層", s.fxOn, false)
     ok, err = pcall(Tick, s, 80)
     check("專注樣本：每幀更新不丟錯", ok, err)
 
@@ -299,8 +301,24 @@ do
     focusCfg.texture = "Anim"
     s.state = "cd"; s:Refresh(500)
     eq("專注樣本：動畫材質＋冷卻中 ⇒ 底色白", Fill(s.bar), "1,1,1")
+    eq("專注樣本：動畫材質 ⇒ 效果層開著、三層都在", (s.fxOn and "on" or "off") .. #s.fxActive, "on3")
+    eq("專注樣本：冷卻中 ⇒ 動畫在播", s.fxActive[1].group._playing, true)
+    eq("專注樣本：冷卻中 ⇒ 效果層不讓位", Arg(s.flowClip, "SetAlpha") .. "," .. Arg(s.flowHost, "SetAlpha"), "1,1")
     s.state = "ready"; s:Paint()
     eq("專注樣本：動畫材質＋就緒 ⇒ 就緒色", Fill(s.bar), "1,0,0")
+    eq("專注樣本：就緒 ⇒ 效果層讓位（host 透明）", Arg(s.flowClip, "SetAlpha") .. "," .. Arg(s.flowHost, "SetAlpha"), "1,0")
+    s.state = "immune"; s:Paint()
+    eq("專注樣本：不可中斷 ⇒ 效果層讓位（裁切框透明）", Arg(s.flowClip, "SetAlpha"), 0)
+    s.state = "interrupted"; s:Paint()
+    eq("專注樣本：被打斷 ⇒ 動畫停", s.fxActive[1].group._playing, false)
+    eq("專注樣本：被打斷 ⇒ 效果層收起來", s.flowClip._shown, false)
+    s.state = "cd"; s:Paint()
+    eq("專注樣本：離開打斷 ⇒ 動畫接著播", s.fxActive[1].group._playing, true)
+    focusCfg.animate = false
+    s:Refresh(500)
+    eq("專注樣本：關掉動畫 ⇒ 效果層收掉", s.fxOn, false)
+    focusCfg.animate = nil
+    s.state = "ready"
     focusCfg.texture = "Flat"
 
     -- 這個專精沒有斷法：不畫斷法圖示、不丟錯

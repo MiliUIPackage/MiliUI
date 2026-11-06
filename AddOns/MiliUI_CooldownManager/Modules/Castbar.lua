@@ -18,7 +18,7 @@
 -- UI-CastingBar-Filling-Standard、去飽和，顏色照下面的上色流程（施法／引導／不可打斷／斷法就緒／蓄力
 -- 最後都是對填充貼圖 SetVertexColor）。一般施法與引導用同一張，**不依不可打斷換圖**（那是秘密布林）。
 --
--- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰）：顏色烤在圖裡 ⇒ 選到時底色自動白（不然被施法色染髒），
+-- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰；專注目標施法條 2026-11-06 也接上，見 CB.Fx）：顏色烤在圖裡 ⇒ 選到時底色自動白（不然被施法色染髒），
 -- 蓄力／斷法就緒／不可打斷／打斷照舊乘上去；animate 開著再疊「效果層」（見下面，全程引擎跑）。
 --
 -- 刻度、延遲、蓄力分階都要「明文的時間軸」（開始／結束讀得到）：讀不到就不畫，
@@ -551,6 +551,10 @@ local function FlowAlpha(frame, flag)
     end
     frame:SetAlpha(flag and 0 or 1)
 end
+
+-- 效果層給專注目標施法條（Modules/FocusCastbar.lua）共用：同一套貼圖池、同一套畫法，宿主各一份（CB.FxHost）
+CB.Fx = { Wanted = FxWanted, Setup = FxSetup, HideAll = FxHideAll, Anchor = FxAnchor,
+          Play = FxPlay, Stop = FxStop, Alpha = FlowAlpha }
 
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）

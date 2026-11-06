@@ -1182,3 +1182,5 @@ L["Kick ready"] = "차단기 준비됨"
 L["Kick on CD"] = "차단기 재사용 대기 중"
 L["Important spell: glow"] = "중요 주문: 발광"
 L["Important spell: \"!\""] = "중요 주문: \"!\""
+-- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
+L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."] = "애니메이션 텍스처는 자체 색상을 가지고 있으며, 시전을 차단할 수 있고 내 차단기가 재사용 대기 중일 때 표시됩니다. 차단기가 준비되었거나 차단 불가 시전일 때는 애니메이션이 물러나 해당 색상이 보입니다."

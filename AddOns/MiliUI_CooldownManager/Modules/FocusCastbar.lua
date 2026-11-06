@@ -21,6 +21,10 @@
 --     UnitShouldDisplaySpellTargetName 的布林：明文 if、秘密餵 SetAlphaFromBoolean
 --   * 事件處理器只轉手 ns.Defer
 --
+-- 動畫材質（Core/Media.lua 的 M.FX；2026-11-06 使用者要求這條也要有動畫）：效果層整套借玩家施法條的（ns.Castbar.Fx／
+-- FxHost，宿主各一份）。圖自己的顏色＝「可斷法、我方斷法冷卻中」那一態（底色白、動畫照播）；斷法就緒與不可打斷要讓人
+-- 看得到那個顏色 ⇒ 那兩態效果層讓位（秘密布林各餵一層的 SetAlphaFromBoolean）、露出底下染好色的靜態底圖。被打斷、收條時停。
+--
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
 --
@@ -115,7 +119,12 @@ local function BuildParts(h)
     h.bar:SetMinMaxValues(0, 1)
     h.bar:SetValue(0)
 
-    h.spark = h.bar:CreateTexture(nil, "OVERLAY")
+    -- 動畫材質的效果層（玩家施法條那一套，Modules/Castbar.lua 的 CB.Fx）：裁切框 → host → 每一層一張貼圖
+    CB().FxHost(h, h.bar)
+    -- 火花掛在效果層上面那一層（掛在條上會被效果層蓋掉半邊）
+    h.top = CreateFrame("Frame", nil, h.bar)
+    h.top:SetAllPoints(h.bar)
+    h.spark = h.top:CreateTexture(nil, "OVERLAY")
     h.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
     h.spark:SetBlendMode("ADD")
     h.spark:Hide()
@@ -171,8 +180,9 @@ end
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
 ------------------------------------------------------------
--- 零件的版面：W／H 是整條的寬高（呼叫端已經換算好）。回傳是不是反向填充。火花要不要顯示由呼叫端決定
-local function LayoutParts(h, cfg, W, H)
+-- 零件的版面：W／H 是整條的寬高（呼叫端已經換算好）。回傳是不是反向填充。火花要不要顯示由呼叫端決定。
+-- casting ＝ 這一條正在唱（施法／引導中）：動畫材質的效果層設好之後直接接著播
+local function LayoutParts(h, cfg, W, H, casting)
     local showIcon = cfg.showIcon ~= false
     local iconW = showIcon and H or 0
     local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
@@ -234,11 +244,13 @@ local function LayoutParts(h, cfg, W, H)
     local reversed = ns.FillReversed(cfg)
     h.bar:SetReverseFill(reversed)
 
-    -- 層級：底 L → 條 L+1 → 文字 L+3；圖示 L+1；發光宿主 L+20（GlowHost）
+    -- 層級：底 L → 條 L+1 → 效果層 L+2 → 火花 L+3 → 文字 L+4；圖示 L+1；發光宿主 L+20（GlowHost）
     local lvl = h:GetFrameLevel()
     h.barHolder:SetFrameLevel(lvl)
     h.bar:SetFrameLevel(lvl + 1)
-    h.textFrame:SetFrameLevel(lvl + 3)
+    h.flowClip:SetFrameLevel(lvl + 2)
+    h.top:SetFrameLevel(lvl + 3)
+    h.textFrame:SetFrameLevel(lvl + 4)
     h.iconFrame:SetFrameLevel(lvl + 1)
     h.kickFrame:SetFrameLevel(lvl + 1)
 
@@ -282,6 +294,20 @@ local function LayoutParts(h, cfg, W, H)
     h.spark:ClearAllPoints()
     local tex = h.bar:GetStatusBarTexture()
     if tex then h.spark:SetPoint("CENTER", tex, reversed and "LEFT" or "RIGHT", 0, 0) end
+
+    -- 效果層（動畫材質、animate 開著才有）：做法同玩家施法條的 LayoutParts——裁切框的前緣錨在填充貼圖上
+    -- （換材質後貼圖是新的，所以每次版面重下），有往上竄的層（火舌）時上緣跟著加高。先停再設：秒數、方向可能都換了。
+    -- 開著沒有記在 h.fxOn；狀態色要露出來時由 PaintColorOn 把這層壓透明
+    local Fx = CB().Fx
+    Fx.Stop(h)
+    local layers = tex and Fx.Wanted(cfg) or nil
+    local okFx, overflow = false, 0
+    if layers then okFx, overflow = Fx.Setup(h, layers, cfg, reversed, H - inset * 2) else Fx.HideAll(h) end
+    h.fxOn = okFx
+    if okFx then
+        Fx.Anchor(h, tex, reversed, overflow)
+        if casting then Fx.Play(h) end
+    end
     return reversed
 end
 
@@ -291,7 +317,7 @@ function FC.Layout()
     local W, H = Width(cfg), tonumber(cfg.height) or 20
     W, H = ns.P.Scale(W), ns.P.Scale(H)
     ns.Bars.SetPanelSize(KEY, W, H)
-    S.reversed = LayoutParts(f, cfg, W, H)
+    S.reversed = LayoutParts(f, cfg, W, H, S.castState == 1 or S.castState == 2)
     f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
 end
 
@@ -326,7 +352,8 @@ local function PaintColorOn(h, ni, ready, has)
     if not tex then return end
     local c = Colors()
     local br, bg, bb = C(c.cd, 0.906, 0.424, 0.2)
-    -- 動畫材質（Core/Media.lua 的 M.FX）：底色白，斷法就緒／不可打斷照舊乘上去（效果層只有玩家施法條做）
+    -- 動畫材質（Core/Media.lua 的 M.FX）：底色白（圖自己的顏色＝「斷法冷卻中」那一態），斷法就緒／不可打斷照舊蓋上去；
+    -- 那兩態要讓人看得到顏色 ⇒ 效果層在函式尾巴讓位
     if CB().IsFx and CB().IsFx((Cfg() or {}).texture) then br, bg, bb = 1, 1, 1 end
     local r, g, b = br, bg, bb
     local tinted = false
@@ -356,6 +383,13 @@ local function PaintColorOn(h, ni, ready, has)
         end
     end
     tex:SetVertexColor(r, g, b, 1)
+    -- 效果層：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的 alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean），
+    -- 壓透明之後露出底下照上面算好顏色的填充貼圖。兩個都不成立（可斷法、我方斷法冷卻中／沒有斷法）才看得到動畫
+    if h.fxOn then
+        local Fx = CB().Fx
+        Fx.Alpha(h.flowClip, ni)
+        Fx.Alpha(h.flowHost, (chainOK and has) and ready or nil)
+    end
 end
 
 local function ApplyColor()
@@ -528,8 +562,10 @@ local function SetTimeText(text)
     f.timeText:SetText(text)
 end
 
+-- 開唱：火花＋動畫材質的效果層開始播（同玩家施法條的 ShowSparkOn）
 local function ShowSparkOn(h)
     h.spark:SetShown((Cfg() or {}).showSpark ~= false)
+    if h.fxOn then CB().Fx.Play(h) end
 end
 local function ShowSpark() ShowSparkOn(f) end
 
@@ -590,6 +626,7 @@ local function HideBar()
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f:SetScript("OnUpdate", nil)
     f.spark:Hide()
+    CB().Fx.Stop(f)
     f:SetAlpha(1)
     StopGlow()
     S.lastTime = nil
@@ -631,6 +668,7 @@ local function EndFade()
     S.displayToken = S.displayToken + 1
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f.spark:Hide()
+    CB().Fx.Stop(f)
     StopGlow()
     f.timeText:SetText("")
     f:SetScript("OnUpdate", FadeOnUpdate)
@@ -643,6 +681,7 @@ end
 -- who ＝ 斷法者的名字（nil ＝ 不印；可能是秘密字串）、class ＝ 職業 token（秘密字串就維持白字）
 local function PaintInterruptedOn(h, who, class)
     h.spark:Hide()
+    CB().Fx.Stop(h)                            -- 滿條的打斷色要露出來
     StopGlowOn(h)                              -- 施法已經斷了，紅條不再標重要
     h.bar:SetMinMaxValues(0, 1)
     h.bar:SetValue(1)
@@ -1033,10 +1072,14 @@ function FC.CreateSample(parent)
         if W < 80 then W = 80 end
         if H > FC.SAMPLE_MAX_H then H = FC.SAMPLE_MAX_H elseif H < 6 then H = 6 end
         self:SetSize(W, H)
-        LayoutParts(self, cfg, W, H)
+        LayoutParts(self, cfg, W, H, self.state ~= "interrupted")
         wantSpark = cfg.showSpark ~= false
         self:Paint()
     end
+    -- 框藏起來時動畫組會停（換頁、換表單、關視窗）：重新顯示時接著播
+    s:SetScript("OnShow", function(self)
+        if self.fxOn and self.state ~= "interrupted" then CB().Fx.Play(self) end
+    end)
     return s
 end
 

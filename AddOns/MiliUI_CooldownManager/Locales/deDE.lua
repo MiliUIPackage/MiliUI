@@ -1182,3 +1182,5 @@ L["Kick ready"] = "Unterbrechung bereit"
 L["Kick on CD"] = "Unterbrechung auf Abklingzeit"
 L["Important spell: glow"] = "Wichtiger Zauber: Leuchten"
 L["Important spell: \"!\""] = "Wichtiger Zauber: „!“"
+-- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
+L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."] = "Animierte Texturen bringen ihre eigenen Farben mit; sie sind zu sehen, solange der Zauber unterbrechbar und deine Unterbrechung auf Abklingzeit ist. Ist deine Unterbrechung bereit oder der Zauber nicht unterbrechbar, tritt die Animation zurück, damit diese Farbe sichtbar ist."

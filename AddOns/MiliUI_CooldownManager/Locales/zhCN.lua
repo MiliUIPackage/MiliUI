@@ -1242,3 +1242,5 @@ L["Kick ready"] = "打断就绪"
 L["Kick on CD"] = "打断冷却中"
 L["Important spell: glow"] = "重要法术发光"
 L["Important spell: \"!\""] = "重要法术惊叹号"
+-- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
+L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."] = "动画材质的颜色画在图里，在“可打断、你的打断冷却中”时显示。打断就绪或不可打断时动画会让开，让那个颜色露出来。"

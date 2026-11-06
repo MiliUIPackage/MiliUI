@@ -514,6 +514,9 @@ FocusCastDefaults = function()
         height        = 20,
         font          = "INHERIT",
         texture       = "MiliUI Satin",    -- 套組自製的漸層材質（Core/Media.lua、技能 miliui-satin-texture）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
+        -- 動畫材質選著時的效果層（同玩家施法條的兩欄，2026-11-06）；別的材質下沒作用（設定頁也不顯示）
+        animate       = true,
+        animSpeed     = 1,
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         -- 邊緣陰影（同玩家施法條）：圖示、條身、斷法圖示各一圈；舊存檔沒有 ＝ 關
         shadow        = false,

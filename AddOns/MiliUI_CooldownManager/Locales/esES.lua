@@ -1182,3 +1182,5 @@ L["Kick ready"] = "Interrupción lista"
 L["Kick on CD"] = "Interrupción en enfriamiento"
 L["Important spell: glow"] = "Hechizo importante: brillo"
 L["Important spell: \"!\""] = "Hechizo importante: «!»"
+-- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
+L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."] = "Las texturas animadas llevan sus propios colores, que se ven mientras el hechizo es interrumpible y tu interrupción está en enfriamiento. Cuando tu interrupción está lista o el hechizo no es interrumpible, la animación se aparta para que se vea ese color."

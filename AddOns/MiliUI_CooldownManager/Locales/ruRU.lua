@@ -1182,3 +1182,5 @@ L["Kick ready"] = "Прерывание готово"
 L["Kick on CD"] = "Прерывание восстанавливается"
 L["Important spell: glow"] = "Важное заклинание: свечение"
 L["Important spell: \"!\""] = "Важное заклинание: «!»"
+-- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
+L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."] = "У анимированных текстур свои цвета; они видны, пока заклинание можно прервать, а ваше прерывание восстанавливается. Когда прерывание готово или заклинание нельзя прервать, анимация уступает место, чтобы был виден этот цвет."
