@@ -40,4 +40,7 @@
 - `MM.IsOwnTexture(name)`。
 
 消費者（2026-11-06）：`MiliUI_CooldownManager`、`MiliUI_UnitFrames`、`MiliUI_DamageMeters`、`MiliUI_Tooltip`、
-`MiliUI_BossTimeline`、`MiliUI_CrusadingStrikes`。
+`MiliUI_BossTimeline`、`MiliUI_CrusadingStrikes`、`Cell`。
+
+Cell 由 `Libs/LoadLibs.xml` 載入（掛 `Cell.MiliMedia`），包在 `Utils.lua` 的 `F.SortBarTextureNames`／`F.GetBarTextureLabel` 裡用。
+⚠ Cell 的下拉 `SetSelected` 比對的是**顯示文字**，還原選取要傳 `F.GetBarTextureLabel(存檔名)`。

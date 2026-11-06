@@ -10,6 +10,8 @@
     <Include file="LibSharedMedia-3.0\lib.xml"/>
     <!-- MiliUIGlow 取代 LibCustomGlow：vendor 複製、不走 LibStub，契約見 MiliUIGlow/README.md -->
     <Script file="MiliUIGlow\MiliUIGlow.lua"/>
+    <!-- MiliUIMedia：套組自製材質的名冊（登記名、中文顯示名、下拉順序），vendor 複製、掛 Cell.MiliMedia -->
+    <Script file="MiliUIMedia.lua"/>
     <Include file="AceComm-3.0\AceComm-3.0.xml"/>
     <Include file="LibSerialize\lib.xml"/>
     <Include file="LibDeflate\lib.xml"/>

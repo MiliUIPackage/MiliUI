@@ -624,10 +624,12 @@ local function CheckTextures()
         -- make default texture first
         F.TRemove(textureNames, defaultTextureName)
         tinsert(textureNames, 1, defaultTextureName)
+        -- MiliUI: the pack's own textures go above it, with localized names (F.SortBarTextureNames in Utils.lua)
+        textureNames = F.SortBarTextureNames(textureNames)
 
         for _, name in pairs(textureNames) do
             tinsert(items, {
-                ["text"] = name,
+                ["text"] = F.GetBarTextureLabel(name),
                 ["texture"] = textures[name],
                 ["onClick"] = function()
                     CellDB["appearance"]["texture"] = name
@@ -654,7 +656,7 @@ local function CheckTextures()
 
     -- validation
     if textures[CellDB["appearance"]["texture"]] then
-        textureDropdown:SetSelected(CellDB["appearance"]["texture"], textures[CellDB["appearance"]["texture"]])
+        textureDropdown:SetSelected(F.GetBarTextureLabel(CellDB["appearance"]["texture"]), textures[CellDB["appearance"]["texture"]])
     else
         textureDropdown:SetSelected(defaultTextureName, defaultTexture)
     end

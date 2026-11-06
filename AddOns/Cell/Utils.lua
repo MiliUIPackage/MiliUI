@@ -1832,6 +1832,24 @@ function F.GetBarTextureByName(name)
     return "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
 end
 
+-- MiliUI: texture dropdowns follow the pack-wide naming rule (roster vendored at Libs/MiliUIMedia.lua, shared by
+-- every MiliUI addon): the pack's own textures are listed first, in roster order, and show a localized name on
+-- Chinese clients ("米利UI: 緞面"). The SAVED value stays the LSM name ("MiliUI Satin") -- only the dropdown text
+-- is localized, so existing profiles and shared layouts keep resolving.
+-- names: a copy of LSM:List("statusbar"); whatever the caller put first ("Cell Default") follows the pack's textures.
+function F.SortBarTextureNames(names)
+    local own, rest = Cell.MiliMedia.TextureItems(names)
+    local sorted = {}
+    for _, item in ipairs(own) do tinsert(sorted, item.value) end
+    for _, item in ipairs(rest) do tinsert(sorted, item.value) end
+    return sorted
+end
+
+-- LSM name -> the text shown in a texture dropdown (dropdown:SetSelected matches on this text, not on the LSM name)
+function F.GetBarTextureLabel(name)
+    return Cell.MiliMedia.TextureLabel(name)
+end
+
 function F.GetFont(font)
     if font and LSM:IsValid("font", font) then
         return LSM:Fetch("font", font)
