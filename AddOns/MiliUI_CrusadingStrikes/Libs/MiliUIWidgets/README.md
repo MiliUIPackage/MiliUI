@@ -203,6 +203,21 @@ W.TextExtraHeight(fs, text)    -- 底層：填字並回傳換行多出來的高�
 不能再用固定的 pitch。量不到高度（版面還沒解析）時會整個收手退回原樣：
 「換了行卻沒長高」會讓第二行畫到下一顆按鈕身上，比字溢出更糟。
 
+### 材質下拉：選單本身就是預覽（`W.CreateDropdown` 的 `item.texture`）
+
+**全套組的材質下拉都這樣畫**（使用者 2026-11-06 指定，照 Cell 的樣式）：項目帶 `texture`（圖檔路徑）時，
+選單裡那一列整列鋪那張圖、字疊在上面，收合的下拉本體也鋪選中那一項的圖——不用選了才知道長怎樣。
+
+```lua
+{ text = "米利UI: 緞面", value = "MiliUI Satin", texture = "Interface\\AddOns\\…\\miliui_satin.png" }
+```
+
+- 圖壓在 0.7（底下是深色底，白字才讀得出來），滑過那一列全亮。
+- 有圖的列**不靠底色**表示滑過／選中（底色被圖蓋住），改畫 1px 職業色框；選中的那一項展開時就框著。
+- 沒帶 `texture` 的項目（純色、預設、跟隨…）照舊，可以跟有圖的混在同一張選單裡。
+- 清單不用自己組：`ns.MiliMedia.TextureItems(list, always, nil, 解析函式)`（`Libs/MiliUIMedia.lua`）回來的每一項已經帶好
+  `texture`，解析函式就是插件自己那支「存檔值 → 圖檔路徑」。**新的材質下拉一律傳第四個參數。**
+
 ### 一排按鈕放不下就換排（`W.FlowLayout` / `W.FlowRows`）
 
 ```lua

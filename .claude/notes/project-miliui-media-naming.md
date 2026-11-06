@@ -1,6 +1,6 @@
 ---
 name: project-miliui-media-naming
-description: "套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它"
+description: "套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它；材質下拉的選單本身要鋪材質當預覽（照 Cell 樣式，TextureItems 第四個參數）"
 metadata:
   node_type: memory
   type: project
@@ -17,6 +17,11 @@ metadata:
 - **中文顯示名**：`米利UI: <譯名>`，半形冒號＋一個空白，繁簡各一份；變體用全形括號接後面（`米利UI: 彩虹（柔和）`）。
   其他語系照登記名原樣。現有款式以名冊為準（Satin＝緞面／缎面、Rainbow＝彩虹、Rainbow Soft＝彩虹（柔和），同日另一個 session 加了 Cosmos／Lightning／Lava／Flame 四款施法條動畫材質）。
 - **順序**：不是材質的項目（跟隨…／預設）→ 米利的材質（名冊順序，Satin 第一）→ 保留項（純色、暴雪施法條）→ 其餘 LSM。
+- **選單本身就是預覽**（2026-11-06 使用者貼 Cell 的材質下拉截圖：「材質下拉選單照 Cell 樣式，選單本身有材質可以預覽。所有 MiliUI 插件以後有材質選單都按照這個樣式來做」）：
+  每一列鋪那張材質、字疊在上面，收合的下拉本體也鋪選中的那張。做在共用層 `W.CreateDropdown`（項目帶 `texture` 就畫：圖壓 0.7、滑過全亮、
+  有圖的列用 1px 職業色框表示滑過／選中），圖由 `MM.TextureItems(list, always, nil, 解析函式)` 的**第四個參數**帶（各插件 `Core/Media.lua` 的
+  `BarTexture`／MCDM 的 `ns.Media.Texture`）；保留項（純色、預設、跟隨…）不帶圖。細節（0.7、框的畫法）是我照 Cell 定的，未實機。
+  **新的材質下拉一律傳第四個參數**；不走共用層下拉的自畫選單也要做出同樣的效果。
 - **譯名只寫在名冊**：`AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua`（單檔 vendor，`sync-widgets.py` 鋪到各插件的 `Libs/MiliUIMedia.lua`，
   掛 `ns.MiliMedia`、無全域、不依賴 LSM）。**不要進各插件語系檔**——之前就是各翻各的（單位框／傷害統計「內建（Satin）」、滑鼠提示寫死英文）。
   規則由 source 旁的 `Tests/MiliUIMedia_test.lua` 守（前綴、繁簡都要有、順序）。

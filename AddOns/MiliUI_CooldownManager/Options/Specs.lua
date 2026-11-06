@@ -310,7 +310,7 @@ local BorderItems  = MediaItems({ text = L["Solid"], value = "solid" }, "border"
 -- 長條材質：米利的材質置頂、中文客戶端顯示「米利UI: 緞面」（名冊、譯名、順序都在 Libs/MiliUIMedia.lua，
 -- 全套組同一套規則）→ 純色 → 其餘 LibSharedMedia。存的值照舊是 LSM 登記名，在地化只動顯示文字
 local function TextureItems()
-    local items, rest = ns.MiliMedia.TextureItems(ns.Media.List("statusbar"), ns.Media.OWN_TEXTURES)
+    local items, rest = ns.MiliMedia.TextureItems(ns.Media.List("statusbar"), ns.Media.OWN_TEXTURES, nil, ns.Media.Texture)
     items[#items + 1] = { text = L["Solid"], value = "solid" }
     for i = 1, #rest do items[#items + 1] = rest[i] end
     return items

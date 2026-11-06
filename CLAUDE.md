@@ -60,6 +60,8 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 - **自製材質的命名照 [project-miliui-media-naming](.claude/notes/project-miliui-media-naming.md)**：LibSharedMedia 登記名
   `MiliUI <英文名>` 永遠不翻（它是存檔值），中文客戶端的下拉顯示 `米利UI: <譯名>`（繁簡各一份），而且排在下拉最上面。
   名冊與譯名**只有一份**在 `MiliUI/Libs/MiliUIMedia/`——新材質加在那裡再跑 `sync-widgets.py`，不要寫進各插件的語系檔。
+  **材質下拉的選單本身要看得到材質**（照 Cell 的樣式：每一列鋪那張圖）：清單一律用
+  `ns.MiliMedia.TextureItems(list, always, nil, 解析函式)` 拿，第四個參數（存檔值 → 圖檔路徑）不要省，共用層的下拉會自己畫。
 - **畫 1px 邊框、分隔線、髮絲線照 [wow-1px-border-rules](.claude/notes/wow-1px-border-rules.md)**：粗細走 `P.Pixel`、
   顯示時才換算、自己建的貼圖過 `P.NoSnap`。漏一條就是「某些玩家邊框不見／變 2px」，而裝著 Cell 的我們自己看不到。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue

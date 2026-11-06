@@ -12,6 +12,7 @@
 | 變體 | 全形括號接在款式名後面 | `米利UI: 彩虹（柔和）` |
 | 其他語系 | 照登記名原樣 | `MiliUI Satin` |
 | 順序 | 不是材質的項目（跟隨…／預設）→ 米利的材質（名冊順序）→ 保留項（純色…）→ 其餘 LSM | |
+| 選單就是預覽 | 每一項帶 `texture`（圖檔路徑），下拉把那一列鋪上那張圖、收合的本體鋪選中的那張（照 Cell 的樣式） | `TextureItems(list, always, nil, M.BarTexture)` |
 
 登記名不翻的理由：它是存檔與匯入字串裡的值，也是別家插件材質選單看到的名字——翻了舊存檔就找不到圖，
 跨語系分享的設定也會對不上。所以在地化只做在**我們自己的下拉**的顯示文字上。
@@ -33,7 +34,9 @@
 
 ## 接點
 
-- `MM.TextureItems(list, always)` → `own, rest`：把 LSM 清單拆成「米利的（在地化、名冊順序）」與「其餘」兩段下拉項。
+- `MM.TextureItems(list, always, locale, resolve)` → `own, rest`：把 LSM 清單拆成「米利的（在地化、名冊順序）」與「其餘」兩段下拉項。
+  `resolve` 是插件自己的「存檔值 → 圖檔路徑」函式（`Core/Media.lua` 的 `BarTexture`／`Texture`），每一項的 `texture` 就是它的回傳值，
+  共用層的下拉拿來畫預覽；**新的材質下拉一律要傳**（`locale` 平常傳 `nil`）。保留項（純色、預設、跟隨…）是消費者自己接的，不帶圖。
   `always = { [登記名] = value }` 是這支插件自己帶檔的材質：清單裡沒有也照列，`value` 用表裡給的
   （存 token 不存登記名的插件用，例 `{ ["MiliUI Satin"] = "satin" }`）。
 - `MM.TextureLabel(name)` → 顯示名（不是自製的回原名）。

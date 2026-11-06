@@ -68,6 +68,24 @@ eq("own：顯示名在地化", own[1].text, "米利UI: 緞面")
 eq("rest：其餘照原順序", rest[1].value .. "|" .. rest[2].value .. "|" .. rest[3].value, "Lyfe|Melli|Minimalist")
 eq("rest：不含自製的", #rest, 3)
 eq("rest：原名", rest[3].text, "Minimalist")
+eq("沒傳解析函式：沒有預覽", own[1].texture, nil)
+
+-- 預覽圖：第四個參數是「存檔值 → 圖檔路徑」，每一項的 texture 是它的回傳值
+do
+    local seen = {}
+    local o, r = MM.TextureItems({ "Melli", "MiliUI Rainbow", "Broken", "Odd" }, { ["MiliUI Satin"] = "satin" }, nil, function(v)
+        seen[#seen + 1] = v
+        if v == "Broken" then error("boom") end
+        if v == "Odd" then return {} end
+        return "path/" .. v
+    end)
+    eq("預覽：always 的項目拿存檔值去解析", o[1].texture, "path/satin")
+    eq("預覽：清單裡的自製材質", o[2].texture, "path/MiliUI Rainbow")
+    eq("預覽：其餘 LSM", r[1].texture, "path/Melli")
+    eq("預覽：解析函式丟錯 ⇒ 那一項沒有預覽", r[2].texture, nil)
+    eq("預覽：回的不是路徑 ⇒ 沒有預覽", r[3].texture, nil)
+    eq("預覽：每一項問一次", #seen, 5)
+end
 
 -- 清單裡沒有的自製材質不出現（別的插件沒登記）
 own, rest = MM.TextureItems({ "Melli", "MiliUI Satin" })
