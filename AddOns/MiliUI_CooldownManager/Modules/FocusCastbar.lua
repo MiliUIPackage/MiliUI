@@ -312,8 +312,8 @@ local function ApplyColor()
     if not tex then return end
     local c = Colors()
     local br, bg, bb = C(c.cd, 0.906, 0.424, 0.2)
-    -- 彩虹材質（Core/Media.lua）：底色白，斷法就緒／不可打斷照舊乘上去（流動層只有玩家施法條做）
-    if CB().IsRainbow and CB().IsRainbow((Cfg() or {}).texture) then br, bg, bb = 1, 1, 1 end
+    -- 動畫材質（Core/Media.lua 的 M.FX）：底色白，斷法就緒／不可打斷照舊乘上去（效果層只有玩家施法條做）
+    if CB().IsFx and CB().IsFx((Cfg() or {}).texture) then br, bg, bb = 1, 1, 1 end
     local r, g, b = br, bg, bb
     local tinted = false
     if chainOK and ns.Interrupt then

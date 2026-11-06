@@ -53,10 +53,16 @@ local function TextureItems()
     return items
 end
 
--- 流動彩虹的兩列只在材質是彩虹時可用（Core/Media.lua 的 M.RAINBOW）
-local function NotRainbow()
+-- 動畫的三列（播放動畫、速度、說明）只在材質是動畫材質時出現（Core/Media.lua 的 M.FX）：
+-- 這一頁已經很長，絕大多數人不用動畫材質，永遠灰著的兩列是雜訊。材質下拉帶 refreshPage ⇒ 換材質當下增減列
+local function FxRows()
     local cfg = Cfg()
-    return not (cfg and ns.Media.IsRainbow(cfg.texture))
+    if not (cfg and ns.Media.IsFx(cfg.texture)) then return nil end
+    return {
+        BS("toggle", "animate", L["Play animation"]),
+        BS("slider", "animSpeed", L["Animation speed"], { min = 0.25, max = 3, step = 0.25 }),
+        Note(L["Animated textures (Rainbow, Cosmos, Lightning, Lava, Flame) carry their own colors, so the cast color turns white; empowered stages, interrupt-ready, non-interruptible and interrupted still layer on top. The animation steps aside while non-interruptible or interrupt-ready so that color shows."]),
+    }
 end
 
 local function ResetAll()
@@ -75,11 +81,8 @@ local function Controls()
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns (icon included)."]),
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
-        BS("dropdown", "texture", L["Texture"], { items = TextureItems }),
+        BS("dropdown", "texture", L["Texture"], { items = TextureItems, refreshPage = true }),
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
-        BS("toggle", "rainbowFlow", L["Flowing rainbow"], { disabled = NotRainbow }),
-        BS("slider", "rainbowFlowSpeed", L["Seconds per cycle"], { min = 0.5, max = 10, step = 0.5, disabled = NotRainbow }),
-        Note(L["Rainbow textures (MiliUI Rainbow / Soft): the color turns white on its own; empowered stages, interrupt-ready, non-interruptible and interrupted still layer on top. Flowing = the whole rainbow scrolls along the fill direction, and pauses while non-interruptible or interrupt-ready so the color shows."]),
         BS("color", "bgColor", L["Background color"]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
         -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow）：條身與每顆圖示各一圈
@@ -136,6 +139,16 @@ local function Controls()
         BS("toggle", "hideWhenNotCasting", L["Hide when not casting"]),
         Note(L["Unchecked, an empty bar stays on screen. Edit Mode always shows it."]),
     }
+    -- 動畫材質的三列插在材質下拉與它的說明後面
+    local fx = FxRows()
+    if fx then
+        for i, s in ipairs(list) do
+            if s.path == "texture" then
+                for j, row in ipairs(fx) do table.insert(list, i + 1 + j, row) end
+                break
+            end
+        end
+    end
     for _, s in ipairs(ns.Specs.Anchor(KEY)) do list[#list + 1] = s end
     list[#list + 1] = { type = "header", label = L["Reset"] }
     list[#list + 1] = { type = "custom", label = L["Restore defaults"], h = 30, noReset = true,

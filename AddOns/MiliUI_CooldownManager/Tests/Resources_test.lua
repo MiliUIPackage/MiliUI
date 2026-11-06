@@ -1507,13 +1507,13 @@ do
     check("施法條：暴雪材質是圖集", path == nil and atlas == "UI-CastingBar-Filling-Standard")
     eq("施法條：暴雪材質的 token", CB.BLIZZARD_TEXTURE, "blizzard")
 
-    -- 施法條：彩虹材質的判定交給 Media（沒載 Media 一律不是；載了照它的表）
+    -- 施法條：動畫材質的判定交給 Media（沒載 Media 一律不是；載了照它的表）
     local saveMedia = ns.Media
     ns.Media = nil
-    check("施法條：沒有 Media ＝ 不是彩虹", CB.IsRainbow("MiliUI Rainbow") == false and CB.IsRainbow(nil) == false)
-    ns.Media = { IsRainbow = function(t) return t == "MiliUI Rainbow" end }
-    check("施法條：彩虹材質照 Media 的表", CB.IsRainbow("MiliUI Rainbow") == true and CB.IsRainbow("solid") == false
-        and CB.IsRainbow("blizzard") == false)
+    check("施法條：沒有 Media ＝ 不是動畫材質", CB.IsFx("MiliUI Rainbow") == false and CB.IsFx(nil) == false)
+    ns.Media = { IsFx = function(t) return t == "MiliUI Rainbow" end }
+    check("施法條：動畫材質照 Media 的表", CB.IsFx("MiliUI Rainbow") == true and CB.IsFx("solid") == false
+        and CB.IsFx("blizzard") == false)
     ns.Media = saveMedia
 end
 

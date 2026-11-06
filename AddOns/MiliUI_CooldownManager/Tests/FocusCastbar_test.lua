@@ -260,6 +260,67 @@ do
     eq("v12：本來就關的不動", v2.focuscast.enabled, false)
     DB.MIGRATIONS[12]({})
     check("v12：沒有這張表不報錯", true)
+
+    -- 動畫材質（Core/Media.lua 的 M.FX）：登記表的健全性、貼圖檔真的在、判定與解析
+    local M = ns.Media
+    local function Exists(path)
+        local rel = path:gsub("^Interface\\AddOns\\MiliUI_CooldownManager\\", ""):gsub("\\", "/")
+        local fh = io.open(here .. "/../" .. rel, "rb")
+        if fh then fh:close() return true end
+        return false
+    end
+    eq("動畫材質：六款", #M.FX_ORDER, 6)
+    for _, name in ipairs(M.FX_ORDER) do
+        local fx = M.FX[name]
+        check("動畫材質 " .. name .. "：有登記、名字帶前綴", type(fx) == "table" and name:find("^MiliUI ") ~= nil)
+        check("動畫材質 " .. name .. "：靜態那張在", type(fx.tex) == "string" and Exists(fx.tex), fx.tex)
+        eq("動畫材質 " .. name .. "：token 直接解到自己的檔", M.Texture(name), fx.tex)
+        check("動畫材質 " .. name .. "：至少一層、第一層是捲動", #fx.layers >= 1 and fx.layers[1].kind == "scroll")
+        for i, l in ipairs(fx.layers) do
+            local tag = ("動畫材質 %s 第 %d 層："):format(name, i)
+            check(tag .. "貼圖在", type(l.tex) == "string" and Exists(l.tex), l.tex)
+            if l.kind == "flip" then
+                check(tag .. "序列圖的格數對得起來", l.cols * l.rows == l.frames and l.time > 0 and (l.pause or 0) >= 0)
+            else
+                check(tag .. "捲動有週期", l.kind == "scroll" and type(l.period) == "number" and l.period > 0)
+                if l.twinkle then check(tag .. "閃爍的下限與週期", l.twinkle.lo >= 0 and l.twinkle.lo < 1 and l.twinkle.period > 0) end
+            end
+            check(tag .. "混色只有兩種", l.blend == nil or l.blend == "ADD")
+        end
+    end
+    check("動畫材質：判定", M.IsFx("MiliUI Cosmos") and M.IsFx("MiliUI Flame") and not M.IsFx("MiliUI Satin")
+        and not M.IsFx("solid") and not M.IsFx(nil) and not M.IsFx(42))
+    eq("動畫材質：效果層清單", M.FxLayers("MiliUI Lightning"), M.FX["MiliUI Lightning"].layers)
+    eq("動畫材質：不是的回 nil", M.FxLayers("blizzard"), nil)
+    eq("火焰：火舌往條外多畫半個條高", M.FX["MiliUI Flame"].layers[2].overflow, 0.5)
+    check("閃電：電弧有停頓、加亮混色", M.FX["MiliUI Lightning"].layers[2].pause > 0 and M.FX["MiliUI Lightning"].layers[2].blend == "ADD")
+
+    -- 施法條預設與 v15 遷移：彩虹專用的兩欄改成通用的 animate／animSpeed
+    local cbDef = DB.BuildDefaults().profile.castbar
+    eq("施法條預設：播放動畫", cbDef.animate, true)
+    eq("施法條預設：動畫速度 1", cbDef.animSpeed, 1)
+    check("施法條預設：沒有舊欄位", cbDef.rainbowFlow == nil and cbDef.rainbowFlowSpeed == nil)
+    local o = { castbar = { rainbowFlow = true, rainbowFlowSpeed = 3, texture = "MiliUI Rainbow" } }
+    DB.MIGRATIONS[15](o)
+    check("v15：預設值搬成 開／1 倍、舊欄位拿掉", o.castbar.animate == true and o.castbar.animSpeed == 1
+        and o.castbar.rainbowFlow == nil and o.castbar.rainbowFlowSpeed == nil and o.castbar.texture == "MiliUI Rainbow")
+    o = { castbar = { rainbowFlow = false, rainbowFlowSpeed = 1.5 } }
+    DB.MIGRATIONS[15](o)
+    check("v15：關著照關、1.5 秒一輪 ＝ 2 倍", o.castbar.animate == false and o.castbar.animSpeed == 2)
+    o = { castbar = { rainbowFlowSpeed = 10 } }
+    DB.MIGRATIONS[15](o)
+    eq("v15：10 秒一輪貼齊到 0.25 倍", o.castbar.animSpeed, 0.25)
+    o = { castbar = { rainbowFlowSpeed = 0.5 } }
+    DB.MIGRATIONS[15](o)
+    eq("v15：0.5 秒一輪夾在 3 倍", o.castbar.animSpeed, 3)
+    o = { castbar = { rainbowFlow = true, rainbowFlowSpeed = 6, animate = false, animSpeed = 2.5 } }
+    DB.MIGRATIONS[15](o)
+    check("v15：已經有新欄位的不蓋", o.castbar.animate == false and o.castbar.animSpeed == 2.5 and o.castbar.rainbowFlow == nil)
+    o = { castbar = { height = 20 } }
+    DB.MIGRATIONS[15](o)
+    check("v15：沒有舊欄位的不動", o.castbar.animate == nil and o.castbar.animSpeed == nil and o.castbar.height == 20)
+    DB.MIGRATIONS[15]({})
+    check("v15：沒有這張表不報錯", true)
 end
 
 print(("FocusCastbar_test: %d passed, %d failed"):format(passed, failed))

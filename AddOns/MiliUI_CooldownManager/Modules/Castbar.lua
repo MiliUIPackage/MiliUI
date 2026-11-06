@@ -18,8 +18,8 @@
 -- UI-CastingBar-Filling-Standard、去飽和，顏色照下面的上色流程（施法／引導／不可打斷／斷法就緒／蓄力
 -- 最後都是對填充貼圖 SetVertexColor）。一般施法與引導用同一張，**不依不可打斷換圖**（那是秘密布林）。
 --
--- 彩虹材質（Core/Media.lua 的 M.RAINBOW，2026-11-04）：選到時底色自動白（不然施法色把彩虹染髒），蓄力／斷法就緒／
--- 不可打斷／打斷照舊乘上去；rainbowFlow 開著再疊一層「流動彩虹」（見下面「流動彩虹層」，全程引擎跑）。
+-- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰）：顏色烤在圖裡 ⇒ 選到時底色自動白（不然被施法色染髒），
+-- 蓄力／斷法就緒／不可打斷／打斷照舊乘上去；animate 開著再疊「效果層」（見下面，全程引擎跑）。
 --
 -- 刻度、延遲、蓄力分階都要「明文的時間軸」（開始／結束讀得到）：讀不到就不畫，
 -- 條本身照樣由 duration 物件驅動。位置一律用設定算出來的寬度（不讀框的幾何）。
@@ -228,10 +228,10 @@ local function SetFillTexture(bar, token)
 end
 CB.SetFillTexture = SetFillTexture
 
--- 材質 token 是不是彩虹（判定在 Core/Media.lua；離線測試沒載 Media 時一律不是）
-function CB.IsRainbow(token)
+-- 材質 token 是不是動畫材質（判定在 Core/Media.lua；離線測試沒載 Media 時一律不是）
+function CB.IsFx(token)
     local M = ns.Media
-    return (M and M.IsRainbow and M.IsRainbow(token)) and true or false
+    return (M and M.IsFx and M.IsFx(token)) and true or false
 end
 
 ------------------------------------------------------------
@@ -274,34 +274,20 @@ local function Build()
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(0)
 
-    -- 流動彩虹層（見「流動彩虹層」）：裁切框 → host → 整條寬的貼圖；錨點與貼圖在 Layout 設。
-    -- 貼圖座標動畫建不出來（舊客戶端）就整層不用（S.flow 永遠 false）
+    -- 效果層（見「效果層」）：裁切框 → host → 每一層一張貼圖；貼圖是池化的、用到才建，錨點與動畫在 Layout 設
     f.flowClip = CreateFrame("Frame", nil, f.bar)
     f.flowClip:SetClipsChildren(true)
     f.flowClip:Hide()
     f.flowHost = CreateFrame("Frame", nil, f.flowClip)
     f.flowHost:SetAllPoints(f.bar)
-    f.flowTex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK"))
-    f.flowTex:SetAllPoints(f.bar)
-    f.flowAnim = f.flowTex:CreateAnimationGroup()
-    f.flowAnim:SetLooping("REPEAT")
-    -- ⚠ CreateAnimation 的型別名是 "TextureCoord"，不是 XML 標籤的 "TextureCoordTranslation"（2026-11-04 實機：
-    -- 給後者客戶端不報錯、回一個一般 Animation，SetOffset 是 nil）。兩個都試，拿到有 SetOffset 的才算
-    for _, kind in ipairs({ "TextureCoord", "TextureCoordTranslation" }) do
-        local ok, a = pcall(f.flowAnim.CreateAnimation, f.flowAnim, kind)
-        if ok and type(a) == "table" and a.SetOffset then
-            f.flowScroll = a
-            break
-        end
-        pcall(f.flowAnim.RemoveAnimations, f.flowAnim)
-    end
+    f.fxScroll, f.fxFlip = {}, {}
 
-    -- 刻度、蓄力分階、延遲區：一層蓋在填充（與流動層）上
+    -- 刻度、蓄力分階、延遲區：一層蓋在填充（與效果層）上
     f.marks = CreateFrame("Frame", nil, f.bar)
     f.marks:SetAllPoints(f.bar)
     f.markPool = {}
 
-    -- 火花：只建立、不錨定（錨點要對到填充貼圖，Layout 設完材質才錨）。掛在刻度那一層，才不會被流動層蓋掉半邊
+    -- 火花：只建立、不錨定（錨點要對到填充貼圖，Layout 設完材質才錨）。掛在刻度那一層，才不會被效果層蓋掉半邊
     f.spark = f.marks:CreateTexture(nil, "OVERLAY")
     f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
     f.spark:SetBlendMode("ADD")
@@ -364,28 +350,163 @@ local function PlaceMark(i, p, r, g, b, a)
 end
 
 ------------------------------------------------------------
--- 流動彩虹層（材質是彩虹、rainbowFlow 開著才用；2026-11-04）
+-- 效果層（材質是動畫材質、animate 開著才用；2026-11-04 彩虹、11-06 改成通用）
 --
--- StatusBar 自己管填充貼圖的座標，填充本身捲不動 ⇒ 另外疊一層：裁切框 f.flowClip（SetClipsChildren）兩點錨在條的起點與
--- **填充貼圖的前緣**（跟火花同一招——錨在秘密尺寸的貼圖上沒問題，只要不讀幾何），框裡 f.flowTex 整條寬、REPEAT 平鋪，
--- 貼圖座標動畫（TextureCoordTranslation，循環）往填充方向捲一整個週期 ⇒ 看起來是彩虹在流、而且只露出已填的那一截。
--- 全程引擎跑，沒有每幀 Lua，秘密模式照常。
+-- StatusBar 自己管填充貼圖的座標，填充本身動不了 ⇒ 另外疊一層：裁切框 f.flowClip（SetClipsChildren）兩點錨在條的起點與
+-- **填充貼圖的前緣**（跟火花同一招——錨在秘密尺寸的貼圖上沒問題，只要不讀幾何），框裡照 Core/Media.lua 的 M.FX[token].layers
+-- 由下往上疊貼圖 ⇒ 效果只露出已填的那一截。全程引擎跑，沒有每幀 Lua，秘密模式照常。兩種層：
+--   捲動（scroll）  整條寬、REPEAT 平鋪，循環的貼圖座標動畫往填充方向捲一整個週期（反向填充反著捲）；可加明暗來回（twinkle）
+--   序列圖（flip）  FlipBook 換格；pause > 0 的在同一個循環裡接一段看不見的停頓（閃電：打一道、停一下）；
+--                   overflow 的往條的上緣外多畫一截（火舌），裁切框跟著加高
+-- 兩種層各用各的貼圖池（播過 FlipBook 的貼圖，座標不保證還原），序列圖再分「有停頓／連續」兩池（動畫組的組成不同）。
+-- 速度：每個動畫的秒數除以 animSpeed（不靠動畫組的速度倍率）。
 -- 狀態色要露出來時把這層壓透明，底下的填充貼圖照 ApplyColor 的顏色：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的
 -- alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean、明文直接 SetAlpha）。打斷／失敗／收條時停動畫、藏層。
 ------------------------------------------------------------
-local function FlowWanted(cfg)
-    return f.flowScroll ~= nil and CB.IsRainbow(cfg.texture) and cfg.rainbowFlow ~= false
+local fxActive = {}                     -- 這次版面用到的層（StartFlow／StopFlow 走這張）
+
+-- 這份設定要畫哪些效果層（不用 ＝ nil）
+local function FxWanted(cfg)
+    if cfg.animate == false then return nil end
+    local M = ns.Media
+    return M and M.FxLayers and M.FxLayers(cfg.texture) or nil
+end
+
+-- ⚠ CreateAnimation 的型別名是 "TextureCoord"，不是 XML 標籤的 "TextureCoordTranslation"（2026-11-04 實機：
+-- 給後者客戶端不報錯、回一個一般 Animation，SetOffset 是 nil）。兩個都試，拿到有 SetOffset 的才算
+local function ScrollLayer(i)
+    local L = f.fxScroll[i]
+    if L then return L end
+    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L.group = L.tex:CreateAnimationGroup()
+    L.group:SetLooping("REPEAT")
+    for _, kind in ipairs({ "TextureCoord", "TextureCoordTranslation" }) do
+        local ok, a = pcall(L.group.CreateAnimation, L.group, kind)
+        if ok and type(a) == "table" and a.SetOffset then
+            L.scroll = a
+            break
+        end
+        pcall(L.group.RemoveAnimations, L.group)
+    end
+    L.twGroup = L.tex:CreateAnimationGroup()
+    L.twGroup:SetLooping("BOUNCE")
+    L.twinkle = L.twGroup:CreateAnimation("Alpha")
+    L.twinkle:SetSmoothing("IN_OUT")
+    f.fxScroll[i] = L
+    return L
+end
+
+-- 序列圖層：FlipBook 換格；paused 的多兩段 Alpha（播放那段全亮、停頓那段看不見），做法照天空騎術的閃電
+local function FlipLayer(i, paused)
+    local key = (paused and "p" or "c") .. i
+    local L = f.fxFlip[key]
+    if L then return L end
+    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L.group = L.tex:CreateAnimationGroup()
+    L.group:SetLooping("REPEAT")
+    L.flip = L.group:CreateAnimation("FlipBook")
+    L.flip:SetOrder(1)
+    if paused then
+        L.lit = L.group:CreateAnimation("Alpha")
+        L.lit:SetFromAlpha(1)
+        L.lit:SetToAlpha(1)
+        L.lit:SetOrder(1)
+        L.dark = L.group:CreateAnimation("Alpha")
+        L.dark:SetFromAlpha(0)
+        L.dark:SetToAlpha(0)
+        L.dark:SetOrder(2)
+    end
+    f.fxFlip[key] = L
+    return L
+end
+
+local function FxHideAll()
+    for _, L in pairs(f.fxScroll) do
+        L.group:Stop()
+        L.twGroup:Stop()
+        L.tex:Hide()
+    end
+    for _, L in pairs(f.fxFlip) do
+        L.group:Stop()
+        L.tex:Hide()
+    end
+    for i = #fxActive, 1, -1 do fxActive[i] = nil end
+end
+
+-- 照 layers 把池裡的貼圖設好（不播放）。回傳 成功與否, 往上多畫的高度；捲動動畫建不出來（舊客戶端）＝ 失敗、整層不用
+local function FxSetup(layers, cfg)
+    FxHideAll()
+    local speed = tonumber(cfg.animSpeed) or 1
+    if speed < 0.25 then speed = 0.25 elseif speed > 4 then speed = 4 end
+    local dir = S.reversed and 1 or -1
+    local overflow, nScroll, nFlip = 0, 0, 0
+    for n, def in ipairs(layers) do
+        local L
+        if def.kind == "flip" then
+            nFlip = nFlip + 1
+            local pause = tonumber(def.pause) or 0
+            L = FlipLayer(nFlip, pause > 0)
+            L.tex:SetTexture(def.tex)
+            pcall(L.flip.SetFlipBookRows, L.flip, def.rows)
+            pcall(L.flip.SetFlipBookColumns, L.flip, def.cols)
+            pcall(L.flip.SetFlipBookFrames, L.flip, def.frames)
+            pcall(L.flip.SetFlipBookFrameWidth, L.flip, 0)
+            pcall(L.flip.SetFlipBookFrameHeight, L.flip, 0)
+            L.flip:SetDuration(def.time / speed)
+            if L.lit then
+                L.lit:SetDuration(def.time / speed)
+                L.dark:SetDuration(pause / speed)
+            end
+            local ov = (tonumber(def.overflow) or 0) * (S.barH or 0)
+            if ov > overflow then overflow = ov end
+            L.tex:ClearAllPoints()
+            L.tex:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, ov)
+            L.tex:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
+            L.tw = false
+        else
+            nScroll = nScroll + 1
+            L = ScrollLayer(nScroll)
+            if not L.scroll then
+                FxHideAll()
+                return false, 0
+            end
+            L.tex:SetTexture(def.tex, "REPEAT", "CLAMP")
+            L.scroll:SetOffset(dir, 0)
+            L.scroll:SetDuration(def.period / speed)
+            L.tex:ClearAllPoints()
+            L.tex:SetAllPoints(f.bar)
+            L.tw = def.twinkle and true or false
+            if L.tw then
+                L.twinkle:SetFromAlpha(def.alpha or 1)
+                L.twinkle:SetToAlpha(def.twinkle.lo)
+                L.twinkle:SetDuration(def.twinkle.period / speed)
+            end
+        end
+        L.tex:SetDrawLayer("ARTWORK", n)
+        L.tex:SetBlendMode(def.blend or "BLEND")
+        L.tex:SetVertexColor(1, 1, 1, 1)
+        L.tex:SetAlpha(def.alpha or 1)        -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
+        L.tex:Show()
+        fxActive[#fxActive + 1] = L
+    end
+    return true, overflow
 end
 
 local function StartFlow()
     if not (f.flowClip and S.flow) then return end
     f.flowClip:Show()
-    if not f.flowAnim:IsPlaying() then f.flowAnim:Play() end
+    for _, L in ipairs(fxActive) do
+        if not L.group:IsPlaying() then L.group:Play() end
+        if L.tw and not L.twGroup:IsPlaying() then L.twGroup:Play() end
+    end
 end
 
 local function StopFlow()
     if not f.flowClip then return end
-    f.flowAnim:Stop()
+    for _, L in ipairs(fxActive) do
+        L.group:Stop()
+        if L.twGroup then L.twGroup:Stop() end
+    end
     f.flowClip:Hide()
 end
 
@@ -451,7 +572,7 @@ function CB.Layout()
     f.bar:SetReverseFill(S.reversed)
     S.barW, S.barH = barW - inset * 2, H - inset * 2
 
-    -- 層級：底 L → 條 L+1 → 流動彩虹 L+2 → 刻度（含火花）L+3 → 文字 L+4；圖示 L+1
+    -- 層級：底 L → 條 L+1 → 效果層 L+2 → 刻度（含火花）L+3 → 文字 L+4；圖示 L+1
     local lvl = f:GetFrameLevel()
     f.barHolder:SetFrameLevel(lvl)
     f.bar:SetFrameLevel(lvl + 1)
@@ -492,28 +613,23 @@ function CB.Layout()
     if tex then f.spark:SetPoint("CENTER", tex, S.reversed and "LEFT" or "RIGHT", 0, 0) end
     f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
 
-    -- 流動彩虹層：裁切框的前緣錨在填充貼圖上（換材質後貼圖是新的，跟火花一樣在這裡重下）；
-    -- 捲動方向跟填充方向同向（反向填充就反著捲），一輪幾秒照設定
-    S.flow = FlowWanted(cfg)
-    if S.flow and tex then
-        f.flowTex:SetTexture(ns.Media.RainbowFlow(cfg.texture), "REPEAT", "CLAMP")
-        f.flowTex:SetVertexColor(1, 1, 1, 1)
-        local secs = tonumber(cfg.rainbowFlowSpeed) or 3
-        if secs < 0.5 then secs = 0.5 end
-        f.flowScroll:SetOffset(S.reversed and 1 or -1, 0)
-        f.flowScroll:SetDuration(secs)
+    -- 效果層：裁切框的前緣錨在填充貼圖上（換材質後貼圖是新的，跟火花一樣在這裡重下）；
+    -- 有往上竄的層（火舌）時裁切框的上緣跟著加高。先停再設：動畫的秒數、方向可能都換了
+    StopFlow()
+    local layers = tex and FxWanted(cfg) or nil
+    local okFx, overflow = false, 0
+    if layers then okFx, overflow = FxSetup(layers, cfg) else FxHideAll() end
+    S.flow = okFx
+    if S.flow then
         f.flowClip:ClearAllPoints()
         if S.reversed then
-            f.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, 0)
+            f.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, overflow)
             f.flowClip:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
         else
-            f.flowClip:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, 0)
+            f.flowClip:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, overflow)
             f.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
         end
-        if S.castState == 1 or S.castState == 2 then StartFlow() else StopFlow() end
-    else
-        S.flow = false
-        StopFlow()
+        if S.castState == 1 or S.castState == 2 then StartFlow() end
     end
 
     -- 施法中改了尺寸：刻度與延遲區照新寬度重畫
@@ -552,8 +668,8 @@ local function BaseColor()
     if S.castEmpowered then
         return C(c["empowerStage" .. EmpowerStage()], 0.35, 0.75, 0.35)
     end
-    -- 彩虹材質：底色白（施法色／職業色不染），上面的狀態色照舊乘上去
-    if CB.IsRainbow(cfg.texture) then return 1, 1, 1 end
+    -- 動畫材質：底色白（施法色／職業色不染），上面的狀態色照舊乘上去
+    if CB.IsFx(cfg.texture) then return 1, 1, 1 end
     if cfg.useClassColor then
         local r, g, b = ns.Style.Accent()
         return r, g, b
@@ -578,7 +694,7 @@ local function ApplyColor()
     local br, bg, bb = BaseColor()
     local r, g, b = br, bg, bb
     local tinted = false
-    local flowReady                           -- 流動層要讓位的「斷法就緒」旗標（nil ＝ 沒這回事）
+    local flowReady                           -- 效果層要讓位的「斷法就緒」旗標（nil ＝ 沒這回事）
     -- 斷法就緒（可能是秘密布林：只餵曲線）
     if cfg.interruptReady and chainOK and ns.Interrupt then
         local ready, has = ns.Interrupt.IsReady()
@@ -612,7 +728,7 @@ local function ApplyColor()
         end
     end
     tex:SetVertexColor(r, g, b, 1)
-    -- 流動彩虹層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
+    -- 效果層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
     if S.flow and f.flowClip then
         FlowAlpha(f.flowClip, ni)
         FlowAlpha(f.flowHost, flowReady)
@@ -732,7 +848,7 @@ local function SetTimeText(text)
     f.timeText:SetText(text)
 end
 
--- 開唱（真的或預覽）時的前緣效果：火花，加上流動彩虹層
+-- 開唱（真的或預覽）時的前緣效果：火花，加上效果層
 local function ShowSpark()
     local cfg = Cfg() or {}
     f.spark:SetShown(cfg.showSpark ~= false)

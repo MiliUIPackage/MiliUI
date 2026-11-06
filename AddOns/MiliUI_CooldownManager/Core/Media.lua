@@ -54,26 +54,58 @@ end
 M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
--- 彩虹材質（2026-11-04，玩家問「施法條能不能彩虹色」）：技能 miliui-cdm-rainbow-texture 的腳本畫的，四張全自己算。
--- 每款兩張：靜態那張色相紅→紫、當 StatusBar 填充（進度前進時逐段露出）；`_flow` 那張色相繞滿一圈、兩端同色，
--- 給施法條的流動層 REPEAT 平鋪＋貼圖座標動畫捲（Modules/Castbar.lua）。選到彩虹時施法條的底色自動當白，不然會被施法色染髒。
--- 登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到；流動只有玩家施法條做。
+-- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰；玩家問「施法條能不能多點皮膚」）。
+-- 貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、其餘四款是 miliui-cdm-castbar-fx。
+--   tex     靜態那張：當 StatusBar 填充（進度前進時逐段露出），也是登記進 LSM 的那張 ⇒ 本插件所有長條的材質下拉都選得到
+--   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；只有玩家施法條做），由下往上：
+--     kind = "scroll"  整條寬、REPEAT 平鋪，貼圖座標動畫橫向捲，period 秒捲完一輪（貼圖兩端要接得起來）；
+--                      blend（預設一般混色，"ADD" ＝ 黑底貼圖加亮）、alpha、twinkle = { lo, period }（alpha 在 lo～原值之間來回）
+--     kind = "flip"    序列圖 cols × rows 共 frames 格，time 秒播完一輪、之後看不見 pause 秒（0 ＝ 連續循環）；
+--                      overflow ＝ 往條的上緣外多畫幾倍條高（火舌竄出去；裁切框跟著加高）
+-- 顏色烤在圖裡 ⇒ 選到時施法條的底色自動當白（不然被施法色染髒），蓄力／斷法就緒／不可打斷／打斷照舊乘上去。
+-- ⚠ 序列圖的格數與排列跟產圖腳本綁在一起，改一邊要改另一邊。
 local MEDIA = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\"
-M.RAINBOW = {
-    ["MiliUI Rainbow"]      = { tex = MEDIA .. "miliui_rainbow.png",      flow = MEDIA .. "miliui_rainbow_flow.png" },
-    ["MiliUI Rainbow Soft"] = { tex = MEDIA .. "miliui_rainbow_soft.png", flow = MEDIA .. "miliui_rainbow_soft_flow.png" },
+M.FX = {
+    ["MiliUI Rainbow"] = { tex = MEDIA .. "miliui_rainbow.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "miliui_rainbow_flow.png", period = 3 },
+    } },
+    ["MiliUI Rainbow Soft"] = { tex = MEDIA .. "miliui_rainbow_soft.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "miliui_rainbow_soft_flow.png", period = 3 },
+    } },
+    -- 宇宙星辰：星雲底慢慢捲、小星點快一點、亮星再快一點並且明暗閃爍（三層視差）
+    ["MiliUI Cosmos"] = { tex = MEDIA .. "fx-cosmos-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-cosmos-base.png", period = 16 },
+        { kind = "scroll", tex = MEDIA .. "fx-cosmos-stars-a.png", period = 10, blend = "ADD" },
+        { kind = "scroll", tex = MEDIA .. "fx-cosmos-stars-b.png", period = 6, blend = "ADD", twinkle = { lo = 0.45, period = 1.4 } },
+    } },
+    -- 閃電：電能底捲動，上面八格電弧 0.4 秒打一道、停 0.4 秒
+    ["MiliUI Lightning"] = { tex = MEDIA .. "fx-lightning-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-lightning-base.png", period = 2.5 },
+        { kind = "flip", tex = MEDIA .. "fx-lightning-bolts.png", cols = 2, rows = 4, frames = 8, time = 0.4, pause = 0.4, blend = "ADD" },
+    } },
+    -- 熔岩：暗紅底上兩層火紋用不同速度橫著流
+    ["MiliUI Lava"] = { tex = MEDIA .. "fx-lava-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-lava-base.png", period = 6 },
+        { kind = "scroll", tex = MEDIA .. "fx-lava-wisp-a.png", period = 2.4, blend = "ADD", alpha = 0.85 },
+        { kind = "scroll", tex = MEDIA .. "fx-lava-wisp-b.png", period = 1.5, blend = "ADD", alpha = 0.7 },
+    } },
+    -- 火焰：餘燼底上十六格可循環的火舌（每格下 2/3 是條身、上 1/3 竄出條外）
+    ["MiliUI Flame"] = { tex = MEDIA .. "fx-flame-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-flame-base.png", period = 6 },
+        { kind = "flip", tex = MEDIA .. "fx-flame-tongues.png", cols = 4, rows = 4, frames = 16, time = 16 / 14, pause = 0, overflow = 0.5 },
+    } },
 }
-M.RAINBOW_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft" }
+M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame" }
 
--- token 是不是彩虹材質（純函式）
-function M.IsRainbow(token)
-    return type(token) == "string" and M.RAINBOW[token] ~= nil
+-- token 是不是動畫材質（純函式）
+function M.IsFx(token)
+    return type(token) == "string" and M.FX[token] ~= nil
 end
 
--- 彩虹的流動貼圖路徑（不是彩虹 ＝ nil）
-function M.RainbowFlow(token)
-    local r = M.IsRainbow(token) and M.RAINBOW[token]
-    return r and r.flow or nil
+-- 動畫材質的效果層清單（不是動畫材質 ＝ nil）
+function M.FxLayers(token)
+    local fx = M.IsFx(token) and M.FX[token]
+    return fx and fx.layers or nil
 end
 
 local lsmDone = false
@@ -83,8 +115,8 @@ function M.RegisterSharedMedia()
     if not lsm then return end
     lsmDone = true
     pcall(lsm.Register, lsm, "statusbar", M.BAR_TEXTURE_NAME, M.BAR_TEXTURE)
-    for _, name in ipairs(M.RAINBOW_ORDER) do
-        pcall(lsm.Register, lsm, "statusbar", name, M.RAINBOW[name].tex)
+    for _, name in ipairs(M.FX_ORDER) do
+        pcall(lsm.Register, lsm, "statusbar", name, M.FX[name].tex)
     end
 end
 M.RegisterSharedMedia()
@@ -93,7 +125,7 @@ M.RegisterSharedMedia()
 function M.Texture(token)
     if not token or token == "solid" then return M.WHITE8X8 end
     if token == M.BAR_TEXTURE_NAME then return M.BAR_TEXTURE end
-    if M.RAINBOW[token] then return M.RAINBOW[token].tex end
+    if M.FX[token] then return M.FX[token].tex end
     local lsm = LSM()
     if lsm then
         local ok, path = pcall(lsm.Fetch, lsm, "statusbar", token, true)

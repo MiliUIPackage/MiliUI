@@ -2612,20 +2612,32 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
   `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖
   `SetVertexColor`）。一般施法與引導同一張，不依不可打斷換圖（秘密布林）。換材質後火花照舊在 `SetStatusBarTexture` 之後重下錨點；底色照 `bgColor`。
-- **彩虹材質**（2026-11-04，玩家問「施法條能不能彩虹色」）：`Core/Media.lua` 的 `M.RAINBOW` 兩款（「MiliUI Rainbow」鮮豔、「MiliUI Rainbow Soft」柔和），
-  圖是技能 `miliui-cdm-rainbow-texture` 的腳本算的（`Media/miliui_rainbow*.png`，四張全自己做、不帶 SharedMedia 那包沒授權檔的貼圖），登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到。
-  靜態那張色相紅→紫當填充（StatusBar 是裁切不是拉伸 ⇒ 進度前進時光譜逐段露出）；選到彩虹時 `BaseColor` 回白（施法色／職業色不染），蓄力階色、
-  斷法就緒、不可打斷、打斷照舊乘上去（暗彩虹／紅彩虹），上色流程一行沒改。專注目標施法條同樣白底。
-  **流動**（`rainbowFlow`，預設開；`rainbowFlowSpeed` 一輪幾秒，預設 3）：StatusBar 自己管填充貼圖的座標、填充本身捲不動 ⇒ 另外疊一層：
-  裁切框 `f.flowClip`（`SetClipsChildren`）兩點錨在條的起點與**填充貼圖的前緣**（跟火花同一招，錨在秘密尺寸的貼圖上、不讀幾何），
-  框裡 `f.flowTex` 整條寬、`_flow` 那張（色相繞滿一圈、兩端同色）REPEAT 平鋪，`TextureCoordTranslation` 循環動畫往填充方向捲一整個週期
-  （反向填充反著捲）⇒ 彩虹在流、只露出已填的那一截，全程引擎跑。狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
+- **動畫材質**（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰；玩家問「施法條能不能多點皮膚」）：`Core/Media.lua` 的 `M.FX` 六款
+  （「MiliUI Rainbow」「MiliUI Rainbow Soft」「MiliUI Cosmos」「MiliUI Lightning」「MiliUI Lava」「MiliUI Flame」），貼圖全是腳本算的
+  （彩虹 ＝ 技能 `miliui-cdm-rainbow-texture`、其餘 ＝ `miliui-cdm-castbar-fx`，`Media/miliui_rainbow*.png`／`Media/fx-*.png`；不帶 SharedMedia 那包沒授權檔的貼圖）。
+  每款一張靜態圖（`tex`）登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到；StatusBar 是裁切不是拉伸 ⇒ 進度前進時逐段露出。
+  顏色烤在圖裡 ⇒ 選到時 `BaseColor` 回白（施法色／職業色不染），蓄力階色、斷法就緒、不可打斷、打斷照舊乘上去，上色流程沒改。專注目標施法條同樣白底。
+  **效果層**（`animate`，預設開；`animSpeed` 速度倍率，預設 1；設定頁這兩列與說明**只在選到動畫材質時出現**，材質下拉帶 `refreshPage`）：
+  StatusBar 自己管填充貼圖的座標、填充本身動不了 ⇒ 另外疊一層：裁切框 `f.flowClip`（`SetClipsChildren`）兩點錨在條的起點與**填充貼圖的前緣**
+  （跟火花同一招，錨在秘密尺寸的貼圖上、不讀幾何），框裡照 `M.FX[token].layers` 由下往上疊貼圖，全程引擎跑：
+  - **捲動層**（`kind = "scroll"`）：整條寬、REPEAT 平鋪，`TextureCoord` 循環動畫往填充方向捲一整個週期（反向填充反著捲），貼圖兩端要接得起來；
+    `blend = "ADD"` 的是黑底加亮；`twinkle` 另一個 BOUNCE 動畫組讓 alpha 來回（亮星閃爍）。
+  - **序列圖層**（`kind = "flip"`）：`FlipBook` 換格；`pause > 0` 的同一個循環裡接「全亮／看不見」兩段 Alpha（閃電打一道、停一下，照天空騎術的寫法）；
+    `overflow` 的貼圖往條的上緣外多畫幾倍條高、裁切框的上緣跟著加高（火舌竄出去）。
+  - 兩種層各用各的貼圖池（`f.fxScroll`／`f.fxFlip`；播過 FlipBook 的貼圖座標不保證還原），序列圖再分有停頓／連續兩池（動畫組的組成不同）；
+    每次 `Layout` 先全停、照登記表重設、施法中才播。速度 ＝ 每個動畫的秒數除以 `animSpeed`。
+  - 各款的層：星辰 ＝ 星雲底 16 秒＋小星點 10 秒＋亮星 6 秒且閃爍（三層視差）；閃電 ＝ 電能底 2.5 秒＋八格電弧 0.4 秒打、0.4 秒停；
+    熔岩 ＝ 暗紅底 6 秒＋兩層火紋 2.4／1.5 秒；火焰 ＝ 餘燼底 6 秒＋十六格火舌每秒 14 格、`overflow = 0.5`。
+  狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
   （各管一個布林；秘密布林餵 `SetAlphaFromBoolean(flag, 0, 1)`、明文直接 `SetAlpha`），底下填充照 `ApplyColor` 的顏色。
-  層級：條 L+1 → 流動 L+2 → 刻度 L+3（火花搬到這層，才不會被流動層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層。
+  層級：條 L+1 → 效果層 L+2 → 刻度 L+3（火花搬到這層，才不會被效果層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層。
   ⚠ **`CreateAnimation` 的型別名是 `"TextureCoord"`**，不是 XML 標籤的 `"TextureCoordTranslation"`：給後者客戶端不報錯、回一個一般 Animation，
   `SetOffset` 是 nil（2026-11-04 實機：Layout 炸 attempt to call a nil value、流動層從沒動過）。程式兩個名字都試、拿到有 `SetOffset` 的才用，
-  都建不出來就整層不用。2026-11-04 預覽（明文模式）實機：流動有跑。**待實機驗證**：副本裡（秘密模式）裁切框錨在秘密尺寸的貼圖上
-  有沒有照裁、不可打斷時流動層有沒有讓位。流動層只做玩家施法條（專注目標那條只有靜態）。
+  都建不出來就整層不用。
+  **DB v15**：11-04 只有彩虹時的 `rainbowFlow`／`rainbowFlowSpeed`（一輪幾秒）搬成 `animate`／`animSpeed`（3 ÷ 秒數、貼齊 0.25、夾 0.25～3）。
+  2026-11-04 彩虹的預覽（明文模式）實機：流動有跑。**待實機驗證**：其餘四款第一次進遊戲（加亮混色、亮星閃爍、電弧的停頓、火舌竄出條外與上緣裁切、
+  序列圖開播那一幀會不會閃一下整張圖）；副本裡（秘密模式）裁切框錨在秘密尺寸的貼圖上有沒有照裁、不可打斷時效果層有沒有讓位。
+  效果層只做玩家施法條（專注目標那條只有靜態）。離線草稿（畫布照同一套規則合成）跟遊戲的差異：貼圖取樣與介面縮放。
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。

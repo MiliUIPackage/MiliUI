@@ -29,7 +29,7 @@ ns.DB = {}
 local DB = ns.DB
 
 -- schemaVersion。加 MIGRATIONS 條目時一起 bump；**號碼不要重用**。
-ns.DB_VERSION = 14
+ns.DB_VERSION = 15
 
 -- ⚠ 存進 SV 的 key，**不要翻譯**：翻了之後換客戶端語系就對不上。
 DB.DEFAULT_PROFILE = "Default"
@@ -452,10 +452,11 @@ CastbarDefaults = function()
         height        = 20,
         font          = "INHERIT",         -- 文字字型；"INHERIT" ＝ 跟隨主題的通用字型
         texture       = "blizzard",        -- 暴雪施法條的漸層圖（去色後照下面的顏色染）；v2 起的預設（使用者 2026-10-02 指定）
-        -- 彩虹材質（"MiliUI Rainbow"／"MiliUI Rainbow Soft"）選著時的流動層（2026-11-04）：裁切框跟著填充前緣、
-        -- 整條寬的彩虹貼圖座標動畫捲；別的材質下兩個欄位沒作用。舊存檔靠 MergeDefaults 補
-        rainbowFlow   = true,
-        rainbowFlowSpeed = 3,              -- 捲完一輪幾秒
+        -- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰）選著時的效果層：裁切框跟著填充前緣、
+        -- 裡面照登記表疊捲動層與序列圖層；別的材質下兩個欄位沒作用（設定頁也不顯示）。
+        -- 2026-11-04 只有彩虹時叫 rainbowFlow／rainbowFlowSpeed（一輪幾秒），11-06 改成通用（MIGRATIONS[15]）
+        animate       = true,
+        animSpeed     = 1,                 -- 速度倍率：每個動畫的秒數除以它
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         -- 邊緣陰影（Core/Shape.lua 的 SH.EdgeShadow，2026-10-19）：圖示與條身各一圈；舊存檔沒有 ＝ 關
         shadow        = false,
@@ -1115,6 +1116,23 @@ local MIGRATIONS = {
                 end
             end
         end
+    end,
+    -- v15（2026-11-06）：施法條的彩虹流動兩欄改成所有動畫材質共用的 animate／animSpeed。
+    -- rainbowFlow（開關）原樣搬；rainbowFlowSpeed 是「捲完一輪幾秒」（預設 3）⇒ 換算成速度倍率 3 ÷ 秒數、貼齊 0.25、夾在 0.25～3。
+    -- 已經有新欄位的不蓋（跑過新版又退版再升回來）；舊欄位拿掉
+    [15] = function(profile)
+        local cb = profile.castbar
+        if type(cb) ~= "table" then return end
+        if cb.rainbowFlow ~= nil and cb.animate == nil then
+            cb.animate = cb.rainbowFlow and true or false
+        end
+        local secs = tonumber(cb.rainbowFlowSpeed)
+        if secs and secs > 0 and cb.animSpeed == nil then
+            local m = math.floor(3 / secs / 0.25 + 0.5) * 0.25
+            if m < 0.25 then m = 0.25 elseif m > 3 then m = 3 end
+            cb.animSpeed = m
+        end
+        cb.rainbowFlow, cb.rainbowFlowSpeed = nil, nil
     end,
 }
 DB.MIGRATIONS = MIGRATIONS
