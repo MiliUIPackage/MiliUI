@@ -28,7 +28,10 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
   | `miliui_rainbow.png`／`_soft.png` | 0→300°（紅→紫，兩端不同色） | StatusBar 填充材質；StatusBar 是裁切不是拉伸，進度前進時光譜逐段露出 |
   | `miliui_rainbow_flow.png`／`_soft_flow.png` | 0→360°（兩端同色） | 流動層 REPEAT 平鋪＋`TextureCoordTranslation` 捲動，兩端同色才無接縫 |
 - 常數：`TOP`／`BOTTOM`／`KNEE`／`POWER` 是縱向亮度曲線（跟 Satin 同一條，只是亮度換成 0～1）、`STATIC_END` 靜態款的色相終點、
-  `VARIANTS` 飽和度。要加一款：`VARIANTS` 加一項、`Core/Media.lua` 的 `M.RAINBOW`／`M.RAINBOW_ORDER` 加一筆。
+  `VARIANTS` 飽和度。要加一款：`VARIANTS` 加一項、`Core/Media.lua` 的 `M.RAINBOW`／`M.RAINBOW_ORDER` 加一筆，
+  **再到套組名冊 `AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua` 的 `TEXTURES` 加一列**（登記名 `MiliUI Rainbow <變體>`、
+  譯名 `彩虹（<變體>）`，繁簡都要）後跑 `python3 .claude/scripts/sync-widgets.py`——下拉的中文名（`米利UI: 彩虹（柔和）`）與置頂順序都從名冊來，
+  漏了這步離線測試會叫。規則見 [project-miliui-media-naming](../../notes/project-miliui-media-naming.md)。
 - 接線在 `Core/Media.lua`：`M.RAINBOW[token] = { tex, flow }`、`M.IsRainbow`、`M.RainbowFlow`，兩個名字登記進 LSM（帶「MiliUI」前綴，撞名會被靜默拒絕），
   `M.Texture` 先認自己的表再問 LSM。⚠ LSM 登記會問 `C_UIFileAsset.IsKnownFile`：**新檔案要整個重開遊戲**，`/reload` 不夠。
 - 流動層的做法與待驗證項在 `AddOns/MiliUI_CooldownManager/README.md`「施法條」一節的「彩虹材質」。

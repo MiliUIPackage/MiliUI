@@ -206,6 +206,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存；吸附基準是內容底；設定頁整組重套害磁吸亂跳；戰鬥中錨點鏈連坐／im 樣式 editBox 連到通則 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）的標準結構（AceLocale 宿主）；踩過的點；UNIT_AURA 只聽自己 |
 | [project-miliui-font-pack.md](project-miliui-font-pack.md) | 套組字型改用思源黑體：基底配置、`~/MiliUI-Fonts` 典藏庫、雅黑授權問題 |
+| [自製材質的命名與顯示規則](project-miliui-media-naming.md) | 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉置頂；名冊與譯名只有一份在共用 vendor `Libs/MiliUIMedia`，六支有材質下拉的插件都接它 |
 | [套組共用長條材質 MiliUI Satin](project-miliui-satin-texture.md) | 2026-10-16 取代 TukTex：技能腳本一次產五份 miliui_satin.png、純漸層不含雲；各插件 token／遷移；Cell／SharedMedia／Ayije 的 TukTex 不動 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | 戰利品取得記錄（沒有歷史 API） |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | 裝備篩選排除玩具／純造型 |
@@ -251,7 +252,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 177 篇）
+## 全部筆記（自動產生，共 178 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -400,6 +401,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪原生單位框與施法條的 taint 規則（MiliUI_UnitFrames/Core/HideBlizzard.lua）——碰過的框會讓暴雪自己的 RegisterEvent 變成禁止動作；reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | MiliUI「HUD 皮」的正式定義——黑透明底＋1px 職業色邊＋白字＋直角；提示皮（不透明、亮一階）；三套皮的二選一判準與數值表；邊框粗細走 P.Pixel |
 | [project-miliui-infobar.md](project-miliui-infobar.md) | MiliUI_InfoBar 資訊列——取代微型選單的自製條；secure 點擊轉發（macrotext）／暴雪列 hider／隱式保護框的戰鬥紀律／09-07 taint 紀律四條入口／遊戲選單鈕的 secure snippet／戰隊資訊（**角色記錄多來源只能就地更新**、寶庫欄切換、團本提示）／停靠／坐騎・修裝・確認倒數三張滑過面板共用 HoverPanel／自動修裝與本體連動／外部方塊接口 MiliUI_InfoBarPlugins／待驗證清單 |
+| [project-miliui-media-naming.md](project-miliui-media-naming.md) | 套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它 |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 取代 Krowi_ExtendedVendorUI 的單體插件；為什麼沿用暴雪命名而不自己畫格子、IsShown 閘、收藏快取的兩個陷阱、批量購買與拍賣場標示（未實機）、待驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | MiliUI_Minimap 方形小地圖＋社交列＋插件按鈕收納（取代 MBB）——接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角、按鈕收納的掃描隔離與拆遮罩、「像被上了遮罩」四個成因（主因 SetParent 不帶 strata）、好友人數的語意換掉成本歸零、名單走聊天超連結、登入不夾位置、待驗證清單 |
 | [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針；範圍判準是「畫在哪個宿主」、整趟合併分段兩倍的指紋、兩條統計策略、完賽觸發照 EUI、入口四處（設定視窗開面板要先關視窗）、聊天發佈（待實機驗證）、鑰石相關功能從本體搬來（secure 巨集／精簡 LibOpenRaid 接收端／AMT 借來的四項）、登入不夾位置、待驗證清單 |

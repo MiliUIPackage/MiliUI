@@ -65,6 +65,11 @@ M.RAINBOW = {
 }
 M.RAINBOW_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft" }
 
+-- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
+-- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加
+M.OWN_TEXTURES = { [M.BAR_TEXTURE_NAME] = M.BAR_TEXTURE_NAME }
+for _, name in ipairs(M.RAINBOW_ORDER) do M.OWN_TEXTURES[name] = name end
+
 -- token 是不是彩虹材質（純函式）
 function M.IsRainbow(token)
     return type(token) == "string" and M.RAINBOW[token] ~= nil

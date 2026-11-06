@@ -55,8 +55,7 @@ local GLOW_ITEMS = {
 -- 材質：多一項「暴雪施法條」（同施法條頁）
 local function TextureItems()
     local items = ns.Specs.TextureItems()
-    table.insert(items, 2, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
-    return items
+    return ns.Specs.InsertAfterSolid(items, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
 end
 
 local function ResetAll()
