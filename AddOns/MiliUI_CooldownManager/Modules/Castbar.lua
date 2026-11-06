@@ -275,12 +275,7 @@ local function Build()
     f.bar:SetValue(0)
 
     -- 效果層（見「效果層」）：裁切框 → host → 每一層一張貼圖；貼圖是池化的、用到才建，錨點與動畫在 Layout 設
-    f.flowClip = CreateFrame("Frame", nil, f.bar)
-    f.flowClip:SetClipsChildren(true)
-    f.flowClip:Hide()
-    f.flowHost = CreateFrame("Frame", nil, f.flowClip)
-    f.flowHost:SetAllPoints(f.bar)
-    f.fxScroll, f.fxFlip = {}, {}
+    CB.FxHost(f, f.bar)
 
     -- 刻度、蓄力分階、延遲區：一層蓋在填充（與效果層）上
     f.marks = CreateFrame("Frame", nil, f.bar)
@@ -363,7 +358,18 @@ end
 -- 狀態色要露出來時把這層壓透明，底下的填充貼圖照 ApplyColor 的顏色：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的
 -- alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean、明文直接 SetAlpha）。打斷／失敗／收條時停動畫、藏層。
 ------------------------------------------------------------
-local fxActive = {}                     -- 這次版面用到的層（StartFlow／StopFlow 走這張）
+-- 效果層的宿主 h：帶 flowClip／flowHost／fxScroll／fxFlip／fxActive 這幾欄的表。玩家施法條是 f 自己，
+-- 設定頁的內嵌樣本（CB.CreateSample）另有一份 ⇒ 下面幾支都收 h，不直接摸 f／S
+function CB.FxHost(h, bar)
+    h.flowClip = CreateFrame("Frame", nil, bar)
+    h.flowClip:SetClipsChildren(true)
+    h.flowClip:Hide()
+    h.flowHost = CreateFrame("Frame", nil, h.flowClip)
+    h.flowHost:SetAllPoints(bar)
+    h.fxBar = bar
+    h.fxScroll, h.fxFlip = {}, {}
+    h.fxActive = {}                     -- 這次版面用到的層（FxPlay／FxStop 走這張）
+end
 
 -- 這份設定要畫哪些效果層（不用 ＝ nil）
 local function FxWanted(cfg)
@@ -374,10 +380,10 @@ end
 
 -- ⚠ CreateAnimation 的型別名是 "TextureCoord"，不是 XML 標籤的 "TextureCoordTranslation"（2026-11-04 實機：
 -- 給後者客戶端不報錯、回一個一般 Animation，SetOffset 是 nil）。兩個都試，拿到有 SetOffset 的才算
-local function ScrollLayer(i)
-    local L = f.fxScroll[i]
+local function ScrollLayer(h, i)
+    local L = h.fxScroll[i]
     if L then return L end
-    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L = { tex = NoSnap(h.flowHost:CreateTexture(nil, "ARTWORK")) }
     L.group = L.tex:CreateAnimationGroup()
     L.group:SetLooping("REPEAT")
     for _, kind in ipairs({ "TextureCoord", "TextureCoordTranslation" }) do
@@ -392,16 +398,16 @@ local function ScrollLayer(i)
     L.twGroup:SetLooping("BOUNCE")
     L.twinkle = L.twGroup:CreateAnimation("Alpha")
     L.twinkle:SetSmoothing("IN_OUT")
-    f.fxScroll[i] = L
+    h.fxScroll[i] = L
     return L
 end
 
 -- 序列圖層：FlipBook 換格；paused 的多兩段 Alpha（播放那段全亮、停頓那段看不見），做法照天空騎術的閃電
-local function FlipLayer(i, paused)
+local function FlipLayer(h, i, paused)
     local key = (paused and "p" or "c") .. i
-    local L = f.fxFlip[key]
+    local L = h.fxFlip[key]
     if L then return L end
-    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L = { tex = NoSnap(h.flowHost:CreateTexture(nil, "ARTWORK")) }
     L.group = L.tex:CreateAnimationGroup()
     L.group:SetLooping("REPEAT")
     L.flip = L.group:CreateAnimation("FlipBook")
@@ -416,36 +422,38 @@ local function FlipLayer(i, paused)
         L.dark:SetToAlpha(0)
         L.dark:SetOrder(2)
     end
-    f.fxFlip[key] = L
+    h.fxFlip[key] = L
     return L
 end
 
-local function FxHideAll()
-    for _, L in pairs(f.fxScroll) do
+local function FxHideAll(h)
+    for _, L in pairs(h.fxScroll) do
         L.group:Stop()
         L.twGroup:Stop()
         L.tex:Hide()
     end
-    for _, L in pairs(f.fxFlip) do
+    for _, L in pairs(h.fxFlip) do
         L.group:Stop()
         L.tex:Hide()
     end
-    for i = #fxActive, 1, -1 do fxActive[i] = nil end
+    for i = #h.fxActive, 1, -1 do h.fxActive[i] = nil end
 end
 
--- 照 layers 把池裡的貼圖設好（不播放）。回傳 成功與否, 往上多畫的高度；捲動動畫建不出來（舊客戶端）＝ 失敗、整層不用
-local function FxSetup(layers, cfg)
-    FxHideAll()
+-- 照 layers 把池裡的貼圖設好（不播放）。reversed ＝ 反向填充、barH ＝ 條身的高。
+-- 回傳 成功與否, 往上多畫的高度；捲動動畫建不出來（舊客戶端）＝ 失敗、整層不用
+local function FxSetup(h, layers, cfg, reversed, barH)
+    FxHideAll(h)
+    local bar = h.fxBar
     local speed = tonumber(cfg.animSpeed) or 1
     if speed < 0.25 then speed = 0.25 elseif speed > 4 then speed = 4 end
-    local dir = S.reversed and 1 or -1
+    local dir = reversed and 1 or -1
     local overflow, nScroll, nFlip = 0, 0, 0
     for n, def in ipairs(layers) do
         local L
         if def.kind == "flip" then
             nFlip = nFlip + 1
             local pause = tonumber(def.pause) or 0
-            L = FlipLayer(nFlip, pause > 0)
+            L = FlipLayer(h, nFlip, pause > 0)
             L.tex:SetTexture(def.tex)
             pcall(L.flip.SetFlipBookRows, L.flip, def.rows)
             pcall(L.flip.SetFlipBookColumns, L.flip, def.cols)
@@ -457,24 +465,24 @@ local function FxSetup(layers, cfg)
                 L.lit:SetDuration(def.time / speed)
                 L.dark:SetDuration(pause / speed)
             end
-            local ov = (tonumber(def.overflow) or 0) * (S.barH or 0)
+            local ov = (tonumber(def.overflow) or 0) * (barH or 0)
             if ov > overflow then overflow = ov end
             L.tex:ClearAllPoints()
-            L.tex:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, ov)
-            L.tex:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
+            L.tex:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ov)
+            L.tex:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, 0)
             L.tw = false
         else
             nScroll = nScroll + 1
-            L = ScrollLayer(nScroll)
+            L = ScrollLayer(h, nScroll)
             if not L.scroll then
-                FxHideAll()
+                FxHideAll(h)
                 return false, 0
             end
             L.tex:SetTexture(def.tex, "REPEAT", "CLAMP")
             L.scroll:SetOffset(dir, 0)
             L.scroll:SetDuration(def.period / speed)
             L.tex:ClearAllPoints()
-            L.tex:SetAllPoints(f.bar)
+            L.tex:SetAllPoints(bar)
             L.tw = def.twinkle and true or false
             if L.tw then
                 L.twinkle:SetFromAlpha(def.alpha or 1)
@@ -487,27 +495,48 @@ local function FxSetup(layers, cfg)
         L.tex:SetVertexColor(1, 1, 1, 1)
         L.tex:SetAlpha(def.alpha or 1)        -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
         L.tex:Show()
-        fxActive[#fxActive + 1] = L
+        h.fxActive[#h.fxActive + 1] = L
     end
     return true, overflow
 end
 
-local function StartFlow()
-    if not (f.flowClip and S.flow) then return end
-    f.flowClip:Show()
-    for _, L in ipairs(fxActive) do
+-- 裁切框的前緣錨在填充貼圖 tex 上（換材質後貼圖是新的，跟火花一樣每次版面重下）；
+-- 有往上竄的層（火舌）時裁切框的上緣跟著加高 overflow
+local function FxAnchor(h, tex, reversed, overflow)
+    h.flowClip:ClearAllPoints()
+    if reversed then
+        h.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, overflow)
+        h.flowClip:SetPoint("BOTTOMRIGHT", h.fxBar, "BOTTOMRIGHT", 0, 0)
+    else
+        h.flowClip:SetPoint("TOPLEFT", h.fxBar, "TOPLEFT", 0, overflow)
+        h.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
+    end
+end
+
+local function FxPlay(h)
+    h.flowClip:Show()
+    for _, L in ipairs(h.fxActive) do
         if not L.group:IsPlaying() then L.group:Play() end
         if L.tw and not L.twGroup:IsPlaying() then L.twGroup:Play() end
     end
 end
 
-local function StopFlow()
-    if not f.flowClip then return end
-    for _, L in ipairs(fxActive) do
+local function FxStop(h)
+    for _, L in ipairs(h.fxActive) do
         L.group:Stop()
         if L.twGroup then L.twGroup:Stop() end
     end
-    f.flowClip:Hide()
+    h.flowClip:Hide()
+end
+
+local function StartFlow()
+    if not (f.flowClip and S.flow) then return end
+    FxPlay(f)
+end
+
+local function StopFlow()
+    if not f.flowClip then return end
+    FxStop(f)
 end
 
 -- 一個旗標（nil／明文／秘密布林）→ 框的 alpha：真 ＝ 0（讓底下的狀態色露出來）、假或沒有 ＝ 1
@@ -618,17 +647,10 @@ function CB.Layout()
     StopFlow()
     local layers = tex and FxWanted(cfg) or nil
     local okFx, overflow = false, 0
-    if layers then okFx, overflow = FxSetup(layers, cfg) else FxHideAll() end
+    if layers then okFx, overflow = FxSetup(f, layers, cfg, S.reversed, S.barH) else FxHideAll(f) end
     S.flow = okFx
     if S.flow then
-        f.flowClip:ClearAllPoints()
-        if S.reversed then
-            f.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, overflow)
-            f.flowClip:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
-        else
-            f.flowClip:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, overflow)
-            f.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
-        end
+        FxAnchor(f, tex, S.reversed, overflow)
         if S.castState == 1 or S.castState == 2 then StartFlow() end
     end
 
@@ -1203,6 +1225,127 @@ function CB.StopPreview()
 end
 
 function CB.IsPreviewing() return f and S.preview or false end
+
+------------------------------------------------------------
+-- 設定頁的內嵌樣本（Options/Tab_Castbar.lua「材質」上方那一列）：一條自己循環填滿的假施法條，
+-- 換材質／動畫當場看得到，不用去畫面上找那條真的。材質、動畫與速度、底色、填充方向、施法色（職業色）、火花、陰影
+-- 照目前的設定；圖示、文字、刻度不畫。只有 Frame／StatusBar／Texture，不碰玩家施法條的狀態（S）與任何施法 API。
+-- 寬 ＝ 實際的條寬（放不下縮到 maxW）、高 ＝ 實際的高（上限 CB.SAMPLE_MAX_H：列高是固定的），材質的比例才跟畫面上一樣。
+--   local s = CB.CreateSample(parent)   s.frame 由呼叫端擺位置；s:Refresh(maxW) 照目前設定重畫
+-- 填充每 SAMPLE_TIME 秒跑一輪、滿了停 SAMPLE_HOLD 秒（OnUpdate 只在看得到時跑）
+------------------------------------------------------------
+local SAMPLE_TIME, SAMPLE_HOLD = 3, 0.6
+CB.SAMPLE_MAX_H = 24
+
+function CB.CreateSample(parent)
+    local s = { frame = CreateFrame("Frame", nil, parent) }
+    s.holder = CreateFrame("Frame", nil, s.frame, "BackdropTemplate")
+    s.holder:SetAllPoints(s.frame)
+    s.bgTex = NoSnap(s.holder:CreateTexture(nil, "BACKGROUND"))
+    s.bgTex:SetTexture(SOLID)
+    s.bar = CreateFrame("StatusBar", nil, s.holder)
+    s.bar:SetStatusBarTexture(SOLID)
+    s.bar:SetMinMaxValues(0, 1)
+    s.bar:SetValue(0)
+    CB.FxHost(s, s.bar)
+    s.top = CreateFrame("Frame", nil, s.bar)             -- 火花那一層：蓋在效果層上（同 f.marks）
+    s.top:SetAllPoints(s.bar)
+    s.spark = s.top:CreateTexture(nil, "OVERLAY")
+    s.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    s.spark:SetBlendMode("ADD")
+
+    local t, wantSpark = 0, true
+    s.frame:SetScript("OnUpdate", function(_, dt)
+        t = t + dt
+        if t >= SAMPLE_TIME + SAMPLE_HOLD then t = t % (SAMPLE_TIME + SAMPLE_HOLD) end
+        local filling = t < SAMPLE_TIME
+        s.bar:SetValue(filling and t / SAMPLE_TIME or 1)
+        s.spark:SetShown(wantSpark and filling)
+    end)
+
+    local sig
+    function s:Refresh(maxW)
+        local cfg = Cfg() or {}
+        local W, H = Width(cfg), tonumber(cfg.height) or 20
+        if maxW and W > maxW then W = maxW end
+        if W < 40 then W = 40 end
+        if H > CB.SAMPLE_MAX_H then H = CB.SAMPLE_MAX_H elseif H < 6 then H = 6 end
+        -- 畫面上看得到的東西都沒變就不重設：重設會讓動畫從頭播，改別的設定（文字、錨定…）時樣本不該跟著跳一下
+        local bgc, cc = cfg.bgColor or {}, Colors().cast or {}
+        local ar, ag, ab = ns.Style.Accent()
+        local now = table.concat({ W, H, tostring(cfg.texture), tostring(cfg.animate), tostring(cfg.animSpeed),
+            tostring(ns.FillReversed(cfg)), tostring(cfg.useClassColor), tostring(cfg.showSpark),
+            tostring(cfg.shadow), tostring(cfg.shadowSize), tostring(cfg.shadowAlpha),
+            tostring(bgc.r), tostring(bgc.g), tostring(bgc.b), tostring(bgc.a),
+            tostring(cc.r), tostring(cc.g), tostring(cc.b), tostring(ar), tostring(ag), tostring(ab) }, "|")
+        if now == sig then return end
+        sig = now
+        self.frame:SetSize(W, H)
+
+        local inset = ns.Media.BorderInset(1)
+        self.holder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
+        if ns.NoSnapBackdrop then ns.NoSnapBackdrop(self.holder) end
+        self.holder:SetBackdropBorderColor(0, 0, 0, 1)
+        self.bgTex:ClearAllPoints()
+        self.bgTex:SetPoint("TOPLEFT", self.holder, "TOPLEFT", inset, -inset)
+        self.bgTex:SetPoint("BOTTOMRIGHT", self.holder, "BOTTOMRIGHT", -inset, inset)
+        local bg = cfg.bgColor or { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }
+        self.bgTex:SetVertexColor(bg.r or 0.1, bg.g or 0.1, bg.b or 0.1, bg.a or 0.8)
+        self.bar:ClearAllPoints()
+        self.bar:SetPoint("TOPLEFT", self.holder, "TOPLEFT", inset, -inset)
+        self.bar:SetPoint("BOTTOMRIGHT", self.holder, "BOTTOMRIGHT", -inset, inset)
+        SetFillTexture(self.bar, cfg.texture)
+        local reversed = ns.FillReversed(cfg)
+        self.bar:SetReverseFill(reversed)
+
+        local lvl = self.frame:GetFrameLevel()
+        self.holder:SetFrameLevel(lvl)
+        self.bar:SetFrameLevel(lvl + 1)
+        self.flowClip:SetFrameLevel(lvl + 2)
+        self.top:SetFrameLevel(lvl + 3)
+
+        local SH = ns.Shape
+        if SH then
+            local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
+            SH.EdgeShadow(self.frame, self.holder, spx, sa)
+        end
+
+        -- 顏色：一般施法那一套（動畫材質底色白、職業色、施法色），狀態色不演
+        local tex = self.bar:GetStatusBarTexture()
+        if tex then
+            local r, g, b
+            if CB.IsFx(cfg.texture) then
+                r, g, b = 1, 1, 1
+            elseif cfg.useClassColor then
+                r, g, b = ns.Style.Accent()
+            else
+                r, g, b = C(Colors().cast, 0.906, 0.424, 0.2)
+            end
+            tex:SetVertexColor(r, g, b, 1)
+        end
+
+        wantSpark = cfg.showSpark ~= false
+        self.spark:SetSize(10, H * 2.2)
+        self.spark:ClearAllPoints()
+        if tex then self.spark:SetPoint("CENTER", tex, reversed and "LEFT" or "RIGHT", 0, 0) end
+
+        -- 效果層：先停再設（秒數、方向可能都換了），設得起來就一直播
+        FxStop(self)
+        local layers = tex and FxWanted(cfg) or nil
+        local okFx, overflow = false, 0
+        if layers then okFx, overflow = FxSetup(self, layers, cfg, reversed, H - inset * 2) else FxHideAll(self) end
+        self.fxOn = okFx
+        if okFx then
+            FxAnchor(self, tex, reversed, overflow)
+            FxPlay(self)
+        end
+    end
+    -- 框藏起來時動畫組會停（換頁、換表單、關視窗）；簽章沒變的話 Refresh 不會重設 ⇒ 重新顯示時自己接著播
+    s.frame:SetScript("OnShow", function()
+        if s.fxOn then FxPlay(s) end
+    end)
+    return s
+end
 
 -- 施法中、淡出中、打斷停留中、預覽中都算
 function CB.IsActive()
