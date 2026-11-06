@@ -4,6 +4,7 @@
 --   * 三種斷法狀態顏色（可斷／斷法冷卻中／不可中斷）
 --   * 條右下角印法術打向誰（職業色）
 --   * 暴雪標為重要的法術外框發光
+--   * 可以斷的施法整條發光（三款任選）、每次開唱震一下（預設關）
 --   * 開始唱法時播一次音效
 -- 本模組不依賴任何其他插件。
 ------------------------------------------------------------
@@ -601,6 +602,82 @@ local function CreateBarFrame()
 end
 
 ----------------------------------------------------------------------
+-- 可斷法發光（glowKick，2026-11-07）
+--
+-- 專注目標在唱可以斷的法術時整條亮著：共用發光引擎的 BarGlow 三款（kickGlowStyle：halo 光暈／sweep 流光／
+-- pulse 脈衝）。跟重要法術發光同一招：發光掛在自己的宿主框上、整段施法都開著，「不可中斷」的布林（受限內容是
+-- 秘密布林）只餵宿主的 alpha（不可中斷 ⇒ 0），Lua 從頭到尾不讀它；明文的不可中斷連開都不開。
+-- 施法中途變可斷／不可斷（事件名稱是明文）重畫一次。被打斷、收條時停。
+----------------------------------------------------------------------
+local KICK_GLOW_STYLES = { halo = true, sweep = true, pulse = true }
+local kickGlowHost
+local kickGlowOn = false
+
+local function KickGlowStyle()
+    local st = DB().kickGlowStyle
+    return KICK_GLOW_STYLES[st] and st or "halo"
+end
+
+-- 在 host 上開可斷法發光（畫面上那條與設定頁的樣本共用這一支）。w／h ＝ host 的大小（發光引擎不讀框的幾何）
+local function KickGlowStart(host, w, h)
+    local c = DB().colorKickGlow
+    LCG.BarGlow_Start(host, KickGlowStyle(), { c.r, c.g, c.b, 1 }, {
+        edgeFile = ns.Media.GLOW_EDGE, width = w, height = h, px = ns.P.Pixel(1),
+    })
+end
+
+local function StopKickGlow()
+    if not kickGlowOn then return end
+    kickGlowOn = false
+    LCG.BarGlow_Stop(kickGlowHost)
+end
+
+-- ni ＝ 不可中斷：nil（不知道，當可以斷）／明文／秘密布林
+local function PaintKickGlow(ni)
+    if not barFrame then return end
+    local db = DB()
+    if not db.glowKick then StopKickGlow(); return end
+    if ni ~= nil and not issecret(ni) and ni then StopKickGlow(); return end
+    if not kickGlowHost then
+        kickGlowHost = CreateFrame("Frame", nil, barFrame)
+        kickGlowHost:SetAllPoints(barFrame)
+        kickGlowHost:SetFrameLevel(barFrame:GetFrameLevel() + 19)   -- 比重要法術的宿主（+20）低一層
+    end
+    KickGlowStart(kickGlowHost, ComputeFrameSize(db.width, db.height))
+    kickGlowOn = true
+    if issecret(ni) then
+        -- 餵不進去就整個關掉：寧可不亮，不能讓不可中斷的施法也亮著
+        if not pcall(kickGlowHost.SetAlphaFromBoolean, kickGlowHost, ni, 0, 1) then StopKickGlow() end
+    else
+        kickGlowHost:SetAlpha(1)
+    end
+end
+
+----------------------------------------------------------------------
+-- 開唱震動（shakeOnCast，預設關）：每次開唱整條震一下，不分可不可以斷（「只震可以斷的」要對秘密布林分支，
+-- 位移類的 API 又不收秘密值，這條不做）。每 0.05 秒跳一次、六段位移加總歸零；Translation 只動畫面上的位置，不改錨點
+----------------------------------------------------------------------
+local SHAKE_STEPS = { { -2, 1 }, { 3, -2 }, { -2, 2 }, { 2, -2 }, { -2, 1 }, { 1, 0 } }
+
+local function MakeShake(frame)
+    local group = frame:CreateAnimationGroup()
+    for i, s in ipairs(SHAKE_STEPS) do
+        local t = group:CreateAnimation("Translation")
+        t:SetOffset(s[1], s[2])
+        t:SetDuration(0.05)
+        t:SetOrder(i)
+    end
+    return group
+end
+
+local function Jolt()
+    if not (barFrame and DB().shakeOnCast) then return end
+    if not barFrame.shake then barFrame.shake = MakeShake(barFrame) end
+    barFrame.shake:Stop()
+    barFrame.shake:Play()
+end
+
+----------------------------------------------------------------------
 -- 顯示 / 隱藏
 ----------------------------------------------------------------------
 -- HideBar 已於檔案上方 forward-declare
@@ -612,6 +689,7 @@ function HideBar()
         barFrame:SetScript("OnUpdate", nil)   -- 卸掉一般模式的每幀回呼
         if not isInEditMode then
             StopGlow()
+            StopKickGlow()
             ClearSpellTarget()
             barFrame:Hide()
         end
@@ -627,6 +705,7 @@ local function ShowInterrupted(interrupterGUID)
     StopDisplayTicker()
     barFrame:SetScript("OnUpdate", nil)
     StopGlow()                                -- 施法已經斷了，紅條不再標重要
+    StopKickGlow()                            -- 也沒有東西可以斷了
 
     barStatusBar:SetMinMaxValues(0, 1)
     barStatusBar:SetValue(1)
@@ -683,7 +762,8 @@ local function TimerDir(isChannel, isEmpowered)
 end
 
 -- 開始顯示專注目標施法條（不放音效）。castTbl/chanTbl 可由呼叫端預讀後傳入，避免重複讀取。
-local function StartDisplay(castTbl, chanTbl)
+-- resumed ＝ 不是剛開唱（換專注目標、離開範例條、套用設定時接上正在唱的那一條）：不震
+local function StartDisplay(castTbl, chanTbl, resumed)
     if not Monitoring() then return end
     if isInEditMode then return end   -- 範例條顯示中不蓋掉；離開時 RefreshFromFocus 會接回
 
@@ -720,6 +800,7 @@ local function StartDisplay(castTbl, chanTbl)
     local important = QueryImportant(spellID)
     SetName(name, important)
     if important == nil then StopGlow() else ShowGlow(important) end
+    PaintKickGlow(notInt)
     SetSpellTarget()
 
     if SecretsActive() then
@@ -757,6 +838,7 @@ local function StartDisplay(castTbl, chanTbl)
         ApplySecretColor()                -- 立即上色
         StartDisplayTicker()              -- 10Hz：時間文字 + 顏色（斷法冷卻變化）
         barFrame:Show()
+        if not resumed then Jolt() end
         return
     end
 
@@ -771,6 +853,7 @@ local function StartDisplay(castTbl, chanTbl)
     active = true
     barFrame:SetScript("OnUpdate", LegacyOnUpdate)   -- 施法期間才掛每幀回呼
     barFrame:Show()
+    if not resumed then Jolt() end
 end
 
 -- 延遲/推條：只重設「計時來源」，不重讀圖示/名稱/位置，避免文字跳動與多餘工作
@@ -815,7 +898,7 @@ end
 -- 專注目標切換 / 重新整理：若專注目標正在施法就顯示（不放音效）
 local function RefreshFromFocus()
     if not Monitoring() then HideBar(); return end
-    StartDisplay()   -- 內部自行判斷是否在施法，未施法會收條
+    StartDisplay(nil, nil, true)   -- 內部自行判斷是否在施法，未施法會收條
 end
 
 ----------------------------------------------------------------------
@@ -846,6 +929,7 @@ local function UpdateEditModeState()
         local c = ColorForState("ready")
         barStatusBar:SetStatusBarColor(c.r, c.g, c.b)
         ShowGlow()                                 -- 範例條直接亮，看得到發光長相
+        PaintKickGlow(false)                       -- 範例條是可以斷的施法
         barFrame.editSelection:ShowHighlighted()
         UpdateBarPosition()
         UpdateBarSize()
@@ -857,6 +941,7 @@ local function UpdateEditModeState()
         barFrame.editSelection:Hide()
         if not active then
             StopGlow()
+            StopKickGlow()
             barFrame:Hide()
         end
         -- 剛離開範例：專注目標若正在施法，接回真正的讀條
@@ -888,6 +973,7 @@ function CastBar.Apply()
     if not Monitoring() then HideBar() end
     CreateBarFrame()
     StopGlow()          -- 換色／關掉發光：拆掉重建，下面的刷新會照新設定再點亮
+    StopKickGlow()
     UpdateBarPosition()
     UpdateBarSize()
     UpdateEditModeState()
@@ -898,6 +984,84 @@ end
 function CastBar.SetSettingsOpen(open)
     settingsOpen = open and true or false
     UpdateEditModeState()
+end
+
+-- 設定頁「可斷法的施法」小節的樣本條：一條自己循環填滿的假施法（可以斷、斷法就緒的顏色）。
+-- 條身是照畫面上那條的排法另外擺的簡化版（圖示＋條＋名字；畫面上那條的零件是模組層的單例，借不過來），
+-- **發光是畫面上那條用的同一支 KickGlowStart、震動是同一支 MakeShake**（每循環一次算一次開唱）——這一節要看的就是那兩樣。
+-- 畫面上那條在設定視窗開著時也會切成範例條、一樣亮著，兩邊對得起來。
+--   local s = CastBar.CreateKickSample(parent)   s 是框，位置由呼叫端擺
+--   s:Refresh(maxW)                              照目前設定重排重畫（寬放不下縮到 maxW、高夾在 12～24）
+local SAMPLE_TIME, SAMPLE_HOLD = 3, 0.6
+
+function CastBar.CreateKickSample(parent)
+    local s = CreateFrame("Frame", nil, parent)
+    local iconBorder = CreateFrame("Frame", nil, s, "BackdropTemplate")
+    iconBorder:SetPoint("TOPLEFT", s, "TOPLEFT", 0, 0)
+    local icon = ns.P.NoSnap(iconBorder:CreateTexture(nil, "ARTWORK"))
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetTexture(132329)
+    local barBorder = CreateFrame("Frame", nil, s, "BackdropTemplate")
+    barBorder:SetPoint("TOPLEFT", iconBorder, "TOPRIGHT", GAP, 0)
+    barBorder:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT", 0, 0)
+    local bar = CreateFrame("StatusBar", nil, barBorder)
+    bar:SetStatusBarTexture(ns.Media.BarTexture())
+    ns.P.NoSnap(bar)
+    bar:SetMinMaxValues(0, 1)
+    local overlay = CreateFrame("Frame", nil, barBorder)
+    overlay:SetAllPoints(barBorder)
+    overlay:SetFrameLevel(barBorder:GetFrameLevel() + 5)
+    local name = overlay:CreateFontString(nil, "OVERLAY")
+    name:SetFont(ns.Media.Font(), 12, "OUTLINE")
+    name:SetPoint("LEFT", barBorder, "LEFT", 5, 0)
+    name:SetJustifyH("LEFT")
+    name:SetTextColor(1, 1, 1)
+    name:SetText(ns.L["Focus cast bar"])
+    local glowHost = CreateFrame("Frame", nil, s)
+    glowHost:SetAllPoints(s)
+    glowHost:SetFrameLevel(s:GetFrameLevel() + 19)
+    local shake = MakeShake(s)
+
+    local t = 0
+    s:SetScript("OnUpdate", function(_, dt)
+        t = t + dt
+        if t >= SAMPLE_TIME + SAMPLE_HOLD then
+            t = t % (SAMPLE_TIME + SAMPLE_HOLD)
+            if DB().shakeOnCast then          -- 循環回到開頭 ＝ 又一次開唱
+                shake:Stop()
+                shake:Play()
+            end
+        end
+        bar:SetValue(t < SAMPLE_TIME and t / SAMPLE_TIME or 1)
+    end)
+
+    function s:Refresh(maxW)
+        local db = DB()
+        local h = math.max(12, math.min(24, db.height))
+        local w = ComputeFrameSize(db.width, h)
+        if maxW and w > maxW then w = maxW end
+        self:SetSize(w, h)
+        local px = ns.P.Pixel(1)
+        iconBorder:SetSize(h, h)
+        SetPixelBackdrop(iconBorder, px, 1)
+        SetPixelBackdrop(barBorder, px, 0.5)
+        icon:ClearAllPoints()
+        icon:SetPoint("TOPLEFT", iconBorder, "TOPLEFT", px, -px)
+        icon:SetPoint("BOTTOMRIGHT", iconBorder, "BOTTOMRIGHT", -px, px)
+        bar:ClearAllPoints()
+        bar:SetPoint("TOPLEFT", barBorder, "TOPLEFT", px, -px)
+        bar:SetPoint("BOTTOMRIGHT", barBorder, "BOTTOMRIGHT", -px, px)
+        local c = ColorForState("ready")
+        bar:SetStatusBarColor(c.r, c.g, c.b)
+        name:SetFont(ns.Media.Font(), math.max(8, h - 8), "OUTLINE")
+        if db.glowKick then
+            KickGlowStart(glowHost, w, h)
+            glowHost:SetAlpha(1)
+        else
+            LCG.BarGlow_Stop(glowHost)
+        end
+    end
+    return s
 end
 
 function CastBar.PreviewSound()
@@ -943,6 +1107,15 @@ ev:SetScript("OnEvent", function(self, event, unit, arg2, arg3, arg4, arg5)
     elseif event == "UNIT_SPELLCAST_DELAYED" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
         or event == "UNIT_SPELLCAST_EMPOWER_UPDATE" then
         ResyncTiming()                          -- 延遲/推條：只重設計時
+
+    elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE" or event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
+        -- 施法中途變可斷／不可斷：值從事件名稱拿（明文），不回頭讀 UnitCastingInfo（受限內容是秘密布林）
+        if active then
+            castNotInterruptible = (event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
+            if castSecret then ApplySecretColor() end        -- 一般模式由 LegacyOnUpdate 每 0.05 秒重算
+            PaintKickGlow(castNotInterruptible)
+            if event == "UNIT_SPELLCAST_INTERRUPTIBLE" then Jolt() end   -- 變成可以斷：也算一次提醒
+        end
 
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
         ShowInterrupted(arg4)                   -- 讀條被打斷：顯示斷法者後收條
@@ -991,4 +1164,6 @@ ns.RegisterCallback("Init", "castbar", function()
     ev:RegisterUnitEvent("UNIT_SPELLCAST_DELAYED",        "focus")
     ev:RegisterUnitEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", "focus")
     ev:RegisterUnitEvent("UNIT_SPELLCAST_EMPOWER_UPDATE", "focus")
+    ev:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTIBLE",     "focus")
+    ev:RegisterUnitEvent("UNIT_SPELLCAST_NOT_INTERRUPTIBLE", "focus")
 end)

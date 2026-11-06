@@ -2680,6 +2680,27 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   「!」版的名字是另一顆 FontString（`f.bangText`，疊在 `nameText` 上），兩顆 alpha 互補（`SetAlphaFromBoolean(important, 1, 0)` ／ `(important, 0, 1)`）。
   樣式 `glowStyle`：像素跑線（條外框，2px 往外推 1px）／自動施放閃點（條外框）／觸發發光（圖示）；引擎 vendor 的 `MiliUIGlow`，`Start` 系列失敗（pcall）就不亮。
   施法結束、被打斷、換樣式都 `StopGlow`。
+- **可斷法發光**（`glowKick`，預設開；`kickGlowStyle` ＝ `halo` 光暈｜`sweep` 流光｜`pulse` 脈衝；`colors.kickGlow`；2026-11-07）：
+  專注目標在唱可以斷的法術時整條亮著。三款是共用發光引擎的 `BarGlow`（`Libs/MiliUIGlow`，長相與規矩看那包的 README）。
+  跟重要法術發光同一招：發光掛在自己的宿主框（`h.kickGlowHost`，蓋滿整條、level ＋19）上、整段施法都開著，「不可中斷」的布林
+  只餵宿主的 `SetAlphaFromBoolean(ni, 0, 1)`；明文的不可中斷連開都不開。`PaintKickGlowOn(h, ni)` 在開唱、頁首預覽、
+  `UNIT_SPELLCAST_(NOT_)INTERRUPTIBLE`、套用設定時叫；被打斷、淡出、收條時 `StopKickGlowOn`。柔邊貼圖借邊緣陰影那張
+  （`SH.EDGE_SHADOW`），尺寸由 `LayoutParts` 記在 `h.glowW`／`h.glowH`（發光引擎不讀框）。設定頁兩條樣本都會亮
+  （頁首那條在「可斷」的狀態下；「可斷法的施法」小節另有一條 `KickSampleRow`，只看這一節的效果）。**三款的長相與秘密模式都未實機。**
+- **開唱震動**（`shakeMode`，預設 `off`；2026-11-07。11-06 那版叫 `castShake`、預設開，當天撤回——使用者不要預設就有）：
+  整條震一下（0.3 秒、六段位移加總歸零）。
+  - `always`：每次開唱都震，不分可不可以斷——`GoShakeOn` 直接播本尊的 `h.shake`，沒有秘密值的事。
+  - `kick`（**實驗性**，使用者留著測）：只震可以斷的施法。可不可以斷在受限內容是秘密布林，而位移類 API
+    （`Translation:SetOffset`／`SetPoint`／`SetScale`）的 `SecretArguments` 都是 `AllowedWhenUntainted`，插件餵不進秘密值
+    ⇒ 沒辦法「可斷才位移」。做法是「!」版名字那一招放大到整條：`BuildTwin` 多建一條一模一樣的**分身**（`f.twin`，`f` 的兄弟框、
+    同一支 `BuildParts`／`LayoutParts`），震動掛在分身上、每次開唱都播，本尊與分身的 alpha 餵同一個布林、互補
+    （可斷 ⇒ 看到在震的分身；不可中斷 ⇒ 看到沒動的本尊），震完分身藏起來、本尊 alpha 回 1。
+    三步 `ArmShakeOn`（開唱一開始）→ `GoShakeOn`（畫完）→ `EndShakeOn`（震完／收條／被打斷／下一次開唱）；**從 Arm 到 Go 之間
+    畫到 `f` 的東西一律經 `Each(f, …On, …)`**，分身才會跟本尊長得一樣——之後這條多畫什麼新東西，記得也走 `Each`，
+    不然震的那 0.3 秒會少一塊。明文模式（脫戰、頁首的「預覽」）走同一條路；明文的不可中斷連分身都不開。**秘密模式那條路未實機。**
+  - 兩種模式下，施法中途變成可以斷（`UNIT_SPELLCAST_INTERRUPTIBLE`，事件名稱是明文）都直接震本尊（`JoltOn`）。
+  - 設定頁的樣本每循環一次（3.6 秒）算一次開唱（`s:Jolt()`）。⚠ 樣本跟畫面上那條**不一樣**的地方：`kick` 在樣本上是直接震自己
+    （樣本的狀態是明文），看得到的只是「震起來的樣子」，分身那條路要到戰鬥中才驗得到。
 - **被打斷**（`showInterrupter`，預設開）：`UNIT_SPELLCAST_INTERRUPTED` 第 4 參數／`CHANNEL_STOP` 第 4／`EMPOWER_STOP` 第 5 是 interrupterGUID（只比 nil）。
   凍結滿條變紅、名字換「已打斷」、右側 `timeText` 印斷法者（`UnitNameFromGUID` ＋ `GetPlayerInfoByGUID` 的職業 → `C_ClassColor`；
   **職業是秘密字串就白字**，秘密值不能當 table key、`SetTextColor` 不收秘密值），停留 1 秒再淡出（玩家施法條是 0.4 秒；這條要讀得到名字）。

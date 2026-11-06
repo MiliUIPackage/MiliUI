@@ -92,14 +92,49 @@ Stop→改 Duration→Play；幾何（尺寸、數量、線長、粗細、方向
 （舊的停在原處，動畫組刪不掉）。第一個消費者是 Cell 的 `RaidFrames/AuraDisplay.lua`
 （`StyleGlow`）。
 
+### BarGlow（上游沒有；長條用的三款發光）
+
+給施法條這種扁長的框用——像素跑線在 20px 高的條上太細、不夠顯眼。第一個消費者是兩條專注目標施法條的
+「可斷法發光」（`MiliUI_CooldownManager/Modules/FocusCastbar.lua` 的 `PaintKickGlowOn`、
+`MiliUI_Focus/Modules/CastBar.lua` 的 `PaintKickGlow`）。
+
+```lua
+LCG.BarGlow_Start(host, style, { r, g, b, a }, { edgeFile = …, width = W, height = H, px = P.Pixel(1) })
+LCG.BarGlow_Stop(host)
+```
+
+| style | 長相 | 動的部分 |
+|---|---|---|
+| `halo` 光暈 | 貼著條的 2px 亮邊＋外面兩圈柔光（寬的一圈、貼身的一圈比較亮） | 柔光那一層 Alpha 1↔0.35 來回（BOUNCE、0.55 秒一趟），亮邊不跟著暗 |
+| `sweep` 流光 | 亮邊＋一圈貼身柔光＋一道亮帶（兩張漸層拼的，裁在條的範圍裡） | 亮帶 Translation 從左邊外面掃到右邊外面（0.75 秒），停 0.4 秒再來 |
+| `pulse` 脈衝 | 亮邊＋三圈柔光一圈比一圈遠 | 三圈依序（各差 0.11 秒）亮起再淡掉，一輪 1 秒；亮邊跟著第一圈閃一下 |
+
+清單在 `lib.BarGlowStyles`；不認得的 style 當 `halo`。
+
+- **柔邊貼圖由消費者帶**（`opts.edgeFile`）：這包只有一支 Lua、不帶圖檔（路徑跟著插件資料夾走）。要的是
+  八格 backdrop edge 排法、白底、內緣不透明外緣透明的圖——冷卻管理器的 `Media/shadow-edge.png` 就是
+  （`.claude/skills/miliui-cdm-shape-masks` 的腳本產生），專注目標助手的 `Media/glow-edge.png` 是它的複本。
+  染色＋加亮混合（ADD）就是光暈。沒給就只有亮邊（與流光的亮帶）。
+- **對 host 只寫不讀**：尺寸從 `opts.width`／`height` 來（流光的位移量、各款的粗細），不 `GetSize`、不 `GetAlpha`。
+  所以 **host 的 alpha 可以是秘密值**——「要不要看得到」的秘密布林由消費者餵給 host 的 `SetAlphaFromBoolean`，
+  發光本身整段開著（同重要法術發光那一招）。
+- **會動的全是宣告式 AnimationGroup**，不經過 driver。每款的框、貼圖、動畫組每個 host 只建一次（記在
+  `host._barGlow[style]`），之後 `Start` 只在顏色／尺寸／`px` 變了才重排（動畫停下來改、從頭播）。
+  同一個 host 一次只亮一款，換款時舊的自己關。
+- host 是消費者**自己的框**（不是引擎光環按鈕的子樹）：這裡會在自己建的 root 框上掛 `OnShow`，祖先藏過再顯示時
+  把動畫組接回去。要用在 AuraButton 子樹得另外想辦法（那裡不能掛 script）。
+- 離線測試 `Tests/BarGlow_test.lua`（假的框把三款各建一次；方法名打錯會當場丟錯）。**三款的長相都還沒實機看過**
+  （2026-11-07 寫完當下）：太亮／太暗／太快，調 `Configure`（粗細、alpha）與 `Build`（秒數）裡的數字。
+
 ## 跟上游 LibCustomGlow v25 的差別
 
-只有三處，其餘逐字不動（動畫長相因此必然一致）：
+只有四處，其餘逐字不動（動畫長相因此必然一致）：
 
 1. **不註冊到 LibStub**，改掛在插件私有表上。
 2. **三個各自的 OnUpdate 收成一支共用 driver，閘在 60fps。**
    上游對每一個發光各掛一個沒有節流的 OnUpdate，成本跟玩家的幀數成正比。
 3. **多一組 Attach API**（上面，宣告式動畫、不經過 driver），Start 系列一行沒動。
+4. **多一組 BarGlow**（上面，長條用的三款發光），接在檔尾、自成一個 `do … end`。
 
 driver 的三個要點，改的時候不要弄丟：
 
@@ -115,7 +150,7 @@ driver 的三個要點，改的時候不要弄丟：
 ## 上游更新怎麼處理
 
 LibCustomGlow 出新版時**不要直接覆蓋**。拿新版對 v25 做 diff，把實質改動搬進來，
-上面那兩處差別保持不變，然後同步全部 copy：
+上面那幾處差別保持不變，然後同步全部 copy：
 
 ```bash
 ls -d AddOns/*/Libs/MiliUIGlow

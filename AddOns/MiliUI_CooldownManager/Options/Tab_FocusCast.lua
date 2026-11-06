@@ -5,6 +5,8 @@
 -- 動畫材質的「播放動畫／速度」跟施法條頁一樣（FxRows；只在材質是動畫材質時出現），
 -- 多了三態顏色（可斷法：斷法就緒／斷法冷卻中、不可中斷）、重要法術（發光＋「!」）、被打斷時印斷法者。
 -- 頁首一顆「預覽」：跑一條十秒的假施法（當重要法術），再按一次停。「材質」上方另有一條內嵌的樣本條＋六顆狀態按鈕（SampleRow）。
+-- 「可斷法的施法」小節（2026-11-07）：可斷法發光（開關、三款特效、顏色）＋開唱震動（不震／每次／只震可斷的），
+-- 特效下拉上方再一條樣本條（KickSampleRow：可以斷、不標重要法術，只看這一節的效果）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -47,6 +49,19 @@ local TIME_ITEMS = {
     { text = L["Elapsed (1.2)"],               value = "elapsed" },
 }
 
+-- 可斷法發光的三款（共用發光引擎的 BarGlow）
+local KICK_GLOW_ITEMS = {
+    { text = L["Halo (soft breathing aura)"],               value = "halo" },
+    { text = L["Sweep (a band of light crossing the bar)"], value = "sweep" },
+    { text = L["Pulse (rings spreading outward)"],          value = "pulse" },
+}
+
+local SHAKE_ITEMS = {
+    { text = L["Off"],                                      value = "off" },
+    { text = L["Every cast"],                               value = "always" },
+    { text = L["Interruptible casts only (experimental)"], value = "kick" },
+}
+
 local GLOW_ITEMS = {
     { text = L["Pixel lines (bar border)"],       value = "pixel" },
     { text = L["Autocast sparkles (bar border)"], value = "autocast" },
@@ -67,7 +82,7 @@ end
 --                   按鈕壓暗提示（照樣能按）
 -- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換（同 Specs 的發光預覽）。
 -- 列高在建表單時定：標籤對著樣本條置中，條下方留一行給「法術打向誰」，按鈕照各語系的字寬排、放不下自己換排
-local SAMPLE_BAR_ZONE = ns.FocusCastbar.SAMPLE_MAX_H + 20     -- 上下各留 10：火焰材質的火舌會竄出條外半個條高
+local SAMPLE_BAR_ZONE = ns.FocusCastbar.SAMPLE_MAX_H + 40     -- 上下各留 20：火焰材質的火舌會竄出條外半個條高、可斷法發光的柔光往外散
 local SAMPLE_TARGET_H = 14
 local SAMPLE_BTN_H, SAMPLE_GAP = 20, 4
 local SAMPLE_STATES = {
@@ -131,6 +146,28 @@ local function SampleRow()
         end }
 end
 
+-- 「可斷法的施法」小節的樣本條：同一支 ns.FocusCastbar.CreateSample（零件、版面、上色、發光都是畫面上那條的函式），
+-- 狀態固定「可以斷、我方斷法就緒」、不標重要法術 ⇒ 看到的只有可斷法發光與開唱震動（樣本每循環一次算一次開唱）。
+-- 列高比頁首那條高：脈衝的光圈會散到條外二十幾 px；左右也內縮，光才不會壓到標籤
+local KICK_ZONE = ns.FocusCastbar.SAMPLE_MAX_H + 56
+local KICK_INSET = 24
+
+local function KickSampleRow()
+    return { type = "custom", label = L["Preview"], h = KICK_ZONE, noReset = true,
+        build = function(parent, x, y, width, ctx)
+            local s = ns.FocusCastbar.CreateSample(parent)
+            s.state, s.glowOn, s.bangOn = "ready", false, false
+            s:SetPoint("LEFT", parent, "TOPLEFT", x + KICK_INSET, y - KICK_ZONE / 2)
+            local function Refresh() s:Refresh(width - KICK_INSET * 2) end
+            local apply = ctx.apply
+            ctx.apply = function(...)
+                apply(...)
+                Refresh()
+            end
+            return KICK_ZONE, Refresh
+        end }
+end
+
 -- 動畫的三列（播放動畫、速度、說明）只在材質是動畫材質時出現（同施法條頁）。材質下拉帶 refreshPage ⇒ 換材質當下增減列
 local function FxRows()
     local cfg = Cfg()
@@ -181,6 +218,14 @@ local function Controls()
         Note(L["Blizzard decides which spells count as important."]),
         BS("dropdown", "glowStyle", L["Glow style"], { items = GLOW_ITEMS }),
         BS("color", "colors.glow", L["Glow color"], { hasAlpha = false }),
+        { type = "header", label = L["Interruptible casts"] },
+        BS("toggle", "glowKick", L["Glow while the focus casts something you can interrupt"]),
+        Note(L["The whole bar glows for as long as the cast can be interrupted. Non-interruptible casts never glow."]),
+        KickSampleRow(),
+        BS("dropdown", "kickGlowStyle", L["Glow effect"], { items = KICK_GLOW_ITEMS }),
+        BS("color", "colors.kickGlow", L["Glow color"], { hasAlpha = false }),
+        BS("dropdown", "shakeMode", L["Cast start shake"], { items = SHAKE_ITEMS }),
+        Note(L["The bar gives a short shake when your focus starts casting. \"Interruptible casts only\" is experimental: in combat it swaps in a hidden copy of the bar for a moment, so switch back if the bar flickers or vanishes when a cast starts."]),
         { type = "header", label = L["Icon"] },
         BS("toggle", "showIcon", L["Show icon"]),
         BS("dropdown", "iconSide", L["Icon position"], { items = SIDE_ITEMS }),

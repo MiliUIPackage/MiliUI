@@ -111,6 +111,7 @@ local focusCfg = { texture = "Flat", height = 20, width = 300, glowImportant = t
         interrupted = { r = 0.5, g = 0.5, b = 0.5 }, glow = { r = 1, g = 1, b = 0 } } }
 local kickReady, hasKick = false, true
 local glowLog = {}
+local barLog = {}          -- 可斷法發光（BarGlow）另外記：重要法術發光那幾條在數 glowLog 的筆數
 
 local ns = {
     L = setmetatable({}, { __index = function(_, k) return k end }),
@@ -133,6 +134,12 @@ local ns = {
         AutoCastGlow_Stop = function(host) glowLog[#glowLog + 1] = "autocast-"; host._glow = nil end,
         ProcGlow_Start = function(host) glowLog[#glowLog + 1] = "proc+"; host._glow = "proc" end,
         ProcGlow_Stop = function(host) glowLog[#glowLog + 1] = "proc-"; host._glow = nil end,
+        BarGlow_Start = function(host, style, color, opts)
+            barLog[#barLog + 1] = "+" .. style
+            host._bar, host._barColor, host._barOpts = style, color, opts
+            return true
+        end,
+        BarGlow_Stop = function(host) barLog[#barLog + 1] = "-"; host._bar = nil end,
     },
 }
 local FX = { Anim = { { kind = "scroll", tex = "a", period = 3 },
@@ -334,6 +341,121 @@ do
     ok, err = pcall(s.Refresh, s, 500)
     check("專注樣本：沒有斷法的專精不丟錯", ok, err)
     eq("專注樣本：沒有斷法 ⇒ 斷法圖示藏起來", s.kickFrame._shown, false)
+end
+
+------------------------------------------------------------
+-- 3. 專注目標施法條的開唱震動（shakeMode：off／always／kick）
+--    kick ＝ 分身＋互補 alpha；這裡走明文路徑，秘密布林那條路只差在 alpha 由 SetAlphaFromBoolean 餵
+------------------------------------------------------------
+do
+    local h = Mock("Frame")
+    local g = FC.BuildTwin(h, Mock("parent"))
+    check("震動：分身建得出來、平常藏著", h.twin == g and g._shown == false and h.twinOn == false)
+    check("震動：分身的零件是同一支 BuildParts", g.bar ~= nil and g.icon ~= nil and g.nameText ~= nil and g.glowHosts ~= nil)
+
+    -- 預設（沒設 ＝ off）：開唱不帶分身、本尊不震、中途變可斷也不震
+    eq("震動：沒設 ⇒ off", FC.ShakeMode(), "off")
+    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
+    check("震動 off：不帶分身、本尊不震", h.twinOn == false and g._shown == false and h.shake._playing ~= true)
+    FC.JoltOn(h)
+    check("震動 off：中途變可斷也不震", h.shake._playing ~= true)
+
+    -- always：每次開唱直接震本尊（不分可不可以斷），不用分身
+    focusCfg.shakeMode = "always"
+    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
+    check("震動 always：可以斷 ⇒ 本尊震、不帶分身", h.shake._playing == true and h.twinOn == false and g._shown == false)
+    h.shake._playing = false
+    FC.ArmShakeOn(h, true); FC.GoShakeOn(h, true)
+    check("震動 always：不可中斷 ⇒ 照樣震", h.shake._playing == true and h.twinOn == false)
+    h.shake._playing = false
+    FC.JoltOn(h)
+    eq("震動 always：中途變可斷 ⇒ 震本尊", h.shake._playing, true)
+    h.shake._playing = false
+
+    -- kick：可以斷（明文 false）⇒ 本尊 0、分身 1、分身在震
+    focusCfg.shakeMode = "kick"
+    FC.ArmShakeOn(h, false)
+    eq("震動 kick：可以斷 ⇒ 帶分身", h.twinOn, true)
+    FC.GoShakeOn(h, false)
+    eq("震動 kick：可以斷 ⇒ 本尊透明", Arg(h, "SetAlpha"), 0)
+    eq("震動 kick：可以斷 ⇒ 分身不透明", Arg(g, "SetAlpha"), 1)
+    check("震動 kick：可以斷 ⇒ 分身顯示、動畫在播、本尊自己不震", g._shown == true and g.shake._playing == true and h.shake._playing ~= true)
+
+    -- 震完（動畫組的 OnFinished）：分身收掉、本尊 alpha 回 1
+    g.shake._scripts.OnFinished()
+    check("震動 kick：震完 ⇒ 分身藏起來、本尊 alpha 回 1", h.twinOn == false and g._shown == false and Arg(h, "SetAlpha") == 1)
+    local ok, err = pcall(FC.EndShakeOn, h)
+    check("震動 kick：重複收不丟錯", ok, err)
+
+    -- 不可中斷（明文 true）：不開分身、本尊不動
+    FC.ArmShakeOn(h, true)
+    FC.GoShakeOn(h, true)
+    check("震動 kick：不可中斷 ⇒ 不帶分身、分身照樣藏著", h.twinOn == false and g._shown == false)
+    eq("震動 kick：不可中斷 ⇒ 本尊 alpha 沒被動", Arg(h, "SetAlpha"), 1)
+
+    -- 還沒震完又開唱：先收再開
+    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
+    FC.ArmShakeOn(h, true)
+    check("震動 kick：連續開唱 ⇒ 上一次的先收掉", h.twinOn == false and g._shown == false and Arg(h, "SetAlpha") == 1)
+
+    -- 施法中途變成可以斷：震本尊；分身還在震就不疊
+    FC.JoltOn(h)
+    eq("震動 kick：中途變可斷 ⇒ 震本尊", h.shake._playing, true)
+    h.shake._playing = false
+    FC.ArmShakeOn(h, false); FC.GoShakeOn(h, false)
+    FC.JoltOn(h)
+    eq("震動 kick：分身還在震 ⇒ 本尊不疊", h.shake._playing, false)
+    FC.EndShakeOn(h)
+    focusCfg.shakeMode = nil
+end
+
+------------------------------------------------------------
+-- 4. 可斷法發光（glowKick／kickGlowStyle）與樣本的開唱震動：走樣本（跟畫面上那條同一支 PaintKickGlowOn）
+------------------------------------------------------------
+do
+    local s = FC.CreateSample(Mock("parent"))
+    s.state, s.glowOn, s.bangOn = "ready", false, false
+    s:Refresh(500)
+    local host = s.kickGlowHost
+    check("可斷法發光：可以斷 ⇒ 開著、預設光暈", host ~= nil and host._bar == "halo" and s.kickGlowOn == true)
+    eq("可斷法發光：宿主看得到", Arg(host, "SetAlpha"), 1)
+    check("可斷法發光：尺寸交給引擎（不讓它讀框）", host._barOpts.width == 300 and host._barOpts.height == 20 and host._barOpts.px == 1)
+    check("可斷法發光：沒設顏色 ⇒ 預設色", host._barColor[1] == 0.3 and host._barColor[2] == 0.85 and host._barColor[3] == 1)
+
+    s.state = "cd"; s:Paint()
+    eq("可斷法發光：斷法冷卻中照樣亮（看的是可不可以斷）", host._bar, "halo")
+    s.state = "immune"; s:Paint()
+    check("可斷法發光：不可中斷 ⇒ 關掉", host._bar == nil and s.kickGlowOn == false)
+    s.state = "ready"; s:Paint()
+    s.state = "interrupted"; s:Paint()
+    check("可斷法發光：被打斷 ⇒ 關掉", host._bar == nil and s.kickGlowOn == false)
+
+    s.state = "ready"
+    focusCfg.kickGlowStyle = "pulse"
+    focusCfg.colors.kickGlow = { r = 1, g = 0, b = 1 }
+    s:Refresh(500)
+    check("可斷法發光：換樣式、換顏色", host._bar == "pulse" and host._barColor[1] == 1 and host._barColor[2] == 0)
+    focusCfg.kickGlowStyle = "nope"
+    s:Refresh(500)
+    eq("可斷法發光：不認得的樣式 ⇒ 光暈", host._bar, "halo")
+    focusCfg.glowKick = false
+    s:Refresh(500)
+    check("可斷法發光：設定關掉 ⇒ 不亮", host._bar == nil and s.kickGlowOn == false)
+    focusCfg.glowKick, focusCfg.kickGlowStyle, focusCfg.colors.kickGlow = nil, nil, nil
+
+    -- 樣本的開唱震動（每循環一次算一次開唱）
+    s:Jolt()
+    check("樣本震動 off：不震", s.shake._playing ~= true)
+    focusCfg.shakeMode = "always"
+    s.state = "immune"; s:Jolt()
+    eq("樣本震動 always：不可中斷也震", s.shake._playing, true)
+    s.shake._playing = false
+    focusCfg.shakeMode = "kick"
+    s:Jolt()
+    check("樣本震動 kick：不可中斷不震", s.shake._playing ~= true)
+    s.state = "ready"; s:Jolt()
+    eq("樣本震動 kick：可以斷 ⇒ 震", s.shake._playing, true)
+    focusCfg.shakeMode = nil
 end
 
 print(("CastbarSample_test: %d passed, %d failed"):format(passed, failed))

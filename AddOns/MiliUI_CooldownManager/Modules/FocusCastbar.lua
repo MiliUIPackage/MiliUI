@@ -25,6 +25,16 @@
 -- FxHost，宿主各一份）。圖自己的顏色＝「可斷法、我方斷法冷卻中」那一態（底色白）；斷法就緒與不可打斷時**動畫照播、
 -- 整層染上狀態色**（CB.Fx.Tint，跟填充貼圖同一個顏色；使用者選的，不照玩家施法條「讓位」那一套）。被打斷、收條時停。
 --
+-- 可斷法發光（glowKick，使用者 2026-11-07）：專注目標在唱「可以斷」的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）。
+-- 可不可以斷在受限內容是秘密布林 ⇒ 發光整段開著、掛在自己的宿主框上，布林只餵宿主的 alpha（同重要法術發光）。
+--
+-- 開唱震動（shakeMode，預設 off）：
+--   always  每次開唱都震——不分可不可以斷，直接震本尊，沒有秘密值的事
+--   kick    只震可以斷的施法（**實驗性**，2026-11-06 做過、撤回、使用者要留著測）：位移（Translation:SetOffset／SetPoint／
+--           SetScale）全部不收秘密值、只有 alpha 收 ⇒「要不要震」沒辦法在 Lua 挑。做法是「!」版名字那一招放大到整條：
+--           多建一條一模一樣的分身（h.twin），震動掛在分身上、每次開唱都播，本尊與分身的 alpha 餵同一個布林、互補
+-- 細節在下面「開唱震動」那一節。
+--
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
 --
@@ -75,6 +85,12 @@ local container, f, ev
 -- 施法狀態：castState 1 施法、2 引導、3 淡出、4 打斷停留；nil ＝ 閒置
 local S = { displayToken = 0 }
 FC.state = S
+
+-- 本尊，加上震動中的分身（見「開唱震動」）：開唱之後畫到畫面上那條的東西一律走這支，分身才會跟本尊長得一樣
+local function Each(h, fn, ...)
+    fn(h, ...)
+    if h.twinOn then fn(h.twin, ...) end
+end
 
 local function Width(cfg)
     local w = tonumber(cfg.width) or 0
@@ -170,10 +186,44 @@ local function BuildParts(h)
     h.glowHosts = {}
 end
 
+-- 震動的動畫組：每 0.05 秒跳一次、六段位移加總歸零（Translation 只動畫面上的位置，不改錨點）。
+-- 比玩家施法條被打斷的那一下（Modules/Castbar.lua）大一點、沒有前面的停頓：這是要人注意，不是事後回饋
+local SHAKE_STEPS = { { -2, 1 }, { 3, -2 }, { -2, 2 }, { 2, -2 }, { -2, 1 }, { 1, 0 } }
+local SHAKE_STEP = 0.05
+local SHAKE_TIME = #SHAKE_STEPS * SHAKE_STEP
+
+local function MakeShake(h)
+    local group = h:CreateAnimationGroup()
+    for i, s in ipairs(SHAKE_STEPS) do
+        local t = group:CreateAnimation("Translation")
+        t:SetOffset(s[1], s[2])
+        t:SetDuration(SHAKE_STEP)
+        t:SetOrder(i)
+    end
+    return group
+end
+
+-- 震動用的分身：h 的兄弟框（不是子框：本尊 alpha 0 時分身要看得到）、疊在同一個位置、零件是同一支 BuildParts。
+-- 平常藏著，只在開唱後的那 0.3 秒顯示
+local function BuildTwin(h, parent)
+    local g = CreateFrame("Frame", nil, parent)
+    g:SetAllPoints(h)
+    BuildParts(g)
+    g.shake = MakeShake(g)
+    g.shake:SetScript("OnFinished", function() FC.EndShakeOn(h) end)
+    g:Hide()
+    h.twin = g
+    h.twinOn = false
+    h.shake = MakeShake(h)          -- 本尊自己的：施法中途變成可以斷（事件名稱是明文）時直接震本尊
+    return g
+end
+FC.BuildTwin = BuildTwin
+
 local function Build()
     f = CreateFrame("Frame", nil, container)
     f:SetAllPoints(container)
     BuildParts(f)
+    BuildTwin(f, container)
     f:Hide()
 end
 
@@ -183,6 +233,7 @@ end
 -- 零件的版面：W／H 是整條的寬高（呼叫端已經換算好）。回傳是不是反向填充。火花要不要顯示由呼叫端決定。
 -- casting ＝ 這一條正在唱（施法／引導中）：動畫材質的效果層設好之後直接接著播
 local function LayoutParts(h, cfg, W, H, casting)
+    h.glowW, h.glowH = W, H               -- 可斷法發光要的尺寸（發光引擎不讀框的幾何）
     local showIcon = cfg.showIcon ~= false
     local iconW = showIcon and H or 0
     local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
@@ -317,7 +368,10 @@ function FC.Layout()
     local W, H = Width(cfg), tonumber(cfg.height) or 20
     W, H = ns.P.Scale(W), ns.P.Scale(H)
     ns.Bars.SetPanelSize(KEY, W, H)
-    S.reversed = LayoutParts(f, cfg, W, H, S.castState == 1 or S.castState == 2)
+    local casting = S.castState == 1 or S.castState == 2
+    S.reversed = LayoutParts(f, cfg, W, H, casting)
+    f.twin:SetFrameLevel(f:GetFrameLevel())
+    LayoutParts(f.twin, cfg, W, H, casting and f.twinOn)
     f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
 end
 
@@ -391,7 +445,7 @@ end
 local function ApplyColor()
     local ready, has
     if ns.Interrupt then ready, has = ns.Interrupt.IsReady() end
-    PaintColorOn(f, S.castNotInterruptible, ready, has)
+    Each(f, PaintColorOn, S.castNotInterruptible, ready, has)
 end
 
 ------------------------------------------------------------
@@ -452,7 +506,7 @@ local function StopGlowOn(h)
     end
     h.glowShown = nil
 end
-local function StopGlow() StopGlowOn(f) end
+local function StopGlow() Each(f, StopGlowOn) end
 
 -- important：明文或秘密布林；nil ＝ 不問直接亮（頁首的預覽）
 local function ShowGlowOn(h, important)
@@ -473,7 +527,7 @@ local function ShowGlowOn(h, important)
         host:SetAlphaFromBoolean(important, 1, 0)
     end
 end
-local function ShowGlow(important) ShowGlowOn(f, important) end
+local function ShowGlow(important) Each(f, ShowGlowOn, important) end
 
 -- spellID 可能是秘密值：只比 nil、原封不動交給 C 端。回傳 nil ＝ 判斷不了（不發光、不加「!」）
 local function QueryImportant(spellID)
@@ -481,6 +535,160 @@ local function QueryImportant(spellID)
     local ok, v = pcall(IsSpellImportant, spellID)
     if ok and v ~= nil then return v end
     return nil
+end
+
+------------------------------------------------------------
+-- 可斷法發光（glowKick）
+--
+-- 專注目標在唱可以斷的法術時整條亮著：共用發光引擎的 BarGlow 三款（kickGlowStyle：halo 光暈／sweep 流光／pulse 脈衝）。
+-- 跟重要法術發光同一招：發光掛在自己的宿主框（h.kickGlowHost，蓋滿整條、level ＋19——比重要法術的宿主低一層）上、
+-- 整段施法都開著，「不可中斷」的布林只餵宿主的 alpha（不可中斷 ⇒ 0）；明文的不可中斷連開都不開。
+-- 施法中途變可斷／不可斷（事件名稱是明文）重畫一次。被打斷、淡出、收條時停。
+-- 柔邊貼圖借邊緣陰影那張（Core/Shape.lua 的 SH.EDGE_SHADOW：白底、內緣不透明外緣透明，染色＋加亮混合就是光暈）。
+------------------------------------------------------------
+local KICK_GLOW_STYLES = { halo = true, sweep = true, pulse = true }
+
+local function KickGlowStyle()
+    local st = (Cfg() or {}).kickGlowStyle
+    return KICK_GLOW_STYLES[st] and st or "halo"
+end
+FC.KickGlowStyle = KickGlowStyle
+
+local function StopKickGlowOn(h)
+    if not (h and h.kickGlowOn) then return end
+    h.kickGlowOn = false
+    if LCG and LCG.BarGlow_Stop then LCG.BarGlow_Stop(h.kickGlowHost) end
+end
+
+-- ni ＝ 不可中斷：nil（不知道，當可以斷）／明文／秘密布林
+local function PaintKickGlowOn(h, ni)
+    local cfg = Cfg() or {}
+    if cfg.glowKick == false or not (LCG and LCG.BarGlow_Start) then StopKickGlowOn(h) return end
+    if ni ~= nil and not IsSecret(ni) and ni then StopKickGlowOn(h) return end
+    local host = h.kickGlowHost
+    if not host then
+        host = CreateFrame("Frame", nil, h)
+        host:SetAllPoints(h)
+        h.kickGlowHost = host
+    end
+    host:SetFrameLevel(h:GetFrameLevel() + 19)
+    local cr, cg, cb = C(Colors().kickGlow, 0.3, 0.85, 1)
+    LCG.BarGlow_Start(host, KickGlowStyle(), { cr, cg, cb, 1 }, {
+        edgeFile = ns.Shape and ns.Shape.EDGE_SHADOW,
+        width = h.glowW, height = h.glowH, px = ns.P.Pixel(1),
+    })
+    h.kickGlowOn = true
+    if IsSecret(ni) then
+        -- 餵不進去就整個關掉：寧可不亮，不能讓不可中斷的施法也亮著
+        if not pcall(host.SetAlphaFromBoolean, host, ni, 0, 1) then StopKickGlowOn(h) end
+    else
+        host:SetAlpha(1)
+    end
+end
+
+------------------------------------------------------------
+-- 開唱震動（shakeMode：off／always／kick）
+--
+-- always：每次開唱直接震本尊（h.shake），不分可不可以斷。以下講的都是 kick（只震可以斷的施法，實驗性）。
+--
+-- 「這個法術可不可以斷」（ni）在受限內容是秘密布林。位移類的 API（Translation:SetOffset、SetPoint、SetScale）
+-- 的 SecretArguments 都是 AllowedWhenUntainted ⇒ 插件餵不進秘密值，沒辦法「可斷才位移」；收秘密布林的只有 alpha。
+-- 所以：分身（h.twin，BuildTwin 建的）每次開唱都震，本尊不動；兩條的 alpha 餵同一個布林、互補
+--   可以斷   ⇒ 本尊 0、分身 1（看到在震的那條）
+--   不可中斷 ⇒ 本尊 1、分身 0（看到沒動的那條）
+-- 震完（SHAKE_TIME）分身藏起來、本尊 alpha 設回 1。明文模式（脫戰、預覽）走同一條路，只是布林是明文；
+-- 明文的「不可中斷」連分身都不開。
+--
+-- 三步，都收 h（畫面上那條）：
+--   ArmShakeOn(h, ni)   開唱一開始：決定這次帶不帶分身（h.twinOn）。之後畫到本尊的東西經 Each 也畫到分身
+--   GoShakeOn(h, ni)    開唱畫完：分 alpha、分身顯示、開始震
+--   EndShakeOn(h)       震完／收條／被打斷／下一次開唱：分身收掉、本尊 alpha 回 1。可以重複叫
+-- ⚠ 本尊餵過 SetAlphaFromBoolean 之後帶 alpha 面向，GetAlpha 會回秘密值：這個檔與 Visibility 都不讀條的 alpha（只寫）
+-- ⚠ 動畫組在框被藏起來時會停、不保證派 OnFinished ⇒ 另外記到期時間（h.shakeEnd），每輪計時（WatchShakeOn）補收
+------------------------------------------------------------
+local function ShakeMode()
+    local m = (Cfg() or {}).shakeMode
+    return (m == "always" or m == "kick") and m or "off"
+end
+FC.ShakeMode = ShakeMode
+
+local function EndShakeOn(h)
+    if not (h and h.twinOn) then return end
+    h.twinOn = false
+    local g = h.twin
+    g.shake:Stop()
+    g:Hide()
+    g.spark:Hide()
+    CB().Fx.Stop(g)
+    StopGlowOn(g)
+    StopKickGlowOn(g)
+    h:SetAlpha(1)
+end
+FC.EndShakeOn = EndShakeOn
+
+local function ArmShakeOn(h, ni)
+    if not (h and h.twin) then return end
+    EndShakeOn(h)                                         -- 上一次的還沒震完就又開唱
+    h.shake:Stop()
+    if ShakeMode() ~= "kick" then return end              -- always 不用分身（GoShakeOn 直接震本尊）
+    if not IsSecret(ni) and ni then return end            -- 明文的不可中斷：不震
+    h.twinOn = true
+end
+FC.ArmShakeOn = ArmShakeOn
+
+local function GoShakeOn(h, ni)
+    if not h then return end
+    if not h.twinOn then
+        if h.shake and ShakeMode() == "always" then      -- 每次開唱都震：本尊自己震
+            h.shake:Stop()
+            h.shake:Play()
+        end
+        return
+    end
+    local g = h.twin
+    if IsSecret(ni) then
+        -- 餵不進去（哪一條都算）就整個放掉：寧可不震，不能讓條不見
+        if not (pcall(h.SetAlphaFromBoolean, h, ni, 1, 0) and pcall(g.SetAlphaFromBoolean, g, ni, 0, 1)) then
+            EndShakeOn(h)
+            return
+        end
+    else
+        h:SetAlpha(0)
+        g:SetAlpha(1)
+    end
+    g:Show()
+    g.shake:Stop()
+    g.shake:Play()
+    h.shakeEnd = GetTime() + SHAKE_TIME + 0.1
+end
+FC.GoShakeOn = GoShakeOn
+
+local function WatchShakeOn(h, now)
+    if h.twinOn and now >= (h.shakeEnd or 0) then EndShakeOn(h) end
+end
+
+-- 施法中途變成可以斷（UNIT_SPELLCAST_INTERRUPTIBLE，事件名稱是明文）：直接震本尊。分身還在震就不疊
+local function JoltOn(h)
+    if h.twinOn or ShakeMode() == "off" then return end
+    h.shake:Stop()
+    h.shake:Play()
+end
+FC.JoltOn = JoltOn
+
+-- 開唱時逐條要寫的三樣（經 Each：本尊＋震動中的分身）
+local function PaintIconOn(h, texture)
+    h.icon:SetTexture(texture)
+    h.timeText:SetTextColor(1, 1, 1)           -- 打斷顯示會把右側文字染職業色，這裡還原
+    h.timeText:SetText("")
+end
+local function BarValueOn(h, v)
+    h.bar:SetMinMaxValues(0, 1)
+    h.bar:SetValue(v)
+end
+-- dur ＝ duration 物件（可能帶秘密值，原封轉交）；沒有 SetTimerDuration 的客戶端回 false
+local function BarTimerOn(h, dur, dir)
+    h.bar:SetMinMaxValues(0, 1)
+    h.bar:SetTimerDuration(dur, nil, dir)
 end
 
 -- 顯示的名字（純函式）：施法者名字 ＋ 分隔 ＋ 法術名（截字只截法術名；兩段都可能是秘密字串，只串接）
@@ -507,7 +715,7 @@ local function PaintNameOn(h, name, important, caster)
     h.bangText:SetAlphaFromBoolean(important, 1, 0)
     h.nameText:SetAlphaFromBoolean(important, 0, 1)
 end
-local function SetName(name, important, caster) PaintNameOn(f, name, important, caster) end
+local function SetName(name, important, caster) Each(f, PaintNameOn, name, important, caster) end
 
 -- 法術打向誰（條右下角、職業色）。name 可能是秘密字串（只交給 SetText）；class 明文或秘密 token（只交給 GetClassColor）
 local function ClearSpellTargetOn(h)
@@ -515,7 +723,7 @@ local function ClearSpellTargetOn(h)
     h.targetText:SetAlpha(1)
     h.targetText:SetTextColor(1, 1, 1)
 end
-local function ClearSpellTarget() ClearSpellTargetOn(f) end
+local function ClearSpellTarget() Each(f, ClearSpellTargetOn) end
 
 local function PaintSpellTargetOn(h, name, class)
     h.targetText:SetAlpha(1)
@@ -528,7 +736,9 @@ local function PaintSpellTargetOn(h, name, class)
     h.targetText:SetTextColor(r, g, b)
     h.targetText:SetText(name)
 end
-local function PaintSpellTarget(name, class) PaintSpellTargetOn(f, name, class) end
+local function PaintSpellTarget(name, class) Each(f, PaintSpellTargetOn, name, class) end
+-- 「該不該顯示」是秘密布林時：只餵 alpha
+local function GateSpellTargetOn(h, show) h.targetText:SetAlphaFromBoolean(show, 1, 0) end
 
 local function SetSpellTarget()
     local cfg = Cfg() or {}
@@ -541,7 +751,7 @@ local function SetSpellTarget()
         local show = UnitShouldDisplaySpellTargetName(UNIT)
         if show ~= nil then
             if IsSecret(show) then
-                f.targetText:SetAlphaFromBoolean(show, 1, 0)
+                Each(f, GateSpellTargetOn, show)
             elseif not show then
                 ClearSpellTarget()
             end
@@ -552,10 +762,11 @@ end
 ------------------------------------------------------------
 -- 顯示流程
 ------------------------------------------------------------
+local function PaintTimeOn(h, text) h.timeText:SetText(text) end
 local function SetTimeText(text)
     if S.lastTime == text then return end
     S.lastTime = text
-    f.timeText:SetText(text)
+    Each(f, PaintTimeOn, text)
 end
 
 -- 開唱：火花＋動畫材質的效果層開始播（同玩家施法條的 ShowSparkOn）
@@ -563,7 +774,7 @@ local function ShowSparkOn(h)
     h.spark:SetShown((Cfg() or {}).showSpark ~= false)
     if h.fxOn then CB().Fx.Play(h) end
 end
-local function ShowSpark() ShowSparkOn(f) end
+local function ShowSpark() Each(f, ShowSparkOn) end
 
 -- 斷法圖示：圖示（自己的法術，明文）、冷卻轉圈（duration 物件原封轉交）、就緒亮／冷卻中暗（IsZero 的布林只餵 alpha）。
 -- 餵不進去就 Clear（圖示留著）。開唱、SPELL_UPDATE_COOLDOWN（條顯示中）、預覽、套用設定時叫
@@ -585,18 +796,10 @@ local function PaintKickReadyOn(h, zero)
     end
 end
 
-local function UpdateKick()
-    if not (f and f.kickFrame:IsShown()) then return end
-    local id = KickSpell()
-    if not id then return end
-    PaintKickIconOn(f, id)
-    local dur
-    local getDur = C_Spell and C_Spell.GetSpellCooldownDuration
-    if getDur then
-        local ok, d = pcall(getDur, id, true)
-        if ok and d then dur = d end
-    end
-    local cd = f.kickCD
+-- 一條的斷法圖示三步：圖、冷卻轉圈（dur ＝ duration 物件，nil ＝ 清掉）、就緒亮／冷卻中暗
+local function PaintKickOn(h, id, dur, zero)
+    PaintKickIconOn(h, id)
+    local cd = h.kickCD
     if cd then
         local fed = false
         if dur and cd.SetCooldownFromDurationObject then
@@ -604,17 +807,32 @@ local function UpdateKick()
         end
         if not fed and cd.Clear then pcall(cd.Clear, cd) end
     end
+    PaintKickReadyOn(h, zero)
+end
+
+local function UpdateKick()
+    if not (f and f.kickFrame:IsShown()) then return end
+    local id = KickSpell()
+    if not id then return end
+    local dur
+    local getDur = C_Spell and C_Spell.GetSpellCooldownDuration
+    if getDur then
+        local ok, d = pcall(getDur, id, true)
+        if ok and d then dur = d end
+    end
     local zero
     if dur and dur.IsZero then
         local ok, z = pcall(dur.IsZero, dur)
         if ok then zero = z end
     end
-    PaintKickReadyOn(f, zero)
+    Each(f, PaintKickOn, id, dur, zero)
 end
 FC.UpdateKick = UpdateKick
 
 local function HideBar()
     local wasPreview = S.preview
+    EndShakeOn(f)
+    f.shake:Stop()
     S.active = false
     S.castState = nil
     S.preview = false
@@ -625,6 +843,7 @@ local function HideBar()
     CB().Fx.Stop(f)
     f:SetAlpha(1)
     StopGlow()
+    StopKickGlowOn(f)
     S.lastTime = nil
     S.tStart, S.tEnd, S.total = nil, nil, 0
     S.castChannel, S.castSecret, S.castNotInterruptible = false, false, nil
@@ -658,6 +877,7 @@ local function FadeOnUpdate(self)
 end
 
 local function EndFade()
+    EndShakeOn(f)
     S.active = false
     S.castState = 3
     S.fadeStart = GetTime()
@@ -666,6 +886,7 @@ local function EndFade()
     f.spark:Hide()
     CB().Fx.Stop(f)
     StopGlow()
+    StopKickGlowOn(f)
     f.timeText:SetText("")
     f:SetScript("OnUpdate", FadeOnUpdate)
     f:Show()
@@ -679,6 +900,7 @@ local function PaintInterruptedOn(h, who, class)
     h.spark:Hide()
     CB().Fx.Stop(h)                            -- 滿條的打斷色要露出來
     StopGlowOn(h)                              -- 施法已經斷了，紅條不再標重要
+    StopKickGlowOn(h)                          -- 也沒有東西可以斷了
     h.bar:SetMinMaxValues(0, 1)
     h.bar:SetValue(1)
     local tex = h.bar:GetStatusBarTexture()
@@ -699,6 +921,7 @@ local function PaintInterruptedOn(h, who, class)
 end
 
 local function ShowInterrupted(interrupterGUID)
+    EndShakeOn(f)
     S.active = false
     S.castState = 4
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
@@ -740,6 +963,7 @@ local function SecretTick()
         return
     end
     local now = GetTime()
+    WatchShakeOn(f, now)
     local elapsed = Elapsed(now)
     if S.total > 0 then
         if elapsed > S.total + 0.3 then HideBar() return end      -- STOP 事件漏掉也會收條
@@ -765,7 +989,9 @@ local function PlainOnUpdate(self, dt)
         ratio = (now - S.tStart) / total
     end
     if ratio < 0 then ratio = 0 elseif ratio > 1 then ratio = 1 end
+    WatchShakeOn(f, now)
     self.bar:SetValue(ratio)
+    if f.twinOn then f.twin.bar:SetValue(ratio) end
     S.textAccum = (S.textAccum or 1) + (dt or 0)
     if S.textAccum >= 0.05 then
         S.textAccum = 0
@@ -807,14 +1033,14 @@ local function StartDisplay()
     S.castNotInterruptible = notInt
     S.lastTime = nil
     f:SetScript("OnUpdate", nil)
+    ArmShakeOn(f, notInt)                      -- 從這裡到 GoShakeOn：畫到 f 的東西都經 Each，分身跟著畫
     f:SetAlpha(1)
-    f.icon:SetTexture(texture)
-    f.timeText:SetTextColor(1, 1, 1)          -- 打斷顯示會把右側文字染職業色，這裡還原
+    Each(f, PaintIconOn, texture)
     local important = QueryImportant(spellID)
     local caster = UnitName(UNIT)              -- 可能是秘密字串：只串接
     SetName(name, important, caster)
     if important == nil then StopGlow() else ShowGlow(important) end
-    f.timeText:SetText("")
+    Each(f, PaintKickGlowOn, notInt)
     SetSpellTarget()
     UpdateKick()
 
@@ -836,15 +1062,14 @@ local function StartDisplay()
         elseif UnitCastingDuration then
             dur = UnitCastingDuration(UNIT)
         end
-        f.bar:SetMinMaxValues(0, 1)
         if dur and f.bar.SetTimerDuration then
             if S.total <= 0 and dur.GetTotalDuration then
                 local ok, total = pcall(dur.GetTotalDuration, dur)
                 if ok and Plain(total) then S.total = total end
             end
-            f.bar:SetTimerDuration(dur, nil, CB().TimerDir(isChannel, isEmpowered))
+            Each(f, BarTimerOn, dur, CB().TimerDir(isChannel, isEmpowered))
         else
-            f.bar:SetValue(1)
+            Each(f, BarValueOn, 1)
         end
         S.active = true
         ApplyColor()
@@ -859,14 +1084,14 @@ local function StartDisplay()
             return
         end
         ApplyColor()
-        f.bar:SetMinMaxValues(0, 1)
-        f.bar:SetValue(isChannel and 1 or 0)
+        Each(f, BarValueOn, isChannel and 1 or 0)
         S.textAccum = 1
         S.active = true
         f:SetScript("OnUpdate", PlainOnUpdate)
     end
     ShowSpark()
     f:Show()
+    GoShakeOn(f, notInt)
     if ns.Visibility then ns.Visibility.Apply(KEY) end
     if wasPreview and ns.Fire then ns.Fire("FocusCastPreview", false) end
 end
@@ -896,7 +1121,7 @@ local function ResyncTiming()
             end
         end
         if dur and f.bar.SetTimerDuration then
-            f.bar:SetTimerDuration(dur, nil, CB().TimerDir(isChannel, isEmpowered))
+            Each(f, BarTimerOn, dur, CB().TimerDir(isChannel, isEmpowered))
         end
     else
         local castName, _, _, cs4, cs5 = UnitCastingInfo(UNIT)
@@ -941,12 +1166,12 @@ function FC.StartPreview()
     S.castState = 1
     S.tStart, S.tEnd, S.total = now, now + PREVIEW_TIME, PREVIEW_TIME
     S.lastTime = nil
+    ArmShakeOn(f, false)                       -- 預覽是可以斷的法術：照樣震，走的是實際那條路
     f:SetAlpha(1)
-    f.icon:SetTexture(PREVIEW_ICON)
-    f.timeText:SetTextColor(1, 1, 1)
+    Each(f, PaintIconOn, PREVIEW_ICON)
     SetName(L["Preview cast"], true, L["Focus target"])
     ShowGlow(nil)
-    f.timeText:SetText("")
+    Each(f, PaintKickGlowOn, false)
     if (cfg.showTarget ~= false) then
         PaintSpellTarget(UnitName("player"), ns.playerClass or (UnitClassBase and UnitClassBase("player")))   -- 範例：打向自己
     else
@@ -954,13 +1179,13 @@ function FC.StartPreview()
     end
     UpdateKick()
     ApplyColor()
-    f.bar:SetMinMaxValues(0, 1)
-    f.bar:SetValue(0)
+    Each(f, BarValueOn, 0)
     S.textAccum = 1
     S.active = true
     f:SetScript("OnUpdate", PlainOnUpdate)
     ShowSpark()
     f:Show()
+    GoShakeOn(f, false)
     if ns.Visibility then ns.Visibility.Apply(KEY) end
     if ns.Fire then ns.Fire("FocusCastPreview", true) end
     return true
@@ -998,11 +1223,16 @@ function FC.CreateSample(parent)
     BuildParts(s)
     s.state, s.glowOn, s.bangOn = "ready", true, true
 
+    s.shake = MakeShake(s)
+
     local t, acc, wantSpark, lastTime, glowSig = 0, 1, true, nil, nil
     s:SetScript("OnUpdate", function(self, dt)
         if self.state == "interrupted" then return end
         t = t + dt
-        if t >= SAMPLE_TIME + SAMPLE_HOLD then t = t % (SAMPLE_TIME + SAMPLE_HOLD) end
+        if t >= SAMPLE_TIME + SAMPLE_HOLD then
+            t = t % (SAMPLE_TIME + SAMPLE_HOLD)
+            self:Jolt()                     -- 循環回到開頭 ＝ 又一次開唱
+        end
         local filling = t < SAMPLE_TIME
         self.bar:SetValue(filling and t / SAMPLE_TIME or 1)
         self.spark:SetShown(wantSpark and filling)
@@ -1035,6 +1265,7 @@ function FC.CreateSample(parent)
             StopGlowOn(self)
         end
         ShowGlowOn(self, self.glowOn)
+        PaintKickGlowOn(self, st == "immune")
         lastTime = nil
         self.timeText:SetText("")
         if cfg.showTarget ~= false and me ~= nil then
@@ -1058,6 +1289,17 @@ function FC.CreateSample(parent)
         -- 被打斷：接在一次開唱後面（畫面上也是唱到一半才被斷），照 ShowInterrupted
         if st == "interrupted" then
             PaintInterruptedOn(self, cfg.showInterrupter ~= false and me or nil, class)
+        end
+    end
+
+    -- 開唱震動：照 shakeMode（always 都震、kick 只震可以斷的）。⚠ 這是樣本跟畫面上那條**不一樣**的地方：kick 在畫面上
+    -- 是分身＋互補 alpha（秘密布林下只能這樣），樣本的狀態是明文，直接震自己——看得到的是「震起來的樣子」，
+    -- 分身那條路管不管用要到戰鬥中看
+    function s:Jolt()
+        local mode = ShakeMode()
+        if mode == "always" or (mode == "kick" and self.state ~= "immune") then
+            self.shake:Stop()
+            self.shake:Play()
         end
     end
 
@@ -1111,6 +1353,8 @@ local function OnCastEvent(event, _, _, _, arg4, arg5)
         if S.castState == 1 or S.castState == 2 then
             S.castNotInterruptible = (event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE")
             ApplyColor()
+            Each(f, PaintKickGlowOn, S.castNotInterruptible)
+            if event == "UNIT_SPELLCAST_INTERRUPTIBLE" then JoltOn(f) end    -- 變成可以斷：震一下
         end
     elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
         if S.castState == 1 or S.castState == 2 then ShowInterrupted(arg4) end
@@ -1190,6 +1434,7 @@ function FC.Apply()
         ApplyColor()
         UpdateKick()
         if S.preview then ShowGlow(nil) end
+        Each(f, PaintKickGlowOn, S.castNotInterruptible)     -- 樣式／顏色／開關改了：正在唱的這一條跟著換
     end
     if InCombatLockdown() then ns.Bars.Request(KEY, "structure") else ns.Bars.ApplyStructure(KEY) end
     if ns.Visibility then ns.Visibility.Apply(KEY) end
@@ -1214,11 +1459,13 @@ function FC.DebugLines()
         return out
     end
     local cfg = Cfg() or {}
-    out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  斷法圖示 %s  alpha %s")
+    out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  可斷法發光 %s  斷法圖示 %s  alpha %s  開唱震動 %s%s")
         :format(cfg.enabled ~= false and "開" or "關", STATE_NAME[S.castState] or "閒置",
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否",
                 S.tStart and "有" or "無", S.total or 0, tostring(f and f.glowShown or "無"),
+                f.kickGlowOn and KickGlowStyle() or (cfg.glowKick == false and "關" or "無"),
                 tostring(KickSpell(cfg) or "無"),
-                tostring(ns.Visibility and ns.Visibility.Current(KEY)))
+                tostring(ns.Visibility and ns.Visibility.Current(KEY)),
+                ShakeMode(), f.twinOn and "（分身顯示中）" or "")
     return out
 end

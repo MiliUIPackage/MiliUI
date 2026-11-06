@@ -532,6 +532,7 @@ FocusCastDefaults = function()
             immune      = rgba(0.529, 0.529, 0.529),
             interrupted = rgba(1, 0.204, 0.145),
             glow        = rgba(0.95, 0.95, 0.32),
+            kickGlow    = rgba(0.3, 0.85, 1),      -- 可斷法發光：冷色，跟金／橘的條身與黃色的重要法術發光都分得開
         },
         glowImportant = true,              -- 重要法術外框發光（C_Spell.IsSpellImportant；秘密布林只餵宿主的 alpha）
         bangImportant = true,              -- 重要法術名稱前加「!」
@@ -549,6 +550,12 @@ FocusCastDefaults = function()
         timeOffset    = { x = -4, y = 0 },
         showSpark     = true,
         showInterrupter = true,            -- 被打斷時右側印斷法者的名字（職業色）
+        -- 可斷法發光（2026-11-07）：專注目標在唱可以斷的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）。舊存檔沒有 ＝ 開、光暈
+        glowKick      = true,
+        kickGlowStyle = "halo",            -- halo 光暈 | sweep 流光 | pulse 脈衝
+        -- 開唱震動（2026-11-07 使用者指定預設關）：off | always 每次開唱都震 | kick 只震可以斷的施法（實驗性：分身＋互補 alpha）。
+        -- 11-06 那版的鍵叫 castShake（布林、預設開），當天撤回；存檔裡留著的那顆沒人讀
+        shakeMode     = "off",
         -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色（2026-10-19 使用者指定，
         -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號）
         showTarget       = true,

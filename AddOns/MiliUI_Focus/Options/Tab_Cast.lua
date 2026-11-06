@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 「施法條」分頁：專注目標施法監控、三態顏色、重要法術發光、唱法音效、斷法巨集
+-- 「施法條」分頁：專注目標施法監控、三態顏色、重要法術發光、可斷法發光與開唱震動、唱法音效、斷法巨集
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -55,6 +55,19 @@ local function BuildTakenOverRow(parent, x, y, width)
     return 30, Refresh
 end
 
+-- 「可斷法的施法」小節的樣本條（ns.CastBar.CreateKickSample：發光與震動是畫面上那條用的同一批函式）。
+-- 上下各留 28：脈衝的光圈會散到條外二十幾 px；左右也內縮，光才不會壓到標籤。
+-- 表單引擎在值變了之後叫 Apply → RefreshAll ⇒ 回傳的 Refresh 會被叫到，樣本跟著換
+local KICK_ZONE, KICK_INSET = 80, 24
+
+local function BuildKickSampleRow(parent, x, y, width)
+    local s = ns.CastBar.CreateKickSample(parent)
+    s:SetPoint("LEFT", parent, "TOPLEFT", x + KICK_INSET, y - KICK_ZONE / 2)
+    local function Refresh() s:Refresh(width - KICK_INSET * 2) end
+    Refresh()
+    return KICK_ZONE, Refresh
+end
+
 local CONTROLS = {
     { type = "header", label = L["Focus cast bar"] },
     { type = "toggle", key = "monitor", label = L["Enable the focus cast bar"] },
@@ -99,6 +112,19 @@ local CONTROLS = {
           { text = L["Proc glow (icon)"],             value = "proc" },
       } end },
     { type = "color",  key = "colorGlow", label = L["Glow color"], hasAlpha = false },
+
+    { type = "header", label = L["Interruptible casts"] },
+    { type = "toggle", key = "glowKick", label = L["Glow while the focus casts something you can interrupt"] },
+    { type = "text",   label = L["The whole bar glows for as long as the cast can be interrupted. Non-interruptible casts never glow."] },
+    { type = "custom", label = L["Preview"], h = KICK_ZONE, build = BuildKickSampleRow },
+    { type = "dropdown", key = "kickGlowStyle", label = L["Glow effect"], items = function() return {
+          { text = L["Halo (soft breathing aura)"],               value = "halo" },
+          { text = L["Sweep (a band of light crossing the bar)"], value = "sweep" },
+          { text = L["Pulse (rings spreading outward)"],          value = "pulse" },
+      } end },
+    { type = "color",  key = "colorKickGlow", label = L["Glow color"], hasAlpha = false },
+    { type = "toggle", key = "shakeOnCast", label = L["Shake the bar whenever the focus starts casting"] },
+    { type = "text",   label = L["A short shake on every cast start, whether or not it can be interrupted."] },
 
     { type = "header", label = L["Cast sound"] },
     { type = "toggle", key = "soundEnabled", label = L["Play a sound when the focus starts casting"] },

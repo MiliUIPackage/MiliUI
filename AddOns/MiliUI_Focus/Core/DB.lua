@@ -92,6 +92,12 @@ local function BuildDefaults()
             bangImportant = true,      -- 重要法術名稱前加「!」
             glowStyle     = "pixel",   -- pixel／autocast／proc（見 Modules/CastBar.lua 的 ShowGlow）
             colorGlow     = CopyTable(DEFAULT_GLOW_COLOR),
+            -- 可斷法發光（2026-11-07）：專注目標在唱可以斷的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）
+            glowKick      = true,
+            kickGlowStyle = "halo",    -- halo 光暈／sweep 流光／pulse 脈衝
+            colorKickGlow = Color(0.3, 0.85, 1),   -- 冷色：跟金／橘的條身、黃色的重要法術發光都分得開
+            -- 每次開唱整條震一下（不分可不可以斷；2026-11-07 使用者指定預設關）
+            shakeOnCast   = false,
             -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色。
             -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號（2026-10-19 使用者指定）
             showTarget       = true,

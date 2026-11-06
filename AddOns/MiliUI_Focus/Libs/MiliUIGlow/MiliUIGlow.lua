@@ -11,7 +11,7 @@ MiliUIGlow -- MiliUI 套組的發光引擎
 API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
     local LCG = LibStub("LibCustomGlow-1.0")   -->   local LCG = <ns>.MiliUIGlow
 
-跟上游的差別只有三處，其餘逐字不動（動畫長相因此必然一致）：
+跟上游的差別只有四處，其餘逐字不動（動畫長相因此必然一致）：
 
  1. 不註冊到 LibStub，改掛在插件自己的私有表上。
     LibStub 只留版本最高的那一份，而「哪一份贏」取決於全部插件載入完之後的結果 ——
@@ -29,6 +29,9 @@ API 與 LibCustomGlow **完全相同**，所以抽換只要改綁定那一行：
     caller 自備框、這裡只建全新貼圖、尺寸由 caller 給、動畫全是宣告式 AnimationGroup
     （不經過上面的 driver，副本／戰鬥中秘密狀態下照樣動）。Start 系列的池化框 reparent
     ＋ driver 推座標在那個子樹裡一條規矩都過不了。
+
+ 4. 多一組 BarGlow（檔尾最後一段）：長條（施法條）用的三款發光——光暈／流光／脈衝。同樣是
+    宣告式 AnimationGroup、對宿主只寫不讀，宿主的 alpha 可以是秘密值。
 ]]
 
 local _, ns = ...
@@ -1593,4 +1596,306 @@ function lib.Glow_Detach(f)
     if f.outerGlow then f.outerGlow:SetAlpha(0) end
     if f.ants then f.ants:SetAlpha(0) end
     if f.ProcLoop then f.ProcLoop:SetAlpha(0) end
+end
+
+-------------------------------------------------------------------------------
+--  BarGlow：長條（施法條這種扁長的框）用的三款發光。上游沒有。
+--
+--      lib.BarGlow_Start(host, style, color, opts)      lib.BarGlow_Stop(host)
+--
+--  style ＝ "halo" 光暈（一圈柔光呼吸）｜"sweep" 流光（一道亮帶橫掃過整條）｜"pulse" 脈衝（光圈一波一波往外擴）
+--          （清單在 lib.BarGlowStyles；不認得的當 halo）
+--  color ＝ { r, g, b, a }
+--  opts  ＝ { edgeFile ＝ 柔邊貼圖（八格 backdrop edge 排法、白底、內緣不透明外緣透明；消費者自己帶一張，
+--                        這包不帶圖檔——路徑跟著插件資料夾走）,
+--             width／height ＝ host 的大小（流光的位移量、各款的粗細都從這裡算；**不讀 host 的幾何**）,
+--             px ＝ host 座標裡的一個實體像素（亮邊是 2 個實體像素；沒給當 1） }
+--
+--  跟 Attach 系列同一條規矩：**對 host 只寫不讀、會動的全是宣告式 AnimationGroup**（不經過 driver）。
+--  所以 host 的 alpha 可以是秘密值——消費者把「要不要看得到」的秘密布林餵給 host 的 SetAlphaFromBoolean，
+--  發光本身永遠開著（專注目標施法條的「可斷法才亮」就是這樣用的）。host 是消費者自己的框（不是引擎光環按鈕的子樹：
+--  這裡會在自己建的框上掛 OnShow，祖先藏過再顯示時把動畫接回去）。
+--  同一個 host 一次只亮一款；重複 Start 同一款只在顏色／尺寸變了才重排（動畫從頭播）。框建了就留著（frame 刪不掉）。
+-------------------------------------------------------------------------------
+do
+    local SOLID = "Interface\\Buttons\\WHITE8X8"
+    local STYLES = { halo = true, sweep = true, pulse = true }
+    lib.BarGlowStyles = { "halo", "sweep", "pulse" }
+
+    -- 暴雪 Backdrop.lua 的 textureUVs（拉伸版）：SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
+    local CS, CE = 0.0625, 0.9375
+    local EDGE_UV = {
+        TopLeftCorner     = { 0.5078125, CS, 0.5078125, CE, 0.6171875, CS, 0.6171875, CE },
+        TopRightCorner    = { 0.6328125, CS, 0.6328125, CE, 0.7421875, CS, 0.7421875, CE },
+        BottomLeftCorner  = { 0.7578125, CS, 0.7578125, CE, 0.8671875, CS, 0.8671875, CE },
+        BottomRightCorner = { 0.8828125, CS, 0.8828125, CE, 0.9921875, CS, 0.9921875, CE },
+        TopEdge           = { 0.2578125, CE, 0.3671875, CE, 0.2578125, CS, 0.3671875, CS },
+        BottomEdge        = { 0.3828125, CE, 0.4921875, CE, 0.3828125, CS, 0.4921875, CS },
+        LeftEdge          = { 0.0078125, CS, 0.0078125, CE, 0.1171875, CS, 0.1171875, CE },
+        RightEdge         = { 0.1328125, CS, 0.1328125, CE, 0.2421875, CS, 0.2421875, CE },
+    }
+    local CORNER_POINT = { TopLeftCorner = "TOPLEFT", TopRightCorner = "TOPRIGHT",
+                           BottomLeftCorner = "BOTTOMLEFT", BottomRightCorner = "BOTTOMRIGHT" }
+    -- 直邊夾在兩個角之間：{ 自己的 TOPLEFT 錨到哪個角的哪一點, 自己的 BOTTOMRIGHT 錨到哪個角的哪一點 }
+    local EDGES = {
+        TopEdge    = { "TopLeftCorner", "TOPRIGHT", "TopRightCorner", "BOTTOMLEFT" },
+        BottomEdge = { "BottomLeftCorner", "TOPRIGHT", "BottomRightCorner", "BOTTOMLEFT" },
+        LeftEdge   = { "TopLeftCorner", "BOTTOMLEFT", "BottomLeftCorner", "TOPRIGHT" },
+        RightEdge  = { "TopRightCorner", "BOTTOMLEFT", "BottomRightCorner", "TOPRIGHT" },
+    }
+
+    local PULSE_PERIOD, PULSE_FADE, PULSE_STEP = 1.0, 0.45, 0.11
+    local PULSE_ALPHA = { 1, 0.8, 0.6 }
+
+    local function Soft(t)
+        if t.SetSnapToPixelGrid then
+            t:SetSnapToPixelGrid(false)
+            t:SetTexelSnappingBias(0)
+        end
+        return t
+    end
+
+    local function Clamp(v, lo, hi)
+        if v < lo then return lo elseif v > hi then return hi end
+        return v
+    end
+
+    -- 往白色靠 k：亮邊與光帶比光暈本身亮一階，疊起來才有「中心比較亮」的層次
+    local function Lighten(r, g, b, k)
+        return r + (1 - r) * k, g + (1 - g) * k, b + (1 - b) * k
+    end
+
+    -- 一圈柔光（八張貼圖、加亮混合）。位置與粗細在 PlaceRing
+    local function NewRing(parent, edgeFile)
+        local fr = CreateFrame("Frame", nil, parent)
+        local ring = { frame = fr, tex = {} }
+        for name, uv in pairs(EDGE_UV) do
+            local t = Soft(fr:CreateTexture(nil, "ARTWORK"))
+            if edgeFile then t:SetTexture(edgeFile) end
+            t:SetTexCoord(uv[1], uv[2], uv[3], uv[4], uv[5], uv[6], uv[7], uv[8])
+            t:SetBlendMode("ADD")
+            ring.tex[name] = t
+        end
+        for name, p in pairs(CORNER_POINT) do ring.tex[name]:SetPoint(p, fr, p, 0, 0) end
+        for name, a in pairs(EDGES) do
+            local t = ring.tex[name]
+            t:SetPoint("TOPLEFT", ring.tex[a[1]], a[2], 0, 0)
+            t:SetPoint("BOTTOMRIGHT", ring.tex[a[3]], a[4], 0, 0)
+        end
+        return ring
+    end
+
+    -- 這一圈佔 host 外面 outset ～ outset＋thick 那一帶（內緣最亮、往外淡掉）
+    local function PlaceRing(ring, host, outset, thick, r, g, b, a)
+        local fr, d = ring.frame, outset + thick
+        fr:ClearAllPoints()
+        fr:SetPoint("TOPLEFT", host, "TOPLEFT", -d, d)
+        fr:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", d, -d)
+        for name in pairs(CORNER_POINT) do ring.tex[name]:SetSize(thick, thick) end
+        for _, t in pairs(ring.tex) do t:SetVertexColor(r, g, b, a) end
+    end
+
+    -- 貼著 host 內緣的四條亮邊（上、下、左、右）
+    local function NewLines(parent)
+        local lines = {}
+        for i = 1, 4 do
+            local t = Soft(parent:CreateTexture(nil, "OVERLAY"))
+            t:SetTexture(SOLID)
+            lines[i] = t
+        end
+        return lines
+    end
+
+    local function PlaceLines(lines, host, th, r, g, b, a)
+        local top, bottom, left, right = lines[1], lines[2], lines[3], lines[4]
+        top:ClearAllPoints()
+        top:SetPoint("TOPLEFT", host, "TOPLEFT", 0, 0)
+        top:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, 0)
+        top:SetHeight(th)
+        bottom:ClearAllPoints()
+        bottom:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", 0, 0)
+        bottom:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, 0)
+        bottom:SetHeight(th)
+        left:ClearAllPoints()
+        left:SetPoint("TOPLEFT", host, "TOPLEFT", 0, -th)
+        left:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", 0, th)
+        left:SetWidth(th)
+        right:ClearAllPoints()
+        right:SetPoint("TOPRIGHT", host, "TOPRIGHT", 0, -th)
+        right:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, th)
+        right:SetWidth(th)
+        for i = 1, 4 do lines[i]:SetVertexColor(r, g, b, a) end
+    end
+
+    local function StopGroups(g)
+        for _, ag in ipairs(g.groups) do ag:Stop() end
+    end
+
+    local function PlayGroups(g)
+        for _, ag in ipairs(g.groups) do
+            if not ag:IsPlaying() then ag:Play() end
+        end
+    end
+
+    -- 一款的框、貼圖、動畫組（每個 host 每款建一次）。位置、顏色、位移量在 Configure
+    local function Build(host, style, edgeFile)
+        local g = { style = style, groups = {}, on = false }
+        local root = CreateFrame("Frame", nil, host)
+        root:SetAllPoints(host)
+        root:Hide()
+        g.root = root
+        g.lineHost = CreateFrame("Frame", nil, root)
+        g.lineHost:SetAllPoints(root)
+        g.lines = NewLines(g.lineHost)
+
+        if style == "halo" then
+            -- 兩圈柔光（寬的一圈、貼身的一圈比較亮）一起呼吸；亮邊不跟著暗，條的輪廓一直在
+            g.breath = CreateFrame("Frame", nil, root)
+            g.breath:SetAllPoints(root)
+            g.rings = { NewRing(g.breath, edgeFile), NewRing(g.breath, edgeFile) }
+            local ag = g.breath:CreateAnimationGroup()
+            ag:SetLooping("BOUNCE")
+            local a = ag:CreateAnimation("Alpha")
+            a:SetFromAlpha(1)
+            a:SetToAlpha(0.35)
+            a:SetDuration(0.55)
+            a:SetSmoothing("IN_OUT")
+            g.groups[1] = ag
+        elseif style == "sweep" then
+            -- 一道亮帶（左半淡入、右半淡出的兩張漸層）從左掃到右，掃完停一下再來；裁在 host 的範圍裡。
+            -- 外面一圈貼身的柔光不動，亮帶不在的那一小段也看得出這條在亮
+            g.rings = { NewRing(root, edgeFile) }
+            g.clip = CreateFrame("Frame", nil, root)
+            g.clip:SetAllPoints(root)
+            g.clip:SetClipsChildren(true)
+            g.band = CreateFrame("Frame", nil, g.clip)
+            g.bandL = g.band:CreateTexture(nil, "OVERLAY")
+            g.bandL:SetTexture(SOLID)
+            g.bandL:SetBlendMode("ADD")
+            g.bandL:SetPoint("TOPLEFT", g.band, "TOPLEFT", 0, 0)
+            g.bandL:SetPoint("BOTTOMRIGHT", g.band, "BOTTOM", 0, 0)
+            g.bandR = g.band:CreateTexture(nil, "OVERLAY")
+            g.bandR:SetTexture(SOLID)
+            g.bandR:SetBlendMode("ADD")
+            g.bandR:SetPoint("TOPLEFT", g.band, "TOP", 0, 0)
+            g.bandR:SetPoint("BOTTOMRIGHT", g.band, "BOTTOMRIGHT", 0, 0)
+            local ag = g.band:CreateAnimationGroup()
+            ag:SetLooping("REPEAT")
+            g.move = ag:CreateAnimation("Translation")
+            g.move:SetDuration(0.75)
+            g.move:SetEndDelay(0.4)
+            g.groups[1] = ag
+        else
+            -- 三圈柔光由內往外依序亮起再淡掉（每圈各一個動畫組，總長一樣 ⇒ 一起循環）；亮邊跟著第一圈閃一下。
+            -- 圈平常的 alpha 是 0：動畫還沒輪到（起始延遲中）與淡完之後都看不到
+            g.rings = { NewRing(root, edgeFile), NewRing(root, edgeFile), NewRing(root, edgeFile) }
+            for i, ring in ipairs(g.rings) do
+                ring.frame:SetAlpha(0)
+                local delay = (i - 1) * PULSE_STEP
+                local ag = ring.frame:CreateAnimationGroup()
+                ag:SetLooping("REPEAT")
+                local a = ag:CreateAnimation("Alpha")
+                a:SetFromAlpha(1)
+                a:SetToAlpha(0)
+                a:SetStartDelay(delay)
+                a:SetDuration(PULSE_FADE)
+                a:SetEndDelay(PULSE_PERIOD - PULSE_FADE - delay)
+                a:SetSmoothing("OUT")
+                g.groups[#g.groups + 1] = ag
+            end
+            local ag = g.lineHost:CreateAnimationGroup()
+            ag:SetLooping("REPEAT")
+            local a = ag:CreateAnimation("Alpha")
+            a:SetFromAlpha(1)
+            a:SetToAlpha(0.4)
+            a:SetDuration(PULSE_FADE)
+            a:SetEndDelay(PULSE_PERIOD - PULSE_FADE)
+            a:SetSmoothing("OUT")
+            g.groups[#g.groups + 1] = ag
+        end
+
+        -- 祖先藏過再顯示（設定頁換頁、條被收起來又出現）：動畫組可能停了，接回去
+        root:SetScript("OnShow", function() if g.on then PlayGroups(g) end end)
+        return g
+    end
+
+    local function Configure(g, color, opts)
+        local r, gr, b, a = color[1] or 1, color[2] or 1, color[3] or 1, color[4] or 1
+        local W, H = tonumber(opts.width) or 200, tonumber(opts.height) or 20
+        local px = tonumber(opts.px) or 1
+        local lr, lg, lb = Lighten(r, gr, b, 0.55)
+        local root = g.root
+        PlaceLines(g.lines, g.lineHost, 2 * px, lr, lg, lb, a)
+        if g.style == "halo" then
+            local thick = Clamp(H * 0.7, 10, 18)
+            PlaceRing(g.rings[1], root, 0, thick, r, gr, b, 0.75 * a)
+            PlaceRing(g.rings[2], root, 0, thick * 0.45, lr, lg, lb, a)
+        elseif g.style == "sweep" then
+            PlaceRing(g.rings[1], root, 0, Clamp(H * 0.4, 6, 10), r, gr, b, 0.85 * a)
+            local bw = Clamp(H * 3, 36, 96)
+            if bw > W * 0.6 then bw = W * 0.6 end
+            g.band:ClearAllPoints()
+            g.band:SetSize(bw, H)
+            g.band:SetPoint("RIGHT", g.clip, "LEFT", 0, 0)        -- 起點：整道在左邊外面
+            local br, bg, bb = Lighten(r, gr, b, 0.75)
+            if g.bandL.SetGradient and CreateColor then
+                local clear, peak = CreateColor(br, bg, bb, 0), CreateColor(br, bg, bb, 0.9 * a)
+                g.bandL:SetGradient("HORIZONTAL", clear, peak)
+                g.bandR:SetGradient("HORIZONTAL", peak, clear)
+            else
+                g.bandL:SetVertexColor(br, bg, bb, 0.45 * a)
+                g.bandR:SetVertexColor(br, bg, bb, 0.45 * a)
+            end
+            g.move:SetOffset(W + bw, 0)                            -- 終點：整道在右邊外面
+        else
+            local step = Clamp(H * 0.28, 4, 7)
+            for i, ring in ipairs(g.rings) do
+                PlaceRing(ring, root, (i - 1) * step, step * 1.8, r, gr, b, PULSE_ALPHA[i] * a)
+            end
+        end
+    end
+
+    local function Off(g)
+        g.on = false
+        StopGroups(g)
+        g.root:Hide()
+    end
+
+    function lib.BarGlow_Start(host, style, color, opts)
+        if not host then return false end
+        if not STYLES[style] then style = "halo" end
+        color, opts = color or {}, opts or {}
+        local all = host._barGlow
+        if not all then
+            all = {}
+            host._barGlow = all
+        end
+        for st, o in pairs(all) do
+            if st ~= style and o.on then Off(o) end
+        end
+        local g = all[style]
+        if not g then
+            g = Build(host, style, opts.edgeFile)
+            all[style] = g
+        end
+        local sig = string.format("%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,%.4f", color[1] or 1, color[2] or 1, color[3] or 1,
+            color[4] or 1, tonumber(opts.width) or 200, tonumber(opts.height) or 20, tonumber(opts.px) or 1)
+        if g.sig ~= sig then
+            StopGroups(g)                  -- 位移量、粗細要在動畫停著時改
+            Configure(g, color, opts)
+            g.sig = sig
+        end
+        g.on = true
+        g.root:Show()
+        PlayGroups(g)
+        return true
+    end
+
+    function lib.BarGlow_Stop(host)
+        local all = host and host._barGlow
+        if not all then return end
+        for _, g in pairs(all) do
+            if g.on then Off(g) end
+        end
+    end
 end
