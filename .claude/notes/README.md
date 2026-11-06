@@ -156,6 +156,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要治本：不在錯誤路徑上加閘／重試／補寫，先問「插件為什麼要替暴雪做這件事」 |
+| [feedback-preview-shares-real-paint-code.md](feedback-preview-shares-real-paint-code.md) | 設定頁的預覽／樣本要呼叫實際元件的同一批繪製函式，不另寫一份——預覽同時是樣式與上色的檢查 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
 | [feedback-watermark-mock-heights.md](feedback-watermark-mock-heights.md) | 浮水印／裝飾圖案先用 Pillow 草稿畫各種面板高度（含最矮的）看過再定常數；剪影＋程式上色、最小尺寸規則 |
@@ -252,7 +253,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 179 篇）
+## 全部筆記（自動產生，共 180 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -448,6 +449,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-no-toc-version-bump.md](feedback-no-toc-version-bump.md) | 不準主動 bump 任何插件 .toc 的 ## Version（Cell、MiliUI_* 全部），也不要開 chore bump commit；使用者有自己的插件處理版本號，發新版有自己的打算 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則——勾選框（及任何控件）的說明一律放在下一行的灰色小字（Controls 的 type=\"text\"），不要接在勾選框右邊（toggle 的 hint） |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「我寫 plan → Opus 子代理在 worktree 實作 → 我驗收 → commit 並 merge 進 master」，push 另外等使用者說 |
+| [feedback-preview-shares-real-paint-code.md](feedback-preview-shares-real-paint-code.md) | 設定頁的預覽／樣本要呼叫畫面上那個元件用的同一批繪製函式，不另寫一份——使用者要拿預覽順便檢查樣式與上色有沒有錯 |
 | [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 給使用者的暫時探針／測試插件要直接放進遊戲本體的 Interface/AddOns，不要叫使用者自己複製 |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 新視窗的做法照抄 EllesmereUI（範圍／掛點／不碰清單／時機），外觀套我們的樣式；契約照舊，lint 白名單只開給就位確認 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | 使用者偏好的 UI 視覺風格——純色直角、深底白字、緊湊間距；狀態靠明暗不靠換色；有標題的小節前面不放收尾隔線 |
