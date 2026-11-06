@@ -138,7 +138,7 @@ local function FxRows()
     return {
         BS("toggle", "animate", L["Play animation"]),
         BS("slider", "animSpeed", L["Animation speed"], { min = 0.25, max = 3, step = 0.25 }),
-        Note(L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation steps aside so that color shows."]),
+        Note(L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."]),
     }
 end
 

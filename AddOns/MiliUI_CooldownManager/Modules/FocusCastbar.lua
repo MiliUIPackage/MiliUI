@@ -22,8 +22,8 @@
 --   * 事件處理器只轉手 ns.Defer
 --
 -- 動畫材質（Core/Media.lua 的 M.FX；2026-11-06 使用者要求這條也要有動畫）：效果層整套借玩家施法條的（ns.Castbar.Fx／
--- FxHost，宿主各一份）。圖自己的顏色＝「可斷法、我方斷法冷卻中」那一態（底色白、動畫照播）；斷法就緒與不可打斷要讓人
--- 看得到那個顏色 ⇒ 那兩態效果層讓位（秘密布林各餵一層的 SetAlphaFromBoolean）、露出底下染好色的靜態底圖。被打斷、收條時停。
+-- FxHost，宿主各一份）。圖自己的顏色＝「可斷法、我方斷法冷卻中」那一態（底色白）；斷法就緒與不可打斷時**動畫照播、
+-- 整層染上狀態色**（CB.Fx.Tint，跟填充貼圖同一個顏色；使用者選的，不照玩家施法條「讓位」那一套）。被打斷、收條時停。
 --
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
@@ -297,7 +297,7 @@ local function LayoutParts(h, cfg, W, H, casting)
 
     -- 效果層（動畫材質、animate 開著才有）：做法同玩家施法條的 LayoutParts——裁切框的前緣錨在填充貼圖上
     -- （換材質後貼圖是新的，所以每次版面重下），有往上竄的層（火舌）時上緣跟著加高。先停再設：秒數、方向可能都換了。
-    -- 開著沒有記在 h.fxOn；狀態色要露出來時由 PaintColorOn 把這層壓透明
+    -- 開著沒有記在 h.fxOn；Setup 會把每一層的顏色設回白，狀態色由接著叫的 PaintColorOn 染上去
     local Fx = CB().Fx
     Fx.Stop(h)
     local layers = tex and Fx.Wanted(cfg) or nil
@@ -353,7 +353,7 @@ local function PaintColorOn(h, ni, ready, has)
     local c = Colors()
     local br, bg, bb = C(c.cd, 0.906, 0.424, 0.2)
     -- 動畫材質（Core/Media.lua 的 M.FX）：底色白（圖自己的顏色＝「斷法冷卻中」那一態），斷法就緒／不可打斷照舊蓋上去；
-    -- 那兩態要讓人看得到顏色 ⇒ 效果層在函式尾巴讓位
+    -- 效果層在函式尾巴染成同一個顏色
     if CB().IsFx and CB().IsFx((Cfg() or {}).texture) then br, bg, bb = 1, 1, 1 end
     local r, g, b = br, bg, bb
     local tinted = false
@@ -383,13 +383,9 @@ local function PaintColorOn(h, ni, ready, has)
         end
     end
     tex:SetVertexColor(r, g, b, 1)
-    -- 效果層：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的 alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean），
-    -- 壓透明之後露出底下照上面算好顏色的填充貼圖。兩個都不成立（可斷法、我方斷法冷卻中／沒有斷法）才看得到動畫
-    if h.fxOn then
-        local Fx = CB().Fx
-        Fx.Alpha(h.flowClip, ni)
-        Fx.Alpha(h.flowHost, (chainOK and has) and ready or nil)
-    end
+    -- 效果層：動畫照播，整層染上跟填充貼圖同一個顏色（使用者 2026-11-06 選的：不讓位）。可斷法、我方斷法冷卻中時那個顏色是白
+    -- ⇒ 圖自己的顏色；斷法就緒／不可中斷時乘上狀態色。r／g／b 可能是秘密數字，只交給 SetVertexColor
+    if h.fxOn then CB().Fx.Tint(h, r, g, b) end
 end
 
 local function ApplyColor()

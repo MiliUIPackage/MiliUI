@@ -498,8 +498,9 @@ local function FxSetup(h, layers, cfg, reversed, barH)
         end
         L.tex:SetDrawLayer("ARTWORK", n)
         L.tex:SetBlendMode(def.blend or "BLEND")
+        L.alpha = def.alpha or 1              -- 這一層登記的 alpha（FxTint 染色時要一起帶，不然被洗成 1）
         L.tex:SetVertexColor(1, 1, 1, 1)
-        L.tex:SetAlpha(def.alpha or 1)        -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
+        L.tex:SetAlpha(L.alpha)               -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
         L.tex:Show()
         h.fxActive[#h.fxActive + 1] = L
     end
@@ -552,9 +553,17 @@ local function FlowAlpha(frame, flag)
     frame:SetAlpha(flag and 0 or 1)
 end
 
+-- 效果層整層染色（專注目標施法條用：狀態色乘在動畫上，動畫照播）。r／g／b 可能是秘密數字：只交給 SetVertexColor，
+-- 跟填充貼圖染色是同一招；各層自己的 alpha 照登記表帶回去（頂點色第四個參數就是貼圖的 alpha）
+local function FxTint(h, r, g, b)
+    for _, L in ipairs(h.fxActive) do
+        L.tex:SetVertexColor(r, g, b, L.alpha or 1)
+    end
+end
+
 -- 效果層給專注目標施法條（Modules/FocusCastbar.lua）共用：同一套貼圖池、同一套畫法，宿主各一份（CB.FxHost）
 CB.Fx = { Wanted = FxWanted, Setup = FxSetup, HideAll = FxHideAll, Anchor = FxAnchor,
-          Play = FxPlay, Stop = FxStop, Alpha = FlowAlpha }
+          Play = FxPlay, Stop = FxStop, Alpha = FlowAlpha, Tint = FxTint }
 
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
