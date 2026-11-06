@@ -97,6 +97,11 @@ M.FX = {
 }
 M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame" }
 
+-- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
+-- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加
+M.OWN_TEXTURES = { [M.BAR_TEXTURE_NAME] = M.BAR_TEXTURE_NAME }
+for _, name in ipairs(M.FX_ORDER) do M.OWN_TEXTURES[name] = name end
+
 -- token 是不是動畫材質（純函式）
 function M.IsFx(token)
     return type(token) == "string" and M.FX[token] ~= nil

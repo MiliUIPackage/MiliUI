@@ -1175,3 +1175,6 @@ L["Focus target"] = "Bersaglio focus"
 L["Show the caster's name before the spell"] = "Mostra il nome di chi lancia prima dell'incantesimo"
 L["Show your interrupt at the end of the bar"] = "Mostra la tua interruzione in fondo alla barra"
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "L'icona della tua interruzione sta all'altra estremità con la sua ricarica: luminosa quando è pronta, scura durante la ricarica. Nascosta se questa specializzazione non ha interruzioni."
+-- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
+L["Stagger as percent"] = "Barcollamento in percentuale"
+L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "Mostra quanta della tua salute max. è in barcollamento invece della quantità. Nel combattimento in istanza i numeri a volte non sono leggibili; la barra mantiene per un attimo l'ultima percentuale, poi mostra la quantità finché non tornano leggibili."

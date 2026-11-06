@@ -306,7 +306,27 @@ local function MediaItems(first, kind)
     end
 end
 local BorderItems  = MediaItems({ text = L["Solid"], value = "solid" }, "border")
-local TextureItems = MediaItems({ text = L["Solid"], value = "solid" }, "statusbar")
+
+-- 長條材質：米利的材質置頂、中文客戶端顯示「米利UI: 緞面」（名冊、譯名、順序都在 Libs/MiliUIMedia.lua，
+-- 全套組同一套規則）→ 純色 → 其餘 LibSharedMedia。存的值照舊是 LSM 登記名，在地化只動顯示文字
+local function TextureItems()
+    local items, rest = ns.MiliMedia.TextureItems(ns.Media.List("statusbar"), ns.Media.OWN_TEXTURES)
+    items[#items + 1] = { text = L["Solid"], value = "solid" }
+    for i = 1, #rest do items[#items + 1] = rest[i] end
+    return items
+end
+
+-- 在「純色」後面插一項（施法條的「暴雪施法條」）。純色的位置跟著米利材質的數量走，不能寫死索引
+function Specs.InsertAfterSolid(items, item)
+    for i = 1, #items do
+        if items[i].value == "solid" then
+            table.insert(items, i + 1, item)
+            return items
+        end
+    end
+    items[#items + 1] = item
+    return items
+end
 local FontItems    = MediaItems({ text = L["Default font"], value = "DEFAULT" }, "font")
 Specs.TextureItems, Specs.FontItems = TextureItems, FontItems
 

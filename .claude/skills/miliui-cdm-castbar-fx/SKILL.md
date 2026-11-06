@@ -43,6 +43,8 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
 - 每張圖怎麼疊、捲多快、序列圖幾格登記在 `Core/Media.lua` 的 `M.FX[token].layers`；**改格數／排列要兩邊一起改**
   （`Tests/FocusCastbar_test.lua` 會查格數對不對得起來、每個路徑的檔在不在）。
 - 加一款：腳本多產幾張圖、`M.FX`／`M.FX_ORDER` 加一筆（名字帶「MiliUI」前綴，LSM 撞名會被靜默拒絕）、
+  套組名冊 `AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua` 的 `TEXTURES` 加一列（繁簡譯名；下拉的中文名與置頂順序從這裡來）後跑
+  `python3 .claude/scripts/sync-widgets.py`（規則見 [project-miliui-media-naming](../../notes/project-miliui-media-naming.md)，漏了離線測試會叫）、
   設定頁說明那句（`Options/Tab_Castbar.lua` 的 `FxRows`）與九個語系補上名字。引擎（`Modules/Castbar.lua`「效果層」）只認 `scroll`／`flip` 兩種層，不用動。
 - ⚠ LSM 登記會問 `C_UIFileAsset.IsKnownFile`：**新檔案要整個重開遊戲**，`/reload` 不夠。只改圖的內容 `/reload` 也不一定重讀，一樣重開。
 - 做法與待實機驗證項在 `AddOns/MiliUI_CooldownManager/README.md`「施法條」一節的「動畫材質」。

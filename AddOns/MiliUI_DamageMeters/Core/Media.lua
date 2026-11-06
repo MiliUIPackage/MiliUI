@@ -109,23 +109,20 @@ end
 -- ⚠ 一定要是**函式**、不能是檔案層的常數表：LibSharedMedia 可能比我們晚載入，
 -- 而且別的插件會一路註冊到 PLAYER_LOGIN 之後。開分頁那一刻才求值才列得全。
 ------------------------------------------------------------
--- 自己的材質永遠排第一（不靠 LSM 也要有東西可選）；LSM 的接在後面。
--- 跳過 LSM_NAME —— 那是我們自己登記出去的同一個檔，兩個名字指同一張圖只會讓人困惑。
+-- 米利的材質永遠排最上面、中文客戶端顯示「米利UI: 緞面」（名冊、譯名、順序在 Libs/MiliUIMedia.lua，全套組同一套規則）
+-- → 純色 → LSM 的。自己帶檔的那張不靠 LSM 也列得出來，存的是 token "satin"；
+-- LSM 清單裡的 LSM_NAME 是我們自己登記出去的同一個檔，名冊會把它併成同一項、不會出現兩筆。
 function M.BarTextureItems()
-    local items = {
-        { text = ns.L["Built-in (Satin)"], value = "satin" },
-        { text = ns.L["Solid"],             value = "solid" },
-    }
+    local list
     local lsm = LSM()
     if lsm then
-        local ok, list = pcall(lsm.List, lsm, "statusbar")
-        if ok and type(list) == "table" then
-            for _, name in ipairs(list) do
-                if name ~= LSM_NAME and not M.TEXTURES[name] then
-                    items[#items + 1] = { text = name, value = name }
-                end
-            end
-        end
+        local ok, got = pcall(lsm.List, lsm, "statusbar")
+        if ok and type(got) == "table" then list = got end
+    end
+    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin" })
+    items[#items + 1] = { text = ns.L["Solid"], value = "solid" }
+    for i = 1, #rest do
+        if not M.TEXTURES[rest[i].value] then items[#items + 1] = rest[i] end
     end
     return items
 end

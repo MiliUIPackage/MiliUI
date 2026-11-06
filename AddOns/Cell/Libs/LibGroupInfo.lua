@@ -19,7 +19,12 @@ local QUEUE_EVENT = "GroupInfo_QueueStatus"
 local PLAYER_GUID
 local RETRY_INTERVAL = 1.5
 local MAX_ATTEMPTS = 3
-local IS_RETAIL = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+-- fix from MiliUI: 《魔獸世界：永恆》（camelot，WOW_PROJECT_ID 18）是 Mainline 家族的另一個遊戲型別，
+-- 不是 WOW_PROJECT_MAINLINE。只比 MAINLINE 的話永恆會掉進下面的「Wrath」分支，去叫正式服客戶端
+-- 根本沒有的 GetNumTalentTabs（2026-11-05 永恆實機：「attempt to call a nil value」）。
+-- 永恆一律走 retail 分支；專精的部分由 IS_FOREVER 另外擋（見 BuildAndNotify／AddToQueue）。
+local IS_FOREVER = WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT
+local IS_RETAIL = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE or IS_FOREVER
 local IS_WRATH = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 local IS_MISTS = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
 
@@ -157,13 +162,12 @@ local UnitIsVisible = UnitIsVisible
 local CanInspect = CanInspect
 local GetSpecialization = GetSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
 local GetSpecializationInfo = GetSpecializationInfo or (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
-local GetInspectSpecialization = GetInspectSpecialization
+local GetInspectSpecialization = GetInspectSpecialization or (C_SpecializationInfo and C_SpecializationInfo.GetInspectSpecialization)
 -- fix from MiliUI: 《魔獸世界：永恆》（camelot）沒有專精系統。C_SpecializationInfo.GetSpecialization()
 -- 在那裡回的是主天賦樹索引、沒點天賦時是 nil，餵給 GetSpecializationInfo 會報 Usage 錯；而且
 -- 就算有索引，查回來的也是正式服的專精資料，對 1.x 的天賦樹是錯的（德魯伊第三棵在 1.x 是
 -- 恢復、正式服是守護者）。永恆一律當「沒有專精」，角色留給 assignedRole。正式服不受影響：
--- GetSpecialization 在正式服永遠有值（1～9 級是 initial 專精 5）。
-local IS_FOREVER = WOW_PROJECT_CAMELOT ~= nil and WOW_PROJECT_ID == WOW_PROJECT_CAMELOT
+-- GetSpecialization 在正式服永遠有值（1～9 級是 initial 專精 5）。（IS_FOREVER 定義在檔案開頭）
 local UnitNameUnmodified = UnitNameUnmodified
 local GetNormalizedRealmName = GetNormalizedRealmName
 local UnitLevel = UnitLevel
@@ -259,8 +263,10 @@ local function BuildAndNotify(unit)
 
     local specId, role
 
-    if UnitIsUnit(unit, "player") then
-        local specIndex = (not IS_FOREVER) and GetSpecialization() or nil
+    if IS_FOREVER then
+        -- fix from MiliUI: 永恆沒有專精，自己與隊友都不查（specId 留 nil → 下面寫成 0／沒有專精）
+    elseif UnitIsUnit(unit, "player") then
+        local specIndex = GetSpecialization()
         if specIndex then
             specId, _, _, _, role = GetSpecializationInfo(specIndex)
         end
@@ -464,6 +470,13 @@ frame:SetScript("OnUpdate", function(self, elapsed)
 end)
 
 local function AddToQueue(unit, guid)
+    -- fix from MiliUI: 永恆沒有專精可查，不排觀察佇列 —— 不然每次隊伍異動都對全隊 NotifyInspect，
+    -- 白白佔掉觀察（會跟玩家自己開的觀察視窗、Tooltip 的裝等觀察搶），查回來也永遠是「沒有專精」
+    if IS_FOREVER then
+        UpdateBaseInfo(unit, guid)
+        return
+    end
+
     if IS_WRATH or IS_MISTS then
         if not UnitIsConnected(unit) or not CheckInteractDistance(unit, 1) or not CanInspect(unit) then
             UpdateBaseInfo(unit, guid)

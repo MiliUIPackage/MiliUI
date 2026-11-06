@@ -29,11 +29,12 @@ metadata:
 - **專精要照分段查，不是查「他現在」**（2026-10-23）：一王冰 DK 打、之後換穢邪，舊版切回一王也畫穢邪（技能明細是暴雪逐段存的、沒錯，錯的只有我們補的圖示）。`ItemLevel.lua` 的分段快照：`live` 專精表在 `DAMAGE_METER_COMBAT_SESSION_UPDATED`（arg2＝目前那段的 sessionID，總計那發是 0）第一次看到某段時綁給它並凍結，之後有人**換**專精才 copy-on-write；綁的時候還不知道的人，第一次問到就補進每一張缺他的表。查表 `IL.SpecMap(sessType, sessID)`：歷史分段查它綁的、「目前」查 `currentSessionID` 綁的、總計查 live。只放記憶體（/reload 後舊分段退回 live）。長條的圖示備忘比**解析出來的專精**（取代舊的 `D.specGen`）—— 這樣切分段、同職業兩人換排名都會重畫；戰鬥中 GUID 秘密解不出來就沿用上一次畫的。卡片（展開頁、滑過預覽）把 sessType／sessID 放進 src 一起帶。
 - 換專精（`PLAYER_SPECIALIZATION_CHANGED`）：只處理快取裡有的人，清掉專精、重畫、`IL.Request` 馬上重問（不等掃描的 2 秒）；arg1 秘密就認不出是誰（記一筆）。`/mdm debug` 的 `spec snapshots:` 段印 current／bound 數、最近 12 筆專精事件，每列印 `inspectSpec`（現在）與 `segSpec`（那一段）。**實機未驗**：sessionID 在戰鬥中是不是明碼（秘密的話 `current=nil bound=0`，行為退回舊版）、隊友換專精事件到底有沒有送到。
 - **還不知道專精時顯示職業圖示，不猜**（使用者拍板 A）。有同類插件的做法是退成該職業第一個專精的圖＝會畫錯（懲戒騎顯示成神聖），我們不學。2026-10-16 職業圖示 13 張已做（`Media/Class/<classFile 小寫>.png`，75b6af626），mili 樣式的職業退路已改用它；`class` 樣式仍是暴雪職業圖。術士職業圖的紫火焰在洋紅底被吃掉，用 `key.py --fill-enclosed` 救回。2026-10-16 同日野性德魯伊換火焰獅頭、防護聖騎換金盾獅頭（9a0bccd16）——這兩張與職業 13 張都跟第三方參考圖集幾乎一致，已提醒授權風險，使用者決定直接用。
+- **`specIconID` 戰鬥中是秘密值**（實測 2026-11-06：`Rows.lua` 拿它跟備忘比，每次重畫丟一個錯；文件標 NeverSecret 不可信）。列的圖示備忘只放明碼（職業過 `D.SafeClass`、秘密的 specIconID 那一趟不比）；看不見專精時沿用上一次畫的，職業變了才重畫並把備忘記成 nil。自己那一列不在觀察快取裡，`D.SourceSpec` 最後退問「我現在的專精」（`isLocalPlayer`／卡片的 `isOwn`）。**未實機**。
 - 樣式退路：`mili` 對不到（秘密的 fileID、NPC、沒有圖檔）→ `spec`（暴雪專精圖示）→ 職業 sprite。戰鬥中 GUID 是秘密值查不了快取，只剩 specIconID。
 - 頭像卡片 `Meter/Card.lua`（滑過預覽與展開頁標題共用：大圖示＋名字＋「專精 職業 · 裝等」）。右側兩格 `right1`／`right2` 各對一行，由宿主填（預覽：統計類型；展開頁：總量／返回提示）。**名字只讓位給 right1、第二行只讓位給 right2** —— 早期兩行都讓位給同一格，展開頁的總量很長就把名字擠成「米利丹…」（c40d42dde）。卡片高度從字級算，宿主的標題列跟著撐（bd47e1561，寫死高度在字調大時溢出，見 [[project-miliui-damagemeters]]）。
 - 裝等 `Meter/ItemLevel.lua`：自己 `GetAverageItemLevel`；隊友 `NotifyInspect` → `INSPECT_READY` → `C_PaperDollInfo.GetInspectItemLevel`，快取 10 分鐘、兩次請求至少隔 1.5 秒、同一時間只等一個人；**別人發的觀察也收**（搭便車）、**不呼叫 `ClearInspectPlayer`**（INSPECT_READY 是廣播，後面的監聽者還要讀）、觀察視窗開著時不發（會換掉它的對象）、戰鬥中不發。
   ⚠ 這個檔上線第一天就少了 `local issecret = ns.Secret.IsSecret`（a19103de1），CI 抓不到這種「呼叫沒宣告的全域」，見 [[wow-luac-global-scan]]。
 
-**實機狀態（2026-10-14）**：卡片與裝等都上過實機——滑過列與觀察回來兩條路徑都跑過（a19103de1 就是在那兩處報錯），標題列高度與兩行版面是 NGA 回報後修的（bd47e1561、c40d42dde）。`/mdm debug` 的 spec map 實機確認 40 個專精全對（噬滅 1480 → demonhunter-devourer）。**仍沒驗的**：觀察補專精（c90cde634）整條路、戰鬥中 `specIconID` 是不是秘密值（程式有退路，差別只在戰鬥中看到的是哪一套圖）、觀察節流 1.5 秒夠不夠（連發會整批沒回應）。
+**實機狀態（2026-10-14）**：卡片與裝等都上過實機——滑過列與觀察回來兩條路徑都跑過（a19103de1 就是在那兩處報錯），標題列高度與兩行版面是 NGA 回報後修的（bd47e1561、c40d42dde）。`/mdm debug` 的 spec map 實機確認 40 個專精全對（噬滅 1480 → demonhunter-devourer）。**仍沒驗的**：觀察補專精（c90cde634）整條路、觀察節流 1.5 秒夠不夠（連發會整批沒回應）。
 
 相關：[[project-miliui-damagemeters]]、[[wow-damagemeter-c-api-design]]

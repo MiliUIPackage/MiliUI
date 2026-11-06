@@ -169,7 +169,6 @@ L["MiliUI style"] = "米利风格"
 L["Specialization icon"] = "专精图标"
 L["Class icon"] = "职业图标"
 L["None"] = "无"
-L["Built-in (Satin)"] = "内置（Satin）"
 L["Solid"] = "纯色"
 
 -- 文字

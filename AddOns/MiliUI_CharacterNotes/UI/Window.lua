@@ -80,11 +80,39 @@ local function CurrentList()
 end
 
 ------------------------------------------------------------
+-- 選取：改選取一律走這支，順手記進存檔
+--
+-- 「上次開著哪一筆」跟 lastScope 一樣是每個分身各記各的。選取一變就寫，不等關視窗 ——
+-- 開著視窗 /reload 或登出時框不會收到 OnHide，等到那時候才寫就記不到。
+------------------------------------------------------------
+local function SetSelection(noteID, inst)
+    selectedNoteID = noteID
+    selectedInst   = inst
+
+    local key = ns.CurrentCharKey()
+    local pc = ns.db.perChar[key]
+    if type(pc) ~= "table" then
+        pc = {}
+        ns.db.perChar[key] = pc
+    end
+    pc.lastScope = currentTab
+    pc.lastNote  = noteID
+    -- 看的是哪個分身只跟著那一筆筆記記（還原時才找得到它）；沒有選取的話，
+    -- 下次登入「角色專屬」照舊開在自己身上
+    pc.lastChar  = (noteID ~= nil and currentTab == TAB_CHAR) and selectedChar or nil
+    pc.lastInst  = inst
+end
+
+local function SameInst(inst, instanceID, encounterID, diffKey)
+    return inst ~= nil and inst.instanceID == instanceID
+       and inst.encounterID == encounterID and inst.diff == diffKey
+end
+
+------------------------------------------------------------
 -- 開啟編輯視窗
 ------------------------------------------------------------
 local function OpenNote(note)
-    selectedNoteID = note and note.id or nil
-    selectedInst = nil
+    SetSelection(note and note.id or nil, nil)
     if not note then
         ns.Editor.Close()
         return
@@ -121,8 +149,7 @@ local function OpenInstanceNote(instanceID, encounterID, diffKey)
     })
     Journal.StampDungeonID(note, instanceID, encounterID)
 
-    selectedNoteID = nil
-    selectedInst = { instanceID = instanceID, encounterID = encounterID, diff = diffKey }
+    SetSelection(nil, { instanceID = instanceID, encounterID = encounterID, diff = diffKey })
     ns.Editor.Open(note, {
         label = label,
         readonlyTitle = true,
@@ -210,8 +237,7 @@ local function BuildInstanceItems(out)
             if isOpen then
                 local diff = DiffFor(entry)
                 local function IsSelected(encID)
-                    return selectedInst ~= nil and selectedInst.instanceID == entry.id
-                       and selectedInst.encounterID == encID and selectedInst.diff == diff
+                    return SameInst(selectedInst, entry.id, encID, diff)
                 end
 
                 -- 團本多一列難度切換。地城沒有這一列 —— 鑰石等級不影響打法筆記，
@@ -291,7 +317,7 @@ local function ShowNoteMenu(row)
                 end
             end
             if ns.Editor.IsEditing(note) then ns.Editor.Close() end
-            selectedNoteID = nil
+            if selectedNoteID == note.id then SetSelection(nil, nil) end
             Refresh()
           end },
         { isSeparator = true },
@@ -302,7 +328,7 @@ local function ShowNoteMenu(row)
                     if n.id == note.id then table.remove(list, i) break end
                 end
                 if ns.Editor.IsEditing(note) then ns.Editor.Close() end
-                selectedNoteID = nil
+                if selectedNoteID == note.id then SetSelection(nil, nil) end
                 Refresh()
             end)
         end },
@@ -337,7 +363,7 @@ local function ShowInstanceNoteMenu(row)
             ConfirmDelete(label, function()
                 if ns.Editor.IsEditing(note) then ns.Editor.Close() end
                 Notes.DeleteInstanceNote(instanceID, encID, diff)
-                selectedInst = nil
+                if SameInst(selectedInst, instanceID, encID, diff) then SetSelection(nil, nil) end
                 Refresh()
             end)
         end }
@@ -609,6 +635,53 @@ end
 Window.Refresh = Refresh
 
 ------------------------------------------------------------
+-- 定位到某一筆副本／首領筆記：展開那個副本、切到那個難度、開編輯視窗
+------------------------------------------------------------
+local function FocusInstanceNote(instanceID, encounterID, diffKey)
+    expanded[instanceID] = true
+    diffKey = Notes.NormalizeDiffKey(diffKey)
+    selectedDiff[instanceID] = diffKey
+    -- 「本季」看不到的舊副本也要跳得過去
+    if instScope == "season" and not Journal.SeasonInstances()[instanceID] then
+        instScope = "all"
+    end
+    OpenInstanceNote(instanceID, encounterID, diffKey)
+end
+
+------------------------------------------------------------
+-- 開視窗時把上次開著的那一筆叫回來
+--
+-- 關視窗只關編輯視窗、不清選取，所以「選取」就是「上次開著哪一筆」；
+-- 重登／重載之後的第一次則是 Build 從存檔讀回來的。
+------------------------------------------------------------
+local function RestoreSelection()
+    if ns.Editor.IsShown() then return end
+
+    if currentTab == TAB_INSTANCE then
+        -- 副本清單還沒建好：EnsureCatalogue 建完會再叫一次
+        if not catalogueReady then return end
+        local s = selectedInst
+        if not s then return end
+        -- 只開存檔裡還在的 —— 這裡是還原，不替玩家開新的一格
+        if Notes.GetInstanceNote(s.instanceID, s.encounterID, s.diff) then
+            FocusInstanceNote(s.instanceID, s.encounterID, s.diff)
+        else
+            SetSelection(nil, nil)
+        end
+        return
+    end
+
+    if selectedNoteID == nil then return end
+    for _, note in ipairs(CurrentList()) do
+        if note.id == selectedNoteID then
+            OpenNote(note)
+            return
+        end
+    end
+    SetSelection(nil, nil)      -- 那一筆已經不在了（刪掉、搬走、被同步換掉）
+end
+
+------------------------------------------------------------
 -- 副本清單的建立（很貴，只在第一次進副本分頁時做）
 ------------------------------------------------------------
 local function EnsureCatalogue()
@@ -620,6 +693,7 @@ local function EnsureCatalogue()
         -- 開在目前所在的副本上，省得玩家自己找
         local cur = Journal.CurrentInstance()
         if cur then expanded[cur] = true end
+        if frame:IsShown() then RestoreSelection() end
         Refresh()
     end)
 end
@@ -631,15 +705,10 @@ local function SwitchTab(id)
     if currentTab == id then return end
     ns.Editor.Commit()
     currentTab = id
-    selectedNoteID = nil
-    selectedInst = nil
+    SetSelection(nil, nil)          -- 順便把 lastScope 記下來
     ns.Editor.Close()
     if searchBox then searchBox:SetText("") end
     filterText = ""
-
-    local key = ns.CurrentCharKey()
-    ns.db.perChar[key] = ns.db.perChar[key] or {}
-    ns.db.perChar[key].lastScope = id
 
     if id == TAB_INSTANCE then EnsureCatalogue() end
     Refresh()
@@ -660,7 +729,7 @@ ShowDiffMenu = function(row)
             onClick = function()
                 ns.Editor.Close()
                 selectedDiff[instanceID] = key
-                selectedInst = nil
+                SetSelection(nil, nil)
                 Refresh()
             end,
         }
@@ -720,7 +789,7 @@ local function ShowCharMenu(anchor)
             onClick = function()
                 ns.Editor.Close()
                 selectedChar = k
-                selectedNoteID = nil
+                SetSelection(nil, nil)
                 if searchBox then searchBox:SetText("") end
                 filterText = ""
                 Refresh()
@@ -956,11 +1025,32 @@ local function Build()
         W.Menu.Hide()
     end)
 
-    -- 還原上次的分頁
+    -- 還原上次的分頁與上次開著的那一筆（這裡只把選取讀回來，真正開編輯視窗在
+    -- RestoreSelection —— 那一筆還在不在也是到那裡才驗）
     local saved = ns.db.perChar[ns.CurrentCharKey()]
+    if type(saved) ~= "table" then saved = nil end
     local startTab = saved and saved.lastScope
     if startTab ~= TAB_CHAR and startTab ~= TAB_INSTANCE then startTab = TAB_ACCOUNT end
     currentTab = startTab
+    if saved and startTab == TAB_INSTANCE then
+        local s = saved.lastInst
+        if type(s) == "table" and type(s.instanceID) == "number"
+           and (s.encounterID == nil or type(s.encounterID) == "number") then
+            selectedInst = {
+                instanceID  = s.instanceID,
+                encounterID = s.encounterID,
+                diff        = Notes.NormalizeDiffKey(s.diff),
+            }
+        end
+    elseif saved and saved.lastNote ~= nil then
+        selectedNoteID = saved.lastNote
+        -- 上次開的是別的分身的筆記：那個分身還在才切過去
+        local charKey = saved.lastChar
+        if startTab == TAB_CHAR and type(charKey) == "string"
+           and type(ns.db.charNotes[charKey]) == "table" then
+            selectedChar = charKey
+        end
+    end
     for _, b in ipairs(tabButtons) do
         if b.id == startTab then highlightTab(b) break end
     end
@@ -974,11 +1064,17 @@ function Window.Frame()
     return frame
 end
 
-function Window.Show()
+-- restore = 把上次開著的那一筆一起叫回來
+local function ShowWindow(restore)
     Build()
     frame:Show()
     frame:Raise()
+    if restore then RestoreSelection() end
     Refresh()
+end
+
+function Window.Show()
+    ShowWindow(true)
 end
 
 function Window.Hide()
@@ -996,7 +1092,7 @@ end
 
 -- 副本浮動視窗的「編輯」按鈕：開主視窗、切到副本分頁、直接開那一筆
 function Window.EditInstanceNote(instanceID, encounterID, diffKey)
-    Window.Show()
+    ShowWindow(false)       -- 馬上就要開指定的那一筆，不用先把上次的叫回來
     if currentTab ~= TAB_INSTANCE then
         currentTab = TAB_INSTANCE
         for _, b in ipairs(tabButtons) do
@@ -1004,14 +1100,8 @@ function Window.EditInstanceNote(instanceID, encounterID, diffKey)
         end
         EnsureCatalogue()
     end
-    expanded[instanceID] = true
-    diffKey = Notes.NormalizeDiffKey(diffKey)
-    selectedDiff[instanceID] = diffKey
-    -- 「本季」看不到的舊副本也要跳得過去（浮動視窗是從實際所在的副本叫過來的）
-    if instScope == "season" and not Journal.SeasonInstances()[instanceID] then
-        instScope = "all"
-    end
-    OpenInstanceNote(instanceID, encounterID, diffKey)
+    -- （浮動視窗是從實際所在的副本叫過來的，所以可能是「本季」看不到的舊副本）
+    FocusInstanceNote(instanceID, encounterID, diffKey)
     Refresh()
 end
 

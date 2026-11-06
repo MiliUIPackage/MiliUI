@@ -9,7 +9,7 @@
 ## Category-zhTW: 滑鼠提示
 ## Category-zhCN: 鼠标提示
 ## Author: Mili
-## Version: 2.1.21
+## Version: 2.1.22
 ## X-Website: https://github.com/MiliUIPackage/MiliUI
 ## IconTexture: Interface\Icons\INV_Misc_Note_01
 ## SavedVariables: MiliUI_Tooltip_DB
@@ -20,6 +20,7 @@ Libs\MiliUIWidgets\Secret.lua
 Libs\MiliUIWidgets\Errors.lua
 Libs\MiliUIWidgets\Metro.lua
 Libs\Callbacks.lua
+Libs\MiliUIMedia.lua
 Libs\MiliUIDB.lua
 Locales\Locale.lua
 Locales\zhTW.lua

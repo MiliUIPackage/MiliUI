@@ -49,8 +49,7 @@ local TIME_ITEMS = {
 -- 材質：多一項「暴雪施法條」，排在「純色」後面（只有施法條有，資源條與自訂格子的選單不加）
 local function TextureItems()
     local items = ns.Specs.TextureItems()
-    table.insert(items, 2, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
-    return items
+    return ns.Specs.InsertAfterSolid(items, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
 end
 
 -- 動畫的三列（播放動畫、速度、說明）只在材質是動畫材質時出現（Core/Media.lua 的 M.FX）：

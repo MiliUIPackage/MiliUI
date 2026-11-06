@@ -82,3 +82,10 @@ Forever 獨有：`Blizzard_SwingTimer`、`Blizzard_LegacySystem`、`Blizzard_Leg
 ## 待實機驗證（本機 `_forever_` 已裝，進遊戲就能測）
 
 `GetBuildInfo` 第 4 回傳；全域 `GetSpecialization` 是否真的 nil；`C_SpecializationInfo.GetSpecialization()` 的回傳與 `GetNumSpecializations`；`UnitName("player")` 第二回傳是不是姓氏、插件訊息送件者的格式（Focus／InfoBar／Tooltip 的 key 都押在這上面）；`C_CooldownViewer` 的分類集合有沒有東西、沒點天賦時有沒有；`/mcdm debug` 的 specID 應為負 classID；`C_DamageMeter` 有沒有資料、`specIconID` 回什麼（`/mdm debug`）；單位框光環列與驅散高亮有沒有出來、盜賊換目標連擊點有沒有跟著變、獵人用自動射擊 75 當距離探針近戰會不會變暗；小地圖開「旋轉小地圖」切一次看方形遮罩有沒有被蓋回；`/mskin debug` 七個停用視窗顯示「已停用」、PVE／冒險指南顯示「等待暴雪插件載入」；QuestTracker `Tracker.lua:412` 把 `GetFrameStrata()` 傳回 `SetFrameStrata` —— 永恆的 FrameStrata 秘密面向若對這個框生效會錯；微型選單 `layoutIndex` 篩完剩哪幾顆、`LEGACY_BUTTON` 字串有沒有；Edit Mode 的系統清單（PRD／StatusTrackingBar／SwingTimer／主列端蓋）。
+
+## 實機回報（2026-11-05，上市後第一次登入，BugGrabber 四筆）
+
+- **`WOW_PROJECT_ID == WOW_PROJECT_MAINLINE` 在永恆是 false**（ID 是 18）。拿它當「是不是正式服」的函式庫會把永恆當經典服：Cell 的 `LibGroupInfo` 掉進 Wrath 分支叫 `GetNumTalentTabs`（nil）。修法是 `IS_RETAIL = MAINLINE or IS_FOREVER`，專精再用 `IS_FOREVER` 另外擋（永恆不查專精、**不排觀察佇列** —— 不然每次隊伍異動都對全隊 `NotifyInspect`）。新搬進來的第三方函式庫先 `grep WOW_PROJECT_MAINLINE`。全域 `GetInspectSpecialization` 也跟著 `Blizzard_DeprecatedSpecialization` 走，暴雪自己改用 `C_SpecializationInfo.GetInspectSpecialization`。
+- **Mainline 專屬的 XML 模板在永恆可能不存在**：`CharacterFrameTabTemplate`（Mainline 版 CharacterFrame.xml，被 Camelot 版整檔取代）→ BugSack 開視窗報 `Couldn't find inherited node`。它的父模板 `PanelTabButtonTemplate`（SharedXML，Mainline 家族共用）還在。凡是借用「被 Camelot 整檔取代的面板」裡定義的模板都要查；查法：forever 分支的 TOC 看那個 XML 有沒有 `[ExcludeLoadGameType camelot]`。
+- **不要在 `PLAYER_LOGIN` 開頭主動補事件**：Cell 第一階段在 PLAYER_LOGIN 第一行主動呼叫 `ACTIVE_TALENT_GROUP_CHANGED()`，它當場 `Fire("SpecChanged")` → `F.UpdateLayout`，而 `Cell.vars.groupType`／`playerNameShort` 還沒設 → `UnitButton.lua` 「table index is nil」，**PLAYER_LOGIN 後半整段不跑**，後面 Nicknames 等一串都是連鎖。那個主動呼叫本來就多餘：PLAYER_LOGIN 裡原本就有一行無條件的 `UpdateSpecVars()`。教訓：一筆錯誤後面跟著同一支插件的「nil key／nil 值」錯誤，先懷疑是初始化函式中途炸掉，修第一筆就好。
+

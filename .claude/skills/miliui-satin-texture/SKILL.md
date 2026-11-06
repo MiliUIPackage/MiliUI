@@ -34,6 +34,9 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
   | MiliUI_Tooltip | `Core/Media.lua` `M.TEXTURES.satin` | `"satin"`（舊 `"tuktex"` 別名、v2 遷移） | 是 |
   | MiliUI_Skin | `Core/Tokens.lua` `T.barTexture` | 無（換皮配方直接用路徑） | 否 |
   | Cell（本地 fork，我們就是上游） | `Utils.lua` 的 `LSM:Register("statusbar", "MiliUI Satin", …)` | `appearance.texture = "MiliUI Satin"`（就是 LSM 名；舊 `"TukTex"` 由 `Revise.lua` 一次性旗標 `miliuiSatinMigrated` 換掉，不綁版本號——Cell 版本號由使用者發佈時才 bump） | 是（Cell 內嵌的 LSM） |
+- **再做一款材質／新插件要材質下拉**：命名、中文顯示名（`米利UI: <譯名>`）、下拉置頂的規則在
+  [project-miliui-media-naming](../../notes/project-miliui-media-naming.md)；名冊是 `AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua`
+  （加一列、跑 `sync-widgets.py`），譯名不進各插件語系檔。下拉項用 `ns.MiliMedia.TextureItems(lsmList, { ["MiliUI Satin"] = <這支的存檔值> })`。
 - LSM 名一律「MiliUI Satin」：帶前綴是因為 LSM **撞名會被靜默拒絕**；六支登記同一個名字＝同一張圖，誰先到都一樣，
   各支解析 token 都先認自己的表、不經 LSM。⚠ LSM 登記會問 `C_UIFileAsset.IsKnownFile`：**新檔案要整個重開遊戲**，`/reload` 不夠。
 - 套組以外還在用 TukTex 的：`SharedMedia` 的 `TukTex`。這個**不動**。

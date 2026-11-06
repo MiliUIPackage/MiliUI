@@ -1235,3 +1235,6 @@ L["No deck is shown as a resource bar row; decks on a cooldown icon show on the 
 L["Blizzard reset this spec's Cooldown Manager order during a spec switch (a Blizzard bug). MiliUI keeps showing the order you arranged, but this panel shows the reset one. Drag any icon here and the panel's order is used again."] = "暴雪在切换专精时把这个专精的冷却管理器排列洗回默认了（暴雪的 bug）。米利的冷却管理器继续按你排的顺序显示，但这个面板里看到的是被洗掉的那份；在这里拖动任何一格，就改回以面板的排列为准。"
 -- 天赋没点的法术在预览上画灰、留着位置（Options/Preview.lua，2026-10-21）
 L["Not learned with your current talents, so it isn't shown on screen. It keeps this spot and shows up here once you pick the talent."] = "当前天赋没点，界面上不显示。位置会保留，点了这个天赋就出现在这里。"
+-- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
+L["Stagger as percent"] = "醉拳显示百分比"
+L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "显示醉拳占最大生命值的百分之几，不显示数值。副本战斗中数值偶尔读不到，那几下先沿用上一次的百分比，一直读不到就改为显示数值，读得到再换回来。"

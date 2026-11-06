@@ -73,6 +73,10 @@ PATCHES = [
     #   兩支本來就支援經典服，程式不用改；重套就是把 `, 16001` 補回 Interface 行尾。
     P("!BugGrabber", "!BugGrabber.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
     P("BugSack", "BugSack.toc", r"^## Interface:.*\b16001\b", "TOC 加 16001（永恆）", regex=True),
+    #   永恆沒有 CharacterFrameTabTemplate（角色面板被 Camelot 版整檔取代），開錯誤視窗會報
+    #   「Couldn't find inherited node」→ 分頁改用父模板。上游新版（TOC 自帶 16001 那版起）本來就用
+    #   PanelTabButtonTemplate，所以這條守的字串對「我們的修補」與「上游新版」都成立。
+    P("BugSack", "sack.lua", "PanelTabButtonTemplate", "永恆的分頁模板（CharacterFrameTabTemplate 不存在）"),
 
     # ── MRT：12.1 光環秘密值閘 ──────────────────────────────────────────
     #   2026-10-18 重套（只剩 CheckPotionsOnPull；UpdateData 上游 5335 已自帶外層閘）。
@@ -110,6 +114,12 @@ PATCHES = [
     P("TrueStatValues", "TrueStatValues.toc", r"^Locales\.lua\s*$", "TOC 載入 Locales.lua", regex=True),
     P("TrueStatValues", "Core.lua", "fix from MiliUI", "設定面板字串改走 L"),
     P("TrueStatValues", "Tooltips.lua", "fix from MiliUI", "提示字串改走 L、zhTW 黑名單、物品句型 pattern"),
+
+    # ── KeystoneLoot：露出私有命名空間給 MiliUI/Enhance/KeystoneLoot_GearStats.lua ──
+    #   洗掉不報錯，症狀是視窗右上角的「裝備屬性計算」按鈕不見。
+    #   重套：python3 .claude/patches/KeystoneLoot-expose-namespace.py
+    P("KeystoneLoot", "modules/api.lua", r"^_G\.KeystoneLootNS\s*=\s*KeystoneLoot;\s*$",
+      "露出命名空間（裝備屬性計算要用 Upgrade:BuildItemLink 與軌道資料）", regex=True),
 
     # ── AztarecHelper：不在套組裡，檔案不存在會自動略過（補丁腳本留在 .claude/patches）──
     P("AztarecHelper", "Core.lua", "fix from MiliUI", "整包 zhTW 中文化"),

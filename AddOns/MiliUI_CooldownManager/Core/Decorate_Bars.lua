@@ -32,11 +32,12 @@ local function OnSetBarContent(item)
 end
 D.OnSetBarContent = OnSetBarContent
 
--- 長條名字：暴雪寫進 nil／空字串時用法術名字頂
+-- 長條名字：暴雪寫進 nil／空字串／空的秘密字串時用法術名字頂
 --   名字是暴雪在 RefreshName 寫的（我們只管樣式，見 Text.ApplyBar），召喚類（惡魔暴君這種）
---   第一次 PLAYER_TOTEM_UPDATE 時 GetTotemInfo 還沒有單位名字 ⇒ 寫進去的是 nil，而暴雪之後
---   不一定再叫一次 RefreshName（只有下一次 RefreshData 會）⇒ 整條空到消失。
---   秘密字串不碰（拿著不讀）；真名之後寫進來就自然蓋掉。只讀 Catalog 的明文資料，不碰 totemData。
+--   第一次 PLAYER_TOTEM_UPDATE 時 GetTotemInfo 還沒有單位名字 ⇒ 寫進去的是 nil（12.1.5 起是空的秘密字串），
+--   而暴雪之後不一定再叫一次 RefreshName（只有下一次 RefreshData 會）⇒ 整條空到消失。
+--   秘密字串不碰（拿著不讀，空不空看 GetText 讀回明文 nil 還是秘密值，見 OnBarNameSetText）；
+--   真名之後寫進來就自然蓋掉。只讀 Catalog 的明文資料，不碰 totemData。
 --   法術 id 先問 item 自己的 GetSpellID（暴雪會把 linkedSpell／光環的 id 算進去，跟它寫名字用的是同一個），
 --   讀不到明文再退 Catalog。每次處理都記一行 diag（Diag.Note 合併同字），實機不對時 /mcdm debug 看得到。
 local nameGuard = false
@@ -131,7 +132,7 @@ end
 -- 暴雪每寫一次名字就換一號：下一幀的重量只在這中間沒有新的寫入時才算數
 local nameGen = setmetatable({}, { __mode = "k" })
 
--- 秘密字串、寫字當下量到的寬度不是 0：下一幀再量一次。
+-- 秘密字串、GetText 讀不到、寫字當下量到的寬度不是 0：下一幀再量一次（只剩 GetText 不可用時才會走到這裡）。
 -- 實機 2026-10-17：/reload 後第一次召喚暴君記到「秘密字串（留著）」、畫面卻空白約 0.5 秒才出現真名
 -- ⇒ 寫字當下的寬度不可靠（推測是上一次的字留下的版面還沒重算；當下是秘密值也一樣當不知道）
 local function RecheckSecretName(fs, gen, first)
@@ -160,17 +161,28 @@ local function OnBarNameSetText(fs, text)
     local Note = ns.Diag and ns.Diag.Note
     local what, secret
     if ns.IsSecret(text) then                           -- ⚠ 秘密值連跟 nil 比都會拋錯，先擋
-        -- 秘密字串讀不到內容，但 GetStringWidth 只在「錨點是秘密」時才回秘密（API 文件 SecretWhenAnchoringSecret，
-        -- 跟文字的秘密 aspect 無關）⇒ 明文寬度 0 ＝ 暴雪寫進來的是空的。實機 2026-10-17：12.1.5 召喚惡魔暴君
-        -- 第一次召喚的名字是秘密字串（totemData 整張秘密），而且是空的 ⇒ 以前「秘密就留著」整條空白到消失
-        local kind = WidthKind(fs)
-        if kind ~= 0 then
-            -- 當下量不到 0：先當有名字（疊字收起來），下一幀再量一次（見 RecheckSecretName）
-            HideNameFill(fs)
-            ns.Defer(RecheckSecretName, fs, gen, kind)
+        -- 秘密字串讀不到內容。空不空看 GetText 讀回來的是什麼：實機 2026-11-04 玩家 log，暴雪寫進空的秘密名字那格
+        -- GetText 回**明文 nil**（寬是秘密），同一條上有真名的恐懼潛獵犬 GetText 回秘密值 ⇒ 明文 nil／"" ＝ 空的、秘密值 ＝ 有字。
+        -- 以前靠 GetStringWidth 量到明文 0 判空：框只要寫過一次秘密字串之後量寬就永遠回秘密（Cell 上游同樣實測），
+        -- 所以只有 /reload 後第一次召喚接得到，第二次起暴君整段 15 秒沒名字（暴雪只在 RefreshData 才重寫名字）。
+        -- 12.1.5 召喚惡魔暴君第一拍的名字是秘密字串（totemData 整張秘密）而且是空的（GetTotemInfo 的單位名還沒到）。
+        local okT, back = pcall(fs.GetText, fs)
+        if okT and ns.IsSecret(back) then
+            HideNameFill(fs)                                -- 有字，暴雪自己畫得出來
+            if Note then Note("barname", string.format("%s 秘密字串 GetText 有字（留著）", tostring(rec.cooldownID))) end
             return
+        elseif okT and (back == nil or back == "") then
+            what, secret = "空的秘密字串（GetText 空）", true
+        else
+            -- GetText 讀不到／回了別的 ⇒ 退回量寬：寬 0 當空的，量不到 0 下一幀再量一次（見 RecheckSecretName）
+            local kind = WidthKind(fs)
+            if kind ~= 0 then
+                HideNameFill(fs)
+                ns.Defer(RecheckSecretName, fs, gen, kind)
+                return
+            end
+            what, secret = "空的秘密字串（寬 0）", true
         end
-        what, secret = "空的秘密字串", true
     elseif text ~= nil and text ~= "" then
         HideNameFill(fs)
         return

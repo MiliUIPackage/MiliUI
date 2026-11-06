@@ -1175,3 +1175,6 @@ L["Focus target"] = "Fokusziel"
 L["Show the caster's name before the spell"] = "Namen des Zaubernden vor dem Zauber anzeigen"
 L["Show your interrupt at the end of the bar"] = "Eigenes Unterbrechen am Ende der Leiste anzeigen"
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "Das Symbol eures Unterbrechens sitzt am anderen Ende mit seiner Abklingzeit: hell, wenn bereit, gedimmt während der Abklingzeit. Ausgeblendet, wenn diese Spezialisierung kein Unterbrechen hat."
+-- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
+L["Stagger as percent"] = "Staffelung in Prozent"
+L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "Zeigt, wie viel deiner max. Gesundheit gestaffelt ist, statt des Betrags. In Instanzkämpfen sind die Zahlen manchmal nicht lesbar; der Balken behält kurz den letzten Prozentwert und zeigt dann den Betrag, bis sie wieder lesbar sind."

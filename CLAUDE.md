@@ -52,11 +52,14 @@ API 改成 secret value，照舊寫法會直接崩潰，而且錯誤訊息不會
 
 - **`.toc` 的 Interface 版本號不要手改**，用 `wow-toc-interface-bump` 技能的腳本。
   正式服是 6 位數、經典服是 5 位數，手改很容易把多版本相容的插件弄壞。
-- **改共用層（`Libs/MiliUIWidgets/`，以及單檔 vendor 的 `MiliUIGlow`／`MiliUISnap`／`MiliUIStats`／`MiliUIDB`／`MiliUIEditMode`／`MiliUIMinimapButton`／`Callbacks.lua`）只改本體那一份**，然後跑
+- **改共用層（`Libs/MiliUIWidgets/`，以及單檔 vendor 的 `MiliUIGlow`／`MiliUISnap`／`MiliUIStats`／`MiliUIDB`／`MiliUIEditMode`／`MiliUIMinimapButton`／`MiliUIMedia`／`Callbacks.lua`）只改本體那一份**，然後跑
   `python3 .claude/scripts/sync-widgets.py` 同步到各消費者（二十來份，以 `ls -d AddOns/*/Libs/MiliUIWidgets` 為準）。那是 vendor 複製不是
   函式庫，改錯地方會被下次同步蓋掉。⚠ 共用層的語系契約只有四個 key
   （`Apply`／`Okay`／`Cancel`／`Can't change settings during combat`），**不要擴充** ——
   用 AceLocale ＋ token key 的那三支會當場洗版。
+- **自製材質的命名照 [project-miliui-media-naming](.claude/notes/project-miliui-media-naming.md)**：LibSharedMedia 登記名
+  `MiliUI <英文名>` 永遠不翻（它是存檔值），中文客戶端的下拉顯示 `米利UI: <譯名>`（繁簡各一份），而且排在下拉最上面。
+  名冊與譯名**只有一份**在 `MiliUI/Libs/MiliUIMedia/`——新材質加在那裡再跑 `sync-widgets.py`，不要寫進各插件的語系檔。
 - **畫 1px 邊框、分隔線、髮絲線照 [wow-1px-border-rules](.claude/notes/wow-1px-border-rules.md)**：粗細走 `P.Pixel`、
   顯示時才換算、自己建的貼圖過 `P.NoSnap`。漏一條就是「某些玩家邊框不見／變 2px」，而裝著 Cell 的我們自己看不到。
 - **改完跑一次 `bash .claude/scripts/check-all.sh`**（語法、可疑的全域寫入、Cell 的 local／upvalue

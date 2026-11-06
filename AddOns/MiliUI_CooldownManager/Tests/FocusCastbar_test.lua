@@ -239,6 +239,23 @@ do
     eq("自製材質：名字直接解到自己的檔（不問 LSM）", ns.Media.Texture("MiliUI Satin"), ns.Media.BAR_TEXTURE)
     check("自製材質：路徑在本插件的 Media", ns.Media.BAR_TEXTURE:find("MiliUI_CooldownManager\\Media\\miliui_satin.png", 1, true) ~= nil)
     eq("材質：solid 照舊", ns.Media.Texture("solid"), ns.Media.WHITE8X8)
+    -- 材質下拉：米利的材質置頂、中文顯示名（名冊在 Libs/MiliUIMedia.lua）。自己帶檔的每一款都要在名冊裡，
+    -- 不然下拉裡會掉到其餘 LSM 那一段、沒有中文名（LSM 還沒認得新檔時甚至整筆不見）
+    env.GetLocale = function() return "zhTW" end
+    Load("Libs/MiliUIMedia.lua")
+    local ownCount = 0
+    for name, value in pairs(ns.Media.OWN_TEXTURES) do
+        ownCount = ownCount + 1
+        check("自製材質在套組名冊裡：" .. name, ns.MiliMedia.IsOwnTexture(name))
+        eq("自製材質存的是登記名：" .. name, value, name)
+        check("自製材質解得到自己的檔：" .. name, ns.Media.Texture(name) ~= ns.Media.WHITE8X8)
+    end
+    eq("自製材質：緞面＋六款動畫材質", ownCount, 1 + #ns.Media.FX_ORDER)
+    local own, rest = ns.MiliMedia.TextureItems({ "Melli", "MiliUI Satin" }, ns.Media.OWN_TEXTURES)
+    eq("材質下拉：LSM 沒登記到的動畫材質也列（新檔要重開遊戲 LSM 才認）", #own, 1 + #ns.Media.FX_ORDER)
+    eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[4].text .. "|" .. own[7].text, "米利UI: 宇宙星辰|米利UI: 火焰")
+    eq("材質下拉：第一項是套組預設、顯示中文名", own[1].text .. "|" .. own[1].value, "米利UI: 緞面|MiliUI Satin")
+    eq("材質下拉：其餘 LSM 接在後面", rest[1].value, "Melli")
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
     local m = { focuscast = { texture = "MiliUI TukTex" } }
     DB.MIGRATIONS[11](m)

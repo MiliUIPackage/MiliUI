@@ -120,18 +120,12 @@ end
 
 function M.BarTextureItems()
     M.RegisterSharedMedia()   -- LSM 若比我們晚載入，開選單時再補登一次
-    local items = {
-        { text = "MiliUI Satin", value = "satin" },
-        { text = L["Solid"], value = "solid" },
-    }
+    -- 米利的材質排最上面、中文客戶端顯示「米利UI: 緞面」（名冊、譯名、順序在 Libs/MiliUIMedia.lua，全套組同一套規則）
+    -- → 純色 → LSM 的。自己帶檔的那張存 token "satin"，LSM 清單裡的同名項由名冊併成同一項
     local lsm = LSM()
-    if lsm then
-        for _, name in ipairs(lsm:List("statusbar")) do
-            if name ~= LSM_NAME then
-                items[#items + 1] = { text = name, value = name }
-            end
-        end
-    end
+    local items, rest = ns.MiliMedia.TextureItems(lsm and lsm:List("statusbar") or nil, { [LSM_NAME] = "satin" })
+    items[#items + 1] = { text = L["Solid"], value = "solid" }
+    for i = 1, #rest do items[#items + 1] = rest[i] end
     return items
 end
 

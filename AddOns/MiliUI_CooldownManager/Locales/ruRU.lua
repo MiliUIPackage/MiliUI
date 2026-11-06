@@ -1175,3 +1175,6 @@ L["Focus target"] = "Цель фокуса"
 L["Show the caster's name before the spell"] = "Показывать имя заклинателя перед заклинанием"
 L["Show your interrupt at the end of the bar"] = "Показывать своё прерывание в конце полосы"
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "Значок вашего прерывания стоит на дальнем конце полосы с анимацией восстановления: яркий, когда готов, тусклый во время восстановления. Скрыт, если у этой специализации нет прерывания."
+-- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
+L["Stagger as percent"] = "Пошатывание в процентах"
+L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "Показывает долю макс. здоровья в пошатывании вместо значения. В бою в подземельях числа иногда недоступны; полоса ненадолго сохраняет последний процент, а затем показывает значение, пока числа снова не станут доступны."

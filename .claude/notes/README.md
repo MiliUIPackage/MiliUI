@@ -114,6 +114,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-autoaccept-quest-delay.md](wow-autoaccept-quest-delay.md) | 自動接任務要延遲 0.5 秒：立刻 AcceptQuest 會被伺服器丟掉、六個假設全錯；實作＝預設秒接＋查勤＋內建種子清單（週任 ID 輪替）＋逐條學習、**共用秒數只在「等過還失敗」才加**、questID 0 不查勤 |
 | [wow-gettime-stamp-multipacket.md](wow-gettime-stamp-multipacket.md) | **「一幀之內狀態不會變」是錯的**：多封包幀同一個 `GetTime()` 派送多波事件 —— 快照讀取＋終點狀態不能吃戳記跳過，「字對條錯」是指紋 |
 | [wow-getspellcooldown-isongcd-nil.md](wow-getspellcooldown-isongcd-nil.md) | `C_Spell.GetSpellCooldown` 不在 GCD 時 `isOnGCD` 是 **nil 不是 false**；判真冷卻要 `not isOnGCD`，比 `== false` 永遠不成立 |
+| [wow-inspect-ready-slots-not-settled.md](wow-inspect-ready-slots-not-settled.md) | `INSPECT_READY` 當下物品沒進快取的格子 link 與 ID **一起 nil**、跟空格分不開；觀察裝等要等值穩定 0.5 秒＋跟暴雪整數對帳才收 |
 | [wow-unit-power-update-2s.md](wow-unit-power-update-2s.md) | `UNIT_POWER_UPDATE` 在回能／衰減期間**兩秒才送一次** ——「能量要 2 秒才更新」的成因；掛 `UNIT_POWER_FREQUENT`，UPDATE 留 force 當「回滿」的保底 |
 | [wow-transmog-roll-chat-garbage.md](wow-transmog-roll-chat-garbage.md) | 團隊骰裝按**塑形**聊天印出 `u`、`]` 之類怪字元：GlobalStrings 缺塑形的 `_SELF` 字串，客戶端把首領編號的原始位元組當訊息（**位元組當整數解回來＝lootHistory 編號**是指紋）；GlobalStrings 可從 wago.tools 整張抓；含四條看起來很像真的錯路 |
 | [wow-combat-drag-release.md](wow-combat-drag-release.md) | 拖曳保護框進戰會黏著游標放不開；`PLAYER_REGEN_DISABLED` 是強制鬆開的窗口；**隱式保護沿錨點鏈遞迴傳** —— 排版鏈尾巴一顆 secure 鈕，前面整排都成保護框，要直接錨父框 |
@@ -176,7 +177,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-burst-helper.md](project-burst-helper.md) | MiliUI_BurstPotionHelper 爆發藥水 —— 戰鬥零讀取避免秘密值、選擇只存意圖；**團隊只在首領戰喝：「首領戰」的 secure 定義＝這場戰鬥見過 bossN 就鎖存到脫戰**（沒有 secure 的遭遇中訊號）；藥水 itemID 每季更新 |
 | [project-miliui-bloodlustmusic.md](project-miliui-bloodlustmusic.md) | 米利的嗜血音樂 MiliUI_BloodlustMusic —— 自訂歌可放整個 Interface、舊 filename 載入時遷移、可從 LSM 加曲目；只有 LSM 曲目走 C_Sound.IsPlaying 提早還原音量，尚未實機驗證 |
 | [project-miliui-damagemeters.md](project-miliui-damagemeters.md) | 傷害統計 MiliUI_DamageMeters —— C_DamageMeter 渲染器；七個刻意的架構決定、標題列按鈕看板 hdrButtons＋發佈三道閘、遷移鏈 DB v5、`/mdm debug` 除錯分頁（位置跑掉類回報先要這份）、踩過的點（含 `check_lua.py` 抓不到的全域讀取） |
-| [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | 傷害統計的米利風格專精圖示（40 張，預設、DB v5）＋頭像卡片＋裝等；source 只給 specIconID 要反查專精、裝等走觀察快取；噬滅順序／戰鬥中秘密 specIconID 待驗 |
+| [project-mdm-spec-icons.md](project-mdm-spec-icons.md) | 傷害統計的米利風格專精圖示（40 張，預設、DB v5）＋頭像卡片＋裝等；source 只給 specIconID 要反查專精、裝等走觀察快取；specIconID 戰鬥中是秘密值（2026-11-06 實測） |
 | [project-miliui-cooldownmanager.md](project-miliui-cooldownmanager.md) | 自製冷卻管理器 MiliUI_CooldownManager（取代 Ayije_CDM，1.5.x 上線、核心功能上過實機）—— 拍板與授權、引擎契約（倒數不自畫、認領重錨、暴雪框零欄位兩例外）、撞牆通則（增益旗標只有 SetUseAuraDisplayTime 且到期只 Clear、charges 旗標≠有充能、裝備欄 GCD 當真冷卻、掛勾參數與 GetAlpha 是秘密值、收合框不當錨點、互斥停用要全帳號）、各功能一句話索引；驗證從 README《待實機驗證》與 `/mcdm debug` 開始 |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije）—— 報告在 ~/.claude/plans；效能 plan `miliui-cdm-perf.md`（E0～E3）、功能 plan `miliui-cdm-eui-features-2.md`（F1～F8）|
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | MCDM 借 Halo 的四件事：光環格引擎補位（groupSpacing 必須 0；「單點錨置中」跟 aura-containers 篇對立、待驗）／內建形狀／施放後音效／錨到單位框（2026-10-12 擴成錨定視窗、六單位五家）；SpellPopover Build upvalue 正好 60、Resources.lua 貼 200 local |
@@ -205,6 +206,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-chatbar-snap.md](project-miliui-chatbar-snap.md) | 快捷聊天列的磁吸與自適應寬度 —— 位置從 `SetUserPlaced` 收回自己存；吸附基準是內容底；設定頁整組重套害磁吸亂跳；戰鬥中錨點鏈連坐／im 樣式 editBox 連到通則 |
 | [project-miliui-esc-menu-window-migration.md](project-miliui-esc-menu-window-migration.md) | 三支小插件改自製設定視窗（爆發藥水／嗜血音樂／快捷聊天列）的標準結構（AceLocale 宿主）；踩過的點；UNIT_AURA 只聽自己 |
 | [project-miliui-font-pack.md](project-miliui-font-pack.md) | 套組字型改用思源黑體：基底配置、`~/MiliUI-Fonts` 典藏庫、雅黑授權問題 |
+| [自製材質的命名與顯示規則](project-miliui-media-naming.md) | 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉置頂；名冊與譯名只有一份在共用 vendor `Libs/MiliUIMedia`，六支有材質下拉的插件都接它 |
 | [套組共用長條材質 MiliUI Satin](project-miliui-satin-texture.md) | 2026-10-16 取代 TukTex：技能腳本一次產五份 miliui_satin.png、純漸層不含雲；各插件 token／遷移；Cell／SharedMedia／Ayije 的 TukTex 不動 |
 | [project-loot-history-tracking.md](project-loot-history-tracking.md) | 戰利品取得記錄（沒有歷史 API） |
 | [project-speccompare-equipment-filter.md](project-speccompare-equipment-filter.md) | 裝備篩選排除玩具／純造型 |
@@ -250,7 +252,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 176 篇）
+## 全部筆記（自動產生，共 179 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -321,6 +323,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-hasrestrictions-mouse-apis.md](wow-hasrestrictions-mouse-apis.md) | SetPassThroughButtons／SetPropagateMouseClicks／SetPropagateMouseMotion 戰鬥中對任何框都封鎖（API 文件多標 HasRestrictions）；懶建的列池會中招，要在戰鬥外預建 |
 | [wow-hyperlink-region-steals-hover.md](wow-hyperlink-region-steals-hover.md) | frame 上的超連結區是引擎另一個滑鼠焦點：游標停在連結上時 frame 收到 OnLeave 不是 OnEnter，提示要改從 OnHyperlinkEnter 顯示 |
 | [wow-icon-row-anchor-facing-edge.md](wow-icon-row-anchor-facing-edge.md) | 依附在框架旁邊的圖示排，錨點必須選「面向框架的那一邊」，否則顆數一變間距就跑掉 |
+| [wow-inspect-ready-slots-not-settled.md](wow-inspect-ready-slots-not-settled.md) | INSPECT_READY 當下觀察對象的裝備格不可靠——物品還沒進客戶端快取的格子，GetInventoryItemLink 與 GetInventoryItemID 一起回 nil、跟真的空格分不開；第一次算齊的平均裝等不能直接信，要等值穩定並跟暴雪整數對帳 |
 | [wow-keyboard-capture-blocks-bindings.md](wow-keyboard-capture-blocks-bindings.md) | 鍵盤啟用又不轉發的框會擋掉「全部」快捷鍵含 ESC；擷取按鍵要用顯示/隱藏覆蓋層，不要在執行期切 SetPropagateKeyboardInput |
 | [wow-locale-key-access-patterns.md](wow-locale-key-access-patterns.md) | 語系 key 有四種取法（含前綴拼接），靜態掃描認不全 —— 不要自動刪「沒人用的」語系條目 |
 | [wow-login-screen-size-not-final.md](wow-login-screen-size-not-final.md) | PLAYER_LOGIN 當下 UIParent 尺寸／GetScreenWidth 可能還不是最終值，登入時照它夾座標再寫回存檔會把正常位置打壞；三支插件踩過（傷害統計／小地圖／M+），指紋與修法 |
@@ -380,6 +383,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-bosstimeline.md](project-miliui-bosstimeline.md) | MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單 |
 | [project-miliui-bounty-map-column.md](project-miliui-bounty-map-column.md) | 分身列表的懸賞圖/儲物箱欄（MiliUI_InfoBar）——旗標任務 86371 不換季，BOUNTY_ITEM_ID 每季要換（抄 Plumber）；儲物箱進度讀 UI widget 殘值只能往上加；SV 是帳號層級且只在登出落地 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | 全套組按鈕上色規則——primary（主動作）／normal（其餘）兩種長相、職業色公式、九條判準、實作入口（W.CreateButton／PaintButton／SetButtonVariant、Skin.Button）與舊配色待辦；所有自製插件與 MiliUI_Skin 換皮都要遵守 |
+| [project-miliui-cdm-castbar-fx.md](project-miliui-cdm-castbar-fx.md) | MCDM 施法條的動畫材質（彩虹／宇宙星辰／閃電／熔岩／火焰，2026-11-04～11-06）——M.FX 登記表、通用效果層（捲動層＋序列圖層、裁切框錨在填充前緣）、設定兩列只在選到動畫材質時出現、DB v15、哪些還沒實機 |
 | [project-miliui-cdm-comparison-2026-10-19.md](project-miliui-cdm-comparison-2026-10-19.md) | 2026-10-19 三方冷卻管理器對照（MCDM 1.6.10 × EUI Cooldown Manager Standalone 9.6 × Halo 監控台 halo-108）——推翻上兩輪三個判斷（EUI 逐法術層其實是繼承、Halo 對暴雪 item 是就地認領、EUI 9.6 的 16.7 萬行是打包不是成長）、九項小功能建議、三件真正落後（沒實機數字／排版不跳過沒變的／沒設定搜尋）、對外說法修訂 |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije 3.92）——報告與 plan 位置、推薦清單的下場（F1～F8 當天全做完、「不做」清單後來翻了兩項）、效能結論與 E0～E3、對外怎麼講（兩邊都還沒實機數字） |
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台（YUI 的 YHUD 獨立版）後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框，H4 在 2026-10-12 擴成錨定視窗＋六單位五家）、三家光環格佈局只能拿兩項、驗收時改掉的地方；SpellPopover Build 的 upvalue 今天就是 60、Resources.lua 主 chunk 貼 200 local；H1 的「容器縮成內容大小＋單點錨＝置中」跟 wow-121-aura-containers 的「置中做不到」對立、待實機 |
@@ -398,6 +402,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪原生單位框與施法條的 taint 規則（MiliUI_UnitFrames/Core/HideBlizzard.lua）——碰過的框會讓暴雪自己的 RegisterEvent 變成禁止動作；reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | MiliUI「HUD 皮」的正式定義——黑透明底＋1px 職業色邊＋白字＋直角；提示皮（不透明、亮一階）；三套皮的二選一判準與數值表；邊框粗細走 P.Pixel |
 | [project-miliui-infobar.md](project-miliui-infobar.md) | MiliUI_InfoBar 資訊列——取代微型選單的自製條；secure 點擊轉發（macrotext）／暴雪列 hider／隱式保護框的戰鬥紀律／09-07 taint 紀律四條入口／遊戲選單鈕的 secure snippet／戰隊資訊（**角色記錄多來源只能就地更新**、寶庫欄切換、團本提示）／停靠／坐騎・修裝・確認倒數三張滑過面板共用 HoverPanel／自動修裝與本體連動／外部方塊接口 MiliUI_InfoBarPlugins／待驗證清單 |
+| [project-miliui-media-naming.md](project-miliui-media-naming.md) | 套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它 |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 取代 Krowi_ExtendedVendorUI 的單體插件；為什麼沿用暴雪命名而不自己畫格子、IsShown 閘、收藏快取的兩個陷阱、批量購買與拍賣場標示（未實機）、待驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | MiliUI_Minimap 方形小地圖＋社交列＋插件按鈕收納（取代 MBB）——接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角、按鈕收納的掃描隔離與拆遮罩、「像被上了遮罩」四個成因（主因 SetParent 不帶 strata）、好友人數的語意換掉成本歸零、名單走聊天超連結、登入不夾位置、待驗證清單 |
 | [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針；範圍判準是「畫在哪個宿主」、整趟合併分段兩倍的指紋、兩條統計策略、完賽觸發照 EUI、入口四處（設定視窗開面板要先關視窗）、聊天發佈（待實機驗證）、鑰石相關功能從本體搬來（secure 巨集／精簡 LibOpenRaid 接收端／AMT 借來的四項）、登入不夾位置、待驗證清單 |
