@@ -1645,6 +1645,38 @@ do
     eq("4 段：標籤門檻沒存用預設", R.StaggerLabel("tier4", {}), "At least 150%")
     eq("中度標籤照舊用減益名", R.StaggerLabel("moderate"), "S124274")
 
+    -- 4b-2. 醉仙緩勁的數字印百分比（staggerPercent）：明文照算；秘密值先沿用上一次的、超過 STAGGER_PCT_HOLD 秒改印數值
+    do
+        local fs = {}
+        function fs:SetText(t) self.t = t end
+        function fs:SetFormattedText(f, ...) self.t = { f, ... } end
+        local saveGT, saveAN = env.GetTime, env.AbbreviateNumbers
+        local now = 100
+        env.GetTime = function() return now end
+        env.AbbreviateNumbers = nil
+        local savePct, saveAt = R.staggerLast.pct, R.staggerLast.pctAt
+        R.staggerLast.pct, R.staggerLast.pctAt = nil, nil
+        check("百分比：預設關", cfgR.staggerPercent == false)
+        R.SetStaggerText(fs, 45000, 100000, { manaAbbrev = "k" })
+        eq("百分比關：照大數字縮寫", fs.t, "45K")
+        R.SetStaggerText(fs, SECRET, SECRET, { staggerPercent = true })
+        eq("百分比：從沒讀到明文 ⇒ 印數值（秘密值原樣傳下去）", fs.t[2], SECRET)
+        R.SetStaggerText(fs, 45400, 100000, { staggerPercent = true })
+        eq("百分比：明文照最大生命算", fs.t[1] .. fs.t[2], "%d%%45")
+        R.SetStaggerText(fs, 180000, 100000, { staggerPercent = true })
+        eq("百分比：可以超過 100", fs.t[2], 180)
+        now = 101
+        R.SetStaggerText(fs, SECRET, 100000, { staggerPercent = true })
+        eq("百分比：秘密值 ⇒ 沿用上一次的", fs.t[2], 180)
+        now = 100 + R.STAGGER_PCT_HOLD + 0.5
+        R.SetStaggerText(fs, SECRET, SECRET, { staggerPercent = true })
+        eq("百分比：一直讀不到 ⇒ 改印數值", fs.t[2], SECRET)
+        R.SetStaggerText(fs, 0, 100000, { staggerPercent = true })
+        eq("百分比：讀得到就換回來（0%）", fs.t[1] .. fs.t[2], "%d%%0")
+        env.GetTime, env.AbbreviateNumbers = saveGT, saveAN
+        R.staggerLast.pct, R.staggerLast.pctAt = savePct, saveAt
+    end
+
     -- 4c. 秘法靈魂剩幾個 GCD
     check("秘法靈魂：可以印 GCD", R.RESOURCES.ArcaneSoul.gcdText == true)
     eq("秘法靈魂文字：預設秒數", R.ArcaneSoulText({}), "seconds")

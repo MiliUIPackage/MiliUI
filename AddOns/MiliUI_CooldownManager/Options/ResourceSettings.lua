@@ -10,7 +10,7 @@
 --   外觀   「跟隨資源條的外觀」（style[key].follow，沒存＝跟）＋材質、背景材質、填充透明度、邊框粗細／顏色、平滑（連續條才有）、
 --          數值文字、字型、字級——讀寫 style[key].*。跟著時這幾列蓋暗色遮罩（Specs 的 disabled 機制）、
 --          顯示的是資源條頁的全域值；取消勾選時沒存過的欄位也先顯示全域值，改了才寫進 style[key]
---   文字   法力的數字格式／百分比、血量的百分比（欄位不搬家：manaAbbrev／manaPercent／healthPercent），
+--   文字   法力的數字格式／百分比、血量與醉仙緩勁的百分比（欄位不搬家：manaAbbrev／manaPercent／healthPercent／staggerPercent），
 --          醉仙緩勁與血量也有數字格式（跟法力同一個欄位，說明列寫明），符文、秘法靈魂的數字
 --   顏色   主色＋各資源的額外色、醉仙緩勁的門檻、氣漩摺疊、征戰聖擊、血量的職業色／門檻換色……
 --          （原本資源條頁「顏色與條件」那一段，整段搬來）＋條件規則（只這一種資源）
@@ -184,6 +184,10 @@ local function AppendNumbers(add, key, info)
     elseif info.health or info.stagger then
         -- 血量與醉仙緩勁的大數字照法力的縮寫（同一個 manaAbbrev）：沒有法力列的專精也要改得到
         if info.health then put(BS("toggle", "healthPercent", L["Health as percent"])) end
+        if info.stagger then
+            put(BS("toggle", "staggerPercent", L["Stagger as percent"]))
+            put(Note(L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."]))
+        end
         put(BS("dropdown", "manaAbbrev", L["Number format"], { items = MANA_ITEMS }))
         put(Note(L["One number format is shared by mana, health and the other large numbers."]))
     end

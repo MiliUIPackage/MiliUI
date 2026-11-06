@@ -1175,3 +1175,6 @@ L["Focus target"] = "Alvo de foco"
 L["Show the caster's name before the spell"] = "Mostrar o nome do conjurador antes do feitiço"
 L["Show your interrupt at the end of the bar"] = "Mostrar a sua interrupção no fim da barra"
 L["Your interrupt's icon sits at the far end with its cooldown sweep: bright when ready, dim while on cooldown. Hidden when this specialization has no interrupt."] = "O ícone da sua interrupção fica na outra ponta com a varredura de recarga: claro quando pronta, escurecido durante a recarga. Oculto se esta especialização não tiver interrupção."
+-- 醉仙緩勁的數字印百分比（resources.staggerPercent，2026-11-06）
+L["Stagger as percent"] = "Cambaleio em porcentagem"
+L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."] = "Mostra quanto da sua vida máx. está em cambaleio em vez da quantidade. Em combate de instância os números às vezes não podem ser lidos; a barra mantém a última porcentagem por um instante e depois mostra a quantidade até que possam ser lidos de novo."

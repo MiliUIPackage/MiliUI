@@ -340,6 +340,7 @@ ResourcesDefaults = function()
         staggerModerateAt = 30,
         staggerHeavyAt    = 60,
         staggerCeiling    = 100,
+        staggerPercent    = false,         -- 數字印「佔最大生命的百分之幾」而不是數值（見 Resources_Rows.lua 的 R.SetStaggerText）
         -- 醉仙緩勁第 3／4 段（重度之上再分兩段換色）：預設關
         staggerTier3Enabled = false,
         staggerTier3At      = 90,

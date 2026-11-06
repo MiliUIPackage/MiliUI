@@ -316,7 +316,7 @@ function R.StaggerCeiling(cfg)
 end
 
 -- 醉仙緩勁：上一次明文算出來的段落與滿條上限（副本戰鬥中兩個值會間歇變成秘密值，那幾下沿用）
-local staggerLast = { band = nil, max = nil }
+local staggerLast = { band = nil, max = nil, pct = nil, pctAt = nil }
 R.staggerLast = staggerLast
 
 -- 回傳：條的上限（明文或原始的秘密最大生命）、這次的顏色欄位
@@ -343,6 +343,28 @@ local bigFmt = {}
 local function SetBigNumber(fs, v, cfg)
     bigFmt.manaAbbrev = cfg.manaAbbrev
     R.SetNumberText(fs, v, nil, bigFmt)
+end
+
+-- 醉仙緩勁的數字：staggerPercent 印「佔最大生命的百分之幾」（跟換色門檻同一個算法，可以超過 100）。
+-- 醉仙緩勁不是 power type，沒有引擎端的百分比 API，兩個值任一是秘密值就算不出來：先沿用上一次明文算出來的
+-- 百分比（副本戰鬥中是間歇變秘密，沿用一下看不出來）；連續 STAGGER_PCT_HOLD 秒都讀不到就改印數值——
+-- 條本身是引擎畫的、一直是對的，文字不能停在舊的百分比上跟條對不起來。掛在 R 上不當 local（主 chunk 的 local 上限）
+R.STAGGER_PCT_HOLD = 2
+function R.SetStaggerText(fs, cur, maxHealth, cfg)
+    if not cfg.staggerPercent then
+        SetBigNumber(fs, cur, cfg)
+        return
+    end
+    local pc, pmh = Plain(cur), Plain(maxHealth)
+    local now = GetTime and GetTime() or 0
+    if pc and pmh and pmh > 0 then
+        staggerLast.pct, staggerLast.pctAt = math.floor(pc / pmh * 100 + 0.5), now
+    end
+    if staggerLast.pct and now - staggerLast.pctAt <= R.STAGGER_PCT_HOLD then
+        fs:SetFormattedText("%d%%", staggerLast.pct)
+    else
+        SetBigNumber(fs, cur, cfg)
+    end
 end
 
 -- 秘密值時的整條換色（條件規則展開成 Step 曲線，RC.CurvePointsBy）：一列最多三條曲線（填充、背景、數值文字），
@@ -421,6 +443,7 @@ end
 
 local function UpdateBarRow(row, cfg, def, key, cc, conds)
     local cur, max = GetValue(key)
+    local maxHealth = max               -- 醉仙緩勁：下面把 max 換成滿條上限，百分比文字要的是最大生命本身
     if def.stagger then
         local field
         max, field = StaggerResolve(cfg, cur, max)
@@ -482,6 +505,8 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
             row.text:SetText("")
         elseif def.mana then
             R.SetNumberText(row.text, cur, max, cfg, def.power)
+        elseif def.stagger then
+            R.SetStaggerText(row.text, cur, maxHealth, cfg)
         elseif def.bigNumber then
             SetBigNumber(row.text, cur, cfg)
         else
