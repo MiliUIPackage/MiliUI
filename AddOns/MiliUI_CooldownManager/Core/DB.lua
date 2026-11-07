@@ -553,9 +553,10 @@ FocusCastDefaults = function()
         -- 可斷法發光（2026-11-07）：專注目標在唱可以斷的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）。舊存檔沒有 ＝ 開、光暈
         glowKick      = true,
         kickGlowStyle = "halo",            -- halo 光暈 | sweep 流光 | pulse 脈衝
-        -- 開唱震動（2026-11-07 使用者指定預設關）：off | always 每次開唱都震 | kick 只震可以斷的施法（分身＋互補 alpha；2026-11-08 實機驗過）。
-        -- 11-06 那版的鍵叫 castShake（布林、預設開），當天撤回；存檔裡留著的那顆沒人讀
-        shakeMode     = "off",
+        -- 開唱震動：off | always 每次開唱都震 | kick 只震可以斷的施法（分身＋互補 alpha）。11-07 預設關；11-08 使用者實機驗過改預設 kick、
+        -- 秒數可調（11-07 那版固定 0.3 秒；使用者先說延長一倍、接著改口預設 2 秒）。11-06 那版的鍵叫 castShake（布林、預設開），當天撤回；存檔裡留著的那顆沒人讀
+        shakeMode     = "kick",
+        shakeTime     = 2,
         -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色（2026-10-19 使用者指定，
         -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號）
         showTarget       = true,

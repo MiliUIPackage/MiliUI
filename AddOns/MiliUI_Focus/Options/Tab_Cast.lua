@@ -123,8 +123,13 @@ local CONTROLS = {
           { text = L["Pulse (rings spreading outward)"],          value = "pulse" },
       } end },
     { type = "color",  key = "colorKickGlow", label = L["Glow color"], hasAlpha = false },
-    { type = "toggle", key = "shakeOnCast", label = L["Shake the bar whenever the focus starts casting"] },
-    { type = "text",   label = L["A short shake on every cast start, whether or not it can be interrupted."] },
+    { type = "dropdown", key = "shakeMode", label = L["Cast start shake"], items = function() return {
+          { text = L["Off"],                      value = "off" },
+          { text = L["Every cast"],               value = "always" },
+          { text = L["Interruptible casts only"], value = "kick" },
+      } end },
+    { type = "slider", key = "shakeTime", label = L["Shake duration (seconds)"],
+      min = ns.CastBar.SHAKE_MIN, max = ns.CastBar.SHAKE_MAX, step = 0.1 },
 
     { type = "header", label = L["Cast sound"] },
     { type = "toggle", key = "soundEnabled", label = L["Play a sound when the focus starts casting"] },

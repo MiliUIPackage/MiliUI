@@ -2687,8 +2687,9 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   `UNIT_SPELLCAST_(NOT_)INTERRUPTIBLE`、套用設定時叫；被打斷、淡出、收條時 `StopKickGlowOn`。柔邊貼圖借邊緣陰影那張
   （`SH.EDGE_SHADOW`），尺寸由 `LayoutParts` 記在 `h.glowW`／`h.glowH`（發光引擎不讀框）。設定頁兩條樣本都會亮
   （頁首那條在「可斷」的狀態下；「可斷法的施法」小節另有一條 `KickSampleRow`，只看這一節的效果）。**三款的長相與秘密模式都未實機。**
-- **開唱震動**（`shakeMode`，預設 `off`；2026-11-07。11-06 那版叫 `castShake`、預設開，當天撤回——使用者不要預設就有）：
-  整條震一下（0.3 秒、六段位移加總歸零）。
+- **開唱震動**（`shakeMode`，預設 `kick`；秒數 `shakeTime` 0.1～3、預設 2；2026-11-07，11-08 使用者實機驗過後改預設並加秒數。
+  11-06 那版叫 `castShake`、預設開、固定 0.3 秒，當天撤回）：整條震一下（每 0.05 秒跳一次、六段一組的位移反覆；
+  動畫組刪不掉也不能增減段數 ⇒ `MakeShake` 一次建滿 3 秒的段數，`PlayShake` 照秒數把用不到的段設成 0 秒）。
   - `always`：每次開唱都震，不分可不可以斷——`GoShakeOn` 直接播本尊的 `h.shake`，沒有秘密值的事。
   - `kick`：只震可以斷的施法（2026-11-08 使用者在副本實機驗過：管用）。可不可以斷在受限內容是秘密布林，而位移類 API
     （`Translation:SetOffset`／`SetPoint`／`SetScale`）的 `SecretArguments` 都是 `AllowedWhenUntainted`，插件餵不進秘密值

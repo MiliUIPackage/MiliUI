@@ -407,6 +407,29 @@ do
     eq("震動 kick：分身還在震 ⇒ 本尊不疊", h.shake._playing, false)
     FC.EndShakeOn(h)
     focusCfg.shakeMode = nil
+
+    -- 秒數可調：一次建滿 2 秒的段數，照秒數配（用到的 0.05 秒、用不到的 0 秒）
+    local function Steps(group)
+        local n, total = 0, 0
+        for _, t in ipairs(group.steps) do
+            local d = Arg(t, "SetDuration") or 0
+            if d > 0 then n = n + 1 end
+            total = total + d
+        end
+        return n, total
+    end
+    eq("震動秒數：沒設 ⇒ 2", FC.ShakeTime(), 2)
+    check("震動秒數：段數建滿 3 秒", #h.shake.steps == 60)
+    FC.PlayShake(h.shake)
+    local n, total = Steps(h.shake)
+    check("震動秒數：2 秒 ⇒ 40 段各 0.05", n == 40 and math.abs(total - 2) < 1e-9, n .. " " .. total)
+    focusCfg.shakeTime = 1.5
+    eq("震動秒數：回設定的秒數", FC.PlayShake(h.shake), 1.5)
+    n, total = Steps(h.shake)
+    check("震動秒數：1.5 秒 ⇒ 30 段", n == 30 and math.abs(total - 1.5) < 1e-9, n .. " " .. total)
+    focusCfg.shakeTime = 9
+    eq("震動秒數：夾在上限", FC.PlayShake(h.shake), 3)
+    focusCfg.shakeTime = nil
 end
 
 ------------------------------------------------------------

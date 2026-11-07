@@ -28,9 +28,9 @@
 -- 可斷法發光（glowKick，使用者 2026-11-07）：專注目標在唱「可以斷」的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）。
 -- 可不可以斷在受限內容是秘密布林 ⇒ 發光整段開著、掛在自己的宿主框上，布林只餵宿主的 alpha（同重要法術發光）。
 --
--- 開唱震動（shakeMode，預設 off）：
+-- 開唱震動（shakeMode，預設 kick；秒數 shakeTime，預設 2）：
 --   always  每次開唱都震——不分可不可以斷，直接震本尊，沒有秘密值的事
---   kick    只震可以斷的施法（2026-11-06 做過、撤回、11-07 留成選項、11-08 使用者實機驗過：管用）：位移（Translation:SetOffset／SetPoint／
+--   kick    只震可以斷的施法（預設；2026-11-06 做過、撤回、11-07 留成選項、11-08 使用者實機驗過改成預設）：位移（Translation:SetOffset／SetPoint／
 --           SetScale）全部不收秘密值、只有 alpha 收 ⇒「要不要震」沒辦法在 Lua 挑。做法是「!」版名字那一招放大到整條：
 --           多建一條一模一樣的分身（h.twin），震動掛在分身上、每次開唱都播，本尊與分身的 alpha 餵同一個布林、互補
 -- 細節在下面「開唱震動」那一節。
@@ -186,22 +186,56 @@ local function BuildParts(h)
     h.glowHosts = {}
 end
 
--- 震動的動畫組：每 0.05 秒跳一次、六段位移加總歸零（Translation 只動畫面上的位置，不改錨點）。
--- 比玩家施法條被打斷的那一下（Modules/Castbar.lua）大一點、沒有前面的停頓：這是要人注意，不是事後回饋
-local SHAKE_STEPS = { { -2, 1 }, { 3, -2 }, { -2, 2 }, { 2, -2 }, { -2, 1 }, { 1, 0 } }
-local SHAKE_STEP = 0.05
-local SHAKE_TIME = #SHAKE_STEPS * SHAKE_STEP
+-- 震動的動畫組：每 0.05 秒跳一次、六段一組的位移反覆（Translation 只動畫面上的位置，不改錨點，播完自己歸位）。
+-- 比玩家施法條被打斷的那一下（Modules/Castbar.lua）大一點、沒有前面的停頓：這是要人注意，不是事後回饋。
+-- 秒數可調（shakeTime，0.1～3 秒、預設 2）：動畫組刪不掉也不能增減段數 ⇒ 一次建滿 3 秒的段數，PlayShake 照秒數
+-- 把用到的段配上位移與 0.05 秒、用不到的設成 0 秒（新建的動畫本來就是 0 秒）
+local SHAKE_PATTERN = { { -2, 1 }, { 3, -2 }, { -2, 2 }, { 2, -2 }, { -2, 1 }, { 1, 0 } }
+local SHAKE_STEP, SHAKE_MIN, SHAKE_MAX, SHAKE_DEFAULT = 0.05, 0.1, 3, 2
+local SHAKE_SLOTS = math.floor(SHAKE_MAX / SHAKE_STEP + 0.5)
+FC.SHAKE_MIN, FC.SHAKE_MAX, FC.SHAKE_DEFAULT = SHAKE_MIN, SHAKE_MAX, SHAKE_DEFAULT
 
 local function MakeShake(h)
     local group = h:CreateAnimationGroup()
-    for i, s in ipairs(SHAKE_STEPS) do
+    group.steps = {}
+    for i = 1, SHAKE_SLOTS do
         local t = group:CreateAnimation("Translation")
-        t:SetOffset(s[1], s[2])
-        t:SetDuration(SHAKE_STEP)
         t:SetOrder(i)
+        group.steps[i] = t
     end
     return group
 end
+
+local function ShakeTime()
+    local t = tonumber((Cfg() or {}).shakeTime) or SHAKE_DEFAULT
+    if t < SHAKE_MIN then t = SHAKE_MIN elseif t > SHAKE_MAX then t = SHAKE_MAX end
+    return t
+end
+FC.ShakeTime = ShakeTime
+
+-- 照設定的秒數配好每一段，從頭播。回傳這次的長度（秒）
+local function PlayShake(group)
+    local secs = ShakeTime()
+    group:Stop()
+    if group.secs ~= secs then
+        local n = math.floor(secs / SHAKE_STEP + 0.5)
+        if n < 1 then n = 1 elseif n > SHAKE_SLOTS then n = SHAKE_SLOTS end
+        for i, t in ipairs(group.steps) do
+            if i <= n then
+                local p = SHAKE_PATTERN[(i - 1) % #SHAKE_PATTERN + 1]
+                t:SetOffset(p[1], p[2])
+                t:SetDuration(SHAKE_STEP)
+            else
+                t:SetOffset(0, 0)
+                t:SetDuration(0)
+            end
+        end
+        group.secs = secs
+    end
+    group:Play()
+    return secs
+end
+FC.PlayShake = PlayShake
 
 -- 震動用的分身：h 的兄弟框（不是子框：本尊 alpha 0 時分身要看得到）、疊在同一個位置、零件是同一支 BuildParts。
 -- 平常藏著，只在開唱後的那 0.3 秒顯示
@@ -596,7 +630,7 @@ end
 -- 所以：分身（h.twin，BuildTwin 建的）每次開唱都震，本尊不動；兩條的 alpha 餵同一個布林、互補
 --   可以斷   ⇒ 本尊 0、分身 1（看到在震的那條）
 --   不可中斷 ⇒ 本尊 1、分身 0（看到沒動的那條）
--- 震完（SHAKE_TIME）分身藏起來、本尊 alpha 設回 1。明文模式（脫戰、預覽）走同一條路，只是布林是明文；
+-- 震完（shakeTime 秒）分身藏起來、本尊 alpha 設回 1。明文模式（脫戰、預覽）走同一條路，只是布林是明文；
 -- 明文的「不可中斷」連分身都不開。
 --
 -- 三步，都收 h（畫面上那條）：
@@ -639,10 +673,7 @@ FC.ArmShakeOn = ArmShakeOn
 local function GoShakeOn(h, ni)
     if not h then return end
     if not h.twinOn then
-        if h.shake and ShakeMode() == "always" then      -- 每次開唱都震：本尊自己震
-            h.shake:Stop()
-            h.shake:Play()
-        end
+        if h.shake and ShakeMode() == "always" then PlayShake(h.shake) end      -- 每次開唱都震：本尊自己震
         return
     end
     local g = h.twin
@@ -657,9 +688,7 @@ local function GoShakeOn(h, ni)
         g:SetAlpha(1)
     end
     g:Show()
-    g.shake:Stop()
-    g.shake:Play()
-    h.shakeEnd = GetTime() + SHAKE_TIME + 0.1
+    h.shakeEnd = GetTime() + PlayShake(g.shake) + 0.1
 end
 FC.GoShakeOn = GoShakeOn
 
@@ -670,8 +699,7 @@ end
 -- 施法中途變成可以斷（UNIT_SPELLCAST_INTERRUPTIBLE，事件名稱是明文）：直接震本尊。分身還在震就不疊
 local function JoltOn(h)
     if h.twinOn or ShakeMode() == "off" then return end
-    h.shake:Stop()
-    h.shake:Play()
+    PlayShake(h.shake)
 end
 FC.JoltOn = JoltOn
 
@@ -1297,10 +1325,7 @@ function FC.CreateSample(parent)
     -- 分身那條路管不管用要到戰鬥中看
     function s:Jolt()
         local mode = ShakeMode()
-        if mode == "always" or (mode == "kick" and self.state ~= "immune") then
-            self.shake:Stop()
-            self.shake:Play()
-        end
+        if mode == "always" or (mode == "kick" and self.state ~= "immune") then PlayShake(self.shake) end
     end
 
     function s:Refresh(maxW)

@@ -96,8 +96,11 @@ local function BuildDefaults()
             glowKick      = true,
             kickGlowStyle = "halo",    -- halo 光暈／sweep 流光／pulse 脈衝
             colorKickGlow = Color(0.3, 0.85, 1),   -- 冷色：跟金／橘的條身、黃色的重要法術發光都分得開
-            -- 每次開唱整條震一下（不分可不可以斷；2026-11-07 使用者指定預設關）
-            shakeOnCast   = false,
+            -- 開唱震動：off | always 每次開唱都震 | kick 只震可以斷的施法（分身＋互補 alpha，做法同冷卻管理器那條）。
+            -- 11-07 那版是布林 shakeOnCast（預設關、只有「每次都震」）；11-08 使用者實機驗過冷卻管理器的 kick 之後改成
+            -- 跟那邊一樣：預設 kick、秒數可調、預設 2 秒。存檔裡留著的 shakeOnCast 沒人讀
+            shakeMode     = "kick",
+            shakeTime     = 2,
             -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色。
             -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號（2026-10-19 使用者指定）
             showTarget       = true,
