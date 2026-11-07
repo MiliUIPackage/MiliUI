@@ -30,7 +30,7 @@
 --
 -- 開唱震動（shakeMode，預設 off）：
 --   always  每次開唱都震——不分可不可以斷，直接震本尊，沒有秘密值的事
---   kick    只震可以斷的施法（**實驗性**，2026-11-06 做過、撤回、使用者要留著測）：位移（Translation:SetOffset／SetPoint／
+--   kick    只震可以斷的施法（2026-11-06 做過、撤回、11-07 留成選項、11-08 使用者實機驗過：管用）：位移（Translation:SetOffset／SetPoint／
 --           SetScale）全部不收秘密值、只有 alpha 收 ⇒「要不要震」沒辦法在 Lua 挑。做法是「!」版名字那一招放大到整條：
 --           多建一條一模一樣的分身（h.twin），震動掛在分身上、每次開唱都播，本尊與分身的 alpha 餵同一個布林、互補
 -- 細節在下面「開唱震動」那一節。
@@ -589,7 +589,7 @@ end
 ------------------------------------------------------------
 -- 開唱震動（shakeMode：off／always／kick）
 --
--- always：每次開唱直接震本尊（h.shake），不分可不可以斷。以下講的都是 kick（只震可以斷的施法，實驗性）。
+-- always：每次開唱直接震本尊（h.shake），不分可不可以斷。以下講的都是 kick（只震可以斷的施法）。
 --
 -- 「這個法術可不可以斷」（ni）在受限內容是秘密布林。位移類的 API（Translation:SetOffset、SetPoint、SetScale）
 -- 的 SecretArguments 都是 AllowedWhenUntainted ⇒ 插件餵不進秘密值，沒辦法「可斷才位移」；收秘密布林的只有 alpha。

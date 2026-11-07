@@ -5,7 +5,7 @@
 -- 動畫材質的「播放動畫／速度」跟施法條頁一樣（FxRows；只在材質是動畫材質時出現），
 -- 多了三態顏色（可斷法：斷法就緒／斷法冷卻中、不可中斷）、重要法術（發光＋「!」）、被打斷時印斷法者。
 -- 頁首一顆「預覽」：跑一條十秒的假施法（當重要法術），再按一次停。「材質」上方另有一條內嵌的樣本條＋六顆狀態按鈕（SampleRow）。
--- 「可斷法的施法」小節（2026-11-07）：可斷法發光（開關、三款特效、顏色）＋開唱震動（不震／每次／只震可斷的），
+-- 「可斷法的施法」小節（2026-11-07）：可斷法發光（開關、三款特效、顏色）＋開唱震動（不震／每次／只震可斷的，後者 11-08 實機驗過），
 -- 特效下拉上方再一條樣本條（KickSampleRow：可以斷、不標重要法術，只看這一節的效果）。
 ------------------------------------------------------------
 local _, ns = ...
@@ -59,7 +59,7 @@ local KICK_GLOW_ITEMS = {
 local SHAKE_ITEMS = {
     { text = L["Off"],                                      value = "off" },
     { text = L["Every cast"],                               value = "always" },
-    { text = L["Interruptible casts only (experimental)"], value = "kick" },
+    { text = L["Interruptible casts only"], value = "kick" },
 }
 
 local GLOW_ITEMS = {
@@ -225,7 +225,7 @@ local function Controls()
         BS("dropdown", "kickGlowStyle", L["Glow effect"], { items = KICK_GLOW_ITEMS }),
         BS("color", "colors.kickGlow", L["Glow color"], { hasAlpha = false }),
         BS("dropdown", "shakeMode", L["Cast start shake"], { items = SHAKE_ITEMS }),
-        Note(L["The bar gives a short shake when your focus starts casting. \"Interruptible casts only\" is experimental: in combat it swaps in a hidden copy of the bar for a moment, so switch back if the bar flickers or vanishes when a cast starts."]),
+        Note(L["The bar gives a short shake when your focus starts casting, or when a cast becomes interruptible midway."]),
         { type = "header", label = L["Icon"] },
         BS("toggle", "showIcon", L["Show icon"]),
         BS("dropdown", "iconSide", L["Icon position"], { items = SIDE_ITEMS }),
