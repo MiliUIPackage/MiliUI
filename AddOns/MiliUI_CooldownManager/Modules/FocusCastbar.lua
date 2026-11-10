@@ -912,7 +912,8 @@ local function EndFade()
     S.displayToken = S.displayToken + 1
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f.spark:Hide()
-    CB().Fx.Stop(f)
+    -- 效果層不收（收條才收，HideBar）：邊淡出邊照播；被打斷的那條已經凍結＋染色（PaintInterruptedOn）。
+    -- 這裡 Stop 的話貼圖座標歸零、露出靜態填充，圖案跳回起點閃一下（2026-11-10）
     StopGlow()
     StopKickGlowOn(f)
     f.timeText:SetText("")
@@ -926,7 +927,10 @@ end
 -- who ＝ 斷法者的名字（nil ＝ 不印；可能是秘密字串）、class ＝ 職業 token（秘密字串就維持白字）
 local function PaintInterruptedOn(h, who, class)
     h.spark:Hide()
-    CB().Fx.Stop(h)                            -- 滿條的打斷色要露出來
+    if h.fxOn then                             -- 效果層凍結在當下、整層染上打斷色（不收：收了圖案會跳回起點）
+        CB().Fx.Pause(h)
+        CB().Fx.Tint(h, C(Colors().interrupted, 1, 0.204, 0.145))
+    end
     StopGlowOn(h)                              -- 施法已經斷了，紅條不再標重要
     StopKickGlowOn(h)                          -- 也沒有東西可以斷了
     h.bar:SetMinMaxValues(0, 1)

@@ -539,6 +539,16 @@ local function FxStop(h)
     h.flowClip:Hide()
 end
 
+-- 凍結：動畫停在當下那一格、整層照樣顯示。**收條前的過場（唱完的淡出、打斷的停留）用這支或乾脆照播，不要用 FxStop**——
+-- Stop 會把貼圖座標歸零、再把層藏起來露出底下那張不會動的靜態填充，圖案的位置跟動畫當下不一樣，
+-- 淡出那 0.3 秒看起來就是「跳回第一格閃一下」（2026-11-10 使用者回報）。Play 會從凍結的地方接著播
+local function FxPause(h)
+    for _, L in ipairs(h.fxActive) do
+        L.group:Pause()
+        if L.tw and L.twGroup then L.twGroup:Pause() end
+    end
+end
+
 local function StopFlow()
     if not f.flowClip then return end
     FxStop(f)
@@ -566,7 +576,7 @@ end
 
 -- 效果層給專注目標施法條（Modules/FocusCastbar.lua）共用：同一套貼圖池、同一套畫法，宿主各一份（CB.FxHost）
 CB.Fx = { Wanted = FxWanted, Setup = FxSetup, HideAll = FxHideAll, Anchor = FxAnchor,
-          Play = FxPlay, Stop = FxStop, Alpha = FlowAlpha, Tint = FxTint }
+          Play = FxPlay, Stop = FxStop, Pause = FxPause, Alpha = FlowAlpha, Tint = FxTint }
 
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
@@ -904,7 +914,10 @@ end
 local function ShowSparkOn(h, st)
     local cfg = Cfg() or {}
     h.spark:SetShown(cfg.showSpark ~= false)
-    if st.flow then FxPlay(h) end
+    if st.flow then
+        FxTint(h, 1, 1, 1)                -- 上一條被打斷／失敗時染過打斷色（ShowInterrupted／EndFade），新的一條洗回圖自己的顏色
+        FxPlay(h)
+    end
 end
 local function ShowSpark() ShowSparkOn(f, S) end
 
@@ -958,11 +971,15 @@ local function EndFade(color, label)
     S.displayToken = S.displayToken + 1
     if S.ticker then S.ticker:Cancel(); S.ticker = nil end
     f.spark:Hide()
-    StopFlow()
     f.latency:Hide()
+    -- 效果層不收（收條才收，HideBar）：唱完 ⇒ 邊淡出邊照播；帶顏色的（失敗）⇒ 凍結在當下、整層染上那個顏色
     if color then
         local tex = f.bar:GetStatusBarTexture()
         if tex then tex:SetVertexColor(color.r, color.g, color.b, 1) end
+        if S.flow then
+            FxPause(f)
+            FxTint(f, color.r, color.g, color.b)
+        end
     end
     if label then f.nameText:SetText(label) end
     f.timeText:SetText("")
@@ -982,12 +999,16 @@ local function ShowInterrupted()
     f:SetScript("OnUpdate", nil)
     ClearMarks()
     f.spark:Hide()
-    StopFlow()
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(1)
     local c = Colors().interrupted
     local tex = f.bar:GetStatusBarTexture()
     if tex then tex:SetVertexColor(C(c, 1, 0.204, 0.145)) end
+    -- 效果層凍結在當下、整層染上打斷色（不收：收了會露出靜態填充，圖案跳回起點）
+    if S.flow then
+        FxPause(f)
+        FxTint(f, C(c, 1, 0.204, 0.145))
+    end
     f.nameText:SetText(L["Interrupted"])
     f.timeText:SetText("")
     Shake()

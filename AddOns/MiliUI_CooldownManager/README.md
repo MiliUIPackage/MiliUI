@@ -2640,7 +2640,11 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
     極光 ＝ 夜空 40 秒＋兩道光幕 14／9 秒（加亮）。
   狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
   （各管一個布林；秘密布林餵 `SetAlphaFromBoolean(flag, 0, 1)`、明文直接 `SetAlpha`），底下填充照 `ApplyColor` 的顏色。
-  層級：條 L+1 → 效果層 L+2 → 刻度 L+3（火花搬到這層，才不會被效果層蓋掉半邊）→ 文字 L+4。打斷／失敗／收條停動畫藏層。
+  層級：條 L+1 → 效果層 L+2 → 刻度 L+3（火花搬到這層，才不會被效果層蓋掉半邊）→ 文字 L+4。
+  **收條前的過場不收效果層**（2026-11-10 使用者回報「唱完、中斷的瞬間圖案跳回第一格、有閃爍感」）：`FxStop` 會把貼圖座標歸零、再把層藏起來，
+  露出底下那張不會動的靜態填充，圖案位置跟動畫當下不同 ⇒ 淡出那 0.3 秒像跳回起點。改成：唱完 ⇒ 邊淡出邊照播；被打斷／失敗 ⇒ `FxPause`
+  凍結在當下、`FxTint` 整層染上打斷色（下一條開唱時 `ShowSparkOn` 洗回白）；真的收條（`HideBar`）才 `FxStop`。專注目標施法條同一套
+  （`EndFade` 不收、`PaintInterruptedOn` 凍結＋染色）。**待實機**：`Pause` 之後 `Play` 是不是從凍結處接著播、凍結時貼圖座標有沒有留在原位。
   ⚠ **`CreateAnimation` 的型別名是 `"TextureCoord"`**，不是 XML 標籤的 `"TextureCoordTranslation"`：給後者客戶端不報錯、回一個一般 Animation，
   `SetOffset` 是 nil（2026-11-04 實機：Layout 炸 attempt to call a nil value、流動層從沒動過）。程式兩個名字都試、拿到有 `SetOffset` 的才用，
   都建不出來就整層不用。

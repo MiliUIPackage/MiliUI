@@ -65,7 +65,9 @@ local function Method(k)
     elseif k == "Play" then
         return function(self) self._playing = true end
     elseif k == "Stop" then
-        return function(self) self._playing = false end
+        return function(self) self._playing = false; self._paused = nil end
+    elseif k == "Pause" then
+        return function(self) self._playing = false; self._paused = true end
     elseif k == "SetAlphaFromBoolean" then
         return function(self, flag, a, b) self._set.SetAlpha = { flag and a or b } end
     elseif k:match("^Set") or k:match("^Clear") or k:match("^Enable") or k:match("^Register") or k == "HookScript" then
@@ -331,8 +333,10 @@ do
     eq("專注樣本：不可中斷 ⇒ 效果層染不可中斷色", Tint(1), "0,0,1,1")
     eq("專注樣本：不可中斷 ⇒ 動畫照播", s.fxActive[1].group._playing, true)
     s.state = "interrupted"; s:Paint()
-    eq("專注樣本：被打斷 ⇒ 動畫停", s.fxActive[1].group._playing, false)
-    eq("專注樣本：被打斷 ⇒ 效果層收起來", s.flowClip._shown, false)
+    -- 被打斷：凍結在當下（Pause，不是 Stop——Stop 會把貼圖座標歸零、圖案跳回起點）、層照樣顯示、整層染打斷色
+    check("專注樣本：被打斷 ⇒ 動畫凍結", s.fxActive[1].group._playing == false and s.fxActive[1].group._paused == true)
+    check("專注樣本：被打斷 ⇒ 效果層不收", s.flowClip._shown ~= false)
+    eq("專注樣本：被打斷 ⇒ 效果層染打斷色", Tint(1), Fill(s.bar) .. ",1")
     s.state = "cd"; s:Paint()
     eq("專注樣本：離開打斷 ⇒ 動畫接著播", s.fxActive[1].group._playing, true)
     focusCfg.animate = false
