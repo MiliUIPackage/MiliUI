@@ -256,6 +256,7 @@ do
     eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[4].text .. "|" .. own[7].text, "米利UI: 宇宙星辰|米利UI: 火焰")
     eq("材質下拉：第二批也照名冊順序", own[8].text .. "|" .. own[10].text .. "|" .. own[14].text, "米利UI: 櫻花|米利UI: 天燈|米利UI: 極光")
     eq("材質下拉：第三批也照名冊順序", own[15].text .. "|" .. own[18].text .. "|" .. own[19].text, "米利UI: 紅葉|米利UI: 夜市霓虹|米利UI: 藍白拖")
+    eq("材質下拉：台灣藍鵲排最後", own[20].text, "米利UI: 台灣藍鵲")
     eq("材質下拉：第一項是套組預設、顯示中文名", own[1].text .. "|" .. own[1].value, "米利UI: 緞面|MiliUI Satin")
     eq("材質下拉：其餘 LSM 接在後面", rest[1].value, "Melli")
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
@@ -288,7 +289,7 @@ do
         if fh then fh:close() return true end
         return false
     end
-    eq("動畫材質：十八款", #M.FX_ORDER, 18)
+    eq("動畫材質：十九款", #M.FX_ORDER, 19)
     for _, name in ipairs(M.FX_ORDER) do
         local fx = M.FX[name]
         check("動畫材質 " .. name .. "：有登記、名字帶前綴", type(fx) == "table" and name:find("^MiliUI ") ~= nil)
@@ -336,6 +337,14 @@ do
     end
     check("錦鯉水波：魚是一般混色、夾在兩層光網之間", M.FX["MiliUI Koi Pond"].layers[3].blend == nil
         and M.FX["MiliUI Koi Pond"].layers[2].blend == "ADD" and M.FX["MiliUI Koi Pond"].layers[4].blend == "ADD")
+    do
+        -- 台灣藍鵲：四層視差，越近捲越快；鳥夾在中山與近山之間（才會被近山的稜線擋住）
+        local mg = M.FX["MiliUI Blue Magpie"].layers
+        check("台灣藍鵲：天空 → 中山 → 鳥 → 近山", #mg == 4 and mg[1].tex:find("sky", 1, true) and mg[2].tex:find("ridge-mid", 1, true)
+            and mg[3].tex:find("birds", 1, true) and mg[4].tex:find("ridge-near", 1, true) and true or false)
+        check("台灣藍鵲：山越近捲越快、鳥最快", mg[1].period > mg[2].period and mg[2].period > mg[4].period and mg[4].period > mg[3].period)
+        check("台灣藍鵲：判定", M.IsFx("MiliUI Blue Magpie"))
+    end
     check("動畫材質：第三批五款的判定", M.IsFx("MiliUI Momiji") and M.IsFx("MiliUI Fireflies") and M.IsFx("MiliUI Koi Pond")
         and M.IsFx("MiliUI Night Market") and M.IsFx("MiliUI Flip Flops"))
     check("靜態那張不是底圖的（疊好的一張）：櫻花／天燈／珍珠奶茶／極光",

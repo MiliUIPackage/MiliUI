@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""MiliUI_CooldownManager 施法條動畫材質第二、三批的貼圖：Media/fx-*.png，四十二張一次產。
-第二批 ＝ 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光（二十張）；第三批 ＝ 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖（二十二張）。
+"""MiliUI_CooldownManager 施法條動畫材質第二、三批的貼圖：Media/fx-*.png，四十七張一次產。
+第二批 ＝ 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光（二十張）；第三批 ＝ 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖／台灣藍鵲（二十七張）。
 
 全部自己算、固定亂數種子、不帶別人的檔。七款都只用捲動的層（沒有序列圖）；花瓣、天燈、氣泡那幾張上下也接得起來
 （引擎的捲動層可以帶直向分量 vy）。形狀（花瓣、天燈、牡丹、花磚、珍珠）用 Pillow 以 4 倍超取樣畫再縮回來。
@@ -613,6 +613,114 @@ for i in range(n_pairs):
 a = np.asarray(down(c).convert("RGB"), dtype=float)
 save(a * (0.93 + 0.08 * yb)[..., None], "fx-slipper-base.png")
 
+
+# ═════════ 台灣藍鵲（2026-11-11）：一列藍鵲飛過山嵐——天空＋遠山、中山、鳥、近山四層視差 ═════════
+rng = np.random.default_rng(33001); pr = random.Random(33001)
+
+
+def _mn(feat, octv=3):
+    return fbm((W,), (feat,), rng, octv)
+
+
+def _ridge(base, amp, feat, sharp=0.5, bumps=0.0):
+    """山稜線的 y（每個 x 一個值）：平滑起伏混一點尖峰，bumps ＝ 樹冠的小顆粒"""
+    n = _mn(feat)
+    pk = 1 - np.abs(2 * _mn(feat * 0.6) - 1)
+    line = base - amp * ((n - 0.5) * 2 * (1 - sharp) + (pk - 0.5) * 2 * sharp)
+    if bumps:
+        line = line - bumps * (_mn(2.6, 2) - 0.5) * 2
+    return line
+
+
+def _hill(line, top_col, low_col, fade, rim=None):
+    """稜線以下塗色：頂端 top_col、往下 fade 個像素漸到 low_col（山腳的霧）。回傳 RGBA 陣列"""
+    depth = Y - line[None, :]
+    al = np.clip(depth + 0.5, 0, 1)
+    k = np.clip(depth / fade, 0, 1)[..., None]
+    col = np.array(top_col, dtype=float) * (1 - k) + np.array(low_col, dtype=float) * k
+    if rim:
+        r = np.clip(1 - np.abs(depth - 0.6) / 0.9, 0, 1)[..., None] * 0.55
+        col = col * (1 - r) + np.array(rim, dtype=float) * r
+    return np.dstack([col, al * 255])
+
+
+def _over(dst, src):
+    a = src[..., 3:4] / 255
+    return dst * (1 - a) + src[..., :3] * a
+
+
+# 天空（晨光）＋ 最遠的山影 ＋ 山嵐
+sky = ramp(T01, [(0, (252, 230, 200)), (0.45, (226, 228, 226)), (1, (196, 216, 224))])
+dx = (X - 380 + W / 2) % W - W / 2
+sky += (np.exp(-(dx * dx / 2400 + (Y - 6) ** 2 / 60)) * 26)[..., None] * np.array([1.0, 0.8, 0.5])       # 太陽那邊暖一點
+sky = _over(sky, _hill(_ridge(11, 5.5, 70, 0.55), (150, 176, 200), (212, 224, 230), 12))
+sky = _over(sky, _hill(_ridge(15, 4.5, 46, 0.45), (112, 150, 170), (200, 218, 222), 11))
+mist = np.clip(fbm((H, W), (7, 90), rng, 2) - 0.45, 0, 1) * 2.2 * np.clip((yy - 10) / 14, 0, 1)
+sky = sky * (1 - mist[..., None] * 0.5) + np.array([238, 242, 240.0]) * (mist[..., None] * 0.5)
+save(sky, "fx-magpie-sky.png")
+mid = _hill(_ridge(20, 4.5, 34, 0.4, 0.5), (56, 108, 108), (150, 192, 186), 12, rim=(120, 170, 160))
+save(mid, "fx-magpie-ridge-mid.png")
+near = _hill(_ridge(26.5, 3.2, 22, 0.3, 1.1), (20, 60, 50), (34, 82, 66), 8, rim=(70, 120, 92))
+save(near, "fx-magpie-ridge-near.png")
+
+BLUE, BLUE_D, BLUE_L = (40, 100, 224), (24, 68, 178), (72, 134, 240)
+BLACK, WHITE, RED = (18, 18, 26), (248, 250, 252), (230, 50, 40)
+
+
+def bird(scale, pose):
+    s = SS * scale
+    im = Image.new("RGBA", (int(52 * s), int(28 * s)), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    bx, by = 35 * s, 14 * s
+
+    def P(*pts):
+        return [(bx + x * s, by + y * s) for x, y in pts]
+
+    def tail(x0, y0, x1, y1, w0, w1):
+        segs = [(0.0, 0.74, BLUE), (0.74, 0.86, BLACK), (0.86, 1.0, WHITE)]
+        ln = math.hypot(x1 - x0, y1 - y0)
+        nx, ny = -(y1 - y0) / ln, (x1 - x0) / ln
+        for t0, t1, col in segs:
+            pts = []
+            for t in (t0, t1):
+                w = w0 + (w1 - w0) * t
+                cx_, cy_ = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+                pts.append((cx_, cy_, w))
+            (ax, ay, aw), (cx2, cy2, cw) = pts
+            d.polygon(P((ax + nx * aw, ay + ny * aw), (cx2 + nx * cw, cy2 + ny * cw), (cx2 - nx * cw, cy2 - ny * cw), (ax - nx * aw, ay - ny * aw)), fill=col + (255,))
+        d.ellipse([bx + (x1 - w1) * s, by + (y1 - w1) * s, bx + (x1 + w1) * s, by + (y1 + w1) * s], fill=WHITE + (255,))     # 圓的白羽尖
+
+    droop = {"up": 2.2, "glide": 1.2, "down": 0.4}[pose]
+    tail(-4.5, 0.9, -22, 2.4 + droop, 0.9, 1.25)                 # 外側短尾羽（在後面）
+    tail(-5, 0.2, -31, 1.0 + droop, 1.0, 1.55)                   # 中央長尾羽
+    wings = {"up":    (((2.4, -1.4), (-2.6, -11.0), (-8.0, -7.4), (-4.2, -0.4)), ((3.6, -0.8), (-0.6, -12.0), (-6.4, -6.6), (-3.0, 0.6))),
+             "glide": (((2.4, -1.4), (-7.5, -7.2), (-11.5, -3.6), (-4.2, -0.4)), ((3.6, -0.8), (-6.0, -8.4), (-10.5, -3.2), (-3.0, 0.8))),
+             "down":  (((2.4, 0.6), (-3.4, 8.4), (-8.4, 5.6), (-4.2, 0.8)), ((3.4, 0.2), (-1.6, 9.6), (-7.0, 5.4), (-3.0, 1.0)))}[pose]
+    d.polygon(P(*wings[0]), fill=BLUE_D + (255,))                # 後面那片翅膀
+    d.ellipse([bx - 6.2 * s, by - 2.9 * s, bx + 6.2 * s, by + 2.9 * s], fill=BLUE + (255,))                     # 身體
+    d.ellipse([bx - 4.5 * s, by + 0.2 * s, bx + 3.5 * s, by + 2.7 * s], fill=BLUE_L + (255,))                   # 腹部亮一點
+    d.ellipse([bx + 2.2 * s, by - 3.0 * s, bx + 7.4 * s, by + 2.2 * s], fill=BLACK + (255,))                    # 黑色的胸
+    d.ellipse([bx + 3.9 * s, by - 4.2 * s, bx + 9.3 * s, by + 1.2 * s], fill=BLACK + (255,))                    # 頭
+    d.polygon(P((8.6, -2.5), (12.6, -1.1), (8.6, -0.2)), fill=RED + (255,))                                     # 紅嘴
+    d.ellipse([bx + 6.9 * s, by - 2.6 * s, bx + 8.0 * s, by - 1.5 * s], fill=(246, 222, 80, 255))               # 黃眼
+    d.line(P((-1.2, 2.5), (-3.8, 3.7)), fill=RED + (255,), width=max(1, int(0.7 * s)))                          # 紅腳收在腹下
+    d.polygon(P(*wings[1]), fill=BLUE_L + (255,))                # 前面那片翅膀
+    tip = wings[1][1]
+    d.polygon(P(tip, (tip[0] - 1.6, tip[1] + 1.2), (tip[0] + 0.6, tip[1] + 1.6)), fill=WHITE + (255,))          # 翼尖一點白
+    return im
+
+
+c = canvas()
+poses = ["up", "glide", "down", "glide", "up", "down", "glide"]
+x = 34.0
+i = 0
+while x < W - 30:
+    pose = poses[i % len(poses)]
+    y = pr.uniform(13.5, 17.0) if pose != "down" else pr.uniform(10.0, 13.0)
+    stamp(c, bird(pr.uniform(0.84, 0.98), pose).rotate(pr.uniform(-5, 5), resample=Image.BICUBIC, expand=True), x * SS, y * SS, wrap_y=False)
+    x += pr.uniform(64, 84); i += 1
+save(down(c, (40, 100, 224)), "fx-magpie-birds.png")
+
 # ═════════ 靜態那張（當一般長條的填充、登記進 LSM）：把幾層疊成一張 ═════════
 def _load(name):
     return np.asarray(Image.open(os.path.join(OUT, name)).convert("RGBA"), dtype=float)
@@ -640,3 +748,4 @@ _static("fx-momiji-static.png", [("fx-momiji-base.png", "", 1), ("fx-momiji-leav
 _static("fx-firefly-static.png", [("fx-firefly-night.png", "", 1), ("fx-firefly-a.png", "add", 1), ("fx-firefly-b.png", "add", 0.9), ("fx-firefly-c.png", "add", 1)])
 _static("fx-koi-static.png", [("fx-koi-water.png", "", 1), ("fx-koi-caustic-a.png", "add", 0.8), ("fx-koi-fish.png", "blend", 1), ("fx-koi-caustic-b.png", "add", 0.7)])
 _static("fx-neon-static.png", [("fx-neon-wall.png", "", 1), ("fx-neon-signs-a.png", "add", 1), ("fx-neon-signs-b.png", "add", 1), ("fx-neon-bulbs.png", "add", 1)])
+_static("fx-magpie-static.png", [("fx-magpie-sky.png", "", 1), ("fx-magpie-ridge-mid.png", "blend", 1), ("fx-magpie-birds.png", "blend", 1), ("fx-magpie-ridge-near.png", "blend", 1)])

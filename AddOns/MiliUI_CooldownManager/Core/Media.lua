@@ -55,9 +55,9 @@ M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
 -- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光，
--- 同日第三批 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖；
+-- 同日第三批 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖、11-11 台灣藍鵲；
 -- 玩家問「施法條能不能多點皮膚」）。貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、
--- 其餘是 miliui-cdm-castbar-fx（fx.py 第一批四款、fx_themes.py 第二批七款與第三批五款）。
+-- 其餘是 miliui-cdm-castbar-fx（fx.py 第一批四款、fx_themes.py 第二批七款與第三批六款）。
 --   tex     靜態那張：當 StatusBar 填充（進度前進時逐段露出），也是登記進 LSM 的那張 ⇒ 本插件所有長條的材質下拉都選得到
 --   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；玩家施法條與專注目標施法條都做，後者借 ns.Castbar.Fx），由下往上：
 --     kind = "scroll"  整條寬、REPEAT 平鋪，貼圖座標動畫橫向捲，period 秒捲完一輪（貼圖兩端要接得起來）；
@@ -168,11 +168,20 @@ M.FX = {
     ["MiliUI Flip Flops"] = { tex = MEDIA .. "fx-slipper-base.png", layers = {
         { kind = "scroll", tex = MEDIA .. "fx-slipper-base.png", period = 22 },
     } },
+    -- 台灣藍鵲：一列藍鵲飛過晨霧裡的山。天空＋遠山 → 中山 → 鳥 → 近山，越近捲越快；鳥夾在中山與近山之間 ⇒ 會被近山的稜線擋住一點
+    -- （鳥頭朝填充方向；反向填充時鳥會倒著飛，同錦鯉）
+    ["MiliUI Blue Magpie"] = { tex = MEDIA .. "fx-magpie-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-magpie-sky.png", period = 44 },
+        { kind = "scroll", tex = MEDIA .. "fx-magpie-ridge-mid.png", period = 26 },
+        { kind = "scroll", tex = MEDIA .. "fx-magpie-birds.png", period = 9 },
+        { kind = "scroll", tex = MEDIA .. "fx-magpie-ridge-near.png", period = 15 },
+    } },
 }
 M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame",
                "MiliUI Sakura", "MiliUI Seigaiha", "MiliUI Sky Lantern", "MiliUI Hakka Floral", "MiliUI Majolica Tile",
                "MiliUI Bubble Tea", "MiliUI Aurora",
-               "MiliUI Momiji", "MiliUI Fireflies", "MiliUI Koi Pond", "MiliUI Night Market", "MiliUI Flip Flops" }
+               "MiliUI Momiji", "MiliUI Fireflies", "MiliUI Koi Pond", "MiliUI Night Market", "MiliUI Flip Flops",
+               "MiliUI Blue Magpie" }
 
 -- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
 -- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加

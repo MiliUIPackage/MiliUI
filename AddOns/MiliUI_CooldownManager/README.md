@@ -2613,14 +2613,14 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   填充用遊戲內建施法條的圖集 `UI-CastingBar-Filling-Standard`（`SetStatusBarTexture` 收圖集名；`C_Texture.GetAtlasInfo` 查不到就退回純色、
   `SetStatusBarTexture` 失敗退回貼圖 `SetAtlas`）、**去飽和**，顏色照原本的上色流程（施法／引導／不可打斷／斷法就緒／蓄力都是對填充貼圖
   `SetVertexColor`）。一般施法與引導同一張，不依不可打斷換圖（秘密布林）。換材質後火花照舊在 `SetStatusBarTexture` 之後重下錨點；底色照 `bgColor`。
-- **動畫材質**（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 日式與台灣主題兩批共十二款；玩家問「施法條能不能多點皮膚」）：`Core/Media.lua` 的 `M.FX` 十八款
+- **動畫材質**（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 日式與台灣主題兩批共十二款；玩家問「施法條能不能多點皮膚」）：`Core/Media.lua` 的 `M.FX` 十九款
   （「MiliUI Rainbow」「MiliUI Rainbow Soft」「MiliUI Cosmos」「MiliUI Lightning」「MiliUI Lava」「MiliUI Flame」，以及第二批
   「MiliUI Sakura」櫻花、「MiliUI Seigaiha」青海波、「MiliUI Sky Lantern」天燈、「MiliUI Hakka Floral」客家花布、「MiliUI Majolica Tile」老花磚、
   「MiliUI Bubble Tea」珍珠奶茶、「MiliUI Aurora」極光，第三批「MiliUI Momiji」紅葉、「MiliUI Fireflies」螢火蟲、「MiliUI Koi Pond」錦鯉水波、
-  「MiliUI Night Market」夜市霓虹、「MiliUI Flip Flops」藍白拖），貼圖全是腳本算的
+  「MiliUI Night Market」夜市霓虹、「MiliUI Flip Flops」藍白拖、「MiliUI Blue Magpie」台灣藍鵲），貼圖全是腳本算的
   （彩虹 ＝ 技能 `miliui-cdm-rainbow-texture`、其餘 ＝ `miliui-cdm-castbar-fx` 的 `fx.py`／`fx_themes.py`，`Media/miliui_rainbow*.png`／`Media/fx-*.png`；不帶 SharedMedia 那包沒授權檔的貼圖）。
   中文顯示名與下拉順序在套組名冊（`Libs/MiliUIMedia.lua`）。
-  每款一張靜態圖（`tex`；櫻花／天燈／珍珠奶茶／極光／紅葉／螢火蟲／錦鯉水波／夜市霓虹是把幾層疊好的 `-static` 那張）登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到；StatusBar 是裁切不是拉伸 ⇒ 進度前進時逐段露出。
+  每款一張靜態圖（`tex`；櫻花／天燈／珍珠奶茶／極光／紅葉／螢火蟲／錦鯉水波／夜市霓虹／台灣藍鵲是把幾層疊好的 `-static` 那張）登記進 LSM ⇒ 本插件所有長條的材質下拉都選得到；StatusBar 是裁切不是拉伸 ⇒ 進度前進時逐段露出。
   顏色烤在圖裡 ⇒ 選到時 `BaseColor` 回白（施法色／職業色不染），蓄力階色、斷法就緒、不可打斷、打斷照舊乘上去，上色流程沒改。專注目標施法條同樣白底。
   **效果層**（`animate`，預設開；`animSpeed` 速度倍率，預設 1；設定頁這兩列與說明**只在選到動畫材質時出現**，材質下拉帶 `refreshPage`）：
   StatusBar 自己管填充貼圖的座標、填充本身動不了 ⇒ 另外疊一層：裁切框 `f.flowClip`（`SetClipsChildren`）兩點錨在條的起點與**填充貼圖的前緣**
@@ -2644,7 +2644,9 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
     錦鯉水波 ＝ 池水 24 秒＋光網 13 秒＋魚 10 秒＋光網 8 秒（魚夾在兩層光網之間；魚頭朝填充方向，反向填充時魚會倒著游，沒有處理）；
     夜市霓虹 ＝ 暗牆／招牌 a／招牌 b（閃爍 0.45 秒）／燈泡（閃爍 0.6 秒）四層**同速 26 秒**（招牌才會釘在牆上），招牌字是烤在圖裡的繁體中文
     （夜市、雞排、珍奶、滷味、蚵仔煎、豆花、燒烤、芒果冰；用思源黑體畫，字型檔不在 repo 裡）；藍白拖 ＝ 磨石子地上一排拖鞋 22 秒（單層）。
-    沒做的：台灣藍鵲（第一版兩排尾羽質感不夠，使用者 11-10 說先不用或重畫）。
+    台灣藍鵲（11-11）＝ 天空＋遠山 44 秒 → 中山 26 秒 → 一列藍鵲 9 秒 → 近山 15 秒（四層視差；鳥夾在中山與近山之間，會被近山的稜線擋住一點；
+    鳥頭朝填充方向，反向填充時倒著飛）。第一版畫兩排尾羽的特寫，使用者說「先不用，或改一下讓他更有質感」——認得出是羽毛但看不出是藍鵲；
+    第二版改畫鳥本身（黑頭、紅嘴、鈷藍的身體、長尾的黑帶白尖，三種飛行姿勢）加山嵐，使用者看過草稿後接。
   狀態色要露出來時壓透明：不可打斷 → 裁切框 alpha、斷法就緒 → `f.flowHost` alpha
   （各管一個布林；秘密布林餵 `SetAlphaFromBoolean(flag, 0, 1)`、明文直接 `SetAlpha`），底下填充照 `ApplyColor` 的顏色。
   層級：條 L+1 → 效果層 L+2 → 刻度 L+3（火花搬到這層，才不會被效果層蓋掉半邊）→ 文字 L+4。
@@ -2658,6 +2660,7 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   **DB v15**：11-04 只有彩虹時的 `rainbowFlow`／`rainbowFlowSpeed`（一輪幾秒）搬成 `animate`／`animSpeed`（3 ÷ 秒數、貼齊 0.25、夾 0.25～3）。
   實機：2026-11-04 彩虹的預覽（明文模式）流動有跑；**2026-11-10 使用者確認四款新效果都正常**（加亮混色、亮星閃爍、電弧的停頓、火舌竄出條外、
   設定列的增減都對，序列圖開播沒有閃整張圖）。**還沒特別看過**：副本裡（秘密模式）裁切框錨在秘密尺寸的貼圖上有沒有照裁、不可打斷時效果層有沒有讓位。
+  **待實機**：第三批六款（紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖／台灣藍鵲）第一次進遊戲。
   **第二批七款：2026-11-10 使用者實機確認都正常**——直向捲動的方向對（`SetOffset(dir, -vy)`：花瓣往下、天燈與氣泡往上）、
   直向 REPEAT 沒有接縫、帶 alpha 的花瓣與珍珠沒有黑邊、淺色底（花磚、奶茶）上的字讀得到、波光不過曝。
   離線草稿（畫布照同一套規則合成）跟遊戲的差異：貼圖取樣與介面縮放。

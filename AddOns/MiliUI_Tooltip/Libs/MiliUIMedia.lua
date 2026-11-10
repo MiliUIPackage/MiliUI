@@ -51,6 +51,7 @@ local TEXTURES = {
     { name = "MiliUI Koi Pond",     zhTW = "錦鯉水波",     zhCN = "锦鲤水波" },
     { name = "MiliUI Night Market", zhTW = "夜市霓虹",     zhCN = "夜市霓虹" },
     { name = "MiliUI Flip Flops",   zhTW = "藍白拖",       zhCN = "蓝白拖" },
+    { name = "MiliUI Blue Magpie",  zhTW = "台灣藍鵲",     zhCN = "台湾蓝鹊" },
 }
 MM.TEXTURES = TEXTURES
 

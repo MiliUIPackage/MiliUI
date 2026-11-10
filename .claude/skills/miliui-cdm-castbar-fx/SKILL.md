@@ -1,11 +1,11 @@
 ---
 name: miliui-cdm-castbar-fx
-description: 重新產生 MiliUI_CooldownManager 施法條動畫材質的貼圖（Media/fx-*.png 五十張。第一批十張：宇宙星辰「MiliUI Cosmos」的星雲底與兩層星點、閃電「MiliUI Lightning」的電能底與八格電弧序列圖、熔岩「MiliUI Lava」的暗紅底與兩層火紋、火焰「MiliUI Flame」的餘燼底與十六格火舌序列圖；第二批二十張：櫻花「MiliUI Sakura」、青海波「MiliUI Seigaiha」、天燈「MiliUI Sky Lantern」、客家花布「MiliUI Hakka Floral」、老花磚「MiliUI Majolica Tile」、珍珠奶茶「MiliUI Bubble Tea」、極光「MiliUI Aurora」；第三批二十張：紅葉「MiliUI Momiji」、螢火蟲「MiliUI Fireflies」、錦鯉水波「MiliUI Koi Pond」、夜市霓虹「MiliUI Night Market」、藍白拖「MiliUI Flip Flops」）。當使用者說「星星太多／太亮」「星雲換個顏色」「閃電太粗／太密」「熔岩太亮」「火舌不夠像火／太白／竄太高」「火焰再調一下」「花瓣太多／太小」「天燈太暗」「牡丹換個顏色」「花磚換個花樣」「珍珠太大」「極光太淡」「楓葉換個顏色」「螢火蟲太少」「錦鯉換花色」「霓虹招牌換字」「拖鞋太擠」「再加一款施法條動畫」，或要動 Core/Media.lua 的 M.FX、Modules/Castbar.lua 的效果層時使用。圖是 Pillow＋numpy 腳本算出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。彩虹那兩款是另一個技能 miliui-cdm-rainbow-texture。
+description: 重新產生 MiliUI_CooldownManager 施法條動畫材質的貼圖（Media/fx-*.png 五十五張。第一批十張：宇宙星辰「MiliUI Cosmos」的星雲底與兩層星點、閃電「MiliUI Lightning」的電能底與八格電弧序列圖、熔岩「MiliUI Lava」的暗紅底與兩層火紋、火焰「MiliUI Flame」的餘燼底與十六格火舌序列圖；第二批二十張：櫻花「MiliUI Sakura」、青海波「MiliUI Seigaiha」、天燈「MiliUI Sky Lantern」、客家花布「MiliUI Hakka Floral」、老花磚「MiliUI Majolica Tile」、珍珠奶茶「MiliUI Bubble Tea」、極光「MiliUI Aurora」；第三批二十五張：紅葉「MiliUI Momiji」、螢火蟲「MiliUI Fireflies」、錦鯉水波「MiliUI Koi Pond」、夜市霓虹「MiliUI Night Market」、藍白拖「MiliUI Flip Flops」、台灣藍鵲「MiliUI Blue Magpie」）。當使用者說「星星太多／太亮」「星雲換個顏色」「閃電太粗／太密」「熔岩太亮」「火舌不夠像火／太白／竄太高」「火焰再調一下」「花瓣太多／太小」「天燈太暗」「牡丹換個顏色」「花磚換個花樣」「珍珠太大」「極光太淡」「楓葉換個顏色」「螢火蟲太少」「錦鯉換花色」「霓虹招牌換字」「拖鞋太擠」「藍鵲太小／太多」「山的顏色換一下」「再加一款施法條動畫」，或要動 Core/Media.lua 的 M.FX、Modules/Castbar.lua 的效果層時使用。圖是 Pillow＋numpy 腳本算出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。彩虹那兩款是另一個技能 miliui-cdm-rainbow-texture。
 ---
 
 # MCDM 施法條的動畫材質貼圖
 
-`AddOns/MiliUI_CooldownManager/Media/fx-*.png` 五十張**不是素材，是 `scripts/fx.py`（第一批十張）與 `scripts/fx_themes.py`（第二批二十張＋第三批二十張）算出來的**。
+`AddOns/MiliUI_CooldownManager/Media/fx-*.png` 五十五張**不是素材，是 `scripts/fx.py`（第一批十張）與 `scripts/fx_themes.py`（第二批二十張＋第三批二十五張）算出來的**。
 2026-11-06 彩虹上線後玩家要更多「有質感的動畫」（宇宙星辰、火焰、閃電）：全部自己算、不帶別人的檔。
 
 ## 跑法
@@ -61,7 +61,7 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
 - 極光第一版像條碼（光束邊緣太硬、暗縫太多）：光束改成「只有明暗起伏、不會全黑」再加下緣一圈柔光才像光幕。
 - 斜光疊在淺色底上很容易過曝成白色，`alpha` 壓在 0.4～0.55。
 
-## 第三批二十張（fx_themes.py 後半，2026-11-10：再五款）
+## 第三批二十五張（fx_themes.py 後半，2026-11-10：再五款；11-11 台灣藍鵲）
 
 同樣全是捲動層，接在第二批後面、最後一起疊 `-static`。**只想重產某幾張時也是整支跑**（固定種子，其餘的檔會一模一樣；跑完只對 git 顯示有變的檔跑 `shrink_png.py`，
 已經壓過的再壓一次可能再掉一點——`git status --short …/Media | awk '{print $2}' | xargs python3 …/shrink_png.py --apply`）。
@@ -73,13 +73,17 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
 | 錦鯉水波 | `fx-koi-water`／`-caustic-a`／`-caustic-b`／`-fish`／`-static` | 池水；兩層光網（脊狀雜訊相乘取細亮線）；六種花色的錦鯉（頭朝右、帶陰影） |
 | 夜市霓虹 | `fx-neon-wall`／`-signs-a`／`-signs-b`／`-bulbs`／`-static` | 暗牆；八塊招牌分奇偶兩層（一層會閃）；頂上一串燈泡 |
 | 藍白拖 | `fx-slipper-base` | 磨石子地（1500 顆碎石）上十三雙拖鞋，鞋頭朝上 |
+| 台灣藍鵲 | `fx-magpie-sky`／`-ridge-mid`／`-ridge-near`／`-birds`／`-static` | 晨光的天空＋兩道遠山＋山嵐（不透明）；中山、近山（RGBA，稜線以下塗色、往下漸成霧）；一列藍鵲（三種姿勢） |
 
 - **夜市霓虹的字型不在 repo 裡**：招牌字用思源黑體（OFL）畫，檔在套組的字型典藏庫 `~/MiliUI-Fonts/字型母版/NotoMerged-Black.ttf`。
   找不到時腳本印一行警告、**跳過那四張**（保留現有的圖），其餘照常。換招牌的字改 `SIGNS`；字數變了寬度會自己重排，但總寬要塞得進 512。
   霓虹的畫法：遮罩 → 兩圈高斯模糊當光暈 → 芯偏白。芯太白整塊字會過曝成白色（第一版就是），白的比例壓在三成以下。
 - **藍白拖第一版失敗的原因**：藍底壓花上放橫躺的拖鞋——藍帶子融進藍底、形狀像迴力鏢。改成鞋頭朝上（一般人認得的輪廓）、放在磨石子地上才看得出來。
   **配色跟底色撞的主題，先換底再說**。
-- **台灣藍鵲沒做**：第一版畫兩排尾羽（藍身、黑帶、白圓尖），認得出是羽毛但質感不夠，使用者說先不用或重畫。
+- **台灣藍鵲重畫過一次**：第一版畫兩排尾羽的特寫（藍身、黑帶、白圓尖），認得出是羽毛但看不出是藍鵲，使用者說「先不用，或改一下讓他更有質感」。
+  第二版改畫**鳥本身加場景**：一列藍鵲飛過山嵐，四層視差（`_ridge` 算稜線、`_hill` 塗山、`bird` 用多邊形拼鳥）。
+  **動物、植物這類主題，畫「牠在場景裡」比畫「牠身上的紋理特寫」好認也有質感**；景深靠幾層不同速度的捲動就做得出來。
+  鳥的姿勢是固定的（不拍翅膀），要拍翅膀得用序列圖。
 - 螢火蟲同一層會一起明滅（`twinkle` 是整層的 alpha）⇒ 分三層、週期錯開；要更亂就再加層，不要想辦法讓單顆各閃各的。
 
 ## 跟 Lua 的接線
