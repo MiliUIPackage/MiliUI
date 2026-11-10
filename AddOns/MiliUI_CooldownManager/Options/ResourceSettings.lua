@@ -184,10 +184,7 @@ local function AppendNumbers(add, key, info)
     elseif info.health or info.stagger then
         -- 血量與醉仙緩勁的大數字照法力的縮寫（同一個 manaAbbrev）：沒有法力列的專精也要改得到
         if info.health then put(BS("toggle", "healthPercent", L["Health as percent"])) end
-        if info.stagger then
-            put(BS("toggle", "staggerPercent", L["Stagger as percent"]))
-            put(Note(L["Shows how much of your max health is staggered instead of the amount. In instanced combat the numbers are sometimes unreadable; the bar keeps the last percent for a moment, then shows the amount until it can be read again."]))
-        end
+        if info.stagger then put(BS("toggle", "staggerPercent", L["Stagger as percent"])) end
         put(BS("dropdown", "manaAbbrev", L["Number format"], { items = MANA_ITEMS }))
         put(Note(L["One number format is shared by mana, health and the other large numbers."]))
     end

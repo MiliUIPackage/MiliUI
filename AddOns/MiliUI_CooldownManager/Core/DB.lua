@@ -340,7 +340,7 @@ ResourcesDefaults = function()
         staggerModerateAt = 30,
         staggerHeavyAt    = 60,
         staggerCeiling    = 100,
-        staggerPercent    = false,         -- 數字印「佔最大生命的百分之幾」而不是數值（見 Resources_Rows.lua 的 R.SetStaggerText）
+        staggerPercent    = true,          -- 數字印「佔最大生命的百分之幾」而不是數值（預設開，使用者 2026-11-06 指定；見 Resources_Rows.lua 的 R.SetStaggerText）
         -- 醉仙緩勁第 3／4 段（重度之上再分兩段換色）：預設關
         staggerTier3Enabled = false,
         staggerTier3At      = 90,
@@ -514,6 +514,9 @@ FocusCastDefaults = function()
         height        = 20,
         font          = "INHERIT",
         texture       = "MiliUI Satin",    -- 套組自製的漸層材質（Core/Media.lua、技能 miliui-satin-texture）；跟玩家施法條的暴雪漸層分得開（使用者 2026-10-16 指定）
+        -- 動畫材質選著時的效果層（同玩家施法條的兩欄，2026-11-06）；別的材質下沒作用（設定頁也不顯示）
+        animate       = true,
+        animSpeed     = 1,
         bgColor       = rgba(0.1, 0.1, 0.1, 0.8),
         -- 邊緣陰影（同玩家施法條）：圖示、條身、斷法圖示各一圈；舊存檔沒有 ＝ 關
         shadow        = false,
@@ -529,6 +532,7 @@ FocusCastDefaults = function()
             immune      = rgba(0.529, 0.529, 0.529),
             interrupted = rgba(1, 0.204, 0.145),
             glow        = rgba(0.95, 0.95, 0.32),
+            kickGlow    = rgba(0.3, 0.85, 1),      -- 可斷法發光：冷色，跟金／橘的條身與黃色的重要法術發光都分得開
         },
         glowImportant = true,              -- 重要法術外框發光（C_Spell.IsSpellImportant；秘密布林只餵宿主的 alpha）
         bangImportant = true,              -- 重要法術名稱前加「!」
@@ -546,6 +550,13 @@ FocusCastDefaults = function()
         timeOffset    = { x = -4, y = 0 },
         showSpark     = true,
         showInterrupter = true,            -- 被打斷時右側印斷法者的名字（職業色）
+        -- 可斷法發光（2026-11-07）：專注目標在唱可以斷的法術時整條亮著，三款任選（共用發光引擎的 BarGlow）。舊存檔沒有 ＝ 開、光暈
+        glowKick      = true,
+        kickGlowStyle = "halo",            -- halo 光暈 | sweep 流光 | pulse 脈衝
+        -- 開唱震動：off | always 每次開唱都震 | kick 只震可以斷的施法（分身＋互補 alpha）。11-07 預設關；11-08 使用者實機驗過改預設 kick、
+        -- 秒數可調（11-07 那版固定 0.3 秒；使用者先說延長一倍、接著改口預設 2 秒）。11-06 那版的鍵叫 castShake（布林、預設開），當天撤回；存檔裡留著的那顆沒人讀
+        shakeMode     = "kick",
+        shakeTime     = 2,
         -- 法術打向誰（12.x UnitSpellTargetName）：條下方右靠齊、比法術名小一號、職業色（2026-10-19 使用者指定，
         -- 擺法照名條上常見的「施法目標」字：法術名左、目標右、目標小一號）
         showTarget       = true,

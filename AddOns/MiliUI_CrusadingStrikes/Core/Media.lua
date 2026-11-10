@@ -68,7 +68,7 @@ function M.TextureItems()
     -- 名冊、譯名、順序在 Libs/MiliUIMedia.lua，全套組同一套規則）→ 其餘 LSM
     local items = { { text = ns.L["Default"], value = "default" } }
     local lsm = LSM()
-    local own, rest = ns.MiliMedia.TextureItems(lsm and lsm:List("statusbar") or nil)
+    local own, rest = ns.MiliMedia.TextureItems(lsm and lsm:List("statusbar") or nil, nil, nil, M.BarTexture)
     for i = 1, #own do items[#items + 1] = own[i] end
     for i = 1, #rest do items[#items + 1] = rest[i] end
     return items

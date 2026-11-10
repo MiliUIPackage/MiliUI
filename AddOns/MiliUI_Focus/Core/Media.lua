@@ -8,6 +8,11 @@ local M = ns.Media
 
 M.WHITE8X8 = "Interface\\BUTTONS\\WHITE8X8"
 
+-- 可斷法發光的柔邊貼圖（八格 backdrop edge 排法、白底、內緣不透明外緣透明），交給共用發光引擎的 BarGlow。
+-- 跟冷卻管理器的 Media/shadow-edge.png 是同一張（那邊由 .claude/skills/miliui-cdm-shape-masks 的腳本產生）：
+-- 要改就改那邊的腳本、重產之後複製過來，不要手改這張
+M.GLOW_EDGE = "Interface\\AddOns\\MiliUI_Focus\\Media\\glow-edge.png"
+
 -- 在地化字型：FontString 寫死 FRIZQT__ 在 zhTW / zhCN / koKR 會變成方框
 local LOCALE_FONTS = {
     zhTW = "Fonts\\blei00d.TTF",

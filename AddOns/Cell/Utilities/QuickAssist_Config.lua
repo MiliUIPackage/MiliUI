@@ -1760,10 +1760,12 @@ local function LoadTextures()
     -- make default texture first
     F.TRemove(textureNames, defaultTextureName)
     tinsert(textureNames, 1, defaultTextureName)
+    -- MiliUI: the pack's own textures go above it, with localized names (F.SortBarTextureNames in Utils.lua)
+    textureNames = F.SortBarTextureNames(textureNames)
 
     for _, name in pairs(textureNames) do
         tinsert(items, {
-            ["text"] = name,
+            ["text"] = F.GetBarTextureLabel(name),
             ["texture"] = textures[name],
             ["onClick"] = function()
                 styleTable["texture"] = name
@@ -3378,7 +3380,7 @@ LoadLayout = function()
 end
 
 LoadStyle = function()
-    textureDropdown:SetSelected(styleTable["texture"], textures[styleTable["texture"]])
+    textureDropdown:SetSelected(F.GetBarTextureLabel(styleTable["texture"]), textures[styleTable["texture"]])
     hpColorDropdown:SetSelectedValue(styleTable["hpColor"][1])
     lossColorDropdown:SetSelectedValue(styleTable["lossColor"][1])
     if styleTable["hpColor"][1] == "custom" then hpCP:Show() else hpCP:Hide() end

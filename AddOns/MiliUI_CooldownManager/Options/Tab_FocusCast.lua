@@ -2,8 +2,11 @@
 -- 「專注目標施法」頁（profile.focuscast；引擎在 Modules/FocusCastbar.lua）
 --
 -- 控件照施法條頁改：沒有引導刻度／延遲／蓄力／隱藏暴雪條（那些是玩家自己的事），
+-- 動畫材質的「播放動畫／速度」跟施法條頁一樣（FxRows；只在材質是動畫材質時出現），
 -- 多了三態顏色（可斷法：斷法就緒／斷法冷卻中、不可中斷）、重要法術（發光＋「!」）、被打斷時印斷法者。
--- 頁首一顆「預覽」：跑一條十秒的假施法（當重要法術），再按一次停。
+-- 頁首一顆「預覽」：跑一條十秒的假施法（當重要法術），再按一次停。「材質」上方另有一條內嵌的樣本條＋六顆狀態按鈕（SampleRow）。
+-- 「可斷法的施法」小節（2026-11-07）：可斷法發光（開關、三款特效、顏色）＋開唱震動（不震／每次／只震可斷的，後者 11-08 實機驗過改成預設；秒數可調），
+-- 特效下拉上方再一條樣本條（KickSampleRow：可以斷、不標重要法術，只看這一節的效果）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -46,6 +49,19 @@ local TIME_ITEMS = {
     { text = L["Elapsed (1.2)"],               value = "elapsed" },
 }
 
+-- 可斷法發光的三款（共用發光引擎的 BarGlow）
+local KICK_GLOW_ITEMS = {
+    { text = L["Halo (soft breathing aura)"],               value = "halo" },
+    { text = L["Sweep (a band of light crossing the bar)"], value = "sweep" },
+    { text = L["Pulse (rings spreading outward)"],          value = "pulse" },
+}
+
+local SHAKE_ITEMS = {
+    { text = L["Off"],                                      value = "off" },
+    { text = L["Every cast"],                               value = "always" },
+    { text = L["Interruptible casts only"], value = "kick" },
+}
+
 local GLOW_ITEMS = {
     { text = L["Pixel lines (bar border)"],       value = "pixel" },
     { text = L["Autocast sparkles (bar border)"], value = "autocast" },
@@ -56,6 +72,111 @@ local GLOW_ITEMS = {
 local function TextureItems()
     local items = ns.Specs.TextureItems()
     return ns.Specs.InsertAfterSolid(items, { text = L["Blizzard cast bar"], value = ns.Castbar.BLIZZARD_TEXTURE })
+end
+
+-- 樣本條（引擎的 ns.FocusCastbar.CreateSample）：放在「材質」正上方，一條自己循環填滿的假施法條，零件、版面、上色、發光、
+-- 「!」、打斷畫面都是畫面上那條用的同一批函式（見引擎那邊的說明）——所以它同時是「樣式有沒有套對」的檢查。
+-- 底下兩排按鈕挑假施法的狀態（選中＝primary）：
+--   第一排四選一    斷法就緒／斷法冷卻中／不可中斷／已打斷
+--   第二排各自開關  這個法術算不算重要法術——發光、「!」各一顆。那兩樣在設定裡關著時實際不會出現，樣本也不畫，
+--                   按鈕壓暗提示（照樣能按）
+-- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換（同 Specs 的發光預覽）。
+-- 列高在建表單時定：標籤對著樣本條置中，條下方留一行給「法術打向誰」，按鈕照各語系的字寬排、放不下自己換排
+local SAMPLE_BAR_ZONE = ns.FocusCastbar.SAMPLE_MAX_H + 40     -- 上下各留 20：火焰材質的火舌會竄出條外半個條高、可斷法發光的柔光往外散
+local SAMPLE_TARGET_H = 14
+local SAMPLE_BTN_H, SAMPLE_GAP = 20, 4
+local SAMPLE_STATES = {
+    { "ready",       L["Kick ready"] },
+    { "cd",          L["Kick on CD"] },
+    { "immune",      L["Not interruptible"] },
+    { "interrupted", L["Interrupted"] },
+}
+local SAMPLE_MARKS = {
+    { "glowOn", L["Important spell: glow"],    "glowImportant" },
+    { "bangOn", L["Important spell: \"!\""], "bangImportant" },
+}
+
+local function SampleRow()
+    return { type = "custom", label = L["Preview"], h = SAMPLE_BAR_ZONE, noReset = true,
+        build = function(parent, x, y, width, ctx)
+            local s = ns.FocusCastbar.CreateSample(parent)
+            s:SetPoint("LEFT", parent, "TOPLEFT", x, y - SAMPLE_BAR_ZONE / 2)
+            local stateBtns, markBtns = {}, {}
+            local function PaintButtons()
+                local cfg = Cfg() or {}
+                for _, b in ipairs(stateBtns) do
+                    W.SetButtonVariant(b, s.state == b.key and "primary" or "normal")
+                end
+                for _, b in ipairs(markBtns) do
+                    W.SetButtonVariant(b, s[b.key] and "primary" or "normal")
+                    b:SetAlpha(cfg[b.setting] and 1 or 0.45)
+                end
+            end
+            local function ButtonRow(defs, list, top, onClick)
+                local holder = CreateFrame("Frame", nil, parent)
+                holder:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y - top)
+                for _, def in ipairs(defs) do
+                    local b = W.CreateButton(holder, def[2], "normal", 60, SAMPLE_BTN_H)
+                    W.FitButton(b, 60, SAMPLE_BTN_H)
+                    b.key, b.setting = def[1], def[3]
+                    b:SetScript("OnClick", function()
+                        onClick(b)
+                        s:Paint()
+                        PaintButtons()
+                    end)
+                    list[#list + 1] = b
+                end
+                local _, h = W.FlowLayout(holder, list, width, SAMPLE_GAP, SAMPLE_GAP, SAMPLE_BTN_H)
+                holder:SetSize(width, h)
+                return h
+            end
+            local top = SAMPLE_BAR_ZONE + SAMPLE_TARGET_H
+            local h1 = ButtonRow(SAMPLE_STATES, stateBtns, top, function(b) s.state = b.key end)
+            local h2 = ButtonRow(SAMPLE_MARKS, markBtns, top + h1 + SAMPLE_GAP, function(b) s[b.key] = not s[b.key] end)
+            local function Refresh()
+                s:Refresh(width)
+                PaintButtons()
+            end
+            local apply = ctx.apply
+            ctx.apply = function(...)
+                apply(...)
+                Refresh()
+            end
+            return top + h1 + SAMPLE_GAP + h2 + 8, Refresh
+        end }
+end
+
+-- 「可斷法的施法」小節的樣本條：同一支 ns.FocusCastbar.CreateSample（零件、版面、上色、發光都是畫面上那條的函式），
+-- 狀態固定「可以斷、我方斷法就緒」、不標重要法術 ⇒ 看到的只有可斷法發光與開唱震動（樣本每循環一次算一次開唱）。
+-- 列高比頁首那條高：脈衝的光圈會散到條外二十幾 px；左右也內縮，光才不會壓到標籤
+local KICK_ZONE = ns.FocusCastbar.SAMPLE_MAX_H + 56
+local KICK_INSET = 24
+
+local function KickSampleRow()
+    return { type = "custom", label = L["Preview"], h = KICK_ZONE, noReset = true,
+        build = function(parent, x, y, width, ctx)
+            local s = ns.FocusCastbar.CreateSample(parent)
+            s.state, s.glowOn, s.bangOn = "ready", false, false
+            s:SetPoint("LEFT", parent, "TOPLEFT", x + KICK_INSET, y - KICK_ZONE / 2)
+            local function Refresh() s:Refresh(width - KICK_INSET * 2) end
+            local apply = ctx.apply
+            ctx.apply = function(...)
+                apply(...)
+                Refresh()
+            end
+            return KICK_ZONE, Refresh
+        end }
+end
+
+-- 動畫的三列（播放動畫、速度、說明）只在材質是動畫材質時出現（同施法條頁）。材質下拉帶 refreshPage ⇒ 換材質當下增減列
+local function FxRows()
+    local cfg = Cfg()
+    if not (cfg and ns.Media.IsFx(cfg.texture)) then return nil end
+    return {
+        BS("toggle", "animate", L["Play animation"]),
+        BS("slider", "animSpeed", L["Animation speed"], { min = 0.25, max = 3, step = 0.25 }),
+        Note(L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."]),
+    }
 end
 
 local function ResetAll()
@@ -73,7 +194,8 @@ local function Controls()
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns (icon included)."]),
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
-        BS("dropdown", "texture", L["Texture"], { items = TextureItems }),
+        SampleRow(),
+        BS("dropdown", "texture", L["Texture"], { items = TextureItems, refreshPage = true }),
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
         BS("color", "bgColor", L["Background color"]),
         BS("dropdown", "fillDirection", L["Fill direction"], { items = FILL_ITEMS }),
@@ -96,6 +218,15 @@ local function Controls()
         Note(L["Blizzard decides which spells count as important."]),
         BS("dropdown", "glowStyle", L["Glow style"], { items = GLOW_ITEMS }),
         BS("color", "colors.glow", L["Glow color"], { hasAlpha = false }),
+        { type = "header", label = L["Interruptible casts"] },
+        BS("toggle", "glowKick", L["Glow while the focus casts something you can interrupt"]),
+        Note(L["The whole bar glows for as long as the cast can be interrupted. Non-interruptible casts never glow."]),
+        KickSampleRow(),
+        BS("dropdown", "kickGlowStyle", L["Glow effect"], { items = KICK_GLOW_ITEMS }),
+        BS("color", "colors.kickGlow", L["Glow color"], { hasAlpha = false }),
+        BS("dropdown", "shakeMode", L["Cast start shake"], { items = SHAKE_ITEMS }),
+        BS("slider", "shakeTime", L["Shake duration (seconds)"], { min = ns.FocusCastbar.SHAKE_MIN, max = ns.FocusCastbar.SHAKE_MAX, step = 0.1,
+            disabled = function() return ns.FocusCastbar.ShakeMode() == "off" end }),
         { type = "header", label = L["Icon"] },
         BS("toggle", "showIcon", L["Show icon"]),
         BS("dropdown", "iconSide", L["Icon position"], { items = SIDE_ITEMS }),
@@ -133,6 +264,16 @@ local function Controls()
         BS("toggle", "hideWhenNotCasting", L["Hide when not casting"]),
         Note(L["Unchecked, an empty bar stays on screen. Edit Mode always shows it."]),
     }
+    -- 動畫材質的三列插在材質下拉與它的說明後面
+    local fx = FxRows()
+    if fx then
+        for i, s in ipairs(list) do
+            if s.path == "texture" then
+                for j, row in ipairs(fx) do table.insert(list, i + 1 + j, row) end
+                break
+            end
+        end
+    end
     for _, s in ipairs(ns.Specs.Anchor(KEY)) do list[#list + 1] = s end
     list[#list + 1] = { type = "header", label = L["Reset"] }
     list[#list + 1] = { type = "custom", label = L["Restore defaults"], h = 30, noReset = true,

@@ -319,8 +319,8 @@ texcoord、補外框圖，尺寸照套皮當下的 item），item 尺寸變了�
 | `Options/Tab_Theme.lua` | 全域主題（跟條頁同一支 builder） |
 | `Options/Tab_Profile.lua` | 設定檔：切換／新增／複製／改名／刪除／恢復預設、依專精切換、匯出／匯入（審閱後建成新的一份） |
 | `Options/Tab_Resources.lua`、`Options/ResourceSettings.lua`、`Options/ResourceConditions.lua`、`Options/HealthThresholds.lua`、`Options/ResourcePreview.lua` | 資源條頁、每種資源自己的設定視窗（頁上每列「設定…」開的）、視窗裡的條件規則編輯器、血量門檻彈窗、自訂格子／自訂列分頁上方的預覽框 |
-| `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」） |
-| `Options/Tab_FocusCast.lua` | 專注目標施法頁（頁首「預覽」：十秒假施法、當重要法術） |
+| `Options/Tab_Castbar.lua` | 施法條頁（頁首「預覽」、「材質」上方的內嵌樣本條） |
+| `Options/Tab_FocusCast.lua` | 專注目標施法頁（頁首「預覽」：十秒假施法、當重要法術；「材質」上方的內嵌樣本條＋六顆狀態按鈕） |
 | `Options/Tab_Assist.lua` | 戰鬥助手頁：下一招醒目標示（主題層）＋下一招圖示（面板 `assistIcon`），見「戰鬥輔助」 |
 | `Options/ClickLayer.lua` | 視窗開著時畫面上每條蓋一層透明點擊層，點了切到那條的頁面並閃職業色邊 |
 
@@ -2298,7 +2298,7 @@ that frame implicitly protected as well"（被錨的是保護框、「那個框�
 - **格距 0**：每格自帶 1px 黑邊，間距 0 時兩條邊並排成 2px ⇒ 一格一框的（點數型、自訂格子）重疊 1 實體像素共用一條邊
   （`R.SegLayout`），引擎畫的格子裝飾第 2 格起不畫左邊（`AuraBar.lua` 的 `LayoutDecor`）。
 - **法力數字**：`manaAbbrev` = none／k（K、M）／wan（萬、億；中韓預設）；`manaPercent` 印百分比。`manaAbbrev` 同時是血量與醉仙緩勁（無視苦痛的退路也是）的大數字格式——設定視窗裡法力、血量、醉仙緩勁三種都有這個下拉，存的是同一格（P6 只搬顯示位置、不搬存放位置）。
-- **醉仙緩勁印百分比**（2026-11-06，玩家要求）：`staggerPercent`（預設關）印「醉仙緩勁佔最大生命的百分之幾」，跟換色門檻同一個算法、可以超過 100（`R.SetStaggerText`，Resources_Rows.lua）。醉仙緩勁不是 power type、**沒有引擎端的百分比 API**（法力有 `UnitPowerPercent`、血量有 `UnitHealthPercent`），`UnitStagger`／`UnitHealthMax` 任一是秘密值就算不出來：先沿用上一次明文算出來的百分比（`staggerLast.pct`／`pctAt`），連續 `R.STAGGER_PCT_HOLD`（2）秒都讀不到就改印數值，讀得到再換回百分比——條是引擎畫的、一直是對的，文字不能停在舊的百分比上。
+- **醉仙緩勁印百分比**（2026-11-06，玩家要求）：`staggerPercent`（**預設開**，設定列不附說明——使用者 2026-11-06 指定）印「醉仙緩勁佔最大生命的百分之幾」，跟換色門檻同一個算法、可以超過 100（`R.SetStaggerText`，Resources_Rows.lua）。醉仙緩勁不是 power type、**沒有引擎端的百分比 API**（法力有 `UnitPowerPercent`、血量有 `UnitHealthPercent`），`UnitStagger`／`UnitHealthMax` 任一是秘密值就算不出來：先沿用上一次明文算出來的百分比（`staggerLast.pct`／`pctAt`），連續 `R.STAGGER_PCT_HOLD`（2）秒都讀不到就改印數值，讀得到再換回百分比——條是引擎畫的、一直是對的，文字不能停在舊的百分比上。
 - **事件**：`UNIT_POWER_FREQUENT`（＋`UNIT_POWER_UPDATE` 當回滿保底）、`UNIT_MAXPOWER`、`UNIT_DISPLAYPOWER`、
   `UPDATE_SHAPESHIFT_FORM`、`PLAYER_SPECIALIZATION_CHANGED`、天賦、進出載具、`RUNE_POWER_UPDATE`（死騎）、
   `UNIT_POWER_POINT_CHARGE`（盜賊）、`UNIT_SPELL_HASTE`（法師：秘法靈魂印 GCD 時，GCD 長度變了才重排），
@@ -2642,6 +2642,7 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
 - **沒在施法**：`hideWhenNotCasting` 開著 ⇒ 容器 alpha 0；關掉 ⇒ 留一條空條。淡出、打斷停留（0.4 秒）期間算「在施法」。
 - **打斷震動**（`interruptShake`，預設開）：被打斷或施法失敗時整條照暴雪自己施法條的 `InterruptShakeAnim` 抖一下（停 0.1 秒、每 0.05 秒跳一次、四段 1～2px 加總歸零）；失敗只認「目前這條」（castGUID 相符），引導中另外按技能失敗不震。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑，帶假延遲），再按一次停；真的開唱就讓位；離開那一頁自動停。
+- **內嵌樣本條**（2026-11-06）：設定頁「材質」正上方多一列「預覽」（`Tab_Castbar.lua` 的 `SampleRow` → 引擎 `CB.CreateSample`），一條自己循環填滿（3 秒一輪、滿了停 0.6 秒）的假施法條，換材質／動畫當場看得到，不用去畫面上找那條真的。**跟畫面上那條是同一批函式、同一個呼叫順序、同一套疊層**（使用者同日連續指定：「樣式的套用方式和實際要一樣，這樣我順便能看樣式或上色有無錯誤」「同一批函式且呼叫順序與畫面疊層之類的都要一模一樣」）。為此引擎裡跟畫面有關的函式都改成收 `(h, st)`——`h` 是那一條的框、`st` 是它的施法狀態表（畫面上那條是 `f`／`S`，樣本是另一個框＋自己的小表）：零件 `BuildParts(h)`、版面 `LayoutParts(h, st, cfg, W, H)`（層級、錨點、效果層、火花、刻度與延遲區都在裡面；`CB.Layout` 只剩算寬高＋叫它）、`PaintNameOn`、`PaintColorOn`／`BaseColor(st)`／`EmpowerStage(st)`、`DrawMarksOn`／`PlaceMark`／`HideMarks`、`ShowSparkOn`、效果層 `CB.FxHost(h, bar)` 與 `FxSetup／FxAnchor／FxPlay／FxStop／FxHideAll`；原本的 `ApplyColor／SetName／ShowSpark／CB.DrawMarks` 變成對 `f`／`S` 的一行包裝。樣本的 `st` 餵的就是頁首預覽（`CB.StartPreview`）餵給 `S` 的那幾格（一般的可打斷施法、帶假延遲 120ms），`Refresh` 照「`CB.Apply` → `CB.Layout`，接著 `StartPreview`」的順序叫，每幀照 `PlainOnUpdate`。所以實際會發生的樣本都照演：「斷法就緒時染色」開著、斷法又就緒時染色且動畫讓位；延遲區照畫；改任何設定時動畫從頭播（畫面上那條施法中改設定也是這樣）。跟畫面上不一樣的只有：寬放不下縮到表單可用寬、高上限 `CB.SAMPLE_MAX_H`（24；列高固定，上下留的空間夠火舌竄出去），以及它是循環的。**要改畫法就改那批共用函式，不要在樣本裡另外寫。** 離線測試 `Tests/CastbarSample_test.lua`（假的框把兩條樣本真的建出來、每種狀態跑一輪，連疊層的層級一起驗——那批函式畫面上那條也在用，這支同時是它們唯一的離線覆蓋）。
 
 ### 專注目標施法條（`Modules/FocusCastbar.lua`、`Options/Tab_FocusCast.lua`，2026-10-15）
 
@@ -2679,6 +2680,28 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   「!」版的名字是另一顆 FontString（`f.bangText`，疊在 `nameText` 上），兩顆 alpha 互補（`SetAlphaFromBoolean(important, 1, 0)` ／ `(important, 0, 1)`）。
   樣式 `glowStyle`：像素跑線（條外框，2px 往外推 1px）／自動施放閃點（條外框）／觸發發光（圖示）；引擎 vendor 的 `MiliUIGlow`，`Start` 系列失敗（pcall）就不亮。
   施法結束、被打斷、換樣式都 `StopGlow`。
+- **可斷法發光**（`glowKick`，預設開；`kickGlowStyle` ＝ `halo` 光暈｜`sweep` 流光｜`pulse` 脈衝；`colors.kickGlow`；2026-11-07）：
+  專注目標在唱可以斷的法術時整條亮著。三款是共用發光引擎的 `BarGlow`（`Libs/MiliUIGlow`，長相與規矩看那包的 README）。
+  跟重要法術發光同一招：發光掛在自己的宿主框（`h.kickGlowHost`，蓋滿整條、level ＋19）上、整段施法都開著，「不可中斷」的布林
+  只餵宿主的 `SetAlphaFromBoolean(ni, 0, 1)`；明文的不可中斷連開都不開。`PaintKickGlowOn(h, ni)` 在開唱、頁首預覽、
+  `UNIT_SPELLCAST_(NOT_)INTERRUPTIBLE`、套用設定時叫；被打斷、淡出、收條時 `StopKickGlowOn`。柔邊貼圖借邊緣陰影那張
+  （`SH.EDGE_SHADOW`），尺寸由 `LayoutParts` 記在 `h.glowW`／`h.glowH`（發光引擎不讀框）。設定頁兩條樣本都會亮
+  （頁首那條在「可斷」的狀態下；「可斷法的施法」小節另有一條 `KickSampleRow`，只看這一節的效果）。**三款的長相與秘密模式都未實機。**
+- **開唱震動**（`shakeMode`，預設 `kick`；秒數 `shakeTime` 0.1～3、預設 2；2026-11-07，11-08 使用者實機驗過後改預設並加秒數。
+  11-06 那版叫 `castShake`、預設開、固定 0.3 秒，當天撤回）：整條震一下（每 0.05 秒跳一次、六段一組的位移反覆；
+  動畫組刪不掉也不能增減段數 ⇒ `MakeShake` 一次建滿 3 秒的段數，`PlayShake` 照秒數把用不到的段設成 0 秒）。
+  - `always`：每次開唱都震，不分可不可以斷——`GoShakeOn` 直接播本尊的 `h.shake`，沒有秘密值的事。
+  - `kick`：只震可以斷的施法（2026-11-08 使用者在副本實機驗過：管用）。可不可以斷在受限內容是秘密布林，而位移類 API
+    （`Translation:SetOffset`／`SetPoint`／`SetScale`）的 `SecretArguments` 都是 `AllowedWhenUntainted`，插件餵不進秘密值
+    ⇒ 沒辦法「可斷才位移」。做法是「!」版名字那一招放大到整條：`BuildTwin` 多建一條一模一樣的**分身**（`f.twin`，`f` 的兄弟框、
+    同一支 `BuildParts`／`LayoutParts`），震動掛在分身上、每次開唱都播，本尊與分身的 alpha 餵同一個布林、互補
+    （可斷 ⇒ 看到在震的分身；不可中斷 ⇒ 看到沒動的本尊），震完分身藏起來、本尊 alpha 回 1。
+    三步 `ArmShakeOn`（開唱一開始）→ `GoShakeOn`（畫完）→ `EndShakeOn`（震完／收條／被打斷／下一次開唱）；**從 Arm 到 Go 之間
+    畫到 `f` 的東西一律經 `Each(f, …On, …)`**，分身才會跟本尊長得一樣——之後這條多畫什麼新東西，記得也走 `Each`，
+    不然震的那 0.3 秒會少一塊。明文模式（脫戰、頁首的「預覽」）走同一條路；明文的不可中斷連分身都不開。
+  - 兩種模式下，施法中途變成可以斷（`UNIT_SPELLCAST_INTERRUPTIBLE`，事件名稱是明文）都直接震本尊（`JoltOn`）。
+  - 設定頁的樣本每循環一次（3.6 秒）算一次開唱（`s:Jolt()`）。⚠ 樣本跟畫面上那條**不一樣**的地方：`kick` 在樣本上是直接震自己
+    （樣本的狀態是明文），看得到的只是「震起來的樣子」，分身那條路要到戰鬥中才驗得到。
 - **被打斷**（`showInterrupter`，預設開）：`UNIT_SPELLCAST_INTERRUPTED` 第 4 參數／`CHANNEL_STOP` 第 4／`EMPOWER_STOP` 第 5 是 interrupterGUID（只比 nil）。
   凍結滿條變紅、名字換「已打斷」、右側 `timeText` 印斷法者（`UnitNameFromGUID` ＋ `GetPlayerInfoByGUID` 的職業 → `C_ClassColor`；
   **職業是秘密字串就白字**，秘密值不能當 table key、`SetTextColor` 不收秘密值），停留 1 秒再淡出（玩家施法條是 0.4 秒；這條要讀得到名字）。
@@ -2691,8 +2714,10 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   事件 `FocusCastBarChanged`（開關／設定套用時廣播）。專注目標助手的 `Modules/CastBar.lua` 問它決定自己那條要不要讓位（`Monitoring()`），
   設定頁「施法條」分頁在開關底下多一行黃字說明被接手了。兩邊都裝的人預設只會看到這一條。
 - **預覽**：設定頁頁首的按鈕，十秒假施法（明文路徑、當重要法術：看得到「!」與發光），再按一次停；專注目標真的開唱就讓位；離開那一頁自動停。
+- **內嵌樣本條＋六顆狀態按鈕**（2026-11-06）：設定頁「材質」正上方（`Tab_FocusCast.lua` 的 `SampleRow` → 引擎 `FC.CreateSample`）。樣本是一條自己循環填滿的假施法條，**零件、版面、上色、發光、名字、斷法圖示、打斷畫面全部是畫面上那條用的同一批函式**——`BuildParts(h)`／`LayoutParts(h, cfg, W, H)`（`Build`／`FC.Layout` 也是叫它們）、`PaintColorOn(h, ni, ready, has)`、`ShowGlowOn／StopGlowOn(h, …)`（亮著哪一種記在 `h.glowShown`，不再放 `S`）、`PaintNameOn`、`PaintKickIconOn／PaintKickReadyOn`、`PaintSpellTargetOn／ClearSpellTargetOn`、`PaintInterruptedOn(h, who, class)`；原本的 `ApplyColor／ShowGlow／SetName／…` 變成 `…On(f, …)` 的一行包裝。另加 `ShowSparkOn(h)`。樣本只是另一個框、只負責餵明文的假狀態，**`Paint` 裡的呼叫順序照 `StartDisplay`／`StartPreview` 一支都不換位置**（圖示 → 名字 → 發光 → 時間清空 → 施法目標 → 斷法圖示 → 上色 → 火花；被打斷是接在一次開唱後面再叫 `PaintInterruptedOn`，畫面上也是唱到一半才被斷），疊層就是 `LayoutParts` 設的那一套（發光宿主 L+20），所以它同時是「樣式有沒有套對」的檢查（使用者指定：套用方式、呼叫順序、疊層都要跟實際一模一樣）。按鈕兩排、選中＝primary：第一排四選一 `s.state`（斷法就緒／斷法冷卻中／不可中斷／已打斷；打斷＝滿條、打斷色、「已打斷」、右側印自己的名字與職業色），第二排各自開關 `s.glowOn`／`s.bangOn`（這個法術算不算重要法術，發光與「!」各餵各的）。**設定關著的東西樣本也不畫**（`glowImportant`／`bangImportant` 關著時那顆按鈕壓暗、按了沒有畫面——實際上也不會出現）。發光有簽章（樣式、顏色、尺寸），變了才先停再開。斷法圖示的冷卻轉圈不演（沒有真的冷卻可餵），只有就緒亮／冷卻中暗。層級因為下一條多了兩層：底 L → 條 L+1 → 效果層 L+2 → 火花 L+3（`h.top`，原本火花是條自己的貼圖，會被效果層蓋掉半邊）→ 文字 L+4。
+- **動畫材質的效果層**（2026-11-06，使用者要求這條也要有動畫）：整套借玩家施法條的——`CB.Fx = { Wanted, Setup, HideAll, Anchor, Play, Stop, Alpha }`（Castbar.lua 把那幾支 local 露出來）＋`CB.FxHost(h, bar)`，宿主各一份、貼圖池各用各的。`BuildParts` 建宿主，`LayoutParts(h, cfg, W, H, casting)` 尾巴設層（`h.fxOn` 記開著沒有；`casting` ＝ 正在唱就直接接著播），`ShowSparkOn` 開唱時播，`HideBar`／`EndFade`／`PaintInterruptedOn` 停。設定多 `animate`（預設開）／`animSpeed`（預設 1），設定頁那三列只在材質是動畫材質時出現（`FxRows`，同施法條頁；材質下拉帶 `refreshPage`）。**狀態色怎麼跟動畫並存**：圖自己的顏色＝「可斷法、我方斷法冷卻中」那一態（底色白；沒有斷法的專精永遠是這一態）；斷法就緒與不可中斷時**動畫照播、整層染上狀態色**——`PaintColorOn` 尾巴叫 `CB.Fx.Tint(h, r, g, b)`，把每一層的頂點色設成跟填充貼圖同一個顏色（可能是秘密數字，只交給 `SetVertexColor`；各層登記的 alpha 記在 `L.alpha`、染色時一起帶，不然被洗成 1）。第一版照玩家施法條的規則做成「那兩態效果層讓位」，使用者 2026-11-06 選了「照播並染色」；**玩家施法條維持讓位**（它的斷法就緒染色是選用的）。多色材質染黃／染灰後會變濁、不可中斷只是整條變暗，這點已經先講過。
 - `/mcdm debug` 多一行「專注目標施法條：…」（狀態、秘密模式、明文時間軸、發光樣式、alpha）。
-- 離線測試 `Tests/FocusCastbar_test.lua`（預設值／面板登記／顯示條件／排開）。
+- 離線測試 `Tests/FocusCastbar_test.lua`（預設值／面板登記／顯示條件／排開）；樣本條與共用的上色／發光／名字／打斷畫面在 `Tests/CastbarSample_test.lua`。
 
 ### 公開 API（契約：回傳形狀之後不改）
 

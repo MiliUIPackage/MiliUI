@@ -693,6 +693,7 @@ function Panel.RenderView(panel, tip, view, state)
     local scale = ns.db and ns.db.general and S.PlainNumber(ns.db.general.scale) or 1
     if scale <= 0 then scale = 1 end
     panel:SetScale(scale)
+    Panel.SyncRuler(panel)    -- 量字寬要跟面板同縮放，不然右欄會把最後一個字擠下去
     -- 層級 = tooltip + 5（預覽也一樣：預覽 tip 在設定視窗 +20，panel 再往上）
     panel.syncedLevel = nil
     Panel.SyncLevel(panel, tip)

@@ -64,7 +64,7 @@ local CONTROLS = {
     { type = "button", label = "", text = L["RESET_POSITION"], width = 150,
       onClick = function()
           local db = ns.GetDB()
-          -- nil = 回到「跟隨官方微型選單那排」的預設（見 Core/Bar.lua DefaultPosition）
+          -- nil = 回到「畫面正上方置中」的預設（見 Core/Bar.lua ApplyDefaultPosition）
           db.x, db.y = nil, nil
           ns.ApplyAll()
           print(ns.PREFIX_COLOR .. L["ADDON_NAME"] .. "|r " .. L["MSG_POSITION_RESET"])

@@ -101,7 +101,7 @@ function M.BarTextureItems()
         local ok, got = pcall(LSM.List, LSM, "statusbar")
         if ok and type(got) == "table" then list = got end
     end
-    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin" })
+    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin" }, nil, M.BarTexture)
     for i = 1, #rest do
         if not M.TEXTURES[rest[i].value] then items[#items + 1] = rest[i] end
     end

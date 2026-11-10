@@ -18,7 +18,7 @@
 -- UI-CastingBar-Filling-Standard、去飽和，顏色照下面的上色流程（施法／引導／不可打斷／斷法就緒／蓄力
 -- 最後都是對填充貼圖 SetVertexColor）。一般施法與引導用同一張，**不依不可打斷換圖**（那是秘密布林）。
 --
--- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰）：顏色烤在圖裡 ⇒ 選到時底色自動白（不然被施法色染髒），
+-- 動畫材質（Core/Media.lua 的 M.FX：彩虹／宇宙星辰／閃電／熔岩／火焰；專注目標施法條 2026-11-06 也接上，見 CB.Fx）：顏色烤在圖裡 ⇒ 選到時底色自動白（不然被施法色染髒），
 -- 蓄力／斷法就緒／不可打斷／打斷照舊乘上去；animate 開著再疊「效果層」（見下面，全程引擎跑）。
 --
 -- 刻度、延遲、蓄力分階都要「明文的時間軸」（開始／結束讀得到）：讀不到就不畫，
@@ -258,93 +258,94 @@ local function MinSize()
     return Width(cfg), tonumber(cfg.height) or 20
 end
 
-local function Build()
-    f = CreateFrame("Frame", nil, container)
-    f:SetAllPoints(container)
+-- 一條玩家施法條的零件（圖示、條、效果層、刻度與延遲區、火花、文字、打斷震動）建在框 h 上。畫面上那條（f）與設定頁的
+-- 內嵌樣本（CB.CreateSample）各建一份；版面、刻度、上色、名字、火花也都走同一批收 (h, st) 的函式——st 是那一條的施法
+-- 狀態表（畫面上那條是 S，樣本是它自己的小表）⇒ 樣本的呼叫順序與疊層跟畫面上的一模一樣，不會各畫各的
+local function BuildParts(h)
+    h.iconFrame = CreateFrame("Frame", nil, h, "BackdropTemplate")
+    h.icon = NoSnap(h.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
+    h.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    f.iconFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.icon = NoSnap(f.iconFrame:CreateTexture(nil, "ARTWORK"))     -- 圖示、底跟 1px 黑邊相接：不貼齊
-    f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-    f.barHolder = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    f.bgTex = NoSnap(f.barHolder:CreateTexture(nil, "BACKGROUND"))
-    f.bgTex:SetTexture(SOLID)
-    f.bar = CreateFrame("StatusBar", nil, f.barHolder)
-    f.bar:SetStatusBarTexture(SOLID)
-    f.bar:SetMinMaxValues(0, 1)
-    f.bar:SetValue(0)
+    h.barHolder = CreateFrame("Frame", nil, h, "BackdropTemplate")
+    h.bgTex = NoSnap(h.barHolder:CreateTexture(nil, "BACKGROUND"))
+    h.bgTex:SetTexture(SOLID)
+    h.bar = CreateFrame("StatusBar", nil, h.barHolder)
+    h.bar:SetStatusBarTexture(SOLID)
+    h.bar:SetMinMaxValues(0, 1)
+    h.bar:SetValue(0)
 
     -- 效果層（見「效果層」）：裁切框 → host → 每一層一張貼圖；貼圖是池化的、用到才建，錨點與動畫在 Layout 設
-    f.flowClip = CreateFrame("Frame", nil, f.bar)
-    f.flowClip:SetClipsChildren(true)
-    f.flowClip:Hide()
-    f.flowHost = CreateFrame("Frame", nil, f.flowClip)
-    f.flowHost:SetAllPoints(f.bar)
-    f.fxScroll, f.fxFlip = {}, {}
+    CB.FxHost(h, h.bar)
 
     -- 刻度、蓄力分階、延遲區：一層蓋在填充（與效果層）上
-    f.marks = CreateFrame("Frame", nil, f.bar)
-    f.marks:SetAllPoints(f.bar)
-    f.markPool = {}
+    h.marks = CreateFrame("Frame", nil, h.bar)
+    h.marks:SetAllPoints(h.bar)
+    h.markPool = {}
 
     -- 火花：只建立、不錨定（錨點要對到填充貼圖，Layout 設完材質才錨）。掛在刻度那一層，才不會被效果層蓋掉半邊
-    f.spark = f.marks:CreateTexture(nil, "OVERLAY")
-    f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
-    f.spark:SetBlendMode("ADD")
-    f.spark:Hide()
-    f.latency = NoSnap(f.marks:CreateTexture(nil, "OVERLAY", nil, 6))
-    f.latency:SetTexture(SOLID)
-    f.latency:SetVertexColor(1, 0, 0, 0.5)
-    f.latency:Hide()
+    h.spark = h.marks:CreateTexture(nil, "OVERLAY")
+    h.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    h.spark:SetBlendMode("ADD")
+    h.spark:Hide()
+    h.latency = NoSnap(h.marks:CreateTexture(nil, "OVERLAY", nil, 6))
+    h.latency:SetTexture(SOLID)
+    h.latency:SetVertexColor(1, 0, 0, 0.5)
+    h.latency:Hide()
 
-    f.textFrame = CreateFrame("Frame", nil, f)
-    f.textFrame:SetAllPoints(f.barHolder)
+    h.textFrame = CreateFrame("Frame", nil, h)
+    h.textFrame:SetAllPoints(h.barHolder)
     -- ⚠ 先給字型才能 SetText
-    f.nameText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.nameText, 12, "OUTLINE")
-    f.nameText:SetJustifyH("LEFT")
-    f.nameText:SetWordWrap(false)
-    f.timeText = f.textFrame:CreateFontString(nil, "OVERLAY")
-    ns.Media.SetFont(f.timeText, 12, "OUTLINE")
-    f.timeText:SetJustifyH("RIGHT")
-    f.timeText:SetWordWrap(false)
+    h.nameText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.nameText, 12, "OUTLINE")
+    h.nameText:SetJustifyH("LEFT")
+    h.nameText:SetWordWrap(false)
+    h.timeText = h.textFrame:CreateFontString(nil, "OVERLAY")
+    ns.Media.SetFont(h.timeText, 12, "OUTLINE")
+    h.timeText:SetJustifyH("RIGHT")
+    h.timeText:SetWordWrap(false)
 
     -- 打斷震動：數值照暴雪自己施法條的 InterruptShakeAnim（停 0.1 秒後每 0.05 秒跳一次，
     -- 四段位移加總歸零）。Translation 只動畫面上的位置，不改錨點
-    f.shake = f:CreateAnimationGroup()
+    h.shake = h:CreateAnimationGroup()
     local steps = { { 0, 0, 0.1, 0 }, { -1, 1, 0, 0.05 }, { 1, -2, 0, 0.05 }, { 1, 2, 0, 0.05 }, { -1, -1, 0, 0.05 } }
     for i, s in ipairs(steps) do
-        local t = f.shake:CreateAnimation("Translation")
+        local t = h.shake:CreateAnimation("Translation")
         t:SetOffset(s[1], s[2])
         t:SetDuration(s[3])
         t:SetStartDelay(s[4])
         t:SetOrder(i)
     end
+end
+
+local function Build()
+    f = CreateFrame("Frame", nil, container)
+    f:SetAllPoints(container)
+    BuildParts(f)
     f:Hide()
 end
 
-local function Mark(i)
-    local t = f.markPool[i]
+local function Mark(h, i)
+    local t = h.markPool[i]
     if not t then
-        t = NoSnap(f.marks:CreateTexture(nil, "OVERLAY", nil, 7))
+        t = NoSnap(h.marks:CreateTexture(nil, "OVERLAY", nil, 7))
         t:SetTexture(SOLID)
-        f.markPool[i] = t
+        h.markPool[i] = t
     end
     return t
 end
 
-local function HideMarks(from)
-    for i = from or 1, #f.markPool do f.markPool[i]:Hide() end
+local function HideMarks(h, from)
+    for i = from or 1, #h.markPool do h.markPool[i]:Hide() end
 end
 
 -- 在條上 p（0～1，沿填充方向從起點算）畫一條線
-local function PlaceMark(i, p, r, g, b, a)
-    local t = Mark(i)
-    local x = S.barW * p
-    if S.reversed then x = S.barW - x end
+local function PlaceMark(h, st, i, p, r, g, b, a)
+    local t = Mark(h, i)
+    local x = st.barW * p
+    if st.reversed then x = st.barW - x end
     t:ClearAllPoints()
-    t:SetSize(ns.P.Pixel(1), S.barH)
-    t:SetPoint("CENTER", f.marks, "LEFT", x, 0)
+    t:SetSize(ns.P.Pixel(1), st.barH)
+    t:SetPoint("CENTER", h.marks, "LEFT", x, 0)
     t:SetVertexColor(r, g, b, a)
     t:Show()
 end
@@ -363,7 +364,18 @@ end
 -- 狀態色要露出來時把這層壓透明，底下的填充貼圖照 ApplyColor 的顏色：不可打斷 → 裁切框的 alpha、斷法就緒 → host 的
 -- alpha（兩個布林各管一層，秘密布林餵 SetAlphaFromBoolean、明文直接 SetAlpha）。打斷／失敗／收條時停動畫、藏層。
 ------------------------------------------------------------
-local fxActive = {}                     -- 這次版面用到的層（StartFlow／StopFlow 走這張）
+-- 效果層的宿主 h：帶 flowClip／flowHost／fxScroll／fxFlip／fxActive 這幾欄的表。玩家施法條是 f 自己，
+-- 設定頁的內嵌樣本（CB.CreateSample）另有一份 ⇒ 下面幾支都收 h，不直接摸 f／S
+function CB.FxHost(h, bar)
+    h.flowClip = CreateFrame("Frame", nil, bar)
+    h.flowClip:SetClipsChildren(true)
+    h.flowClip:Hide()
+    h.flowHost = CreateFrame("Frame", nil, h.flowClip)
+    h.flowHost:SetAllPoints(bar)
+    h.fxBar = bar
+    h.fxScroll, h.fxFlip = {}, {}
+    h.fxActive = {}                     -- 這次版面用到的層（FxPlay／FxStop 走這張）
+end
 
 -- 這份設定要畫哪些效果層（不用 ＝ nil）
 local function FxWanted(cfg)
@@ -374,10 +386,10 @@ end
 
 -- ⚠ CreateAnimation 的型別名是 "TextureCoord"，不是 XML 標籤的 "TextureCoordTranslation"（2026-11-04 實機：
 -- 給後者客戶端不報錯、回一個一般 Animation，SetOffset 是 nil）。兩個都試，拿到有 SetOffset 的才算
-local function ScrollLayer(i)
-    local L = f.fxScroll[i]
+local function ScrollLayer(h, i)
+    local L = h.fxScroll[i]
     if L then return L end
-    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L = { tex = NoSnap(h.flowHost:CreateTexture(nil, "ARTWORK")) }
     L.group = L.tex:CreateAnimationGroup()
     L.group:SetLooping("REPEAT")
     for _, kind in ipairs({ "TextureCoord", "TextureCoordTranslation" }) do
@@ -392,16 +404,16 @@ local function ScrollLayer(i)
     L.twGroup:SetLooping("BOUNCE")
     L.twinkle = L.twGroup:CreateAnimation("Alpha")
     L.twinkle:SetSmoothing("IN_OUT")
-    f.fxScroll[i] = L
+    h.fxScroll[i] = L
     return L
 end
 
 -- 序列圖層：FlipBook 換格；paused 的多兩段 Alpha（播放那段全亮、停頓那段看不見），做法照天空騎術的閃電
-local function FlipLayer(i, paused)
+local function FlipLayer(h, i, paused)
     local key = (paused and "p" or "c") .. i
-    local L = f.fxFlip[key]
+    local L = h.fxFlip[key]
     if L then return L end
-    L = { tex = NoSnap(f.flowHost:CreateTexture(nil, "ARTWORK")) }
+    L = { tex = NoSnap(h.flowHost:CreateTexture(nil, "ARTWORK")) }
     L.group = L.tex:CreateAnimationGroup()
     L.group:SetLooping("REPEAT")
     L.flip = L.group:CreateAnimation("FlipBook")
@@ -416,36 +428,38 @@ local function FlipLayer(i, paused)
         L.dark:SetToAlpha(0)
         L.dark:SetOrder(2)
     end
-    f.fxFlip[key] = L
+    h.fxFlip[key] = L
     return L
 end
 
-local function FxHideAll()
-    for _, L in pairs(f.fxScroll) do
+local function FxHideAll(h)
+    for _, L in pairs(h.fxScroll) do
         L.group:Stop()
         L.twGroup:Stop()
         L.tex:Hide()
     end
-    for _, L in pairs(f.fxFlip) do
+    for _, L in pairs(h.fxFlip) do
         L.group:Stop()
         L.tex:Hide()
     end
-    for i = #fxActive, 1, -1 do fxActive[i] = nil end
+    for i = #h.fxActive, 1, -1 do h.fxActive[i] = nil end
 end
 
--- 照 layers 把池裡的貼圖設好（不播放）。回傳 成功與否, 往上多畫的高度；捲動動畫建不出來（舊客戶端）＝ 失敗、整層不用
-local function FxSetup(layers, cfg)
-    FxHideAll()
+-- 照 layers 把池裡的貼圖設好（不播放）。reversed ＝ 反向填充、barH ＝ 條身的高。
+-- 回傳 成功與否, 往上多畫的高度；捲動動畫建不出來（舊客戶端）＝ 失敗、整層不用
+local function FxSetup(h, layers, cfg, reversed, barH)
+    FxHideAll(h)
+    local bar = h.fxBar
     local speed = tonumber(cfg.animSpeed) or 1
     if speed < 0.25 then speed = 0.25 elseif speed > 4 then speed = 4 end
-    local dir = S.reversed and 1 or -1
+    local dir = reversed and 1 or -1
     local overflow, nScroll, nFlip = 0, 0, 0
     for n, def in ipairs(layers) do
         local L
         if def.kind == "flip" then
             nFlip = nFlip + 1
             local pause = tonumber(def.pause) or 0
-            L = FlipLayer(nFlip, pause > 0)
+            L = FlipLayer(h, nFlip, pause > 0)
             L.tex:SetTexture(def.tex)
             pcall(L.flip.SetFlipBookRows, L.flip, def.rows)
             pcall(L.flip.SetFlipBookColumns, L.flip, def.cols)
@@ -457,24 +471,24 @@ local function FxSetup(layers, cfg)
                 L.lit:SetDuration(def.time / speed)
                 L.dark:SetDuration(pause / speed)
             end
-            local ov = (tonumber(def.overflow) or 0) * (S.barH or 0)
+            local ov = (tonumber(def.overflow) or 0) * (barH or 0)
             if ov > overflow then overflow = ov end
             L.tex:ClearAllPoints()
-            L.tex:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, ov)
-            L.tex:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
+            L.tex:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, ov)
+            L.tex:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 0, 0)
             L.tw = false
         else
             nScroll = nScroll + 1
-            L = ScrollLayer(nScroll)
+            L = ScrollLayer(h, nScroll)
             if not L.scroll then
-                FxHideAll()
+                FxHideAll(h)
                 return false, 0
             end
             L.tex:SetTexture(def.tex, "REPEAT", "CLAMP")
             L.scroll:SetOffset(dir, 0)
             L.scroll:SetDuration(def.period / speed)
             L.tex:ClearAllPoints()
-            L.tex:SetAllPoints(f.bar)
+            L.tex:SetAllPoints(bar)
             L.tw = def.twinkle and true or false
             if L.tw then
                 L.twinkle:SetFromAlpha(def.alpha or 1)
@@ -484,30 +498,47 @@ local function FxSetup(layers, cfg)
         end
         L.tex:SetDrawLayer("ARTWORK", n)
         L.tex:SetBlendMode(def.blend or "BLEND")
+        L.alpha = def.alpha or 1              -- 這一層登記的 alpha（FxTint 染色時要一起帶，不然被洗成 1）
         L.tex:SetVertexColor(1, 1, 1, 1)
-        L.tex:SetAlpha(def.alpha or 1)        -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
+        L.tex:SetAlpha(L.alpha)               -- alpha 最後寫（貼圖的 SetAlpha 跟頂點色第四個參數是同一個值）
         L.tex:Show()
-        fxActive[#fxActive + 1] = L
+        h.fxActive[#h.fxActive + 1] = L
     end
     return true, overflow
 end
 
-local function StartFlow()
-    if not (f.flowClip and S.flow) then return end
-    f.flowClip:Show()
-    for _, L in ipairs(fxActive) do
+-- 裁切框的前緣錨在填充貼圖 tex 上（換材質後貼圖是新的，跟火花一樣每次版面重下）；
+-- 有往上竄的層（火舌）時裁切框的上緣跟著加高 overflow
+local function FxAnchor(h, tex, reversed, overflow)
+    h.flowClip:ClearAllPoints()
+    if reversed then
+        h.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, overflow)
+        h.flowClip:SetPoint("BOTTOMRIGHT", h.fxBar, "BOTTOMRIGHT", 0, 0)
+    else
+        h.flowClip:SetPoint("TOPLEFT", h.fxBar, "TOPLEFT", 0, overflow)
+        h.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
+    end
+end
+
+local function FxPlay(h)
+    h.flowClip:Show()
+    for _, L in ipairs(h.fxActive) do
         if not L.group:IsPlaying() then L.group:Play() end
         if L.tw and not L.twGroup:IsPlaying() then L.twGroup:Play() end
     end
 end
 
-local function StopFlow()
-    if not f.flowClip then return end
-    for _, L in ipairs(fxActive) do
+local function FxStop(h)
+    for _, L in ipairs(h.fxActive) do
         L.group:Stop()
         if L.twGroup then L.twGroup:Stop() end
     end
-    f.flowClip:Hide()
+    h.flowClip:Hide()
+end
+
+local function StopFlow()
+    if not f.flowClip then return end
+    FxStop(f)
 end
 
 -- 一個旗標（nil／明文／秘密布林）→ 框的 alpha：真 ＝ 0（讓底下的狀態色露出來）、假或沒有 ＝ 1
@@ -522,118 +553,128 @@ local function FlowAlpha(frame, flag)
     frame:SetAlpha(flag and 0 or 1)
 end
 
+-- 效果層整層染色（專注目標施法條用：狀態色乘在動畫上，動畫照播）。r／g／b 可能是秘密數字：只交給 SetVertexColor，
+-- 跟填充貼圖染色是同一招；各層自己的 alpha 照登記表帶回去（頂點色第四個參數就是貼圖的 alpha）
+local function FxTint(h, r, g, b)
+    for _, L in ipairs(h.fxActive) do
+        L.tex:SetVertexColor(r, g, b, L.alpha or 1)
+    end
+end
+
+-- 效果層給專注目標施法條（Modules/FocusCastbar.lua）共用：同一套貼圖池、同一套畫法，宿主各一份（CB.FxHost）
+CB.Fx = { Wanted = FxWanted, Setup = FxSetup, HideAll = FxHideAll, Anchor = FxAnchor,
+          Play = FxPlay, Stop = FxStop, Alpha = FlowAlpha, Tint = FxTint }
+
 ------------------------------------------------------------
 -- 版面（全部來自設定，不讀框的幾何）
 ------------------------------------------------------------
+-- 零件的版面：W／H 是整條的寬高（呼叫端已經換算好）。st.castState 是施法中（1／2）時火花、效果層、刻度與延遲區照著重設
+local DrawMarksOn
+local function LayoutParts(h, st, cfg, W, H)
+    local showIcon = cfg.showIcon ~= false
+    local iconW = showIcon and H or 0
+    local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
+    local left = cfg.iconSide ~= "RIGHT"
+    h.iconFrame:SetShown(showIcon)
+    h.iconFrame:ClearAllPoints()
+    h.iconFrame:SetSize(iconW > 0 and iconW or 1, H)
+    h.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", h, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
+    local edge = ns.P.Pixel(1)
+    h.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(h.iconFrame) end
+    h.iconFrame:SetBackdropColor(0, 0, 0, 1)
+    h.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
+    h.icon:ClearAllPoints()
+    h.icon:SetPoint("TOPLEFT", h.iconFrame, "TOPLEFT", edge, -edge)
+    h.icon:SetPoint("BOTTOMRIGHT", h.iconFrame, "BOTTOMRIGHT", -edge, edge)
+
+    local barW = W - iconW - gap
+    if barW < 4 then barW = 4 end
+    h.barHolder:ClearAllPoints()
+    h.barHolder:SetSize(barW, H)
+    h.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", h, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
+    -- 1px 黑邊畫在外框上；條與底色內縮同一個厚度（見 project-miliui-pixel-snapping）
+    local inset = ns.Media.BorderInset(1)
+    h.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
+    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(h.barHolder) end
+    h.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
+    h.bgTex:ClearAllPoints()
+    h.bgTex:SetPoint("TOPLEFT", h.barHolder, "TOPLEFT", inset, -inset)
+    h.bgTex:SetPoint("BOTTOMRIGHT", h.barHolder, "BOTTOMRIGHT", -inset, inset)
+    local bg = cfg.bgColor or { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }
+    h.bgTex:SetVertexColor(bg.r or 0.1, bg.g or 0.1, bg.b or 0.1, bg.a or 0.8)
+    h.bar:ClearAllPoints()
+    h.bar:SetPoint("TOPLEFT", h.barHolder, "TOPLEFT", inset, -inset)
+    h.bar:SetPoint("BOTTOMRIGHT", h.barHolder, "BOTTOMRIGHT", -inset, inset)
+    SetFillTexture(h.bar, cfg.texture)
+    st.reversed = ns.FillReversed(cfg)
+    h.bar:SetReverseFill(st.reversed)
+    st.barW, st.barH = barW - inset * 2, H - inset * 2
+
+    -- 層級：底 L → 條 L+1 → 效果層 L+2 → 刻度（含火花）L+3 → 文字 L+4；圖示 L+1
+    local lvl = h:GetFrameLevel()
+    h.barHolder:SetFrameLevel(lvl)
+    h.bar:SetFrameLevel(lvl + 1)
+    h.flowClip:SetFrameLevel(lvl + 2)
+    h.marks:SetFrameLevel(lvl + 3)
+    h.textFrame:SetFrameLevel(lvl + 4)
+    h.iconFrame:SetFrameLevel(lvl + 1)
+
+    -- 邊緣陰影（Core/Shape.lua）：條身與圖示各一圈；陰影框都是 h 的子框、層級 h − 1 ⇒ 圖示那圈不會蓋到條身的黑邊。
+    -- 圖示藏著時只有條身一圈
+    local SH = ns.Shape
+    if SH then
+        local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
+        SH.EdgeShadow(h, h.barHolder, spx, sa)
+        SH.EdgeShadow(h, h.iconFrame, showIcon and spx or nil, sa)
+    end
+
+    -- 名字（font／textSize）與時間（timeFont／timeTextSize）各一組，沒存字型 ＝ 跟隨通用字型
+    local general = ns.Setting(nil, "font")
+    local outline = ns.Media.ThemeOutline()
+    ns.Media.SetFont(h.nameText, tonumber(cfg.textSize) or 12, outline, ns.Media.ElementFont(cfg.font, general))
+    ns.Media.SetFont(h.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
+    -- 錨點固定在左右兩緣的垂直中線（y ＝ 0 就是被動置中），位移照設定
+    local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
+    local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}
+    h.timeText:ClearAllPoints()
+    h.timeText:SetPoint("RIGHT", h.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
+    h.nameText:ClearAllPoints()
+    h.nameText:SetPoint("LEFT", h.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
+    h.nameText:SetPoint("RIGHT", h.timeText, "LEFT", -4, 0)
+    h.nameText:SetShown(cfg.showName ~= false)
+    h.timeText:SetShown(cfg.showTime ~= false)
+
+    -- 火花：跟著填充前緣。錨點在 SetStatusBarTexture 之後才下，換材質時要重下
+    h.spark:SetSize(10, H * 2.2)
+    h.spark:ClearAllPoints()
+    local tex = h.bar:GetStatusBarTexture()
+    if tex then h.spark:SetPoint("CENTER", tex, st.reversed and "LEFT" or "RIGHT", 0, 0) end
+    h.spark:SetShown(cfg.showSpark ~= false and st.castState ~= nil and st.castState ~= 3 and st.castState ~= 4)
+
+    -- 效果層：裁切框的前緣錨在填充貼圖上（換材質後貼圖是新的，跟火花一樣在這裡重下）；
+    -- 有往上竄的層（火舌）時裁切框的上緣跟著加高。先停再設：動畫的秒數、方向可能都換了
+    FxStop(h)
+    local layers = tex and FxWanted(cfg) or nil
+    local okFx, overflow = false, 0
+    if layers then okFx, overflow = FxSetup(h, layers, cfg, st.reversed, st.barH) else FxHideAll(h) end
+    st.flow = okFx
+    if st.flow then
+        FxAnchor(h, tex, st.reversed, overflow)
+        if st.castState == 1 or st.castState == 2 then FxPlay(h) end
+    end
+
+    -- 施法中改了尺寸：刻度與延遲區照新寬度重畫
+    if st.castState == 1 or st.castState == 2 then DrawMarksOn(h, st) end
+end
+
 function CB.Layout()
     if not f then return end
     local cfg = Cfg() or {}
     local W, H = Width(cfg), tonumber(cfg.height) or 20
     W, H = ns.P.Scale(W), ns.P.Scale(H)
     ns.Bars.SetPanelSize("castbar", W, H)
-
-    local showIcon = cfg.showIcon ~= false
-    local iconW = showIcon and H or 0
-    local gap = showIcon and ns.P.Scale(tonumber(cfg.iconGap) or 1) or 0
-    local left = cfg.iconSide ~= "RIGHT"
-    f.iconFrame:SetShown(showIcon)
-    f.iconFrame:ClearAllPoints()
-    f.iconFrame:SetSize(iconW > 0 and iconW or 1, H)
-    f.iconFrame:SetPoint(left and "TOPLEFT" or "TOPRIGHT", f, left and "TOPLEFT" or "TOPRIGHT", 0, 0)
-    local edge = ns.P.Pixel(1)
-    f.iconFrame:SetBackdrop({ bgFile = SOLID, edgeFile = SOLID, edgeSize = edge })
-    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.iconFrame) end
-    f.iconFrame:SetBackdropColor(0, 0, 0, 1)
-    f.iconFrame:SetBackdropBorderColor(0, 0, 0, 1)
-    f.icon:ClearAllPoints()
-    f.icon:SetPoint("TOPLEFT", f.iconFrame, "TOPLEFT", edge, -edge)
-    f.icon:SetPoint("BOTTOMRIGHT", f.iconFrame, "BOTTOMRIGHT", -edge, edge)
-
-    local barW = W - iconW - gap
-    if barW < 4 then barW = 4 end
-    f.barHolder:ClearAllPoints()
-    f.barHolder:SetSize(barW, H)
-    f.barHolder:SetPoint(left and "TOPRIGHT" or "TOPLEFT", f, left and "TOPRIGHT" or "TOPLEFT", 0, 0)
-    -- 1px 黑邊畫在外框上；條與底色內縮同一個厚度（見 project-miliui-pixel-snapping）
-    local inset = ns.Media.BorderInset(1)
-    f.barHolder:SetBackdrop({ edgeFile = SOLID, edgeSize = inset })
-    if ns.NoSnapBackdrop then ns.NoSnapBackdrop(f.barHolder) end
-    f.barHolder:SetBackdropBorderColor(0, 0, 0, 1)
-    f.bgTex:ClearAllPoints()
-    f.bgTex:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)
-    f.bgTex:SetPoint("BOTTOMRIGHT", f.barHolder, "BOTTOMRIGHT", -inset, inset)
-    local bg = cfg.bgColor or { r = 0.1, g = 0.1, b = 0.1, a = 0.8 }
-    f.bgTex:SetVertexColor(bg.r or 0.1, bg.g or 0.1, bg.b or 0.1, bg.a or 0.8)
-    f.bar:ClearAllPoints()
-    f.bar:SetPoint("TOPLEFT", f.barHolder, "TOPLEFT", inset, -inset)
-    f.bar:SetPoint("BOTTOMRIGHT", f.barHolder, "BOTTOMRIGHT", -inset, inset)
-    SetFillTexture(f.bar, cfg.texture)
-    S.reversed = ns.FillReversed(cfg)
-    f.bar:SetReverseFill(S.reversed)
-    S.barW, S.barH = barW - inset * 2, H - inset * 2
-
-    -- 層級：底 L → 條 L+1 → 效果層 L+2 → 刻度（含火花）L+3 → 文字 L+4；圖示 L+1
-    local lvl = f:GetFrameLevel()
-    f.barHolder:SetFrameLevel(lvl)
-    f.bar:SetFrameLevel(lvl + 1)
-    f.flowClip:SetFrameLevel(lvl + 2)
-    f.marks:SetFrameLevel(lvl + 3)
-    f.textFrame:SetFrameLevel(lvl + 4)
-    f.iconFrame:SetFrameLevel(lvl + 1)
-
-    -- 邊緣陰影（Core/Shape.lua）：條身與圖示各一圈；陰影框都是 f 的子框、層級 f − 1 ⇒ 圖示那圈不會蓋到條身的黑邊。
-    -- 圖示藏著時只有條身一圈
-    local SH = ns.Shape
-    if SH then
-        local spx, sa = SH.ShadowOf(cfg.shadow, cfg.shadowSize, cfg.shadowAlpha)
-        SH.EdgeShadow(f, f.barHolder, spx, sa)
-        SH.EdgeShadow(f, f.iconFrame, showIcon and spx or nil, sa)
-    end
-
-    -- 名字（font／textSize）與時間（timeFont／timeTextSize）各一組，沒存字型 ＝ 跟隨通用字型
-    local general = ns.Setting(nil, "font")
-    local outline = ns.Media.ThemeOutline()
-    ns.Media.SetFont(f.nameText, tonumber(cfg.textSize) or 12, outline, ns.Media.ElementFont(cfg.font, general))
-    ns.Media.SetFont(f.timeText, tonumber(cfg.timeTextSize) or 12, outline, ns.Media.ElementFont(cfg.timeFont, general))
-    -- 錨點固定在左右兩緣的垂直中線（y ＝ 0 就是被動置中），位移照設定
-    local no = type(cfg.nameOffset) == "table" and cfg.nameOffset or {}
-    local to = type(cfg.timeOffset) == "table" and cfg.timeOffset or {}
-    f.timeText:ClearAllPoints()
-    f.timeText:SetPoint("RIGHT", f.textFrame, "RIGHT", tonumber(to.x) or -4, tonumber(to.y) or 0)
-    f.nameText:ClearAllPoints()
-    f.nameText:SetPoint("LEFT", f.textFrame, "LEFT", tonumber(no.x) or 4, tonumber(no.y) or 0)
-    f.nameText:SetPoint("RIGHT", f.timeText, "LEFT", -4, 0)
-    f.nameText:SetShown(cfg.showName ~= false)
-    f.timeText:SetShown(cfg.showTime ~= false)
-
-    -- 火花：跟著填充前緣。錨點在 SetStatusBarTexture 之後才下，換材質時要重下
-    f.spark:SetSize(10, H * 2.2)
-    f.spark:ClearAllPoints()
-    local tex = f.bar:GetStatusBarTexture()
-    if tex then f.spark:SetPoint("CENTER", tex, S.reversed and "LEFT" or "RIGHT", 0, 0) end
-    f.spark:SetShown(cfg.showSpark ~= false and S.castState ~= nil and S.castState ~= 3 and S.castState ~= 4)
-
-    -- 效果層：裁切框的前緣錨在填充貼圖上（換材質後貼圖是新的，跟火花一樣在這裡重下）；
-    -- 有往上竄的層（火舌）時裁切框的上緣跟著加高。先停再設：動畫的秒數、方向可能都換了
-    StopFlow()
-    local layers = tex and FxWanted(cfg) or nil
-    local okFx, overflow = false, 0
-    if layers then okFx, overflow = FxSetup(layers, cfg) else FxHideAll() end
-    S.flow = okFx
-    if S.flow then
-        f.flowClip:ClearAllPoints()
-        if S.reversed then
-            f.flowClip:SetPoint("TOPLEFT", tex, "TOPLEFT", 0, overflow)
-            f.flowClip:SetPoint("BOTTOMRIGHT", f.bar, "BOTTOMRIGHT", 0, 0)
-        else
-            f.flowClip:SetPoint("TOPLEFT", f.bar, "TOPLEFT", 0, overflow)
-            f.flowClip:SetPoint("BOTTOMRIGHT", tex, "BOTTOMRIGHT", 0, 0)
-        end
-        if S.castState == 1 or S.castState == 2 then StartFlow() end
-    end
-
-    -- 施法中改了尺寸：刻度與延遲區照新寬度重畫
-    if S.castState == 1 or S.castState == 2 then CB.DrawMarks() end
+    LayoutParts(f, S, cfg, W, H)
 end
 
 ------------------------------------------------------------
@@ -650,10 +691,10 @@ local function C(c, dr, dg, db)
 end
 
 -- 蓄力：現在放開會是第幾階（明文時間軸才算得出來；算不出來當第 1 階）
-local function EmpowerStage()
-    local pts = S.stagePoints
-    if not (pts and S.tStart) then return 1 end
-    local elapsed = GetTime() - S.tStart
+local function EmpowerStage(st)
+    local pts = st.stagePoints
+    if not (pts and st.tStart) then return 1 end
+    local elapsed = GetTime() - st.tStart
     local r = 0
     for i = 1, #pts do
         if elapsed >= pts[i] then r = i else break end
@@ -662,11 +703,12 @@ local function EmpowerStage()
     return r
 end
 
-local function BaseColor()
+-- st ＝ 施法狀態表（畫面上那條是 S；設定頁的樣本是它自己的小表）
+local function BaseColor(st)
     local cfg = Cfg() or {}
     local c = Colors()
-    if S.castEmpowered then
-        return C(c["empowerStage" .. EmpowerStage()], 0.35, 0.75, 0.35)
+    if st.castEmpowered then
+        return C(c["empowerStage" .. EmpowerStage(st)], 0.35, 0.75, 0.35)
     end
     -- 動畫材質：底色白（施法色／職業色不染），上面的狀態色照舊乘上去
     if CB.IsFx(cfg.texture) then return 1, 1, 1 end
@@ -674,7 +716,7 @@ local function BaseColor()
         local r, g, b = ns.Style.Accent()
         return r, g, b
     end
-    if S.castChannel then return C(c.channel, 0.906, 0.424, 0.2) end
+    if st.castChannel then return C(c.channel, 0.906, 0.424, 0.2) end
     return C(c.cast, 0.906, 0.424, 0.2)
 end
 
@@ -686,12 +728,15 @@ end
 -- 曲線串接的保險：第一次被擋就永久放掉斷法就緒色，保住「不可打斷灰」
 local chainOK = true
 
-local function ApplyColor()
-    local tex = f.bar:GetStatusBarTexture()
+-- **畫面上那條（h ＝ f、st ＝ S）與設定頁的樣本（CB.CreateSample）共用**：樣本不另寫一份上色，餵明文的假狀態走同一條路
+-- ⇒ 樣本上看到的就是實際的套用結果（斷法就緒染色、動畫讓位都照演），這裡寫錯兩邊一起錯、看得出來。
+-- st 要有 castEmpowered／castChannel／castNotInterruptible／flow
+local function PaintColorOn(h, st)
+    local tex = h.bar:GetStatusBarTexture()
     if not tex then return end
     local cfg = Cfg() or {}
     local c = Colors()
-    local br, bg, bb = BaseColor()
+    local br, bg, bb = BaseColor(st)
     local r, g, b = br, bg, bb
     local tinted = false
     local flowReady                           -- 效果層要讓位的「斷法就緒」旗標（nil ＝ 沒這回事）
@@ -711,7 +756,7 @@ local function ApplyColor()
         end
     end
     -- 不可打斷（可能是秘密布林：只餵曲線）
-    local ni = S.castNotInterruptible
+    local ni = st.castNotInterruptible
     if ni ~= nil then
         if IsSecret(ni) then
             if Eval then
@@ -729,62 +774,66 @@ local function ApplyColor()
     end
     tex:SetVertexColor(r, g, b, 1)
     -- 效果層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
-    if S.flow and f.flowClip then
-        FlowAlpha(f.flowClip, ni)
-        FlowAlpha(f.flowHost, flowReady)
+    if st.flow and h.flowClip then
+        FlowAlpha(h.flowClip, ni)
+        FlowAlpha(h.flowHost, flowReady)
     end
 end
+local function ApplyColor() PaintColorOn(f, S) end
 
 ------------------------------------------------------------
 -- 刻度／蓄力分階／延遲區
 ------------------------------------------------------------
-function CB.DrawMarks()
-    if not (f and S.barW) then return end
+function DrawMarksOn(h, st)
+    if not st.barW then return end
     local cfg = Cfg() or {}
     local n = 0
     -- 引導刻度：剩餘時間 t 的那一跳畫在 t / 總長（引導條從滿往空退）
-    if cfg.ticks ~= false and S.tickTimes and S.tickDur and S.tickDur > 0 then
-        for i = 1, #S.tickTimes do
-            local r = S.tickTimes[i] / S.tickDur
+    if cfg.ticks ~= false and st.tickTimes and st.tickDur and st.tickDur > 0 then
+        for i = 1, #st.tickTimes do
+            local r = st.tickTimes[i] / st.tickDur
             if r > 0.001 and r < 0.999 and n < MAX_MARKS then
                 n = n + 1
-                PlaceMark(n, r, 1, 1, 1, 0.6)
+                PlaceMark(h, st, n, r, 1, 1, 1, 0.6)
             end
         end
     end
     -- 蓄力分階：每一階的終點
-    if S.stagePoints and S.stageTotal and S.stageTotal > 0 then
-        for i = 1, #S.stagePoints do
-            local p = S.stagePoints[i] / S.stageTotal
+    if st.stagePoints and st.stageTotal and st.stageTotal > 0 then
+        for i = 1, #st.stagePoints do
+            local p = st.stagePoints[i] / st.stageTotal
             if p > 0.001 and p < 0.999 and n < MAX_MARKS then
                 n = n + 1
-                PlaceMark(n, p, 1, 1, 1, 0.8)
+                PlaceMark(h, st, n, p, 1, 1, 1, 0.8)
             end
         end
     end
-    HideMarks(n + 1)
+    HideMarks(h, n + 1)
     -- 延遲區：施法的終點端（施法在右、引導在左；反向填充時對調）。只在明文時間軸下畫
-    local lag = S.lag or 0
-    if cfg.latency ~= false and lag > 0 and (S.total or 0) > 0 and not S.castEmpowered then
-        local frac = (lag / 1000) / S.total
+    local lag = st.lag or 0
+    if cfg.latency ~= false and lag > 0 and (st.total or 0) > 0 and not st.castEmpowered then
+        local frac = (lag / 1000) / st.total
         if frac > 0.3 then frac = 0.3 end
-        local w = S.barW * frac
+        local w = st.barW * frac
         if w < 2 then w = 2 end
-        local atLeft = S.castChannel
-        if S.reversed then atLeft = not atLeft end
-        f.latency:ClearAllPoints()
-        f.latency:SetSize(w, S.barH)
-        f.latency:SetPoint(atLeft and "LEFT" or "RIGHT", f.marks, atLeft and "LEFT" or "RIGHT", 0, 0)
-        f.latency:Show()
+        local atLeft = st.castChannel
+        if st.reversed then atLeft = not atLeft end
+        h.latency:ClearAllPoints()
+        h.latency:SetSize(w, st.barH)
+        h.latency:SetPoint(atLeft and "LEFT" or "RIGHT", h.marks, atLeft and "LEFT" or "RIGHT", 0, 0)
+        h.latency:Show()
     else
-        f.latency:Hide()
+        h.latency:Hide()
     end
+end
+function CB.DrawMarks()
+    if f then DrawMarksOn(f, S) end
 end
 
 local function ClearMarks()
     S.tickTimes, S.tickDur, S.tickTime = nil, nil, nil
     S.stagePoints, S.stageTotal = nil, nil
-    HideMarks(1)
+    HideMarks(f, 1)
     f.latency:Hide()
 end
 
@@ -849,11 +898,12 @@ local function SetTimeText(text)
 end
 
 -- 開唱（真的或預覽）時的前緣效果：火花，加上效果層
-local function ShowSpark()
+local function ShowSparkOn(h, st)
     local cfg = Cfg() or {}
-    f.spark:SetShown(cfg.showSpark ~= false)
-    StartFlow()
+    h.spark:SetShown(cfg.showSpark ~= false)
+    if st.flow then FxPlay(h) end
 end
+local function ShowSpark() ShowSparkOn(f, S) end
 
 -- 沒在施法：關掉「沒在施法時隱藏」的話留一條空條，否則整條藏起來（容器的 alpha 由 Visibility 管）
 local function HideBar()
@@ -993,11 +1043,12 @@ local function PlainOnUpdate(self, dt)
     end
 end
 
-local function SetName(name)
+local function PaintNameOn(h, name)
     local cfg = Cfg() or {}
     -- 秘密字串照樣餵 SetText（C 端吃得下），只是不截字
-    f.nameText:SetText(CB.Truncate(name, cfg.nameMaxChars) or "")
+    h.nameText:SetText(CB.Truncate(name, cfg.nameMaxChars) or "")
 end
+local function SetName(name) PaintNameOn(f, name) end
 
 local function StartDisplay()
     local cfg = Cfg()
@@ -1203,6 +1254,79 @@ function CB.StopPreview()
 end
 
 function CB.IsPreviewing() return f and S.preview or false end
+
+------------------------------------------------------------
+-- 設定頁的內嵌樣本（Options/Tab_Castbar.lua「材質」上方那一列）：一條自己循環填滿的假施法條，
+-- 換材質／動畫當場看得到，不用去畫面上找那條真的。
+--
+-- **跟畫面上那條是同一批函式、同一個呼叫順序、同一套疊層**（使用者 2026-11-06 指定：樣式的套用方式要跟實際一模一樣，
+-- 才能順便拿它看樣式或上色有沒有錯）：零件 BuildParts、版面 LayoutParts（層級、錨點、效果層、火花、刻度與延遲區都在裡面）、
+-- 名字 PaintNameOn、上色 PaintColorOn、延遲區 DrawMarksOn、火花 ShowSparkOn——樣本只是另一個框 h ＋ 另一張狀態表 st，
+-- st 餵的就是頁首預覽（CB.StartPreview）餵給 S 的那幾格：一般的可打斷施法、帶假延遲。Refresh 照「CB.Apply → CB.Layout，
+-- 接著 StartPreview」的順序叫，每幀照 PlainOnUpdate。**要改畫法就改那批共用函式，不要在這裡另外寫。**
+-- 所以實際會發生的事樣本也照演：「斷法就緒時染色」開著、斷法又就緒時染色且動畫讓位；改任何設定時動畫從頭播
+-- （畫面上那條施法中改設定也是這樣）。
+-- 不碰玩家施法條的狀態（S）與任何施法 API。跟畫面上不一樣的只有兩樣：寬放不下縮到 maxW、高上限 CB.SAMPLE_MAX_H
+-- （設定頁那一列的高是固定的）；以及它是循環的（SAMPLE_TIME 秒一輪、滿了停 SAMPLE_HOLD 秒，那一下火花收掉）。
+--   local s = CB.CreateSample(parent)   s 是框，位置由呼叫端擺；s:Refresh(maxW) 照目前設定重畫
+------------------------------------------------------------
+local SAMPLE_TIME, SAMPLE_HOLD = 3, 0.6
+CB.SAMPLE_MAX_H = 24
+
+function CB.CreateSample(parent)
+    local s = CreateFrame("Frame", nil, parent)
+    BuildParts(s)
+    local st = { castState = 1, castChannel = false, castEmpowered = false, castNotInterruptible = false,
+                 total = SAMPLE_TIME, lag = PREVIEW_LAG }
+    s.st = st
+
+    local t, acc, lastTime = 0, 1, nil
+    s:SetScript("OnUpdate", function(self, dt)
+        t = t + dt
+        if t >= SAMPLE_TIME + SAMPLE_HOLD then
+            t = t % (SAMPLE_TIME + SAMPLE_HOLD)
+            ShowSparkOn(self, st)                        -- 新的一輪開唱
+        end
+        local filling = t < SAMPLE_TIME
+        self.bar:SetValue(filling and t / SAMPLE_TIME or 1)
+        if not filling then self.spark:Hide() end
+        acc = acc + dt
+        if acc < 0.05 then return end
+        acc = 0
+        local cfg = Cfg() or {}
+        local text = FormatTime(cfg.timeFormat, filling and t or SAMPLE_TIME, SAMPLE_TIME)
+        if text ~= lastTime then
+            lastTime = text
+            self.timeText:SetText(text)
+        end
+        if cfg.interruptReady or st.castEmpowered then PaintColorOn(self, st) end
+    end)
+
+    function s:Refresh(maxW)
+        local cfg = Cfg() or {}
+        local W, H = ns.P.Scale(Width(cfg)), ns.P.Scale(tonumber(cfg.height) or 20)
+        if maxW and W > maxW then W = maxW end
+        if W < 80 then W = 80 end
+        if H > CB.SAMPLE_MAX_H then H = CB.SAMPLE_MAX_H elseif H < 6 then H = 6 end
+        self:SetSize(W, H)
+        -- 設定改了：CB.Apply → CB.Layout（st 是施法中 ⇒ 火花、效果層、刻度與延遲區都在裡面照著重設）
+        LayoutParts(self, st, cfg, W, H)
+        -- 開唱：CB.StartPreview 的順序
+        self.icon:SetTexture(PREVIEW_ICON)
+        PaintNameOn(self, L["Preview cast"])
+        lastTime = nil
+        self.timeText:SetText("")
+        PaintColorOn(self, st)
+        self.bar:SetMinMaxValues(0, 1)
+        DrawMarksOn(self, st)
+        ShowSparkOn(self, st)
+    end
+    -- 框藏起來時動畫組會停（換頁、換表單、關視窗）：重新顯示時接著播
+    s:SetScript("OnShow", function(self)
+        if st.flow then FxPlay(self) end
+    end)
+    return s
+end
 
 -- 施法中、淡出中、打斷停留中、預覽中都算
 function CB.IsActive()

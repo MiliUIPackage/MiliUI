@@ -3,7 +3,7 @@
 --
 -- 控件照單位框架的施法條設定改（單位固定是自己，所以沒有施法目標、斷法者、重要法術），
 -- 多了引導刻度、延遲條、蓄力四階顏色、隱藏暴雪施法條、「錨定」一節（Specs.Anchor；key ＝ "castbar"）。
--- 頁首一顆「預覽」：跑一條十秒的假施法，再按一次停。
+-- 頁首一顆「預覽」：跑一條十秒的假施法，再按一次停。「材質」上方另有一條內嵌的樣本條（SampleRow），一直循環。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -64,6 +64,26 @@ local function FxRows()
     }
 end
 
+-- 樣本條（引擎的 ns.Castbar.CreateSample）：一條自己循環填滿的假施法條，照目前的設定畫；放在「材質」正上方，
+-- 換材質／動畫當場看得到（頁首那顆「預覽」是在畫面上那條真的跑假施法，常被設定視窗擋住）。
+-- 表單引擎在值變了之後只叫 ctx.apply、不叫 refreshers ⇒ 包一層 ctx.apply 讓樣本跟著換（同 Specs 的發光預覽）。
+-- 列高固定（表單建好就不變）：條置中、高度上限 SAMPLE_MAX_H，上下留的空間剛好夠火舌竄出去
+local SAMPLE_ROW_H = ns.Castbar.SAMPLE_MAX_H + 20
+local function SampleRow()
+    return { type = "custom", label = L["Preview"], h = SAMPLE_ROW_H, noReset = true,
+        build = function(parent, x, y, width, ctx)
+            local s = ns.Castbar.CreateSample(parent)
+            s:SetPoint("LEFT", parent, "TOPLEFT", x, y - SAMPLE_ROW_H / 2)
+            local function Refresh() s:Refresh(width) end
+            local apply = ctx.apply
+            ctx.apply = function(...)
+                apply(...)
+                Refresh()
+            end
+            return SAMPLE_ROW_H, Refresh
+        end }
+end
+
 local function ResetAll()
     local cfg = Cfg()
     if not cfg then return end
@@ -80,6 +100,7 @@ local function Controls()
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns (icon included)."]),
         BS("slider", "height", L["Height"], { min = 6, max = 60, step = 1 }),
+        SampleRow(),
         BS("dropdown", "texture", L["Texture"], { items = TextureItems, refreshPage = true }),
         Note(L["Blizzard cast bar: the gradient look of the game's own cast bar, tinted with the colors below."]),
         BS("color", "bgColor", L["Background color"]),

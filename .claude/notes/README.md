@@ -156,6 +156,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-cell-retail-only.md](feedback-cell-retail-only.md) | 我們的 Cell 只支援正式服 —— 新程式不加經典版保護、plan 不寫「保留經典版路徑」 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | UI 視覺風格偏好：純色直角、深底白字、間距要緊；狀態只換明暗不換色 |
 | [feedback-fix-root-cause-not-symptom.md](feedback-fix-root-cause-not-symptom.md) | 修 bug 要治本：不在錯誤路徑上加閘／重試／補寫，先問「插件為什麼要替暴雪做這件事」 |
+| [feedback-preview-shares-real-paint-code.md](feedback-preview-shares-real-paint-code.md) | 設定頁的預覽／樣本要用實際元件的同一批函式、同順序、同疊層，不另寫一份——預覽同時是樣式與上色的檢查 |
 | [feedback-zhtw-blizzard-terms.md](feedback-zhtw-blizzard-terms.md) | zhTW 用暴雪官方詞彙：focus 是「專注目標」不是「焦點」，後者只留給輸入焦點 |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「寫 plan → Opus 子代理在 worktree 實作 → 驗收 → commit＋merge」；push 另等指示，遠端叫 `MiliUIPackage` |
 | [feedback-watermark-mock-heights.md](feedback-watermark-mock-heights.md) | 浮水印／裝飾圖案先用 Pillow 草稿畫各種面板高度（含最矮的）看過再定常數；剪影＋程式上色、最小尺寸規則 |
@@ -252,7 +253,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 179 篇）
+## 全部筆記（自動產生，共 180 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -402,7 +403,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-hide-blizzard-taint.md](project-miliui-hide-blizzard-taint.md) | 隱藏暴雪原生單位框與施法條的 taint 規則（MiliUI_UnitFrames/Core/HideBlizzard.lua）——碰過的框會讓暴雪自己的 RegisterEvent 變成禁止動作；reparent 不 Hide、hook 裡只排程、Edit Mode 管的框只解事件 |
 | [project-miliui-hud-skin.md](project-miliui-hud-skin.md) | MiliUI「HUD 皮」的正式定義——黑透明底＋1px 職業色邊＋白字＋直角；提示皮（不透明、亮一階）；三套皮的二選一判準與數值表；邊框粗細走 P.Pixel |
 | [project-miliui-infobar.md](project-miliui-infobar.md) | MiliUI_InfoBar 資訊列——取代微型選單的自製條；secure 點擊轉發（macrotext）／暴雪列 hider／隱式保護框的戰鬥紀律／09-07 taint 紀律四條入口／遊戲選單鈕的 secure snippet／戰隊資訊（**角色記錄多來源只能就地更新**、寶庫欄切換、團本提示）／停靠／坐騎・修裝・確認倒數三張滑過面板共用 HoverPanel／自動修裝與本體連動／外部方塊接口 MiliUI_InfoBarPlugins／待驗證清單 |
-| [project-miliui-media-naming.md](project-miliui-media-naming.md) | 套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它 |
+| [project-miliui-media-naming.md](project-miliui-media-naming.md) | 套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它；材質下拉的選單本身要鋪材質當預覽（照 Cell 樣式，TextureItems 第四個參數） |
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 取代 Krowi_ExtendedVendorUI 的單體插件；為什麼沿用暴雪命名而不自己畫格子、IsShown 閘、收藏快取的兩個陷阱、批量購買與拍賣場標示（未實機）、待驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | MiliUI_Minimap 方形小地圖＋社交列＋插件按鈕收納（取代 MBB）——接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角、按鈕收納的掃描隔離與拆遮罩、「像被上了遮罩」四個成因（主因 SetParent 不帶 strata）、好友人數的語意換掉成本歸零、名單走聊天超連結、登入不夾位置、待驗證清單 |
 | [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針；範圍判準是「畫在哪個宿主」、整趟合併分段兩倍的指紋、兩條統計策略、完賽觸發照 EUI、入口四處（設定視窗開面板要先關視窗）、聊天發佈（待實機驗證）、鑰石相關功能從本體搬來（secure 巨集／精簡 LibOpenRaid 接收端／AMT 借來的四項）、登入不夾位置、待驗證清單 |
@@ -448,6 +449,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [feedback-no-toc-version-bump.md](feedback-no-toc-version-bump.md) | 不準主動 bump 任何插件 .toc 的 ## Version（Cell、MiliUI_* 全部），也不要開 chore bump commit；使用者有自己的插件處理版本號，發新版有自己的打算 |
 | [feedback-options-toggle-description.md](feedback-options-toggle-description.md) | 設定介面守則——勾選框（及任何控件）的說明一律放在下一行的灰色小字（Controls 的 type=\"text\"），不要接在勾選框右邊（toggle 的 hint） |
 | [feedback-plan-opus-verify-workflow.md](feedback-plan-opus-verify-workflow.md) | 較大的功能走「我寫 plan → Opus 子代理在 worktree 實作 → 我驗收 → commit 並 merge 進 master」，push 另外等使用者說 |
+| [feedback-preview-shares-real-paint-code.md](feedback-preview-shares-real-paint-code.md) | 設定頁的預覽／樣本要用畫面上那個元件的同一批函式（零件、版面、繪製），呼叫順序與疊層也要一模一樣，不另寫一份——使用者要拿預覽順便檢查樣式與上色有沒有錯 |
 | [feedback-probe-addon-place-directly.md](feedback-probe-addon-place-directly.md) | 給使用者的暫時探針／測試插件要直接放進遊戲本體的 Interface/AddOns，不要叫使用者自己複製 |
 | [feedback-skin-copy-ellesmereui.md](feedback-skin-copy-ellesmereui.md) | MiliUI_Skin 新視窗的做法照抄 EllesmereUI（範圍／掛點／不碰清單／時機），外觀套我們的樣式；契約照舊，lint 白名單只開給就位確認 |
 | [feedback-ui-visual-style.md](feedback-ui-visual-style.md) | 使用者偏好的 UI 視覺風格——純色直角、深底白字、緊湊間距；狀態靠明暗不靠換色；有標題的小節前面不放收尾隔線 |

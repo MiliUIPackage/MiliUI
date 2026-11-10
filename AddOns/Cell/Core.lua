@@ -1166,7 +1166,9 @@ function SlashCmdList.CELL(msg, editbox)
     local rawRest = rest or ""
     rest = strlower(rest or "")
 
-    if command == "options" or command == "opt" then
+    -- fix from MiliUI: a bare /cell opens the options (it used to print the command list, which
+    -- is not what somebody typing the addon's name is after). The list moved to /cell cmd.
+    if command == "" or command == "options" or command == "option" or command == "opt" then
         F.ShowOptionsFrame()
 
     elseif command == "healers" then
@@ -1271,8 +1273,10 @@ function SlashCmdList.CELL(msg, editbox)
     --     end
 
     else
+        -- "cmd" / "command", and anything unrecognised (a typo should get the list, not the options)
         F.Print(L["Available slash commands"]..":\n"..
-            "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
+            "|cFFFFB5C5/cell|r, |cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
+            "|cFFFFB5C5/cell cmd|r, |cFFFFB5C5/cell command|r: "..L["show this command list"]..".\n"..
             "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFFB5C5/cell rescale|r: "..strlower(L["Apply Recommended Scale"])..".\n"..
             "|cFFFFB5C5/cell debug|r: "..L["toggle the debug console"]..".\n"..

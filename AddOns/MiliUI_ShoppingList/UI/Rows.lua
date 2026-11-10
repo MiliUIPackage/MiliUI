@@ -287,6 +287,11 @@ function Rows.Update(row, data)
             chip:SetScript("OnClick", function() ns.List.SetTier(key, tier, tierID) end)
             chip._tip = function(tip)
                 tip:SetText(L["Quality %d"]:format(tier))
+                -- 這個品質有幾個。列上的持有量只算挑中的那個品質，
+                -- 沒挑的那幾個手上有多少，只有這裡看得到（不用切過去才知道）。
+                local bags, bank = ns.List.Counts(tierID)
+                tip:AddDoubleLine(L["Bags / bank"], ("%d / %d"):format(bags, bank),
+                    0.7, 0.7, 0.7, 1, 1, 1)
                 local q = ns.Auction.Quote(tierID)
                 if q and q.unitPrice then
                     tip:AddDoubleLine(L["Unit price"], ns.List.MoneyShort(q.unitPrice),

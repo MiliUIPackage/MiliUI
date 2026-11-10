@@ -822,6 +822,7 @@ L["%d lines skipped (over the per-second limit)"] = "略過 %d 行（超過每�
 L["—— Above: log from before the last reload ——"] = "—— 以上是上次 reload 前的記錄 ——"
 L["toggle the debug console"] = "開關除錯主控台"
 L["aura display diagnostics (inspect, gate, test...)"] = "光環顯示除錯工具（inspect、gate、test…）"
+L["show this command list"] = "顯示這份指令清單"
 
 -- fix from MiliUI: 光環倒數的時間格式
 L["Duration Text Format"] = "持續時間文字格式"

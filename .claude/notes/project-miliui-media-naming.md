@@ -1,6 +1,6 @@
 ---
 name: project-miliui-media-naming
-description: "套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它"
+description: "套組自製材質的命名與顯示規則（2026-11-06 使用者拍板）：LSM 登記名 `MiliUI <英文名>` 永遠不翻、中文顯示名 `米利UI: <譯名>`、下拉裡置頂；名冊與譯名只有一份在共用 vendor Libs/MiliUIMedia，六支有材質下拉的插件都接它；材質下拉的選單本身要鋪材質當預覽（照 Cell 樣式，TextureItems 第四個參數）"
 metadata:
   node_type: memory
   type: project
@@ -15,8 +15,13 @@ metadata:
 - **登記名**（LibSharedMedia key＝存檔值＝英文顯示名）：`MiliUI <英文名>`，純 ASCII，**永遠不翻、不改**——它在存檔與匯入字串裡，
   也是別家插件材質選單看到的名字。在地化只做在**我們自己下拉的顯示文字**（這是我的判斷：翻 key 會讓舊存檔與跨語系分享的設定找不到圖）。
 - **中文顯示名**：`米利UI: <譯名>`，半形冒號＋一個空白，繁簡各一份；變體用全形括號接後面（`米利UI: 彩虹（柔和）`）。
-  其他語系照登記名原樣。現有三款：Satin＝緞面／缎面、Rainbow＝彩虹、Rainbow Soft＝彩虹（柔和）。
+  其他語系照登記名原樣。現有款式以名冊為準（Satin＝緞面／缎面、Rainbow＝彩虹、Rainbow Soft＝彩虹（柔和），同日另一個 session 加了 Cosmos／Lightning／Lava／Flame 四款施法條動畫材質）。
 - **順序**：不是材質的項目（跟隨…／預設）→ 米利的材質（名冊順序，Satin 第一）→ 保留項（純色、暴雪施法條）→ 其餘 LSM。
+- **選單本身就是預覽**（2026-11-06 使用者貼 Cell 的材質下拉截圖：「材質下拉選單照 Cell 樣式，選單本身有材質可以預覽。所有 MiliUI 插件以後有材質選單都按照這個樣式來做」）：
+  每一列鋪那張材質、字疊在上面，收合的下拉本體也鋪選中的那張。做在共用層 `W.CreateDropdown`（項目帶 `texture` 就畫：圖壓 0.7、滑過全亮、
+  有圖的列用 1px 職業色框表示滑過／選中），圖由 `MM.TextureItems(list, always, nil, 解析函式)` 的**第四個參數**帶（各插件 `Core/Media.lua` 的
+  `BarTexture`／MCDM 的 `ns.Media.Texture`）；保留項（純色、預設、跟隨…）不帶圖。細節（0.7、框的畫法）是我照 Cell 定的，未實機。
+  **新的材質下拉一律傳第四個參數**；不走共用層下拉的自畫選單也要做出同樣的效果。
 - **譯名只寫在名冊**：`AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua`（單檔 vendor，`sync-widgets.py` 鋪到各插件的 `Libs/MiliUIMedia.lua`，
   掛 `ns.MiliMedia`、無全域、不依賴 LSM）。**不要進各插件語系檔**——之前就是各翻各的（單位框／傷害統計「內建（Satin）」、滑鼠提示寫死英文）。
   規則由 source 旁的 `Tests/MiliUIMedia_test.lua` 守（前綴、繁簡都要有、順序）。
@@ -24,6 +29,10 @@ metadata:
 **How to apply:** 新增一款材質＝名冊 `TEXTURES` 加一列（含 zhTW／zhCN）→ 跑 `sync-widgets.py` → 帶檔的那支在自己的 `Core/Media.lua` 登記 LSM。
 新插件要材質下拉＝複製 `Libs/MiliUIMedia.lua`、TOC 排在 `Libs\Callbacks.lua` 後面，下拉用 `ns.MiliMedia.TextureItems(lsmList, always)` 拿 `own, rest` 兩段，
 自己帶檔的材質放 `always = { [登記名] = 存檔值 }`（清單裡沒有也列）。MCDM 另有 `ns.Media.OWN_TEXTURES` 與 `Specs.InsertAfterSolid`（純色的位置不能寫死索引）。
-消費者：MCDM、UnitFrames、DamageMeters、Tooltip、BossTimeline、CrusadingStrikes。
-**沒做的**：Cell（本地 fork）的材質選單仍顯示 LSM 原名「MiliUI Satin」、照字母排——那是 Cell 自己的下拉；字型／音效／邊框沒有自製登記名，未套這套。
+消費者：MCDM、UnitFrames、DamageMeters、Tooltip、BossTimeline、CrusadingStrikes、**Cell**（同日使用者說「Cell 也套」）。
+- **Cell 的接法不一樣**：`Libs/LoadLibs.xml` 載 `MiliUIMedia.lua`（掛 `Cell.MiliMedia`），`Utils.lua` 的 `F.SortBarTextureNames`／`F.GetBarTextureLabel`
+  給外觀頁（`Modules/Appearance/Appearance.lua` 的 `CheckTextures`）與快速協助（`Utilities/QuickAssist_Config.lua` 的 `LoadTextures`）兩個材質選單用；
+  順序是 米利的材質 → 「Cell 預設」→ 其餘。⚠ Cell 的下拉 `SetSelected(text, …)` **比對的是顯示文字**不是登記名，
+  所以還原選取時要傳 `F.GetBarTextureLabel(存檔名)`——直接傳存檔名在中文客戶端會選不到、下拉顯示空白。
+- **沒做的**：字型／音效／邊框沒有自製登記名，未套這套。MCDM 的動畫材質在別支插件（含 Cell）的下拉裡選到只有靜態底圖，動畫只有 MCDM 施法條做。
 相關：[[project-miliui-satin-texture]]、[[project-miliui-widgets-vendor]]、[[project-miliui-cooldownmanager]]

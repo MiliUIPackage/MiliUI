@@ -45,8 +45,9 @@ metadata:
 
 ## 踩到的雷（已解）
 
-- **預設位置跟隨官方那排**：沒拖過（db.x/y=nil）就讀 `MicroMenuContainer:GetCenter()` 換算成 UIParent 座標，被 hider 藏著也讀得到；PLAYER_ENTERING_WORLD 再算一次。
-  DB_DEFAULTS 刻意不放 x/y——CopyDefaults 會把「沒拖過」這個 nil 蓋掉。
+- **預設位置＝畫面正上方置中**（2026-11-06 使用者指定；之前是跟隨官方微型選單那排）：沒拖過（db.x/y=nil）就 `SetPoint("TOP", UIParent, "TOP")`，
+  不換算成 CENTER 偏移（條高、解析度、登入時 UIParent 尺寸未定都由引擎跟上）。DB_DEFAULTS 刻意不放 x/y——CopyDefaults 會把「沒拖過」這個 nil 蓋掉。
+  **改預設位置不必寫遷移**：沒拖過的存檔裡沒有座標、直接吃新預設，拖過的有座標所以不動——這就是 nil 設計的用途。
 - **EditModeSystemSelectionTemplate 的 XML 綁了 OnMouseDown → SelectSystem**，借用模板的自訂框要 `SetScript("OnMouseDown", function() end)` 中和（[[wow-121-addon-code-in-secure-stack]] 入口 8）。
 - **教學提示（HelpTip）**：暴雪把黃色泡泡錨在**原鈕**上，原鈕藏起來提示就飛過去。第一版改 `frame.relativeRegion` 重錨——那正是 09-07 taint 的根因（見下），現況改鏡射。
   第一版留下一條通用教訓：**「改了沒反應又不報錯」的第一嫌疑犯是早退快取**（`AnchorAndRotate` 開頭 `appliedTargetPoint == targetPoint` 就 return），診斷要連實際座標一起印，不只印狀態欄位。

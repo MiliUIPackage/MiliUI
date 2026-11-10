@@ -200,17 +200,26 @@ end
 ------------------------------------------------------------
 -- 量尺：獨立一顆、不錨在任何 tooltip 上（量測不能沾到秘密錨點鏈）
 ------------------------------------------------------------
-local ruler
+local ruler, rulerHolder
 local function Ruler()
     if ruler then return ruler end
-    local holder = CreateFrame("Frame", nil, UIParent)
-    holder:SetSize(1, 1)
-    holder:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
-    holder:SetAlpha(0)
-    ruler = holder:CreateFontString(nil, "OVERLAY")
+    rulerHolder = CreateFrame("Frame", nil, UIParent)
+    rulerHolder:SetSize(1, 1)
+    rulerHolder:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+    rulerHolder:SetAlpha(0)
+    ruler = rulerHolder:CreateFontString(nil, "OVERLAY")
     ruler:SetPoint("TOPLEFT")
     Panel.ApplyFont(ruler, ReadFont(_G.GameTooltipText, 12))
     return ruler
+end
+
+-- 量尺跟著要畫的面板同一個有效縮放。字型是照實體像素光柵化的：同一串字在縮放 1 與縮放 1.3 下
+-- 量到的寬度差個幾像素，面板的右欄（頁尾職業行那種「剛好給量到的寬」）就會把最後一個字擠到下一行。
+-- RenderView 設完 panel 的 SetScale 之後呼叫；讀不到縮放（秘密）就維持上次的
+function Panel.SyncRuler(panel)
+    Ruler()
+    local ps, us = EffectiveScale(panel), EffectiveScale(UIParent)
+    if ps and us then rulerHolder:SetScale(ps / us) end
 end
 
 ------------------------------------------------------------

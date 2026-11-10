@@ -1273,6 +1273,30 @@ local MENU_MAX_ROWS = 14      -- 超過就裁切＋滾輪捲動（字型清單�
 -- 職業色只留給 hover 與「展開中」——常駐染色會讓整頁表單太吵
 local DD_BORDER = { 0.22, 0.22, 0.22, 1 }
 
+-- **材質預覽**（全套組的材質下拉都這樣畫，使用者 2026-11-06 指定照 Cell 的樣式）：項目帶 `texture`（圖檔路徑）時，
+-- 選單裡那一列整列鋪那張圖、字疊在上面，收合的下拉本體也鋪選中那一項的圖 ⇒ 不用選了才知道長怎樣。
+-- 圖壓在 DD_TEX_ALPHA（底下是深色底，白字才讀得出來；滑過那一列全亮）；有圖的列不靠底色表示滑過／選中
+-- （底色被圖蓋住），改畫 1px 職業色框。沒帶 texture 的項目（純色、預設、跟隨…）照舊。
+-- 清單由消費者自己帶圖：`ns.MiliMedia.TextureItems(list, always, nil, 解析函式)`（Libs/MiliUIMedia.lua）。
+local DD_TEX_ALPHA = 0.7
+
+-- 選單項目的底色／框（hover ＝ 滑鼠在上面）。b.hasTex／b.isSel 在每次展開時寫好
+local function PaintMenuItem(b, hover)
+    if b.hasTex then
+        b:SetBackdropColor(0, 0, 0, 0)
+        if hover or b.isSel then
+            b:SetBackdropBorderColor(W.Accent(1))
+        else
+            b:SetBackdropBorderColor(0, 0, 0, 0)
+        end
+        b.tex:SetAlpha(hover and 1 or DD_TEX_ALPHA)
+    elseif hover then
+        b:SetBackdropColor(W.Accent(0.4))
+    else
+        b:SetBackdropColor(0, 0, 0, 0)
+    end
+end
+
 local menuFrame
 local function EnsureMenu()
     if menuFrame then return menuFrame end
@@ -1502,6 +1526,21 @@ function W.CreateDropdown(parent, width, items, onSelect)
     arrow:SetDesaturated(true)
     arrow:SetVertexColor(W.Accent(1))
 
+    -- 選中那一項的材質預覽（項目帶 texture 才顯示）：鋪在底色上、字與箭頭底下，右邊讓出箭頭那一格
+    dd.tex = dd:CreateTexture(nil, "ARTWORK")
+    if P.NoSnap then P.NoSnap(dd.tex) end
+    dd.tex:SetAlpha(DD_TEX_ALPHA)
+    dd.tex:Hide()
+    local function ShowTexture(tex)
+        if tex == nil then dd.tex:Hide() return end
+        local px = P.Pixel(1)                     -- 顯示時才換算
+        dd.tex:ClearAllPoints()
+        dd.tex:SetPoint("TOPLEFT", dd, "TOPLEFT", px, -px)
+        dd.tex:SetPoint("BOTTOMRIGHT", dd, "BOTTOMRIGHT", -17, px)
+        dd.tex:SetTexture(tex)
+        dd.tex:Show()
+    end
+
     dd.items = items or {}
     dd.selected = nil
 
@@ -1543,10 +1582,12 @@ function W.CreateDropdown(parent, width, items, onSelect)
         for _, item in ipairs(dd.items) do
             if item.value == value then
                 dd.text:SetText(item.text)
+                ShowTexture(item.texture)
                 return
             end
         end
         dd.text:SetText(value ~= nil and tostring(value) or "")
+        ShowTexture(nil)
     end
     function dd:GetSelected() return dd.selected end
 
@@ -1567,16 +1608,34 @@ function W.CreateDropdown(parent, width, items, onSelect)
             local b = menu.items[i]
             if not b then
                 b = CreateFrame("Button", nil, menu, "BackdropTemplate")
+                b.tex = b:CreateTexture(nil, "ARTWORK")          -- 材質預覽（見 DD_TEX_ALPHA 上面的說明）
+                if P.NoSnap then P.NoSnap(b.tex) end
+                b.tex:Hide()
                 b.text = b:CreateFontString(nil, "OVERLAY")
                 b.text:SetFontObject(fontNormal)
                 b.text:SetPoint("LEFT", 5, 0)
                 b.text:SetJustifyH("LEFT")
-                b:SetScript("OnEnter", function(bb) bb:SetBackdropColor(W.Accent(0.4)) end)
-                b:SetScript("OnLeave", function(bb) bb:SetBackdropColor(0, 0, 0, 0) end)
+                b:SetScript("OnEnter", function(bb) PaintMenuItem(bb, true) end)
+                b:SetScript("OnLeave", function(bb) PaintMenuItem(bb, false) end)
                 menu.items[i] = b
             end
-            b:SetBackdrop({ bgFile = WHITE })
-            b:SetBackdropColor(0, 0, 0, 0)
+            -- 項目按鈕是共用池：有沒有圖、是不是選中的那一項，每次展開都重寫
+            b.hasTex = item.texture ~= nil
+            b.isSel = b.hasTex and item.value == self.selected
+            if b.hasTex then
+                local px = P.Pixel(1)                     -- 顯示時才換算
+                b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = px })
+                if P.NoSnapBackdrop then P.NoSnapBackdrop(b) end
+                b.tex:ClearAllPoints()
+                b.tex:SetPoint("TOPLEFT", b, "TOPLEFT", px, -px)
+                b.tex:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -px, px)
+                b.tex:SetTexture(item.texture)
+                b.tex:Show()
+            else
+                b:SetBackdrop({ bgFile = WHITE })
+                b.tex:Hide()
+            end
+            PaintMenuItem(b, false)
             b:ClearAllPoints()
             b:SetPoint("TOPLEFT", menu, "TOPLEFT", 2, -height)
             b.text:SetText(item.text)
