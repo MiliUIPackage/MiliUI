@@ -102,25 +102,33 @@ end
 
 local TextAtRaw
 
--- 頭／尾圖示比一行字高時，多出來的那截要**上下各分一半**：圖示是垂直置中在那一行上的，
+-- 一行字的視覺中線離字頂多遠（LOOK.TEXT_MID）：◆、行內圖示、Caption 兩側線都對這條線
+local function TextMid(style)
+    return style.size * LOOK.TEXT_MID
+end
+Panel.TextMid = TextMid
+
+-- 頭／尾圖示比一行字高時，多出來的那截上下都要留：圖示是垂直置中在那一行字的中線上的（TextMid），
 -- 只把高度往下加的話上緊下鬆（2026-10-19：附魔行尾的品質圖示，上離 ◆ 線近、下離細線遠）。
+-- 中線不在行框正中（偏上），所以上下凸出的量不一樣，各算各的。
 -- 回傳 (top, bottom)：字要往下讓的量、最後一行底下要多留的量。換行時頭圖示只管第一行、尾圖示只管最後一行
 local function IconPads(lead, body, trail, style, width)
     if not lead and not trail then return 0, 0 end
     local lineH = style.size + 2
+    local mid = TextMid(style)
     local gap = Panel.ICON_TEXT_GAP
     local function over(icon)
-        if not icon then return 0 end
+        if not icon then return 0, 0 end
         local _, h = Panel.IconSize(icon, style)
-        return math.max(0, (h - lineH) / 2)
+        return math.max(0, h / 2 - mid), math.max(0, h / 2 - (lineH - mid))
     end
     local textW = width
     if lead and body ~= "" then textW = textW - Panel.IconSize(lead, style) - gap end
     if trail then textW = textW - Panel.IconSize(trail, style) - ((body ~= "") and gap or 0) end
-    local leadO, trailO = over(lead), over(trail)
-    if body ~= "" and Panel.MeasureRaw(body, style) > textW then return leadO, trailO end
-    local o = math.max(leadO, trailO)
-    return o, o
+    local leadT, leadB = over(lead)
+    local trailT, trailB = over(trail)
+    if body ~= "" and Panel.MeasureRaw(body, style) > textW then return leadT, trailB end
+    return math.max(leadT, trailT), math.max(leadB, trailB)
 end
 
 -- 一段字的頂端要往下讓多少（DrawRow 左右兩欄對齊用）
@@ -140,8 +148,9 @@ local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
     y = y + top
     local gap = Panel.ICON_TEXT_GAP
     local lineH = style.size + 2
+    local mid = TextMid(style)
     if lead then
-        local w = DrawInlineIcon(panel, lead, x, y + lineH / 2, style)
+        local w = DrawInlineIcon(panel, lead, x, y + mid, style)
         if body ~= "" then x, width = x + w + gap, width - w - gap end
     end
     local textW, tw, th = width, 0, 0
@@ -162,9 +171,9 @@ local function TextAt(panel, ctx, text, x, y, width, style, color, justify)
         else
             ix = x + tw + ((body ~= "") and gap or 0)
         end
-        -- 文字換行了：貼在最後一行
+        -- 文字換行了：貼在最後一行（最後一行的字頂＝字串底往上一個字級）
         local wrapped = body ~= "" and Panel.MeasureRaw(body, style) > textW
-        local cy = wrapped and (y + th - lineH / 2) or (y + lineH / 2)
+        local cy = wrapped and (y + th - style.size + mid) or (y + mid)
         DrawInlineIcon(panel, trail, ix, cy, style)
     end
     return (y - y0) + math.max(th, lineH) + bottom
@@ -292,7 +301,7 @@ local function Caption(panel, ctx, y, text, before)
     if Separators() then
         local side = (panel.width - 2 * m.pad - tw) / 2 - m.captionLineGap
         if side > 0 then
-            local mid = y + math.floor(style.size / 2) + 1
+            local mid = y + TextMid(style)
             side = Panel.Snap(panel, side)
             Line(panel, ctx, m.pad, mid, side)
             Line(panel, ctx, panel.width - m.pad - side, mid, side)
