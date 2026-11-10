@@ -57,6 +57,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-other-api-changes.md](wow-121-other-api-changes.md) | SVG、徑向遮罩、Roleset、**首領戰／M+／PvP 封鎖插件通訊**、**開暴雪面板要走 secure 點擊轉發**、改名與移除 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | AddOnRestrictionType 六型別；**ChallengeMode 整趟鑰石都算**、聊天封鎖時連填聊天輸入框都被擋、狀態事件派送當下讀不到終值 |
 | [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5：相容層全拔（`GetItemInfo` 等舊全域變 nil、`X and X()` 靜默失效）、`SetAuraBorder` 刪除→`AddDispelTypeTexture`、小地圖新座標框要 Hide、`GetInventoryItemCooldown` 第 4 回傳、保護 Cooldown 不能 SetCooldown；Cell 本來就走 AddDispelTypeTexture；Ketho＋wow-ui-source 比對步驟 |
+| [wow-1217-api-changes.md](wow-1217-api-changes.md) | 12.1.7 API 變動與套組受影響清單（PTR）：GUID spawnID 混淆、TOC `[Game]` 整行跳過、74 個全域改 mixin、GetFrameStrata 新秘密 aspect |
 | [wow-forever-vs-retail-api.md](wow-forever-vs-retail-api.md) | 《魔獸世界：永恆》（camelot／forever，Interface 16001）vs 正式服：API 文件是超集、差在哪些 Blizzard 插件不載入（冒險指南、LFG、M+、首領時間軸）與哪些面板被 Camelot 版整檔取代（角色、天賦、觀察）；**全域 `GetSpecialization` 系列在 Forever 是 nil**；結論不另外打造，正式服專屬插件用 `## AllowLoadGameType: standard` 閘掉；wow-ui-source `forever` 分支比對法 |
 | [wow-121-setdesaturation-acegui.md](wow-121-setdesaturation-acegui.md) | 移除的 FrameXML 全域：SetDesaturation（AceConfig 面板全空白）、AnimateTexCoords（按鈕發光每幀報錯） |
 | [wow-121-chat-reply-secret-taint.md](wow-121-chat-reply-secret-taint.md) | **插件開聊天輸入框只能走超連結**（`|Hchannel:…|h` ＋ propagate 給 ChatFrameTemplate 框，2026-09-16 根治）；前半是密語回覆在秘密名字下的死路史，鏡射／`/r` 降級全是治標 |
@@ -109,6 +110,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-editmode-custom-setting-row.md](wow-editmode-custom-setting-row.md) | 編輯模式設定視窗掛自己的設定列：值自己存、別重用 `EditModeSettingSliderTemplate`、選取框要 `SetIgnoreParentAlpha` |
 | [wow-editmode-setpoint-hook-saves-our-name.md](wow-editmode-setpoint-hook-saves-our-name.md) | 掛系統框 `SetPoint` 同步重錨，暴雪的 `BreakFrameSnap`（含方向鍵微調）會把我們的框名存進版面、登入報 Couldn't find region；重錨延一幀 |
 | [wow-damagemeter-c-api-design.md](wow-damagemeter-c-api-design.md) | 走 `C_DamageMeter` 的輕量統計：當渲染器不當統計引擎；API 面（source 有 specIconID 沒 specID／裝等）、事件名不能猜、分段判定的髒事件、秘密值紀律 |
+| [wow-wcl-ulatek-rawling-exclusion.md](wow-wcl-ulatek-rawling-exclusion.md) | WCL 烏拉特克傷害比內建低兩成：12.1.5 起排除疫鱗幼蛇傷害，內建＝WCL Unfiltered |
 | [wow-addon-profiler-cost.md](wow-addon-profiler-cost.md) | 插件效能數據的成本：`C_AddOnProfiler` 讀值免費、`UpdateAddOnMemoryUsage` 是全堆掃描（別放進每秒迴圈）|
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架的成本在事件派送不在繪圖：`RegisterUnitEvent` 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、filter 字串共用解析、顏色套用戳記 |
 | [wow-autoaccept-quest-delay.md](wow-autoaccept-quest-delay.md) | 自動接任務要延遲 0.5 秒：立刻 AcceptQuest 會被伺服器丟掉、六個假設全錯；實作＝預設秒接＋查勤＋內建種子清單（週任 ID 輪替）＋逐條學習、**共用秒數只在「等過還失敗」才加**、questID 0 不查勤 |
@@ -253,7 +255,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 180 篇）
+## 全部筆記（自動產生，共 182 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -278,6 +280,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-121-unit-api-secrets.md](wow-121-unit-api-secrets.md) | Exact list of Unit APIs that started returning secret values in WoW 12.1.0 PTR 7 (build 68914) |
 | [wow-121-unitpopup-menu.md](wow-121-unitpopup-menu.md) | 12.1 右鍵單位選單的完整地雷圖——togglemenu 誤判、tainted 重開的代價、ClickBindings 閘、CopyToClipboard 是保護函式 |
 | [wow-1215-api-changes.md](wow-1215-api-changes.md) | 12.1.5（120105）對插件有影響的 API 變動與 MiliUI 系列已修清單：相容層全拔（GetItemInfo 等舊全域變 nil）、SetAuraBorder 刪除、小地圖新座標框、GetInventoryItemCooldown 第 4 回傳、保護 Cooldown 不能 SetCooldown、ChatFrameTemplate 收件框要補 ScrollToBottomButton；怎麼用 Ketho＋wow-ui-source 比對 |
+| [wow-1217-api-changes.md](wow-1217-api-changes.md) | 12.1.7（120107，PTR）對插件有影響的 API 變動與套組受影響清單：Forever 程式碼合回 Mainline、GUID spawnID 混淆、TOC [Game] 整行跳過（Plumber 中招）、74 個 FrameXML 全域改 mixin（Mail/ProfessionsBook/GameTime/ComboFrame 等，MiliUI_Skin 與 Postal 斷）、GetFrameStrata 新秘密 aspect、LossOfControl 秘密、DamageMeter specIconID 變秘密、Edit Mode 新系統與 enum 位移；2026-11-08 掃完 |
 | [wow-12x-addon-restrictions.md](wow-12x-addon-restrictions.md) | 12.x 的插件限制系統：AddOnRestrictionType 六型別、聊天封鎖整趟 M+ 都算、連填聊天輸入框都被擋；巨集書裡的具名巨集是唯一能在 M+ 送聊天的路 |
 
 ### 暴雪 UI 通則與工具
@@ -354,6 +357,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-unitclassbase-npc-returns-rogue.md](wow-unitclassbase-npc-returns-rogue.md) | UnitClassBase 對非玩家回一個合法但無意義的職業 token（術士惡魔僕從回 ROGUE），會讓職業色查表命中錯的顏色 |
 | [wow-unitframe-event-dispatch-cost.md](wow-unitframe-event-dispatch-cost.md) | 團隊框架真正的效能成本在事件派送與 per-frame 輪詢，不在畫面更新——RegisterUnitEvent 的 C 層過濾、共用 ticker 取代 N 個 OnUpdate、光環 filter 字串共用解析 |
 | [wow-vehicle-token-timing.md](wow-vehicle-token-timing.md) | 進載具時 \"vehicle\" token 在還沒有資料之前就解得出來，UNIT_PET 才是真正該重讀的事件；不是每台載具都會換框（看 UnitHasVehicleUI）；載具期間 player 與 vehicle 兩個 token 都會派送，事件閘不能嚴格比「框現在畫誰」 |
+| [wow-wcl-ulatek-rawling-exclusion.md](wow-wcl-ulatek-rawling-exclusion.md) | 烏拉特克（Ula'tek，encounter 3492）Warcraft Logs 的傷害輸出比內建統計低兩成的原因——WCL 12.1.5 起排除疫鱗幼蛇與正規化虛弱的滅鱗；內建＝WCL「未過濾」 |
 | [wow-xml-frame-no-parent.md](wow-xml-frame-no-parent.md) | 暴雪 XML 頂層框沒寫 parent（遊戲／登入畫面共用的框越來越多）＝ 載入時沒有 parent、有效縮放是 1，顯示時才 SetParent(UIParent)；登入時就對它換皮、量縮放、找 SafeParent 都會錯。2026-10-21 的掃描方法與名單 |
 | [wow-zhtw-font-slots.md](wow-zhtw-font-slots.md) | zhTW 客戶端四個字型檔各自對應什麼用途；bKAI00M 是傷害數字不是任務內文 |
 
@@ -384,7 +388,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-bosstimeline.md](project-miliui-bosstimeline.md) | MiliUI_BossTimeline「米利的首領時間軸」——重畫暴雪首領時間軸（直式／橫式／計時條、即時預覽）、標出每一條是哪個插件加的、「首領」頁＝冒險指南分組的技能設定＋自己的提示（錨技能第 N 次／每一次／階段、音效、語音、自製首領警告）、貼上匯入（!MBT1!／DFT 的 DSR1!／NSRT／MRT {time:}）；首領→難度→設定檔的存檔結構（DB v2）；地瓜／DBM／DFT 怎麼碰時間軸的調查結論、三個實機 bug 的根因與待實機驗證清單 |
 | [project-miliui-bounty-map-column.md](project-miliui-bounty-map-column.md) | 分身列表的懸賞圖/儲物箱欄（MiliUI_InfoBar）——旗標任務 86371 不換季，BOUNTY_ITEM_ID 每季要換（抄 Plumber）；儲物箱進度讀 UI widget 殘值只能往上加；SV 是帳號層級且只在登出落地 |
 | [project-miliui-button-variants.md](project-miliui-button-variants.md) | 全套組按鈕上色規則——primary（主動作）／normal（其餘）兩種長相、職業色公式、九條判準、實作入口（W.CreateButton／PaintButton／SetButtonVariant、Skin.Button）與舊配色待辦；所有自製插件與 MiliUI_Skin 換皮都要遵守 |
-| [project-miliui-cdm-castbar-fx.md](project-miliui-cdm-castbar-fx.md) | MCDM 施法條的動畫材質（彩虹／宇宙星辰／閃電／熔岩／火焰，2026-11-04～11-06）——M.FX 登記表、通用效果層（捲動層＋序列圖層、裁切框錨在填充前緣）、設定兩列只在選到動畫材質時出現、DB v15、哪些還沒實機 |
+| [project-miliui-cdm-castbar-fx.md](project-miliui-cdm-castbar-fx.md) | MCDM 施法條的動畫材質（彩虹／宇宙星辰／閃電／熔岩／火焰，2026-11-04～11-10 全部實機正常）——M.FX 登記表、通用效果層（捲動層＋序列圖層、裁切框錨在填充前緣）、設定兩列只在選到動畫材質時出現、DB v15；秘密模式未特別看 |
 | [project-miliui-cdm-comparison-2026-10-19.md](project-miliui-cdm-comparison-2026-10-19.md) | 2026-10-19 三方冷卻管理器對照（MCDM 1.6.10 × EUI Cooldown Manager Standalone 9.6 × Halo 監控台 halo-108）——推翻上兩輪三個判斷（EUI 逐法術層其實是繼承、Halo 對暴雪 item 是就地認領、EUI 9.6 的 16.7 萬行是打包不是成長）、九項小功能建議、三件真正落後（沒實機數字／排版不跳過沒變的／沒設定搜尋）、對外說法修訂 |
 | [project-miliui-cdm-eui-comparison-2026-10-04.md](project-miliui-cdm-eui-comparison-2026-10-04.md) | 2026-10-04 三方冷卻管理器對照（我們 × EllesmereUI 9.3.4 × Ayije 3.92）——報告與 plan 位置、推薦清單的下場（F1～F8 當天全做完、「不做」清單後來翻了兩項）、效能結論與 E0～E3、對外怎麼講（兩邊都還沒實機數字） |
 | [project-miliui-cdm-halo-borrow.md](project-miliui-cdm-halo-borrow.md) | 2026-10-10 對照 Halo 監控台（YUI 的 YHUD 獨立版）後給 MCDM 加的四件事（光環格引擎補位／內建圖示形狀／施放後音效＋天賦條件／錨到單位框，H4 在 2026-10-12 擴成錨定視窗＋六單位五家）、三家光環格佈局只能拿兩項、驗收時改掉的地方；SpellPopover Build 的 upvalue 今天就是 60、Resources.lua 主 chunk 貼 200 local；H1 的「容器縮成內容大小＋單點錨＝置中」跟 wow-121-aura-containers 的「置中做不到」對立、待實機 |

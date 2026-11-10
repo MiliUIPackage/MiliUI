@@ -1,6 +1,6 @@
 ---
 name: project-miliui-cdm-castbar-fx
-description: MCDM 施法條的動畫材質（彩虹／宇宙星辰／閃電／熔岩／火焰，2026-11-04～11-06）——M.FX 登記表、通用效果層（捲動層＋序列圖層、裁切框錨在填充前緣）、設定兩列只在選到動畫材質時出現、DB v15、哪些還沒實機
+description: MCDM 施法條的動畫材質（彩虹／宇宙星辰／閃電／熔岩／火焰，2026-11-04～11-10 全部實機正常）——M.FX 登記表、通用效果層（捲動層＋序列圖層、裁切框錨在填充前緣）、設定兩列只在選到動畫材質時出現、DB v15；秘密模式未特別看
 metadata:
   node_type: memory
   type: project
