@@ -365,7 +365,8 @@ do
     local fs = FindText(panel, body)
     check("尾圖示：文字裡沒有 |A", fs ~= nil)
     eq("尾圖示：貼在文字之後", icon and icon.points[1][4], fs.points[1][4] + H.TextWidth(body, 12) + P.ICON_TEXT_GAP)
-    eq("尾圖示：垂直置中在這一列", icon and icon.points[1][5], fs.points[1][5] - (12 + 2) / 2)
+    -- 對的是字的視覺中線（字頂往下 字級×TEXT_MID），不是行框（字級＋2）的正中——那樣圖示會比字低
+    eq("尾圖示：垂直置中在這一列的字上", icon and icon.points[1][5], fs.points[1][5] - 12 * P.LOOK.TEXT_MID)
     eq("尾圖示：錨 LEFT", icon and icon.points[1][1], "LEFT")
 
     -- 比字高的尾圖示（附魔的品質圖示 24 高）：多出來的高度上下各分一半，夾在兩條線之間上下同距
@@ -387,7 +388,7 @@ do
     eq("高尾圖示：線到圖示頂＝圖示底到線",
         cy and ((cy - 12) - (lines[1] + 1)), cy and (lines[2] - (cy + 12)))
     local tf = FindText(panel, body)
-    eq("高尾圖示：字跟著往下讓、仍置中在圖示上", tf and (-tf.points[1][5] + 7), cy)
+    eq("高尾圖示：字跟著往下讓、仍置中在圖示上", tf and (-tf.points[1][5] + 12 * P.LOOK.TEXT_MID), cy)
 
     -- 頭圖示（|T，含裁切）：文字往右讓
     local lead = "|T12345:16:16:0:0:32:32:2:30:2:30|t Hearthstone"

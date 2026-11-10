@@ -93,7 +93,7 @@ local function StatList(stats)
                 local d = Panel.Texture(panel, 2)
                 d:SetSize(m.diamond, m.diamond)
                 d:SetPoint("CENTER", panel, "TOPLEFT", m.pad + m.diamond * 0.75,
-                    -Panel.Snap(panel, y + style.size / 2 + 1))
+                    -Panel.Snap(panel, y + Panel.TextMid(style)))
                 d:SetRotation(math.rad(45))
                 local c = dim and LOOK.DIM or ctx.accent
                 d:SetVertexColor(c[1], c[2], c[3], LOOK.DIAMOND_ALPHA)
