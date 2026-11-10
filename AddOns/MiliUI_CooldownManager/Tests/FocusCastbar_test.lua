@@ -254,6 +254,7 @@ do
     local own, rest = ns.MiliMedia.TextureItems({ "Melli", "MiliUI Satin" }, ns.Media.OWN_TEXTURES)
     eq("材質下拉：LSM 沒登記到的動畫材質也列（新檔要重開遊戲 LSM 才認）", #own, 1 + #ns.Media.FX_ORDER)
     eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[4].text .. "|" .. own[7].text, "米利UI: 宇宙星辰|米利UI: 火焰")
+    eq("材質下拉：第二批也照名冊順序", own[8].text .. "|" .. own[10].text .. "|" .. own[14].text, "米利UI: 櫻花|米利UI: 天燈|米利UI: 極光")
     eq("材質下拉：第一項是套組預設、顯示中文名", own[1].text .. "|" .. own[1].value, "米利UI: 緞面|MiliUI Satin")
     eq("材質下拉：其餘 LSM 接在後面", rest[1].value, "Melli")
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
@@ -286,7 +287,7 @@ do
         if fh then fh:close() return true end
         return false
     end
-    eq("動畫材質：六款", #M.FX_ORDER, 6)
+    eq("動畫材質：十三款", #M.FX_ORDER, 13)
     for _, name in ipairs(M.FX_ORDER) do
         local fx = M.FX[name]
         check("動畫材質 " .. name .. "：有登記、名字帶前綴", type(fx) == "table" and name:find("^MiliUI ") ~= nil)
@@ -301,6 +302,8 @@ do
             else
                 check(tag .. "捲動有週期", l.kind == "scroll" and type(l.period) == "number" and l.period > 0)
                 if l.twinkle then check(tag .. "閃爍的下限與週期", l.twinkle.lo >= 0 and l.twinkle.lo < 1 and l.twinkle.period > 0) end
+                -- 直向分量跟橫向共用一個動畫 ⇒ 只能是非零整數圈，不然循環接不起來
+                check(tag .. "直向分量是整數圈", l.vy == nil or (type(l.vy) == "number" and l.vy ~= 0 and l.vy == math.floor(l.vy)))
             end
             check(tag .. "混色只有兩種", l.blend == nil or l.blend == "ADD")
         end
@@ -310,6 +313,15 @@ do
     eq("動畫材質：效果層清單", M.FxLayers("MiliUI Lightning"), M.FX["MiliUI Lightning"].layers)
     eq("動畫材質：不是的回 nil", M.FxLayers("blizzard"), nil)
     eq("火焰：火舌往條外多畫半個條高", M.FX["MiliUI Flame"].layers[2].overflow, 0.5)
+    check("櫻花：兩層花瓣往下飄", M.FX["MiliUI Sakura"].layers[2].vy > 0 and M.FX["MiliUI Sakura"].layers[3].vy > 0)
+    check("天燈：兩層往上升、加亮混色", M.FX["MiliUI Sky Lantern"].layers[2].vy < 0 and M.FX["MiliUI Sky Lantern"].layers[3].vy < 0
+        and M.FX["MiliUI Sky Lantern"].layers[3].blend == "ADD")
+    check("珍珠奶茶：氣泡往上冒", M.FX["MiliUI Bubble Tea"].layers[3].vy < 0)
+    check("靜態那張不是底圖的（疊好的一張）：櫻花／天燈／珍珠奶茶／極光",
+        M.FX["MiliUI Sakura"].tex ~= M.FX["MiliUI Sakura"].layers[1].tex and M.FX["MiliUI Sky Lantern"].tex:find("static", 1, true) ~= nil
+        and M.FX["MiliUI Bubble Tea"].tex:find("static", 1, true) ~= nil and M.FX["MiliUI Aurora"].tex:find("static", 1, true) ~= nil)
+    check("動畫材質：新七款的判定", M.IsFx("MiliUI Sakura") and M.IsFx("MiliUI Seigaiha") and M.IsFx("MiliUI Sky Lantern")
+        and M.IsFx("MiliUI Hakka Floral") and M.IsFx("MiliUI Majolica Tile") and M.IsFx("MiliUI Bubble Tea") and M.IsFx("MiliUI Aurora"))
     check("閃電：電弧有停頓、加亮混色", M.FX["MiliUI Lightning"].layers[2].pause > 0 and M.FX["MiliUI Lightning"].layers[2].blend == "ADD")
 
     -- 施法條預設與 v15 遷移：彩虹專用的兩欄改成通用的 animate／animSpeed

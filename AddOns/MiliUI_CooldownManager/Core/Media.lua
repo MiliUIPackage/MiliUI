@@ -54,12 +54,15 @@ end
 M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
--- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰；玩家問「施法條能不能多點皮膚」）。
--- 貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、其餘四款是 miliui-cdm-castbar-fx。
+-- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光；
+-- 玩家問「施法條能不能多點皮膚」）。貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、
+-- 其餘是 miliui-cdm-castbar-fx（fx.py 第一批四款、fx_themes.py 第二批七款）。
 --   tex     靜態那張：當 StatusBar 填充（進度前進時逐段露出），也是登記進 LSM 的那張 ⇒ 本插件所有長條的材質下拉都選得到
 --   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；玩家施法條與專注目標施法條都做，後者借 ns.Castbar.Fx），由下往上：
 --     kind = "scroll"  整條寬、REPEAT 平鋪，貼圖座標動畫橫向捲，period 秒捲完一輪（貼圖兩端要接得起來）；
---                      blend（預設一般混色，"ADD" ＝ 黑底貼圖加亮）、alpha、twinkle = { lo, period }（alpha 在 lo～原值之間來回）
+--                      blend（預設一般混色，"ADD" ＝ 黑底貼圖加亮）、alpha、twinkle = { lo, period }（alpha 在 lo～原值之間來回）；
+--                      vy ＝ 同一輪裡直向捲幾個貼圖高（整數；正＝往下飄、負＝往上升；貼圖上下也要接得起來）。
+--                      橫直共用一個動畫 ⇒ 直向只能是整數圈，不然循環接不起來
 --     kind = "flip"    序列圖 cols × rows 共 frames 格，time 秒播完一輪、之後看不見 pause 秒（0 ＝ 連續循環）；
 --                      overflow ＝ 往條的上緣外多畫幾倍條高（火舌竄出去；裁切框跟著加高）
 -- 顏色烤在圖裡 ⇒ 選到時施法條的底色自動當白（不然被施法色染髒），蓄力／斷法就緒／不可打斷／打斷照舊乘上去。
@@ -94,8 +97,49 @@ M.FX = {
         { kind = "scroll", tex = MEDIA .. "fx-flame-base.png", period = 6 },
         { kind = "flip", tex = MEDIA .. "fx-flame-tongues.png", cols = 4, rows = 4, frames = 16, time = 16 / 14, pause = 0, overflow = 0.5 },
     } },
+    -- 櫻花：玫瑰粉的柔焦底上兩層花瓣斜斜飄落（遠的小而慢、近的大而快）
+    ["MiliUI Sakura"] = { tex = MEDIA .. "fx-sakura-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-sakura-base.png", period = 22 },
+        { kind = "scroll", tex = MEDIA .. "fx-sakura-petals-a.png", period = 15, vy = 2 },
+        { kind = "scroll", tex = MEDIA .. "fx-sakura-petals-b.png", period = 8, vy = 2 },
+    } },
+    -- 青海波：靛藍底的波紋慢慢流動，一道斜向波光掃過
+    ["MiliUI Seigaiha"] = { tex = MEDIA .. "fx-seigaiha-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-seigaiha-base.png", period = 26 },
+        { kind = "scroll", tex = MEDIA .. "fx-sheen.png", period = 4.5, blend = "ADD", alpha = 0.55 },
+    } },
+    -- 天燈：夜空裡遠近兩層暖橘色的天燈緩緩上升
+    ["MiliUI Sky Lantern"] = { tex = MEDIA .. "fx-lantern-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-lantern-sky.png", period = 30 },
+        { kind = "scroll", tex = MEDIA .. "fx-lantern-far.png", period = 40, vy = -3, blend = "ADD" },
+        { kind = "scroll", tex = MEDIA .. "fx-lantern-near.png", period = 22, vy = -3, blend = "ADD" },
+    } },
+    -- 客家花布：大紅底的牡丹花布慢慢捲過，帶一點反光
+    ["MiliUI Hakka Floral"] = { tex = MEDIA .. "fx-hakka-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-hakka-base.png", period = 24 },
+        { kind = "scroll", tex = MEDIA .. "fx-sheen.png", period = 6, blend = "ADD", alpha = 0.4 },
+    } },
+    -- 老花磚：彩釉花磚慢慢捲過，釉面一道反光
+    ["MiliUI Majolica Tile"] = { tex = MEDIA .. "fx-tile-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-tile-base.png", period = 20 },
+        { kind = "scroll", tex = MEDIA .. "fx-sheen.png", period = 4, blend = "ADD", alpha = 0.4 },
+    } },
+    -- 珍珠奶茶：奶茶底加黑糖虎紋、底部一排珍珠滾過、小氣泡往上冒
+    ["MiliUI Bubble Tea"] = { tex = MEDIA .. "fx-boba-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-boba-base.png", period = 18 },
+        { kind = "scroll", tex = MEDIA .. "fx-boba-pearls.png", period = 12 },
+        { kind = "scroll", tex = MEDIA .. "fx-boba-bubbles.png", period = 30, vy = -6, blend = "ADD", alpha = 0.8 },
+    } },
+    -- 極光：夜空裡兩道光幕用不同速度流動
+    ["MiliUI Aurora"] = { tex = MEDIA .. "fx-aurora-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-aurora-sky.png", period = 40 },
+        { kind = "scroll", tex = MEDIA .. "fx-aurora-b.png", period = 14, blend = "ADD", alpha = 0.85 },
+        { kind = "scroll", tex = MEDIA .. "fx-aurora-a.png", period = 9, blend = "ADD" },
+    } },
 }
-M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame" }
+M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame",
+               "MiliUI Sakura", "MiliUI Seigaiha", "MiliUI Sky Lantern", "MiliUI Hakka Floral", "MiliUI Majolica Tile",
+               "MiliUI Bubble Tea", "MiliUI Aurora" }
 
 -- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
 -- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加

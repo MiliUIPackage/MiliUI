@@ -144,7 +144,7 @@ local ns = {
 }
 local FX = { Anim = { { kind = "scroll", tex = "a", period = 3 },
                       { kind = "flip", tex = "b", cols = 2, rows = 2, frames = 4, time = 1, pause = 0.5, overflow = 0.5, alpha = 0.5 },
-                      { kind = "scroll", tex = "c", period = 2, twinkle = { lo = 0.4, period = 1 } } } }
+                      { kind = "scroll", tex = "c", period = 2, vy = 2, twinkle = { lo = 0.4, period = 1 } } } }
 ns.Media = {
     SetFont = function() end,
     Texture = function(token) return "tex-" .. tostring(token) end,
@@ -223,6 +223,12 @@ do
     eq("施法條樣本：動畫材質底色白", Fill(s.bar), "1,1,1")
     eq("施法條樣本：效果層開著", s.st.flow, true)
     eq("施法條樣本：效果層三層都在播", #s.fxActive, 3)
+    -- 捲動層的直向分量（vy，正＝往下飄）：貼圖座標往反方向移、直向也要 REPEAT；沒有 vy 的層直向不動、照舊 CLAMP
+    local sc1, sc3 = s.fxActive[1], s.fxActive[3]
+    check("施法條樣本：沒有 vy 的捲動層只橫向捲（反向填充 ⇒ +1）", Arg(sc1.scroll, "SetOffset", 1) == 1 and Arg(sc1.scroll, "SetOffset", 2) == 0)
+    eq("施法條樣本：沒有 vy 的層直向 CLAMP", Arg(sc1.tex, "SetTexture", 3), "CLAMP")
+    check("施法條樣本：vy = 2 ⇒ 同一輪直向捲兩個貼圖高", Arg(sc3.scroll, "SetOffset", 1) == 1 and Arg(sc3.scroll, "SetOffset", 2) == -2)
+    eq("施法條樣本：有 vy 的層直向 REPEAT", Arg(sc3.tex, "SetTexture", 2) .. "/" .. Arg(sc3.tex, "SetTexture", 3), "REPEAT/REPEAT")
     eq("施法條樣本：放不下縮到可用寬", s._w, 120)
     eq("施法條樣本：圖示關了", s.iconFrame._shown, false)
     castCfg.animate = false

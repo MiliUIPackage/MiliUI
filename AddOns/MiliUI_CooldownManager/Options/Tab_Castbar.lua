@@ -60,7 +60,7 @@ local function FxRows()
     return {
         BS("toggle", "animate", L["Play animation"]),
         BS("slider", "animSpeed", L["Animation speed"], { min = 0.25, max = 3, step = 0.25 }),
-        Note(L["Animated textures (Rainbow, Cosmos, Lightning, Lava, Flame) carry their own colors, so the cast color turns white; empowered stages, interrupt-ready, non-interruptible and interrupted still layer on top. The animation steps aside while non-interruptible or interrupt-ready so that color shows."]),
+        Note(L["Animated textures carry their own colors, so the cast color turns white; empowered stages, interrupt-ready, non-interruptible and interrupted still layer on top. The animation steps aside while non-interruptible or interrupt-ready so that color shows."]),
     }
 end
 

@@ -356,7 +356,8 @@ end
 -- StatusBar 自己管填充貼圖的座標，填充本身動不了 ⇒ 另外疊一層：裁切框 f.flowClip（SetClipsChildren）兩點錨在條的起點與
 -- **填充貼圖的前緣**（跟火花同一招——錨在秘密尺寸的貼圖上沒問題，只要不讀幾何），框裡照 Core/Media.lua 的 M.FX[token].layers
 -- 由下往上疊貼圖 ⇒ 效果只露出已填的那一截。全程引擎跑，沒有每幀 Lua，秘密模式照常。兩種層：
---   捲動（scroll）  整條寬、REPEAT 平鋪，循環的貼圖座標動畫往填充方向捲一整個週期（反向填充反著捲）；可加明暗來回（twinkle）
+--   捲動（scroll）  整條寬、REPEAT 平鋪，循環的貼圖座標動畫往填充方向捲一整個週期（反向填充反著捲）；可加明暗來回（twinkle）；
+--                   帶 vy 的同一個動畫裡直向也捲 vy 個貼圖高（花瓣飄落、天燈上升；直向也 REPEAT）
 --   序列圖（flip）  FlipBook 換格；pause > 0 的在同一個循環裡接一段看不見的停頓（閃電：打一道、停一下）；
 --                   overflow 的往條的上緣外多畫一截（火舌），裁切框跟著加高
 -- 兩種層各用各的貼圖池（播過 FlipBook 的貼圖，座標不保證還原），序列圖再分「有停頓／連續」兩池（動畫組的組成不同）。
@@ -484,8 +485,10 @@ local function FxSetup(h, layers, cfg, reversed, barH)
                 FxHideAll(h)
                 return false, 0
             end
-            L.tex:SetTexture(def.tex, "REPEAT", "CLAMP")
-            L.scroll:SetOffset(dir, 0)
+            -- 直向分量 vy（正＝往下飄）：貼圖座標往反方向移，畫面上的東西才往那邊走（跟橫向 dir 同一個道理）
+            local vy = tonumber(def.vy) or 0
+            L.tex:SetTexture(def.tex, "REPEAT", vy ~= 0 and "REPEAT" or "CLAMP")
+            L.scroll:SetOffset(dir, -vy)
             L.scroll:SetDuration(def.period / speed)
             L.tex:ClearAllPoints()
             L.tex:SetAllPoints(bar)

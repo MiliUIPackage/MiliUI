@@ -1,24 +1,25 @@
 ---
 name: miliui-cdm-castbar-fx
-description: 重新產生 MiliUI_CooldownManager 施法條動畫材質的貼圖（Media/fx-*.png 十張：宇宙星辰「MiliUI Cosmos」的星雲底與兩層星點、閃電「MiliUI Lightning」的電能底與八格電弧序列圖、熔岩「MiliUI Lava」的暗紅底與兩層火紋、火焰「MiliUI Flame」的餘燼底與十六格火舌序列圖）。當使用者說「星星太多／太亮」「星雲換個顏色」「閃電太粗／太密」「熔岩太亮」「火舌不夠像火／太白／竄太高」「火焰再調一下」「再加一款施法條動畫」，或要動 Core/Media.lua 的 M.FX、Modules/Castbar.lua 的效果層時使用。圖是 Pillow＋numpy 腳本算出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。彩虹那兩款是另一個技能 miliui-cdm-rainbow-texture。
+description: 重新產生 MiliUI_CooldownManager 施法條動畫材質的貼圖（Media/fx-*.png 三十張。第一批十張：宇宙星辰「MiliUI Cosmos」的星雲底與兩層星點、閃電「MiliUI Lightning」的電能底與八格電弧序列圖、熔岩「MiliUI Lava」的暗紅底與兩層火紋、火焰「MiliUI Flame」的餘燼底與十六格火舌序列圖；第二批二十張：櫻花「MiliUI Sakura」、青海波「MiliUI Seigaiha」、天燈「MiliUI Sky Lantern」、客家花布「MiliUI Hakka Floral」、老花磚「MiliUI Majolica Tile」、珍珠奶茶「MiliUI Bubble Tea」、極光「MiliUI Aurora」）。當使用者說「星星太多／太亮」「星雲換個顏色」「閃電太粗／太密」「熔岩太亮」「火舌不夠像火／太白／竄太高」「火焰再調一下」「花瓣太多／太小」「天燈太暗」「牡丹換個顏色」「花磚換個花樣」「珍珠太大」「極光太淡」「再加一款施法條動畫」，或要動 Core/Media.lua 的 M.FX、Modules/Castbar.lua 的效果層時使用。圖是 Pillow＋numpy 腳本算出來的，不要用繪圖軟體手改 PNG——那樣下次要調就沒有來源了。彩虹那兩款是另一個技能 miliui-cdm-rainbow-texture。
 ---
 
 # MCDM 施法條的動畫材質貼圖
 
-`AddOns/MiliUI_CooldownManager/Media/fx-*.png` 十張**不是素材，是 `scripts/fx.py` 算出來的**。
+`AddOns/MiliUI_CooldownManager/Media/fx-*.png` 三十張**不是素材，是 `scripts/fx.py`（第一批十張）與 `scripts/fx_themes.py`（第二批二十張）算出來的**。
 2026-11-06 彩虹上線後玩家要更多「有質感的動畫」（宇宙星辰、火焰、閃電）：全部自己算、不帶別人的檔。
 
 ## 跑法
 
 ```bash
 cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skills/miliui-cdm-castbar-fx/scripts/fx.py
+cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skills/miliui-cdm-castbar-fx/scripts/fx_themes.py
 cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skills/wow-png-shrink/scripts/shrink_png.py AddOns/MiliUI_CooldownManager/Media/fx-*.png --apply
 ```
 
 需要 Pillow 與 numpy。亂數種子固定，同一份腳本跑出來的圖一模一樣；第二行是壓縮（多半無損，星點那張會挑 ±2 的去雜訊）。
 閃電的電弧 import 技能 `miliui-cdm-skyriding-lightning` 的 `lightning.py`（同一套折線演算法），那支搬家這支要跟著改路徑。
 
-## 十張圖
+## 第一批十張（fx.py）
 
 | 檔 | 尺寸 | 用途 |
 |---|---|---|
@@ -37,6 +38,28 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
   形狀靠 `heat` 那一行：下緣固定在橘黃（字還讀得到）、越往上越靠雜訊的峰才燒得到（尖的火舌）、最上面一段再收尖（不會被格子切平）。
   第一版下半截整片過曝成白色、火舌是圓的，就是這一行沒分高度。
 - 色階：`FIRE`（黑底加亮用）與 `FIRE_A`（帶 alpha，火舌用）。
+
+## 第二批二十張（fx_themes.py，2026-11-10：日式與台灣主題）
+
+七款**全是捲動層、沒有序列圖**，每張 512×32。形狀用 Pillow 以 4 倍超取樣畫再縮回來（`canvas`／`down`／`stamp`）。
+
+| 款 | 檔 | 內容 |
+|---|---|---|
+| 櫻花 | `fx-sakura-base`／`-petals-a`／`-petals-b`／`-static` | 玫瑰粉柔焦底；遠近兩層花瓣（RGBA 一般混色、**上下左右都接得起來**） |
+| 青海波 | `fx-seigaiha-base` | 靛藍底、半徑 16 的同心圓弧由上往下蓋（下排蓋上排） |
+| 共用 | `fx-sheen` | 黑底加亮的一道斜光：青海波的波光、花布的反光、花磚的釉光都用它，強度在 `M.FX` 用 `alpha` 調 |
+| 天燈 | `fx-lantern-sky`／`-far`／`-near`／`-static` | 靛紫夜空＋小星；遠近兩層天燈（黑底加亮、帶柔光、上下接得起來） |
+| 客家花布 | `fx-hakka-base` | 大紅底、粉／白牡丹（三圈花瓣）、綠葉、小白花與藍綠花苞、布紋顆粒 |
+| 老花磚 | `fx-tile-base` | 一塊 32×32（8 倍超取樣）橫向重複 16 次：四角圓弧拼成圓花、四片花瓣、四片葉 |
+| 珍珠奶茶 | `fx-boba-base`／`-pearls`／`-bubbles`／`-static` | 奶茶底＋黑糖虎紋；底部一排珍珠（RGBA）；往上冒的氣泡（黑底加亮、上下接得起來） |
+| 極光 | `fx-aurora-sky`／`-a`／`-b`／`-static` | 夜空；兩道光幕（下緣是一條起伏的線、往上指數衰減、綠到青到紫） |
+
+- `-static` 那四張是腳本最後把幾層疊好的一張，當一般長條的填充與 LSM 登記用（只有底圖的話花瓣、天燈都不見）。
+- **帶 alpha 的貼圖（花瓣、珍珠）要防黑邊**：`down()` 先預乘再縮小，全透明像素的 RGB 填成同色系（`bleed`）——遊戲的雙線性取樣會取到隔壁的透明像素，
+  那裡是黑的就會有一圈黑邊。跑完 `shrink_png.py` 要確認透明像素的顏色沒被洗掉（2026-11-10 確認沒有）。
+- **要直向捲動的層（`M.FX` 裡帶 `vy` 的）貼圖上下也要接得起來**：`stamp(..., wrap_y=True)`、氣泡用繞回的距離算。
+- 極光第一版像條碼（光束邊緣太硬、暗縫太多）：光束改成「只有明暗起伏、不會全黑」再加下緣一圈柔光才像光幕。
+- 斜光疊在淺色底上很容易過曝成白色，`alpha` 壓在 0.4～0.55。
 
 ## 跟 Lua 的接線
 
