@@ -46,6 +46,11 @@ local TEXTURES = {
     { name = "MiliUI Majolica Tile", zhTW = "老花磚",      zhCN = "老花砖" },
     { name = "MiliUI Bubble Tea",   zhTW = "珍珠奶茶",     zhCN = "珍珠奶茶" },
     { name = "MiliUI Aurora",       zhTW = "極光",         zhCN = "极光" },
+    { name = "MiliUI Momiji",       zhTW = "紅葉",         zhCN = "红叶" },
+    { name = "MiliUI Fireflies",    zhTW = "螢火蟲",       zhCN = "萤火虫" },
+    { name = "MiliUI Koi Pond",     zhTW = "錦鯉水波",     zhCN = "锦鲤水波" },
+    { name = "MiliUI Night Market", zhTW = "夜市霓虹",     zhCN = "夜市霓虹" },
+    { name = "MiliUI Flip Flops",   zhTW = "藍白拖",       zhCN = "蓝白拖" },
 }
 MM.TEXTURES = TEXTURES
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""MiliUI_CooldownManager 施法條動畫材質第二批的貼圖（櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光）：Media/fx-*.png，二十張一次產。
+"""MiliUI_CooldownManager 施法條動畫材質第二、三批的貼圖：Media/fx-*.png，四十二張一次產。
+第二批 ＝ 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光（二十張）；第三批 ＝ 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖（二十二張）。
 
 全部自己算、固定亂數種子、不帶別人的檔。七款都只用捲動的層（沒有序列圖）；花瓣、天燈、氣泡那幾張上下也接得起來
 （引擎的捲動層可以帶直向分量 vy）。形狀（花瓣、天燈、牡丹、花磚、珍珠）用 Pillow 以 4 倍超取樣畫再縮回來。
@@ -366,6 +367,252 @@ def aurora(y0, amp, length, cols):
 save(aurora(25, 5, 9, [(0, (120, 255, 170)), (0.4, (40, 220, 170)), (1, (60, 120, 255))]) * 1.25, "fx-aurora-a.png")
 save(aurora(20, 6, 11, [(0, (90, 255, 200)), (0.35, (70, 150, 255)), (1, (190, 70, 255))]) * 1.05, "fx-aurora-b.png")
 
+
+# ═══════════════════ 第三批（2026-11-10）：紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖 ═══════════════════
+from PIL import ImageFont
+
+T01 = (yy / (H - 1)) * np.ones((H, W))
+
+
+def wdx(cx):
+    return (X - cx + W / 2) % W - W / 2
+
+
+def wdy(cy):
+    return (Y - cy + H / 2) % H - H / 2
+
+
+# ═════════ 紅葉 ═════════
+rng = np.random.default_rng(32001); pr = random.Random(32001)
+base = ramp(T01, [(0, (44, 20, 20)), (1, (108, 46, 20))])
+base += (fbm((H, W), (30, 120), rng, 2) - 0.5)[..., None] * np.array([44, 24, 8.0])
+for _ in range(18):                                   # 暖金色的柔焦光斑
+    cx, cy, r, k = rng.uniform(0, W), rng.uniform(2, H - 2), rng.uniform(5, 10), rng.uniform(12, 30)
+    base += (np.exp(-(wdx(cx) ** 2 + (Y - cy) ** 2) / (2 * (r * 0.6) ** 2)) * k)[..., None] * np.array([1.0, 0.72, 0.30])
+save(base * satin[..., None], "fx-momiji-base.png")
+
+LOBES = [(-140, 0.46), (-95, 0.78), (-42, 0.93), (0, 1.0), (42, 0.93), (95, 0.78), (140, 0.46)]
+
+
+def maple_pts(cx, cy, R, rot):
+    pts = []
+    for i, (a, l) in enumerate(LOBES):
+        if i > 0:
+            pts.append(((LOBES[i - 1][0] + a) / 2, 0.33))      # 裂片之間的凹口
+        pts += [(a - 9, l * 0.60), (a, l), (a + 9, l * 0.60)]
+    pts += [(165, 0.22), (180, 0.20), (195, 0.22)]
+    return [(cx + math.sin(math.radians(a) + rot) * l * R, cy - math.cos(math.radians(a) + rot) * l * R) for a, l in pts]
+
+
+LEAF_COLS = [((206, 34, 30), (240, 96, 70)), ((232, 82, 26), (250, 150, 80)), ((244, 140, 34), (255, 196, 110)), ((248, 196, 70), (255, 232, 150)),
+             ((176, 24, 34), (226, 70, 70))]
+
+
+def maple(size, rot, alpha):
+    R = size * SS
+    pad = 4
+    im = Image.new("RGBA", (int(R * 2) + pad * 2, int(R * 2.3) + pad * 2), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    cx, cy = im.width / 2, pad + R
+    col, light = pr.choice(LEAF_COLS)
+    d.line([(cx, cy), (cx, cy + R * 0.95)], fill=(96, 40, 20, alpha), width=max(2, int(R * 0.10)))     # 葉柄
+    d.polygon(maple_pts(cx, cy, R, 0), fill=col + (alpha,))
+    d.polygon(maple_pts(cx, cy - R * 0.02, R * 0.52, 0), fill=light + (alpha,))
+    return im.rotate(math.degrees(rot), resample=Image.BICUBIC, expand=True)
+
+
+for name, count, size, alpha in (("fx-momiji-leaves-a.png", 34, (2.6, 3.8), 215), ("fx-momiji-leaves-b.png", 13, (4.8, 6.8), 250)):
+    c = canvas()
+    for _ in range(count):
+        stamp(c, maple(pr.uniform(*size), pr.uniform(0, TAU), alpha), pr.uniform(0, W * SS), pr.uniform(0, H * SS))
+    save(down(c, (220, 80, 40)), name)
+
+# ═════════ 螢火蟲 ═════════
+rng = np.random.default_rng(32002); pr = random.Random(32002)
+night = ramp(T01, [(0, (4, 14, 24)), (0.6, (6, 26, 30)), (1, (10, 40, 30))])
+night += (np.clip(fbm((H, W), (20, 100), rng, 2) - 0.5, 0, 1) * 2)[..., None] * np.array([6, 26, 16.0])
+c = canvas()
+d = ImageDraw.Draw(c)
+x = 0.0
+while x < W:                                          # 底部的草葉剪影
+    hgt, lean, wd = pr.uniform(5, 15), pr.uniform(-4, 4), pr.uniform(1.0, 2.0)
+    for ox in (-W, 0, W):
+        bx = x + ox
+        d.polygon([((bx - wd) * SS, H * SS), ((bx + wd) * SS, H * SS), ((bx + lean) * SS, (H - hgt) * SS)], fill=(3, 16, 12, 255))
+    x += pr.uniform(1.6, 4.2)
+g = np.asarray(down(c), dtype=float)
+al = g[..., 3:4] / 255
+save(night * (1 - al) + g[..., :3] * al, "fx-firefly-night.png")
+for name, count, seedcol in (("fx-firefly-a.png", 15, (200, 255, 90)), ("fx-firefly-b.png", 13, (230, 255, 120)), ("fx-firefly-c.png", 11, (170, 255, 110))):
+    a = np.zeros((H, W, 3))
+    for _ in range(count):
+        cx, cy, b, s = rng.uniform(0, W), rng.uniform(0, H), rng.uniform(0.75, 1.15), rng.uniform(0.55, 0.9)
+        dd = wdx(cx) ** 2 + wdy(cy) ** 2
+        gl = np.exp(-dd / (2 * s * s)) * 1.25 + np.exp(-dd / (2 * (s * 3.4) ** 2)) * 0.40 + np.exp(-dd / (2 * (s * 7) ** 2)) * 0.12
+        a += (gl * b)[..., None] * np.array(seedcol, dtype=float)
+    save(a, name)
+
+# ═════════ 錦鯉水波 ═════════
+rng = np.random.default_rng(32003); pr = random.Random(32003)
+water = ramp(T01, [(0, (20, 104, 120)), (1, (10, 62, 92))])
+water += (fbm((H, W), (16, 70), rng, 2) - 0.5)[..., None] * np.array([18, 40, 36.0])
+save(water * satin[..., None], "fx-koi-water.png")
+for name in ("fx-koi-caustic-a.png", "fx-koi-caustic-b.png"):          # 水面的光網：脊狀雜訊的細亮線
+    r1 = 1 - np.abs(2 * fbm((H, W), (9, 26), rng, 2) - 1)
+    r2 = 1 - np.abs(2 * fbm((H, W), (6, 15), rng, 2) - 1)
+    cst = np.clip((r1 * r2 - 0.74) * 5.5, 0, 1) ** 1.3
+    save(cst[..., None] * np.array([150, 232, 236.0]) * 0.62, name)
+
+KOI = [((250, 246, 240), [(232, 66, 28)], 3), ((246, 128, 28), [(255, 196, 96)], 2), ((250, 246, 240), [(30, 26, 32), (226, 60, 30)], 4),
+       ((250, 204, 72), [], 0), ((250, 246, 240), [(236, 90, 36)], 2), ((238, 84, 30), [(250, 244, 236)], 2)]
+
+
+def koi(length, width, kind):
+    L, Wd = length * SS, width * SS
+    sz = (int(L * 1.35), int(Wd * 3.2))
+    cx, cy = sz[0] * 0.52, sz[1] / 2
+    body_col, patch_cols, npatch = kind
+    fins = Image.new("RGBA", sz, (0, 0, 0, 0)); d = ImageDraw.Draw(fins)
+    fin = tuple(int(v * 0.5 + 255 * 0.5) for v in body_col) + (175,)
+    d.polygon([(cx - 0.30 * L, cy), (cx - 0.55 * L, cy - 0.62 * Wd), (cx - 0.45 * L, cy), (cx - 0.55 * L, cy + 0.62 * Wd)], fill=fin)   # 尾鰭
+    for sgn in (-1, 1):                                                                                                               # 胸鰭
+        d.polygon(lens(cx + 0.13 * L, cy + sgn * 0.50 * Wd, 0.22 * L, 0.34 * Wd, sgn * 0.75), fill=fin)
+    mask = Image.new("L", sz, 0); d = ImageDraw.Draw(mask)
+    d.polygon(lens(cx + 0.02 * L, cy, 0.80 * L, Wd * 0.98, 0, 20), fill=255)
+    d.ellipse([cx + 0.17 * L, cy - Wd * 0.44, cx + 0.44 * L, cy + Wd * 0.44], fill=255)                                               # 頭比較圓
+    body = Image.new("RGBA", sz, body_col + (255,)); d = ImageDraw.Draw(body)
+    for _ in range(npatch):
+        px_, py_, r = cx + pr.uniform(-0.28, 0.30) * L, cy + pr.uniform(-0.3, 0.3) * Wd, pr.uniform(0.09, 0.17) * L
+        d.ellipse([px_ - r, py_ - r * 0.8, px_ + r, py_ + r * 0.8], fill=pr.choice(patch_cols) + (255,))
+    d.line([(cx - 0.25 * L, cy), (cx + 0.25 * L, cy)], fill=tuple(int(v * 0.86) for v in body_col) + (255,), width=max(1, int(Wd * 0.07)))   # 背脊
+    body.putalpha(mask)
+    shadow = Image.new("RGBA", sz, (4, 30, 44, 0))
+    shadow.putalpha(mask.filter(ImageFilter.GaussianBlur(SS * 1.2)).point(lambda v: int(v * 0.42)))
+    out = Image.new("RGBA", sz, (0, 0, 0, 0))
+    sh = Image.new("RGBA", sz, (0, 0, 0, 0)); sh.paste(shadow, (int(SS * 1.6), int(SS * 2.4)))
+    out.alpha_composite(sh); out.alpha_composite(fins); out.alpha_composite(body)
+    return out.rotate(pr.uniform(-9, 9), resample=Image.BICUBIC, expand=True)
+
+
+c = canvas()
+x = 30.0
+i = 0
+while x < W - 20:
+    stamp(c, koi(pr.uniform(30, 42), pr.uniform(8.5, 11), KOI[i % len(KOI)]), x * SS, pr.uniform(9, 23) * SS, wrap_y=False)
+    x += pr.uniform(58, 86); i += 1
+save(down(c, (20, 90, 110)), "fx-koi-fish.png")
+
+# ═════════ 夜市霓虹 ═════════
+# 招牌字用思源黑體（OFL）畫。字型檔不在 repo 裡（套組的字型典藏庫 ~/MiliUI-Fonts/字型母版/）：找不到就整節跳過、保留現有的圖
+FONT = os.path.expanduser("~/MiliUI-Fonts/字型母版/NotoMerged-Black.ttf")
+if not os.path.exists(FONT):
+    print("⚠ 找不到", FONT, "——夜市霓虹那四張沒有重產（其餘照常）")
+else:
+    rng = np.random.default_rng(32004)
+    wall = ramp(T01, [(0, (14, 10, 30)), (1, (30, 14, 42))])
+    wall += (np.clip(fbm((H, W), (26, 70), rng, 2) - 0.45, 0, 1) * 2)[..., None] * np.array([26, 8, 34.0])
+    NEON = [(255, 60, 150), (60, 230, 255), (255, 220, 60), (90, 255, 120), (255, 140, 40)]
+    SIGNS = ["夜市", "雞排", "珍奶", "滷味", "蚵仔煎", "豆花", "燒烤", "芒果冰"]
+    font = ImageFont.truetype(FONT, int(16.5 * SS))
+    masks = {}                                           # (層, 顏色) → L 遮罩
+
+
+    def M(layer, col):
+        k = (layer, col)
+        if k not in masks:
+            masks[k] = Image.new("L", (W * SS, H * SS), 0)
+        return ImageDraw.Draw(masks[k])
+
+
+    widths = [font.getlength(t) / SS + 13 for t in SIGNS]
+    gap = (W - sum(widths)) / len(SIGNS)
+    x = gap / 2
+    for i, (t, wd_) in enumerate(zip(SIGNS, widths)):
+        layer = i % 2
+        cf, ct = i % len(NEON), (i + 2) % len(NEON)
+        M(layer, cf).rounded_rectangle([x * SS, 5.0 * SS, (x + wd_) * SS, 30.0 * SS], radius=5 * SS, outline=255, width=int(1.5 * SS))
+        bb = font.getbbox(t)
+        M(layer, ct).text(((x + wd_ / 2) * SS - (bb[0] + bb[2]) / 2, 17.5 * SS - (bb[1] + bb[3]) / 2), t, font=font, fill=255)
+        x += wd_ + gap
+    for layer in (0, 1):
+        rgb = np.zeros((H * SS, W * SS, 3))
+        for (ly, ci), m in masks.items():
+            if ly != layer:
+                continue
+            col = np.array(NEON[ci], dtype=float)
+            core = np.asarray(m, dtype=float) / 255
+            g1 = np.asarray(m.filter(ImageFilter.GaussianBlur(2.6 * SS)), dtype=float) / 255
+            g2 = np.asarray(m.filter(ImageFilter.GaussianBlur(0.9 * SS)), dtype=float) / 255
+            rgb += col * (g1 * 0.70 + g2 * 0.45)[..., None] + (col * 0.72 + 255 * 0.28) * core[..., None] * 0.80
+        im = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), "RGB").resize((W, H), Image.LANCZOS)
+        save(im, "fx-neon-signs-%s.png" % "ab"[layer])
+    bulbs = np.zeros((H, W, 3))                           # 頂上一串小燈泡
+    k = 0
+    xb = 5.0
+    while xb < W:
+        yb_ = 1.9 + 1.5 * abs(math.sin(math.pi * k / 5))
+        dd = wdx(xb) ** 2 + (Y - yb_) ** 2
+        bulbs += (np.exp(-dd / 1.2) * 1.2 + np.exp(-dd / 9.0) * 0.35)[..., None] * np.array(NEON[k % len(NEON)], dtype=float)
+        wall += (np.exp(-dd / 40.0) * 0.10)[..., None] * np.array(NEON[k % len(NEON)], dtype=float)
+        xb += W / 44; k += 1
+    save(wall, "fx-neon-wall.png")
+    save(bulbs, "fx-neon-bulbs.png")
+
+# ═════════ 藍白拖（放在磨石子地上，鞋頭朝上）═════════
+pr = random.Random(32005); rng = np.random.default_rng(32005)
+c = canvas((204, 202, 196, 255))
+d = ImageDraw.Draw(c)
+CHIPS = [(120, 120, 122), (236, 232, 222), (150, 84, 70), (92, 124, 104), (176, 170, 160), (70, 72, 78)]
+for _ in range(1500):                                  # 磨石子的碎石
+    cx, cy, r = pr.uniform(0, W), pr.uniform(0, H), pr.uniform(0.35, 1.25)
+    col = pr.choice(CHIPS) + (255,)
+    pts = [(cx + math.cos(t_) * r * pr.uniform(0.6, 1.2), cy + math.sin(t_) * r * pr.uniform(0.6, 1.2)) for t_ in (0.3, 1.5, 2.8, 4.0, 5.2)]
+    for ox in (-W, 0, W):
+        d.polygon([((x + ox) * SS, y * SS) for x, y in pts], fill=col)
+
+
+def slipper(cx, cy, side, rot):
+    """side ＝ -1 左腳、+1 右腳（前掌往外偏一點）。本體 13×28，鞋頭朝上"""
+    sz = (int(22 * SS), int(36 * SS))
+    im = Image.new("RGBA", sz, (0, 0, 0, 0)); dd = ImageDraw.Draw(im)
+    mx, my = sz[0] / 2, sz[1] / 2
+    fx_ = mx + side * 0.7 * SS
+
+    def sole(g, fill):
+        dd.ellipse([fx_ - (6.3 + g) * SS, my - (14 + g) * SS, fx_ + (6.3 + g) * SS, my + (2.5 + g) * SS], fill=fill)          # 前掌
+        dd.ellipse([mx - (4.9 + g) * SS, my + (0.5 - g) * SS, mx + (4.9 + g) * SS, my + (14 + g) * SS], fill=fill)            # 腳跟
+        dd.polygon([(fx_ - (6.0 + g) * SS, my - 4 * SS), (fx_ + (6.0 + g) * SS, my - 4 * SS),
+                    (mx + (4.9 + g) * SS, my + 7 * SS), (mx - (4.9 + g) * SS, my + 7 * SS)], fill=fill)
+    sole(0.75, (40, 96, 200, 255))                      # 鞋底的藍邊
+    sole(0, (250, 250, 247, 255))
+    for iy in range(-11, 12, 3):                        # 止滑顆粒
+        for ix in range(-4, 5, 2):
+            if abs(ix) < (4.6 if iy < 2 else 3.4):
+                dd.ellipse([mx + ix * SS - 2, my + iy * SS - 2, mx + ix * SS + 2, my + iy * SS + 2], fill=(222, 226, 232, 255))
+    toe = (fx_ - side * 1.2 * SS, my - 8.2 * SS)
+    for sgn in (-1, 1):                                 # 人字帶
+        end = (mx + sgn * 5.6 * SS, my + 1.6 * SS)
+        dd.line([toe, end], fill=(12, 44, 140, 255), width=int(3.5 * SS))
+    for sgn in (-1, 1):
+        end = (mx + sgn * 5.6 * SS, my + 1.6 * SS)
+        dd.line([toe, end], fill=(30, 100, 232, 255), width=int(2.3 * SS))
+    dd.ellipse([toe[0] - 1.7 * SS, toe[1] - 1.7 * SS, toe[0] + 1.7 * SS, toe[1] + 1.7 * SS], fill=(12, 44, 140, 255))
+    dd.ellipse([toe[0] - 1.1 * SS, toe[1] - 1.1 * SS, toe[0] + 1.1 * SS, toe[1] + 1.1 * SS], fill=(30, 100, 232, 255))
+    im = im.rotate(rot, resample=Image.BICUBIC, expand=True)
+    sh = Image.new("RGBA", im.size, (60, 60, 66, 0)); sh.putalpha(im.split()[3].filter(ImageFilter.GaussianBlur(SS * 0.8)).point(lambda v: int(v * 0.55)))
+    stamp(c, sh, cx * SS + 1.4 * SS, cy * SS + 1.4 * SS, wrap_y=False)
+    stamp(c, im, cx * SS, cy * SS, wrap_y=False)
+
+
+n_pairs = 13
+for i in range(n_pairs):
+    cx = (i + 0.5) * W / n_pairs + pr.uniform(-2, 2)
+    rot = pr.uniform(-9, 9)
+    slipper(cx - 7.3, 16 + pr.uniform(-0.8, 0.8), -1, rot + pr.uniform(-5, 5))
+    slipper(cx + 7.3, 16 + pr.uniform(-0.8, 0.8), 1, rot + pr.uniform(-5, 5))
+a = np.asarray(down(c).convert("RGB"), dtype=float)
+save(a * (0.93 + 0.08 * yb)[..., None], "fx-slipper-base.png")
+
 # ═════════ 靜態那張（當一般長條的填充、登記進 LSM）：把幾層疊成一張 ═════════
 def _load(name):
     return np.asarray(Image.open(os.path.join(OUT, name)).convert("RGBA"), dtype=float)
@@ -389,3 +636,7 @@ _static("fx-sakura-static.png", [("fx-sakura-base.png", "", 1), ("fx-sakura-peta
 _static("fx-lantern-static.png", [("fx-lantern-sky.png", "", 1), ("fx-lantern-far.png", "add", 1), ("fx-lantern-near.png", "add", 1)])
 _static("fx-boba-static.png", [("fx-boba-base.png", "", 1), ("fx-boba-pearls.png", "blend", 1), ("fx-boba-bubbles.png", "add", 0.8)])
 _static("fx-aurora-static.png", [("fx-aurora-sky.png", "", 1), ("fx-aurora-b.png", "add", 0.85), ("fx-aurora-a.png", "add", 1)])
+_static("fx-momiji-static.png", [("fx-momiji-base.png", "", 1), ("fx-momiji-leaves-a.png", "blend", 1), ("fx-momiji-leaves-b.png", "blend", 1)])
+_static("fx-firefly-static.png", [("fx-firefly-night.png", "", 1), ("fx-firefly-a.png", "add", 1), ("fx-firefly-b.png", "add", 0.9), ("fx-firefly-c.png", "add", 1)])
+_static("fx-koi-static.png", [("fx-koi-water.png", "", 1), ("fx-koi-caustic-a.png", "add", 0.8), ("fx-koi-fish.png", "blend", 1), ("fx-koi-caustic-b.png", "add", 0.7)])
+_static("fx-neon-static.png", [("fx-neon-wall.png", "", 1), ("fx-neon-signs-a.png", "add", 1), ("fx-neon-signs-b.png", "add", 1), ("fx-neon-bulbs.png", "add", 1)])

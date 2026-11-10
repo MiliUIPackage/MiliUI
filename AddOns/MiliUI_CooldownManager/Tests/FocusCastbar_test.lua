@@ -255,6 +255,7 @@ do
     eq("材質下拉：LSM 沒登記到的動畫材質也列（新檔要重開遊戲 LSM 才認）", #own, 1 + #ns.Media.FX_ORDER)
     eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[4].text .. "|" .. own[7].text, "米利UI: 宇宙星辰|米利UI: 火焰")
     eq("材質下拉：第二批也照名冊順序", own[8].text .. "|" .. own[10].text .. "|" .. own[14].text, "米利UI: 櫻花|米利UI: 天燈|米利UI: 極光")
+    eq("材質下拉：第三批也照名冊順序", own[15].text .. "|" .. own[18].text .. "|" .. own[19].text, "米利UI: 紅葉|米利UI: 夜市霓虹|米利UI: 藍白拖")
     eq("材質下拉：第一項是套組預設、顯示中文名", own[1].text .. "|" .. own[1].value, "米利UI: 緞面|MiliUI Satin")
     eq("材質下拉：其餘 LSM 接在後面", rest[1].value, "Melli")
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
@@ -287,7 +288,7 @@ do
         if fh then fh:close() return true end
         return false
     end
-    eq("動畫材質：十三款", #M.FX_ORDER, 13)
+    eq("動畫材質：十八款", #M.FX_ORDER, 18)
     for _, name in ipairs(M.FX_ORDER) do
         local fx = M.FX[name]
         check("動畫材質 " .. name .. "：有登記、名字帶前綴", type(fx) == "table" and name:find("^MiliUI ") ~= nil)
@@ -317,6 +318,26 @@ do
     check("天燈：兩層往上升、加亮混色", M.FX["MiliUI Sky Lantern"].layers[2].vy < 0 and M.FX["MiliUI Sky Lantern"].layers[3].vy < 0
         and M.FX["MiliUI Sky Lantern"].layers[3].blend == "ADD")
     check("珍珠奶茶：氣泡往上冒", M.FX["MiliUI Bubble Tea"].layers[3].vy < 0)
+    -- 第三批
+    check("紅葉：兩層楓葉往下飄", M.FX["MiliUI Momiji"].layers[2].vy > 0 and M.FX["MiliUI Momiji"].layers[3].vy > 0)
+    do
+        local ff, seen = M.FX["MiliUI Fireflies"].layers, {}
+        local distinct = true
+        for i = 2, #ff do
+            local p = ff[i].twinkle and ff[i].twinkle.period
+            if not p or seen[p] then distinct = false end
+            seen[p or 0] = true
+        end
+        check("螢火蟲：三層都會明滅、節奏各不相同（同一層的會一起明滅）", #ff == 4 and distinct)
+    end
+    do
+        local nm = M.FX["MiliUI Night Market"].layers
+        check("夜市霓虹：四層同速（招牌釘在牆上）", nm[1].period == nm[2].period and nm[2].period == nm[3].period and nm[3].period == nm[4].period)
+    end
+    check("錦鯉水波：魚是一般混色、夾在兩層光網之間", M.FX["MiliUI Koi Pond"].layers[3].blend == nil
+        and M.FX["MiliUI Koi Pond"].layers[2].blend == "ADD" and M.FX["MiliUI Koi Pond"].layers[4].blend == "ADD")
+    check("動畫材質：第三批五款的判定", M.IsFx("MiliUI Momiji") and M.IsFx("MiliUI Fireflies") and M.IsFx("MiliUI Koi Pond")
+        and M.IsFx("MiliUI Night Market") and M.IsFx("MiliUI Flip Flops"))
     check("靜態那張不是底圖的（疊好的一張）：櫻花／天燈／珍珠奶茶／極光",
         M.FX["MiliUI Sakura"].tex ~= M.FX["MiliUI Sakura"].layers[1].tex and M.FX["MiliUI Sky Lantern"].tex:find("static", 1, true) ~= nil
         and M.FX["MiliUI Bubble Tea"].tex:find("static", 1, true) ~= nil and M.FX["MiliUI Aurora"].tex:find("static", 1, true) ~= nil)

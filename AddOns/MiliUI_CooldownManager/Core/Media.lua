@@ -54,9 +54,10 @@ end
 M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
--- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光；
+-- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光，
+-- 同日第三批 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖；
 -- 玩家問「施法條能不能多點皮膚」）。貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、
--- 其餘是 miliui-cdm-castbar-fx（fx.py 第一批四款、fx_themes.py 第二批七款）。
+-- 其餘是 miliui-cdm-castbar-fx（fx.py 第一批四款、fx_themes.py 第二批七款與第三批五款）。
 --   tex     靜態那張：當 StatusBar 填充（進度前進時逐段露出），也是登記進 LSM 的那張 ⇒ 本插件所有長條的材質下拉都選得到
 --   layers  施法條效果層的畫法（Modules/Castbar.lua「效果層」；玩家施法條與專注目標施法條都做，後者借 ns.Castbar.Fx），由下往上：
 --     kind = "scroll"  整條寬、REPEAT 平鋪，貼圖座標動畫橫向捲，period 秒捲完一輪（貼圖兩端要接得起來）；
@@ -136,10 +137,42 @@ M.FX = {
         { kind = "scroll", tex = MEDIA .. "fx-aurora-b.png", period = 14, blend = "ADD", alpha = 0.85 },
         { kind = "scroll", tex = MEDIA .. "fx-aurora-a.png", period = 9, blend = "ADD" },
     } },
+    -- 紅葉：暖金光斑的深褐底上兩層楓葉斜斜飄落（櫻花的秋天版）
+    ["MiliUI Momiji"] = { tex = MEDIA .. "fx-momiji-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-momiji-base.png", period = 22 },
+        { kind = "scroll", tex = MEDIA .. "fx-momiji-leaves-a.png", period = 16, vy = 2 },
+        { kind = "scroll", tex = MEDIA .. "fx-momiji-leaves-b.png", period = 9, vy = 2 },
+    } },
+    -- 螢火蟲：草叢剪影的夜色上三層螢火蟲，明滅的節奏與飄的方向各不相同（同一層的會一起明滅，所以分三層錯開）
+    ["MiliUI Fireflies"] = { tex = MEDIA .. "fx-firefly-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-firefly-night.png", period = 34 },
+        { kind = "scroll", tex = MEDIA .. "fx-firefly-a.png", period = 26, blend = "ADD", twinkle = { lo = 0.2, period = 1.7 } },
+        { kind = "scroll", tex = MEDIA .. "fx-firefly-b.png", period = 19, vy = -1, blend = "ADD", alpha = 0.9, twinkle = { lo = 0.1, period = 2.3 } },
+        { kind = "scroll", tex = MEDIA .. "fx-firefly-c.png", period = 40, vy = 2, blend = "ADD", twinkle = { lo = 0.25, period = 1.1 } },
+    } },
+    -- 錦鯉水波：池水上兩層光網用不同速度流動，錦鯉游得比水快（魚頭朝填充方向；反向填充時魚會倒著游）
+    ["MiliUI Koi Pond"] = { tex = MEDIA .. "fx-koi-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-koi-water.png", period = 24 },
+        { kind = "scroll", tex = MEDIA .. "fx-koi-caustic-a.png", period = 13, blend = "ADD", alpha = 0.8 },
+        { kind = "scroll", tex = MEDIA .. "fx-koi-fish.png", period = 10 },
+        { kind = "scroll", tex = MEDIA .. "fx-koi-caustic-b.png", period = 8, blend = "ADD", alpha = 0.7 },
+    } },
+    -- 夜市霓虹：暗牆上八塊霓虹招牌（一半會閃）、頂上一串小燈泡；四層同速，招牌才會釘在牆上
+    ["MiliUI Night Market"] = { tex = MEDIA .. "fx-neon-static.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-neon-wall.png", period = 26 },
+        { kind = "scroll", tex = MEDIA .. "fx-neon-signs-a.png", period = 26, blend = "ADD" },
+        { kind = "scroll", tex = MEDIA .. "fx-neon-signs-b.png", period = 26, blend = "ADD", twinkle = { lo = 0.55, period = 0.45 } },
+        { kind = "scroll", tex = MEDIA .. "fx-neon-bulbs.png", period = 26, blend = "ADD", twinkle = { lo = 0.35, period = 0.6 } },
+    } },
+    -- 藍白拖：磨石子地上一排藍白拖慢慢捲過
+    ["MiliUI Flip Flops"] = { tex = MEDIA .. "fx-slipper-base.png", layers = {
+        { kind = "scroll", tex = MEDIA .. "fx-slipper-base.png", period = 22 },
+    } },
 }
 M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI Lightning", "MiliUI Lava", "MiliUI Flame",
                "MiliUI Sakura", "MiliUI Seigaiha", "MiliUI Sky Lantern", "MiliUI Hakka Floral", "MiliUI Majolica Tile",
-               "MiliUI Bubble Tea", "MiliUI Aurora" }
+               "MiliUI Bubble Tea", "MiliUI Aurora",
+               "MiliUI Momiji", "MiliUI Fireflies", "MiliUI Koi Pond", "MiliUI Night Market", "MiliUI Flip Flops" }
 
 -- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
 -- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加
