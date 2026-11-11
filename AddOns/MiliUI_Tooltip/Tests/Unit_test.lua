@@ -312,6 +312,22 @@ do
     check("NPC：任務標題", npc.quests[1].title)
     eq("NPC：其他一行（死亡由 API 畫）", #npc.others, 1)
     eq("NPC：其他是第二個頭銜", npc.others[1].left, "盜賊頭子")
+    -- 永恆版：等級行只有等級，生物類型另起一行 ⇒ 丟掉（標題區照元素畫），不進「其他」也不當頭銜
+    local forever = P.ReadUnitRows({
+        { left = "奧拉凱斯刺客", lineIndex = 1 },
+        { left = "等級 10", lineIndex = 2 },
+        { left = "人型生物", lineIndex = 3 },
+        { left = "奧拉凱斯刺客", lineIndex = 4, type = LT.QuestTitle },
+        { left = " - 7/10 殺死奧拉凱斯刺客", lineIndex = 5, type = LT.QuestObjective },
+    }, { isPlayer = false, creatureLine = "人型生物" }, true)
+    eq("永恆版：獨立的類型行不進其他", #forever.others, 0)
+    eq("永恆版：類型行不當頭銜", forever.npcTitle, nil)
+    eq("永恆版：任務照舊", #forever.quests, 2)
+    local typed = P.ReadUnitRows({
+        { left = "奧拉凱斯刺客", lineIndex = 1 }, { left = "等級 10", lineIndex = 2 },
+        { left = "Humanoid", lineIndex = 3, type = LT.UnitType },
+    }, { isPlayer = false }, true)
+    eq("標了 UnitType 的類型行也丟", #typed.others, 0)
     local pet = P.ReadUnitRows({
         { left = "BMWDRIVER", lineIndex = 1 }, { left = "Ariwa Ziva的寵物", lineIndex = 2, type = LT.UnitOwner },
         { left = "等級 11 野獸", lineIndex = 3 },

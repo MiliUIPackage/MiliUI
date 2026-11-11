@@ -103,6 +103,7 @@ end
 ------------------------------------------------------------
 -- 純邏輯：rows（CollectLines）＋ facts → model
 --   facts = { isPlayer, name, guild, className, ... }（Panel.UnitFacts；離線測試直接給）
+--   facts.creatureLine：NPC 的生物類型（認行用；永恆版暴雪把它獨立寫成一行，丟掉）
 --   model.npcTitle：NPC 名字與等級行之間的第一行（「<旅店老闆>」）
 --   model.specLine：玩家含職業名的最短一行（暴雪的「毀滅 術士」）——資訊行用它取代單純的職業名
 --   model.owner：UnitOwner 型別（「某某的寵物」）
@@ -120,6 +121,8 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
     local className = facts.isPlayer and (facts.classLine or facts.className) or nil
     local guildLine = facts.isPlayer and (facts.guildLine or facts.guild) or nil
     local zoneLine = facts.isPlayer and (facts.zoneLine or facts.zone) or nil
+    local creatureLine = not facts.isPlayer and facts.creatureLine or nil
+    if creatureLine == "" then creatureLine = nil end
     local specIndex, specLen
     local pending = {}               -- 還沒歸類的一般行（等找完職業行再放進 others）
 
@@ -161,6 +164,9 @@ function Panel.ReadUnitRows(rows, facts, hideHint)
             model.skin[#model.skin + 1] = row.left
         elseif guildLine and IsGuildLine(text, guildLine) then
             -- 公會行：API 畫
+        elseif (LT.UnitType and row.type == LT.UnitType) or (creatureLine and text == creatureLine) then
+            -- 獨立一行的生物類型（永恆版：等級行只寫「等級 10」，類型另起一行；正式服併在等級行裡）：
+            -- 標題區照「生物類型」元素畫了（關掉元素就整個不顯示）⇒ 行本身丟，不然同一個詞出現兩次
         elseif zoneLine and text == zoneLine then
             -- 視野外隊友的地區行（暴雪只寫地名、沒有標籤）：細節列畫
             model.zone = text
@@ -434,7 +440,8 @@ function Panel.UnitFacts(token, config)
         if on("statusDC") then f.dc = raw.statusDC ~= nil end
         if on("isPlayer") then f.playerTag = _G.PLAYER end
     else
-        if on("creature") then f.creature = S.PlainText(raw.creature) end
+        f.creatureLine = S.PlainText(raw.creature)     -- 認行用的（元素關著也要知道，獨立的類型行才丟得掉）
+        if on("creature") then f.creature = f.creatureLine end
         local classif = S.PlainText(raw.classif)
         if level == -1 or classif == "worldboss" then
             if on("classifBoss") then f.classif = "boss" end

@@ -271,8 +271,24 @@ local function GetNpcTitleLine(tip)
     return Lines.Get(tip, 2)
 end
 
+-- 獨立一行的生物類型（永恆版：等級行只寫「等級 10」，類型另起一行；正式服併在等級行裡、不會整行相等）：
+-- 資訊列照「生物類型」元素自己寫了 ⇒ 暴雪那一行清掉，不然同一個詞出現兩次。要在改寫之前做（改寫後我們的行可能剛好只有類型）
+local function HideCreatureLine(tip, raw)
+    local creature = S.PlainText(raw.creature)
+    if not creature or creature == "" or S.IsForbiddenObject(tip) then return end
+    local name = tip:GetName()
+    for i = 2, tip:NumLines() do
+        local line = _G[name .. "TextLeft" .. i]
+        if line and Lines.StripText(line:GetText()) == creature then
+            line:SetText(nil)
+            break
+        end
+    end
+end
+
 local function ApplyNpc(tip, state, unit, config, raw)
     local levelLine = Lines.Find(tip, "^" .. LEVEL)
+    HideCreatureLine(tip, raw)
     if levelLine or tip:NumLines() > 1 then
         local data = UnitInfo.GetUnitData(unit, config.elements, raw, UnitInfo.ModifierShowAll(config))
         local titleLine = GetNpcTitleLine(tip)
