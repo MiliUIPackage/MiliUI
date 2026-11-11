@@ -30,7 +30,7 @@ local function BuildBadge(parent)
     b.icon:SetAllPoints()
     b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    local px = P.Pixel(1)
+    local px = P.Pixel(1, b)
     b.outline:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -px, px)
     b.outline:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", px, -px)
 

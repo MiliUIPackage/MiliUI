@@ -106,7 +106,7 @@ local function BuildItemButton(btn)
     btn.icon:SetPoint("LEFT", 2, 0)
     btn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    local px = P.Pixel(1)
+    local px = P.Pixel(1, btn)
     btn.iconBorder:SetPoint("TOPLEFT", btn.icon, "TOPLEFT", -px, px)
     btn.iconBorder:SetPoint("BOTTOMRIGHT", btn.icon, "BOTTOMRIGHT", px, -px)
 
@@ -178,7 +178,7 @@ local function BuildSpecHeader(f)
     f.icon:SetPoint("LEFT", 3, 0)
     f.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    local px = P.Pixel(1)
+    local px = P.Pixel(1, f)
     f.iconBorder:SetPoint("TOPLEFT", f.icon, "TOPLEFT", -px, px)
     f.iconBorder:SetPoint("BOTTOMRIGHT", f.icon, "BOTTOMRIGHT", px, -px)
 
@@ -188,7 +188,7 @@ local function BuildSpecHeader(f)
         f.accentBar:SetColorTexture(ns.W.Accent(1))
         f.accentBar:SetPoint("TOPLEFT")
         f.accentBar:SetPoint("BOTTOMLEFT")
-        f.accentBar:SetWidth(ns.P.Pixel(2))
+        f.accentBar:SetWidth(ns.P.Pixel(2, f))
         f.accentBar:Hide()
 
         f.title = f:CreateFontString(nil, "OVERLAY")
@@ -211,7 +211,7 @@ local function BuildSubHeader(f)
     end
     f.label:SetPoint("LEFT", 4, 0)
     f.line = ns.P.NoSnap(f:CreateTexture(nil, "ARTWORK"))
-    f.line:SetHeight(MILI and ns.P.Pixel(1) or 1)
+    f.line:SetHeight(MILI and ns.P.Pixel(1, f) or 1)
     f.line:SetPoint("LEFT", f.label, "RIGHT", 6, 0)
     f.line:SetPoint("RIGHT", -4, 0)
     if MILI then
@@ -358,8 +358,8 @@ local function BuildChromeMili()
     -- 標題列：比面板暗一階，畫在 1px 邊框內側
     local bar = P.NoSnap(panel:CreateTexture(nil, "BACKGROUND", nil, 1))   -- 跟邊框相接：關像素貼齊
     bar:SetColorTexture(unpack(MC.titleFill))
-    bar:SetPoint("TOPLEFT", P.Pixel(1), -P.Pixel(1))
-    bar:SetPoint("TOPRIGHT", -P.Pixel(1), -P.Pixel(1))
+    bar:SetPoint("TOPLEFT", P.Pixel(1, panel), -P.Pixel(1, panel))
+    bar:SetPoint("TOPRIGHT", -P.Pixel(1, panel), -P.Pixel(1, panel))
     bar:SetHeight(MILI_TITLE_H)
     panel.titleBar = bar
 

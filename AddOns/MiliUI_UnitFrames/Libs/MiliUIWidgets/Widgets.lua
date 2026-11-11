@@ -114,17 +114,49 @@ local WIDGET_FILL = { 0.115, 0.115, 0.115, 1 }
 -- 看不清楚），邊框又是純黑幫不上忙。0.22 對齊按鈕 hover 的 0.23，不會跳出既有色階。
 local CHECKBOX_FILL = { 0.28, 0.28, 0.28, 1 }
 
-function W.Stylize(frame, color, borderColor)
-    color = color or { 0.1, 0.1, 0.1, 0.9 }
-    borderColor = borderColor or { 0, 0, 0, 1 }
+-- 1px 邊的粗細照**框自己的**有效縮放換算，而且每次顯示時對一次帳
+-- （.claude/notes/wow-1px-border-rules.md 成因 ②③⑤）：
+--   · 框掛在縮放跟 UIParent 不同的東西底下（被玩家縮放過的暴雪視窗旁邊的面板）
+--   · 建立之後 UI 縮放／祖先縮放才變、或建立當下還沒有 parent
+-- 這幾種照 UIParent 在建立時算一次的粗細都不是剛好 1 個實體像素，邊就整條不見（常見的樣子：
+-- 左、上在，右、下缺）。粗細沒變就什麼都不做，所以平常的成本是每次顯示一次除法。
+-- 記帳用弱表不寫框的欄位；宿主自帶的 P.Pixel 不收第二個參數時，結果跟原本一樣（照 UIParent）。
+local edgePx = setmetatable({}, { __mode = "k" })
+
+local function ApplyEdge(frame, px)
+    edgePx[frame] = px
     frame:SetBackdrop({
         bgFile = WHITE,
         edgeFile = WHITE,
-        edgeSize = P.Pixel(1),
+        edgeSize = px,
     })
     if P.NoSnapBackdrop then P.NoSnapBackdrop(frame) end   -- 拖到小數座標時 1px 邊不被捨入成 0（宿主自帶的 P 可能沒有這支）
+end
+
+local function RefreshEdge(frame)
+    local old = edgePx[frame]
+    if not old then return end
+    local px = P.Pixel(1, frame)
+    if math.abs(px - old) < 1e-5 then return end
+    -- 之後被別人換過 backdrop 的（清掉、換成別種邊）就不是我們的了，不要蓋回去
+    local info = frame.backdropInfo
+    if not info or info.edgeSize ~= old then edgePx[frame] = nil return end
+    local r, g, b, a = frame:GetBackdropColor()
+    local br, bg, bb, ba = frame:GetBackdropBorderColor()
+    ApplyEdge(frame, px)
+    if r then frame:SetBackdropColor(r, g, b, a) end
+    if br then frame:SetBackdropBorderColor(br, bg, bb, ba) end
+end
+W.RefreshEdge = RefreshEdge
+
+function W.Stylize(frame, color, borderColor)
+    color = color or { 0.1, 0.1, 0.1, 0.9 }
+    borderColor = borderColor or { 0, 0, 0, 1 }
+    local first = edgePx[frame] == nil
+    ApplyEdge(frame, P.Pixel(1, frame))
     frame:SetBackdropColor(unpack(color))
     frame:SetBackdropBorderColor(unpack(borderColor))
+    if first and frame.HookScript then frame:HookScript("OnShow", RefreshEdge) end
 end
 
 function W.CreateFrame(name, parent, width, height, transparent)
@@ -1533,7 +1565,7 @@ function W.CreateDropdown(parent, width, items, onSelect)
     dd.tex:Hide()
     local function ShowTexture(tex)
         if tex == nil then dd.tex:Hide() return end
-        local px = P.Pixel(1)                     -- 顯示時才換算
+        local px = P.Pixel(1, dd)                 -- 顯示時才換算、照下拉自己的縮放
         dd.tex:ClearAllPoints()
         dd.tex:SetPoint("TOPLEFT", dd, "TOPLEFT", px, -px)
         dd.tex:SetPoint("BOTTOMRIGHT", dd, "BOTTOMRIGHT", -17, px)

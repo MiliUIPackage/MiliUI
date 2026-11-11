@@ -25,10 +25,16 @@ end
 -- ⚠ 跟 P.Scale(n) 不一樣：P.Scale 把「n 個 UI 單位」貼到最近的整數像素，1 個 UI 單位
 -- ≥ 1.5 實體像素（1440p 以上、UI 縮放偏大）時 P.Scale(1) 是 2px 以上，< 0.5 時是 0。
 -- 邊框粗細、細線、「1px」這類以實體像素計的量用這支；尺寸、間距、座標照舊 P.Scale
-function P.Pixel(n)
+--
+-- frame（選填）：換算基準改用**那個框自己的**有效縮放。框（或祖先）的縮放跟 UIParent 不同時
+-- ——掛在被玩家縮放過的暴雪視窗底下的面板——照 UIParent 算出來的粗細不是整數像素，
+-- 邊就時有時無（.claude/notes/wow-1px-border-rules.md 成因 ②）。不傳就照 UIParent。
+function P.Pixel(n, frame)
     n = math.floor((tonumber(n) or 0) + 0.5)
     if n <= 0 then return 0 end
-    return n * PixelUtil.GetPixelToUIUnitFactor() / UIParent:GetEffectiveScale()
+    local scale = frame and frame.GetEffectiveScale and frame:GetEffectiveScale()
+    if not scale or scale <= 0 then scale = UIParent:GetEffectiveScale() end
+    return n * PixelUtil.GetPixelToUIUnitFactor() / scale
 end
 
 -- 關掉引擎的像素貼齊（SetSnapToPixelGrid／SetTexelSnappingBias），回傳原物件。
