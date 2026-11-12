@@ -41,3 +41,15 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
   各支解析 token 都先認自己的表、不經 LSM。⚠ LSM 登記會問 `C_UIFileAsset.IsKnownFile`：**新檔案要整個重開遊戲**，`/reload` 不夠。
 - 套組以外還在用 TukTex 的：`SharedMedia` 的 `TukTex`。這個**不動**。
   Cell 2026-10-16 也換了（上面那列）；它不再登記 `TukTex`，SharedMedia 那份還在，玩家手動選 TukTex 照樣解得到。
+
+## 姊妹款：MiliUI Ombre（米利UI: 漸染）
+
+2026-11-13 使用者拿別人的截圖要「左邊更濃、右邊原色」的橫向漸層。量出來左端＝職業色每個通道取 2.6 次方、右端＝原色 ×0.88，
+**材質圖做不出來**（圖只能整體乘暗，做不出變濃），所以拆成兩半：
+
+- `scripts/ombre.py` 產 `Media/miliui_ombre.png`：只有直向明暗（三成高最亮、下緣 84%）。跑法同上，換腳本名。
+- 橫向漸層是程式給兩個顏色：`MiliUI_UnitFrames/Core/Media.lua` 的 `M.PaintBar`（`Texture:SetGradient`），血條與能量條的填充走它。
+  顏色分量是秘密值時退成整條原色。漸層掛在填充貼圖的角上，條縮短時跟著擠。
+- **不登記進 LibSharedMedia**（別的插件選到只有直向那張圖）。目前只有單位框架接了；別支要接＝把名字加進 `ombre.py` 的 `ADDONS`、
+  抄 `M.PaintBar`、在下拉的 always 表列 `["MiliUI Ombre"]`。
+- 已知限制：純白的條（牧師）沒有漸層；下拉裡的預覽只看得到直向那張圖。

@@ -43,6 +43,7 @@ end
 M.TEXTURES = {
     satin  = MEDIA_PATH .. "miliui_satin.png",
     tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
+    ombre  = MEDIA_PATH .. "miliui_ombre.png",   -- MiliUI Ombre（漸染）：圖只有直向明暗，橫向漸層見 M.PaintBar
 }
 
 -- 血條疊加層用的貼圖，四個檔案原封不動從 Cell/Media 複製過來
@@ -76,12 +77,59 @@ function M.BarTexture(token)
     local own = M.TEXTURES[token]
     if own then return own end
     if token == LSM_NAME then return M.TEXTURES.satin end   -- 別人選了我們登記的名字
+    if token == "MiliUI Ombre" then return M.TEXTURES.ombre end
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if LSM then
         local path = LSM:Fetch("statusbar", token, true)
         if path then return path end
     end
     return M.DEFAULT_TEXTURE
+end
+
+------------------------------------------------------------
+-- 漸染（MiliUI Ombre）：長條左端是更濃的顏色、右端是原色
+--
+-- 材質圖只能把顏色整體乘暗，做不出「變濃」，所以橫向那道漸層是這裡給兩個顏色（Texture:SetGradient），
+-- 圖（Media/miliui_ombre.png，技能 miliui-satin-texture 的 ombre.py 畫的）只管直向明暗。
+-- 數字是 2026-11-13 照使用者給的截圖量的：左＝每個通道取 2.6 次方（分量越小壓越多 ⇒ 變濃而不是變黑）、
+-- 右＝原色 ×0.88。白色怎麼取次方都是白色，所以純白的條沒有漸層。
+--
+-- **不登記進 LibSharedMedia**：別的插件選到它只會拿到那張直向的圖、沒有漸層，名不符實。
+-- 接了雙色上色的插件各自在下拉的 always 表列它。
+--
+-- ⚠ 漸層是掛在填充貼圖的四個角上的：條縮短時漸層跟著擠，最亮的永遠是填充的前緣。
+-- ⚠ 顏色分量是秘密值（身分受限的玩家走 C_ClassColor 管道）時不能做算術 ⇒ 退成整條原色，跟 Colors.lua 的 Dim 同一個取捨。
+------------------------------------------------------------
+local OMBRE_NAME  = "MiliUI Ombre"
+local OMBRE_GAMMA = 2.6
+local OMBRE_RIGHT = 0.88
+
+function M.IsOmbre()
+    local token = ns.db and ns.db.global and ns.db.global.barTexture
+    return token == "ombre" or token == OMBRE_NAME
+end
+
+-- 每張貼圖一對色物件，重複使用（血量事件很密，不要每次 CreateColor）
+local ombreColors = setmetatable({}, { __mode = "k" })
+
+-- 長條填充貼圖的上色統一走這支：選了漸染就畫雙色漸層，否則照舊 SetVertexColor。
+-- SetVertexColor 會把四個角寫成同一色 ⇒ 從漸染切回別的材質不用另外清。
+function M.PaintBar(tex, r, g, b, a)
+    if not tex then return end
+    -- 秘密值先擋，再做別的比較
+    if not M.IsOmbre() or ns.IsSecret(r) or ns.IsSecret(g) or ns.IsSecret(b) or ns.IsSecret(a) or r == nil then
+        tex:SetVertexColor(r, g, b, a)
+        return
+    end
+    a = a or 1
+    local pair = ombreColors[tex]
+    if not pair then
+        pair = { CreateColor(0, 0, 0, 1), CreateColor(0, 0, 0, 1) }
+        ombreColors[tex] = pair
+    end
+    pair[1]:SetRGBA(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a)
+    pair[2]:SetRGBA(r * OMBRE_RIGHT, g * OMBRE_RIGHT, b * OMBRE_RIGHT, a)
+    tex:SetGradient("HORIZONTAL", pair[1], pair[2])
 end
 
 ------------------------------------------------------------
@@ -101,7 +149,7 @@ function M.BarTextureItems()
         local ok, got = pcall(LSM.List, LSM, "statusbar")
         if ok and type(got) == "table" then list = got end
     end
-    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin" }, nil, M.BarTexture)
+    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin", [OMBRE_NAME] = "ombre" }, nil, M.BarTexture)
     for i = 1, #rest do
         if not M.TEXTURES[rest[i].value] then items[#items + 1] = rest[i] end
     end

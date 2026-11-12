@@ -33,6 +33,7 @@ local PREFIX = {
 -- 名冊：順序＝下拉裡的順序。第一款是套組所有長條的預設材質
 local TEXTURES = {
     { name = "MiliUI Satin",        zhTW = "緞面",         zhCN = "缎面" },
+    { name = "MiliUI Ombre",        zhTW = "漸染",         zhCN = "渐染" },
     { name = "MiliUI Rainbow",      zhTW = "彩虹",         zhCN = "彩虹" },
     { name = "MiliUI Rainbow Soft", zhTW = "彩虹（柔和）", zhCN = "彩虹（柔和）" },
     { name = "MiliUI Cosmos",       zhTW = "宇宙星辰",     zhCN = "宇宙星辰" },

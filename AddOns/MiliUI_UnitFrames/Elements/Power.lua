@@ -97,7 +97,7 @@ local function Update(uf, edb, bucket)
 
     local frac = uf.cache.fracmp
     local r, g, b, a = Colors.Get(edb.colorMethod, uf, edb, frac, "barColor", "barAlpha")
-    f.bar:GetStatusBarTexture():SetVertexColor(r, g, b, a)      -- 貼圖 API 吃秘密色（class 法）
+    ns.Media.PaintBar(f.bar:GetStatusBarTexture(), r, g, b, a)  -- 貼圖 API 吃秘密色（class 法）；漸染材質在這裡畫雙色
     r, g, b, a = Colors.Get(edb.bgColorMethod, uf, edb, frac, "bgColor", "bgAlpha")
     f.bg:SetVertexColor(r, g, b, a)
 end

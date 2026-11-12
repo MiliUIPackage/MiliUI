@@ -575,7 +575,7 @@ local function ApplyColors(uf, f, edb)
         local tc = edb.threatColor or { r = 1, g = 0.1, b = 0.1, a = 0.8 }
         tex:SetVertexColor(tc.r, tc.g, tc.b, tc.a or 0.8)
     else
-        tex:SetVertexColor(r, g, b, a)
+        Media.PaintBar(tex, r, g, b, a)      -- 選了漸染材質就畫雙色漸層，否則就是 SetVertexColor
     end
     -- 治療預估：預設白色 25% 的「幽靈層」——壓在暗化層上呈淡亮灰，跟真實血量（職業色）
     -- 一眼可分；跟血條同色的話會像血條淡淡延伸，扣血區就看不出是扣的（實測被嫌）。
