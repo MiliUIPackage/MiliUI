@@ -579,6 +579,7 @@ local function Look(style, plan, g)
     return {
         r = r, g = gg, b = b, alpha = tonumber(style.barAlpha) or 1,
         texture = ns.Media.Texture(style.texture), bgTex = R.BgTexture(style),
+        texName = style.texture,                      -- 材質設定值：漸染材質的判定吃它（Media.PaintBar）
         dim = dim, px = R.DecorPx(style), edge = R.EdgeArray(style), shadow = R.ShadowArray(style),
         token = token, font = ns.Media.Font(token), outline = R.TextOutline(style),
         size = st.textSize, sizePx = st.textSize * scale,
@@ -651,7 +652,7 @@ local function LayoutCooldown(row, plan, look)
     NoSnap(bar)                                         -- 填充跟 1px 邊相接：不貼齊
     bar:SetReverseFill(st.reverse)
     local t = bar:GetStatusBarTexture()
-    if t then t:SetVertexColor(look.r, look.g, look.b, look.alpha) end
+    if t then ns.Media.PaintBar(t, look.texName, look.r, look.g, look.b, look.alpha) end
     bar:Show()
     local cd = row.cd
     if cd then

@@ -250,15 +250,84 @@ do
         eq("自製材質存的是登記名：" .. name, value, name)
         check("自製材質解得到自己的檔：" .. name, ns.Media.Texture(name) ~= ns.Media.WHITE8X8)
     end
-    eq("自製材質：緞面＋六款動畫材質", ownCount, 1 + #ns.Media.FX_ORDER)
+    eq("自製材質：緞面＋漸染＋動畫材質", ownCount, 2 + #ns.Media.FX_ORDER)
     local own, rest = ns.MiliMedia.TextureItems({ "Melli", "MiliUI Satin" }, ns.Media.OWN_TEXTURES)
-    eq("材質下拉：LSM 沒登記到的動畫材質也列（新檔要重開遊戲 LSM 才認）", #own, 1 + #ns.Media.FX_ORDER)
-    eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[4].text .. "|" .. own[7].text, "米利UI: 宇宙星辰|米利UI: 火焰")
-    eq("材質下拉：第二批也照名冊順序", own[8].text .. "|" .. own[10].text .. "|" .. own[14].text, "米利UI: 櫻花|米利UI: 天燈|米利UI: 極光")
-    eq("材質下拉：第三批也照名冊順序", own[15].text .. "|" .. own[18].text .. "|" .. own[19].text, "米利UI: 紅葉|米利UI: 夜市霓虹|米利UI: 藍白拖")
-    eq("材質下拉：台灣藍鵲排最後", own[20].text, "米利UI: 台灣藍鵲")
+    eq("材質下拉：LSM 沒登記到的動畫材質也列（新檔要重開遊戲 LSM 才認）", #own, 2 + #ns.Media.FX_ORDER)
+    eq("材質下拉：動畫材質照名冊順序、顯示中文名", own[5].text .. "|" .. own[8].text, "米利UI: 宇宙星辰|米利UI: 火焰")
+    eq("材質下拉：第二批也照名冊順序", own[9].text .. "|" .. own[11].text .. "|" .. own[15].text, "米利UI: 櫻花|米利UI: 天燈|米利UI: 極光")
+    eq("材質下拉：第三批也照名冊順序", own[16].text .. "|" .. own[19].text .. "|" .. own[20].text, "米利UI: 紅葉|米利UI: 夜市霓虹|米利UI: 藍白拖")
+    eq("材質下拉：台灣藍鵲排最後", own[21].text, "米利UI: 台灣藍鵲")
     eq("材質下拉：第一項是套組預設、顯示中文名", own[1].text .. "|" .. own[1].value, "米利UI: 緞面|MiliUI Satin")
     eq("材質下拉：其餘 LSM 接在後面", rest[1].value, "Melli")
+    -- 漸染（MiliUI Ombre）：接法同緞面（自帶檔、名字直接解、下拉列它）；橫向的雙色漸層由 M.PaintBar 畫
+    do
+        local M = ns.Media
+        eq("漸染：名字直接解到自己的檔（不問 LSM）", M.Texture("MiliUI Ombre"), M.OMBRE_TEXTURE)
+        check("漸染：路徑在本插件的 Media", M.OMBRE_TEXTURE:find("MiliUI_CooldownManager\\Media\\miliui_ombre.png", 1, true) ~= nil)
+        do
+            local fh = io.open(here .. "/../Media/miliui_ombre.png", "rb")
+            check("漸染：貼圖檔真的在", fh ~= nil)
+            if fh then fh:close() end
+        end
+        check("漸染：判定", M.IsOmbre("MiliUI Ombre") and not M.IsOmbre("MiliUI Satin") and not M.IsOmbre("solid")
+            and not M.IsOmbre(nil) and not M.IsOmbre(42))
+        check("漸染：不是動畫材質", not M.IsFx("MiliUI Ombre"))
+        check("漸染：路徑判定（引擎寫的光環條只拿得到路徑）", M.IsOmbrePath(M.OMBRE_TEXTURE) and not M.IsOmbrePath(M.BAR_TEXTURE)
+            and not M.IsOmbrePath(nil))
+        eq("漸染：下拉排在緞面後面、顯示中文名、存登記名", own[2].text .. "|" .. own[2].value, "米利UI: 漸染|MiliUI Ombre")
+        -- 上色：貼圖樁記下每一次呼叫
+        local function Tex()
+            local t = { log = {} }
+            function t:SetVertexColor(r, g, b, a) self.log[#self.log + 1] = { "v", r, g, b, a } end
+            function t:SetGradient(dir, c1, c2) self.log[#self.log + 1] = { "g", dir, c1.r, c1.g, c1.b, c1.a, c2.r, c2.g, c2.b, c2.a } end
+            return t
+        end
+        local function Near(a, b) return math.abs(a - b) < 1e-9 end
+        local savedCC = env.CreateColor
+        local made = 0
+        env.CreateColor = function(r, g, b, a)
+            made = made + 1
+            local c = { r = r, g = g, b = b, a = a }
+            function c:SetRGBA(r2, g2, b2, a2) self.r, self.g, self.b, self.a = r2, g2, b2, a2 end
+            return c
+        end
+        local t = Tex()
+        eq("漸染上色：別的材質 ⇒ 只有一個 SetVertexColor", M.PaintBar(t, "MiliUI Satin", 0.5, 0.4, 0.2, 0.9), false)
+        eq("漸染上色：別的材質的呼叫數", #t.log, 1)
+        eq("漸染上色：別的材質照原色", table.concat({ t.log[1][1], t.log[1][2], t.log[1][3], t.log[1][4], t.log[1][5] }, ","), "v,0.5,0.4,0.2,0.9")
+        eq("漸染上色：別的材質不建色物件", made, 0)
+        t = Tex()
+        eq("漸染上色：漸染 ⇒ 畫了漸層", M.PaintBar(t, "MiliUI Ombre", 0.5, 0.4, 0.2, 0.9), true)
+        local gl = t.log[#t.log]
+        eq("漸染上色：先 SetVertexColor 白、再橫向 SetGradient", t.log[1][1] .. t.log[1][2] .. "|" .. gl[1] .. "|" .. gl[2], "v1|g|HORIZONTAL")
+        check("漸染上色：左＝每個分量 2.6 次方", Near(gl[3], 0.5 ^ 2.6) and Near(gl[4], 0.4 ^ 2.6) and Near(gl[5], 0.2 ^ 2.6))
+        check("漸染上色：右＝每個分量 ×0.88", Near(gl[7], 0.5 * 0.88) and Near(gl[8], 0.4 * 0.88) and Near(gl[9], 0.2 * 0.88))
+        check("漸染上色：alpha 兩端相同", gl[6] == 0.9 and gl[10] == 0.9)
+        M.PaintBar(t, "MiliUI Ombre", 1, 1, 1)
+        eq("漸染上色：色物件每張貼圖一對、重複使用", made, 2)
+        eq("漸染上色：沒給 alpha ＝ 1", t.log[#t.log][6], 1)
+        -- 秘密分量：不比較不算術，退回 SetVertexColor（秘密值原樣交給引擎）；畫過漸層的貼圖先洗成白→白
+        local n = #t.log
+        eq("漸染上色：秘密分量 ⇒ 沒畫漸層", M.PaintBar(t, "MiliUI Ombre", SECRET, 0.4, 0.2, 1), false)
+        local last = t.log[#t.log]
+        check("漸染上色：秘密分量退回 SetVertexColor、原樣傳", last[1] == "v" and rawequal(last[2], SECRET) and last[3] == 0.4)
+        local wash = t.log[n + 1]
+        check("漸染上色：畫過漸層的貼圖先洗成白→白", #t.log == n + 2 and wash[1] == "g" and wash[3] == 1 and wash[7] == 1)
+        t = Tex()
+        M.PaintBar(t, "MiliUI Ombre", 0.5, 0.4, SECRET, 1)
+        eq("漸染上色：沒畫過漸層的貼圖遇到秘密分量只有一個 SetVertexColor", #t.log .. t.log[1][1], "1v")
+        t = Tex()
+        M.PaintBar(t, "MiliUI Ombre", 0.5, 0.4, 0.2, SECRET)
+        eq("漸染上色：秘密 alpha 也退回", #t.log .. t.log[1][1], "1v")
+        M.PaintBar(nil, "MiliUI Ombre", 1, 1, 1, 1)
+        check("漸染上色：沒有貼圖不報錯", true)
+        -- 先建好的一對（引擎寫的光環條）
+        local p1 = M.OmbrePair(0.5, 0.4, 0.2, 1)
+        check("漸染色對：左濃右原色", p1 and Near(p1[1].r, 0.5 ^ 2.6) and Near(p1[2].b, 0.2 * 0.88) and p1[1].a == 1)
+        check("漸染色對：同色拿到同一對（不重配）", M.OmbrePair(0.5, 0.4, 0.2, 1) == p1 and M.OmbrePair(0.5, 0.4, 0.3, 1) ~= p1)
+        eq("漸染色對：秘密分量 ⇒ nil", M.OmbrePair(SECRET, 0.4, 0.2, 1), nil)
+        env.CreateColor = savedCC
+    end
     -- v11：只上線一天的舊名字換成自製的；玩家自己選的不碰
     local m = { focuscast = { texture = "MiliUI TukTex" } }
     DB.MIGRATIONS[11](m)

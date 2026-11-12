@@ -122,6 +122,7 @@ function PDR.LayoutRow(row, def, s, style, W)
     local _, oy = R.TextOffset(style)
     local look = {
         texture = ns.Media.Texture(style.texture), bgTex = R.BgTexture(style),
+        texName = style.texture,                      -- 材質設定值：漸染材質的判定吃它（Media.PaintBar）
         alpha = tonumber(style.barAlpha) or 1, bgA = R.BgAlpha(style), bgCustom = R.BgCustom(style),
         px = R.DecorPx(style), edge = R.EdgeArray(style), shadow = R.ShadowArray(style),
         token = ns.Media.ElementFont(style.textFont, ns.Setting(nil, "font")), outline = R.TextOutline(style),
@@ -185,7 +186,7 @@ function PDR.PaintRow(row, st)
     local r, g, b, a = pd.Color(s, state)
     row.sb:SetValue(st.drawn)
     local t = row.sb:GetStatusBarTexture()
-    if t then t:SetVertexColor(r, g, b, (a or 1) * look.alpha) end
+    if t then ns.Media.PaintBar(t, look.texName, r, g, b, (a or 1) * look.alpha) end
     if row.decorState ~= state then
         row.decorState = state
         local bc = look.bgCustom

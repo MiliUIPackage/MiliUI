@@ -68,6 +68,7 @@ local MEDIA_PATH = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\"
 M.TEXTURES = {
     satin  = MEDIA_PATH .. "miliui_satin.png",
     tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
+    ombre  = MEDIA_PATH .. "miliui_ombre.png",   -- MiliUI Ombre（漸染）：圖只有直向明暗，橫向漸層見 M.PaintBar
 }
 M.DEFAULT_TEXTURE = M.TEXTURES.satin
 
@@ -77,6 +78,8 @@ M.DEFAULT_TEXTURE = M.TEXTURES.satin
 -- 另一邊靜默失敗——但兩邊解析 token 都走自己的 M.TEXTURES，不受影響。
 local LSM_NAME = "MiliUI Satin"
 M.LSM_NAME = LSM_NAME
+-- 漸染也登記出去（別的插件選到它只會拿到那張直向明暗的圖；雙色漸層是 M.PaintBar 畫的）
+local OMBRE_NAME = "MiliUI Ombre"
 
 local lsmDone = false
 function M.RegisterSharedMedia()
@@ -85,6 +88,7 @@ function M.RegisterSharedMedia()
     if not lsm then return end        -- 沒裝就算了，我們本來就不靠它
     lsmDone = true
     pcall(lsm.Register, lsm, "statusbar", LSM_NAME, M.TEXTURES.satin)
+    pcall(lsm.Register, lsm, "statusbar", OMBRE_NAME, M.TEXTURES.ombre)
 end
 M.RegisterSharedMedia()               -- LSM 若比我們晚載入，登入時會再叫一次
 
@@ -95,12 +99,56 @@ function M.BarTexture(token)
     local own = M.TEXTURES[token]
     if own then return own end
     if token == LSM_NAME then return M.TEXTURES.satin end   -- 別人選了我們登記的名字
+    if token == OMBRE_NAME then return M.TEXTURES.ombre end
     local lsm = LSM()
     if lsm then
         local path = lsm:Fetch("statusbar", token, true)
         if path then return path end
     end
     return M.DEFAULT_TEXTURE
+end
+
+------------------------------------------------------------
+-- 漸染（MiliUI Ombre）：長條左端是更濃的顏色、右端是原色（做法與 MiliUI_UnitFrames 一致）
+--
+-- 材質圖只能把顏色整體乘暗，做不出「變濃」，所以橫向那道漸層是這裡給兩個顏色（Texture:SetGradient），
+-- 圖（Media/miliui_ombre.png）只管直向明暗。左＝每個通道取 2.6 次方（分量越小壓越多 ⇒ 變濃而不是變黑）、
+-- 右＝原色 ×0.88。白色怎麼取次方都是白色，所以純白的條沒有漸層。
+--
+-- ⚠ 漸層是掛在填充貼圖的四個角上的：條縮短時漸層跟著擠，最亮的永遠是填充的前緣。
+-- ⚠ 顏色分量是秘密值時不能做算術 ⇒ 退成整條原色。
+------------------------------------------------------------
+local OMBRE_GAMMA = 2.6
+local OMBRE_RIGHT = 0.88
+
+-- 「這條是不是漸染」看**那條長條實際套的材質**：吃設定值（token "ombre"／登記名）
+-- 或解析後的路徑（Win.ApplyBarStyle 記在 bar._texPath 的那個）都行，不去讀某個全域設定。
+function M.IsOmbre(token)
+    return token == "ombre" or token == OMBRE_NAME or token == M.TEXTURES.ombre
+end
+
+-- 每張貼圖一對色物件，重複使用（展開頁每 tick 每列都上色，不要每次 CreateColor）
+local ombreColors = setmetatable({}, { __mode = "k" })
+
+-- 長條填充貼圖的上色統一走這支：token 是漸染就畫雙色漸層，否則照舊 SetVertexColor。
+-- SetVertexColor 會把四個角寫成同一色 ⇒ 從漸染切回別的材質不用另外清。
+function M.PaintBar(tex, r, g, b, a, token)
+    if not tex then return end
+    local secret = ns.Secret.IsSecret
+    -- 秘密值先擋，再做別的比較
+    if not M.IsOmbre(token) or secret(r) or secret(g) or secret(b) or secret(a) or r == nil then
+        tex:SetVertexColor(r, g, b, a)
+        return
+    end
+    a = a or 1
+    local pair = ombreColors[tex]
+    if not pair then
+        pair = { CreateColor(0, 0, 0, 1), CreateColor(0, 0, 0, 1) }
+        ombreColors[tex] = pair
+    end
+    pair[1]:SetRGBA(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a)
+    pair[2]:SetRGBA(r * OMBRE_RIGHT, g * OMBRE_RIGHT, b * OMBRE_RIGHT, a)
+    tex:SetGradient("HORIZONTAL", pair[1], pair[2])
 end
 
 ------------------------------------------------------------
@@ -119,7 +167,7 @@ function M.BarTextureItems()
         local ok, got = pcall(lsm.List, lsm, "statusbar")
         if ok and type(got) == "table" then list = got end
     end
-    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin" }, nil, M.BarTexture)
+    local items, rest = ns.MiliMedia.TextureItems(list, { [LSM_NAME] = "satin", [OMBRE_NAME] = "ombre" }, nil, M.BarTexture)
     items[#items + 1] = { text = ns.L["Solid"], value = "solid" }
     for i = 1, #rest do
         if not M.TEXTURES[rest[i].value] then items[#items + 1] = rest[i] end

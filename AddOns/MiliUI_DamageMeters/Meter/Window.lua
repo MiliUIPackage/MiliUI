@@ -237,6 +237,7 @@ local LINE_EDGES = { ["line-bottom"] = "BOTTOM", ["line-top"] = "TOP" }
 function Win.ApplyBarStyle(bar, s, texPath)
     local edge = LINE_EDGES[s.barStyle or "fill"]
     bar._lineEdge = edge
+    bar._texPath = texPath    -- 這條實際套的材質；Win.PaintFill 靠它判斷要不要畫漸染
 
     if not edge then
         if bar.line then bar.line:Hide() end
@@ -264,12 +265,23 @@ function Win.ApplyBarStyle(bar, s, texPath)
     bar.fill:SetStatusBarTexture(M.WHITE8X8)
     bar.fill:SetAlpha(1)
     bar.fill:SetStatusBarColor(0, 0, 0, 0)   -- 退成純容器
+    -- 上一個樣式若是實心＋漸染，填充貼圖四個角還掛著漸層色；直接對貼圖再寫一次，不賭 SetStatusBarColor 會蓋掉
+    local ft = bar.fill:GetStatusBarTexture()
+    if ft then ft:SetVertexColor(0, 0, 0, 0) end
     bar.line:SetStatusBarTexture(texPath)
     M.NoSnap(bar.line)
     bar.line:SetAlpha(s.barFillAlpha or 1)
     bar.line:SetHeight(D.Hair(s.barLineHeight or 2))
     bar.line:Show()
     return bar.line
+end
+
+-- 填充上色（主清單、釘住列、展開頁、提示的長條全走這支）：對實際餵值的那條 StatusBar 的
+-- 填充貼圖上色，材質是漸染（MiliUI Ombre）就畫雙色漸層，否則跟原本的 SetStatusBarColor(r, g, b) 等價。
+-- 一定要在 Win.ApplyBarStyle 之後叫（_target／_texPath 是它記的）。
+function Win.PaintFill(bar, r, g, b)
+    local target = bar._target or bar.fill
+    M.PaintBar(target:GetStatusBarTexture(), r, g, b, 1, bar._texPath)
 end
 
 -- 填滿條與細線的水平錨定（offset = 圖示佔掉的寬度）。兩者都錨在 bar.row 上，

@@ -50,6 +50,11 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
 - `scripts/ombre.py` 產 `Media/miliui_ombre.png`：只有直向明暗（三成高最亮、下緣 84%）。跑法同上，換腳本名。
 - 橫向漸層是程式給兩個顏色：`MiliUI_UnitFrames/Core/Media.lua` 的 `M.PaintBar`（`Texture:SetGradient`），血條與能量條的填充走它。
   顏色分量是秘密值時退成整條原色。漸層掛在填充貼圖的角上，條縮短時跟著擠。
-- **不登記進 LibSharedMedia**（別的插件選到只有直向那張圖）。目前只有單位框架接了；別支要接＝把名字加進 `ombre.py` 的 `ADDONS`、
-  抄 `M.PaintBar`、在下拉的 always 表列 `["MiliUI Ombre"]`。
+- **跟 Satin 一樣登記進 LibSharedMedia**（`"MiliUI Ombre"`，2026-11-13 使用者要求）。套組以外的插件選到它只有直向那張圖、沒有橫向漸層。
+- 接了的五支（`ombre.py` 的 `ADDONS`）與各自的上色入口：MiliUI_UnitFrames `Media.PaintBar`（血條／能量條／施法條／資源條）、
+  MiliUI_DamageMeters `Media.PaintBar`＋`Win.PaintFill`、MiliUI_Tooltip `Media.PaintBar`（`Core/Bar.lua`）、
+  MiliUI_CooldownManager `Media.PaintBar(tex, token, …)`＋`D.PaintFill`／`CB.PaintFill`（材質是每條各自設定，判斷看那條自己的 token）、
+  Cell `F.PaintOmbreFill`／`F.PaintBarFill`（Utils.lua；`threshold*` 依血量換色模式不介入）。MiliUI_Skin 沒有材質選項，沒接。
+- 沒接的：每格各一張貼圖的分段條（資源點數、Pips、天空騎術活力…，接了會每格各一道）、直向條（Cell 例外，下濃上亮）、
+  暴雪圖集樣式、開了自訂漸層的條、Cell 的快速協助。
 - 已知限制：純白的條（牧師）沒有漸層；下拉裡的預覽只看得到直向那張圖。

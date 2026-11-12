@@ -660,7 +660,18 @@ local function InitButton(btn, c, st, h, sig)
     bar:SetStatusBarTexture(st.texture)
     NoSnap(bar)              -- 填充跟裝飾的 1px 邊相接：不貼齊
     local t = bar:GetStatusBarTexture()
-    if t then t:SetVertexColor(st.r, st.g, st.b, st.alpha) end
+    if t then
+        -- 漸染材質：先建好的那一對色物件（st.ombre，這裡不 CreateColor）；畫不上就退單色
+        local om = st.ombre
+        if om and t.SetGradient then
+            t:SetVertexColor(1, 1, 1, 1)
+            if not pcall(t.SetGradient, t, "HORIZONTAL", om[1], om[2]) then
+                t:SetVertexColor(st.r, st.g, st.b, st.alpha)
+            end
+        else
+            t:SetVertexColor(st.r, st.g, st.b, st.alpha)
+        end
+    end
     bar:SetReverseFill(st.reversed)
     -- 不自己 SetMinMaxValues／SetValue：引擎每次套用都寫 (0, maxApplications) 與層數
     if g and st.decorOverlay then
@@ -833,6 +844,12 @@ function AB.Apply(h, spec)
             interp = Enum and Enum.StatusBarInterpolation and Enum.StatusBarInterpolation.Immediate or nil,
             remaining = Enum and Enum.StatusBarTimerDirection and Enum.StatusBarTimerDirection.RemainingTime or nil,
         }
+        -- 漸染材質（Core/Media.lua；材質路徑已經在簽章裡）：雙色漸層的色物件在這裡先建好，initializeFrame 裡只查表。
+        -- 一顆光環一格（instances）每格各一張貼圖，漸層會變成每格各一道 ⇒ 不畫。離線測試沒載 Media 時沒有這回事
+        local M = ns.Media
+        if spec.kind ~= "instances" and M and M.IsOmbrePath and M.IsOmbrePath(st.texture) then
+            st.ombre = M.OmbrePair(st.r, st.g, st.b, st.alpha)
+        end
         -- formatter 在這裡（正常插件路徑）先建好：initializeFrame 裡只查表
         if st.text and ns.Text then
             if st.text.gcd and ns.Text.GcdFormatter then

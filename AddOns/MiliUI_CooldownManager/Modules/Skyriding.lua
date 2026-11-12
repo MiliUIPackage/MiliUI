@@ -940,7 +940,10 @@ local function Look(rc, rcfg)
     -- 邊緣陰影（Core/Shape.lua）：照資源條的全域三鍵（天空騎術是資源條的接力）；sp nil ＝ 關
     local sp, sa
     if ns.Resources.ShadowOf then sp, sa = ns.Resources.ShadowOf(rc) end
-    return { fill = fill, bg = bg, r = r, g = g, b = b, a = a, sp = sp, sa = sa }
+    -- fillName ＝ 前景材質的設定值（漸染材質的判定吃它，Media.PaintBar；只有整列一條的速度／旋轉急衝畫，格子型不畫）
+    local fillName = rc.texture
+    if type(rcfg.texture) == "string" and rcfg.texture ~= "" and rcfg.texture ~= INHERIT then fillName = rcfg.texture end
+    return { fill = fill, bg = bg, r = r, g = g, b = b, a = a, sp = sp, sa = sa, fillName = fillName }
 end
 
 -- 文字：字型（INHERIT ＝ 主題的通用字型）、字級、描邊照主題、顏色、錨點＋位移
@@ -1023,6 +1026,7 @@ local LAYOUT = {}
 LAYOUT.speed = function(f, look, W)
     LayoutBarRow(f, look)
     f.bar:SetStatusBarTexture(look.fill)
+    f.fillName = look.fillName
     local x = math.floor(W * THRILL_AT + 0.5)
     f.tick:ClearAllPoints()
     f.tick:SetPoint("TOP", f, "TOPLEFT", x, 0)
@@ -1034,6 +1038,7 @@ LAYOUT.surge = function(f, look, W, H, cfg)
     LayoutBarRow(f, look)
     f.full:SetStatusBarTexture(look.fill)
     f.timer:SetStatusBarTexture(look.fill)
+    f.fillName = look.fillName
     local r, g, b = RowColor(cfg, "surge")
     f.glow:SetVertexColor(r, g, b, 1)
     f.bolt:SetVertexColor(r + (1 - r) * BOLT_WHITEN, g + (1 - g) * BOLT_WHITEN, b + (1 - b) * BOLT_WHITEN, 1)
@@ -1125,7 +1130,7 @@ end
 ------------------------------------------------------------
 local function PaintSpeedColor(cfg)
     local f = rows.speed
-    f.bar:SetStatusBarColor(SpeedColor(cfg))
+    ns.Media.PaintBar(f.bar:GetStatusBarTexture(), f.fillName, SpeedColor(cfg))
     f.tick:SetShown(speedState == "thrill")
 end
 
@@ -1312,7 +1317,7 @@ local function DrawSurgeBar(cfg, id, info, onCD)
     local f = rows.surge
     if onCD == false then
         f.timer:Hide()
-        f.full:SetStatusBarColor(r, g, b, a)
+        ns.Media.PaintBar(f.full:GetStatusBarTexture(), f.fillName, r, g, b, a)
         f.full:Show()
         SurgeFx(rcfg.fx ~= false, rcfg.fxStyle)
         -- 冷卻中 → 好了：填滿之後震一下（剛出現、讀不到之後變好了都不震）
@@ -1323,7 +1328,7 @@ local function DrawSurgeBar(cfg, id, info, onCD)
     else
         SurgeFx(false)
         f.full:Hide()
-        f.timer:SetStatusBarColor(r * RECHARGE_DIM, g * RECHARGE_DIM, b * RECHARGE_DIM, a)
+        ns.Media.PaintBar(f.timer:GetStatusBarTexture(), f.fillName, r * RECHARGE_DIM, g * RECHARGE_DIM, b * RECHARGE_DIM, a)
         local dur = Call(C_Spell and C_Spell.GetSpellCooldownDuration, id)
         local D = Enum and Enum.StatusBarTimerDirection
         local dir = D and (D.ElapsedTime or D.Elapsed) or nil
@@ -1427,7 +1432,7 @@ local function DrawPreview(cfg)
         local f = rows.surge
         local r, g, b, a = RowColor(cfg, "surge")
         f.timer:Hide()
-        f.full:SetStatusBarColor(r, g, b, a)
+        ns.Media.PaintBar(f.full:GetStatusBarTexture(), f.fillName, r, g, b, a)
         f.full:Show()
         surgeGen = surgeGen + 1
         surgeReady = nil

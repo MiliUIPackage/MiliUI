@@ -186,7 +186,7 @@ end
 local function SetBarColor(f, r, g, b, a)
     local tex = f.bar and f.bar:GetStatusBarTexture()
     if tex then
-        tex:SetVertexColor(r, g, b, a)
+        ns.Media.PaintBar(tex, r, g, b, a)   -- 漸染材質畫雙色漸層，其餘就是 SetVertexColor
     else
         f.bar:SetStatusBarColor(r, g, b, a)
     end
@@ -281,7 +281,8 @@ local function ApplySecretColor(f)
         end
     end
     -- alpha 來自設定（明文）；r/g/b 可能是秘密值，各參數互不影響
-    tex:SetVertexColor(r, g, b, f.barAlpha or 1)
+    -- 漸染材質要對分量做算術，秘密值時 PaintBar 自己退成 SetVertexColor
+    ns.Media.PaintBar(tex, r, g, b, f.barAlpha or 1)
 end
 
 -- 一般模式上色（notInterruptible 明文可分支）
@@ -339,7 +340,7 @@ local function EndFade(f, color, label)
     if f.ticker then f.ticker:Cancel(); f.ticker = nil end
     if f.shield then f.shield:Hide() end
     if color then
-        f.bar:SetStatusBarColor(color.r, color.g, color.b, f.barAlpha or 1)
+        SetBarColor(f, color.r, color.g, color.b, f.barAlpha or 1)
     end
     if label then f.spellText:SetText(label) end
     f.timeText:SetText("")
@@ -625,7 +626,7 @@ local function ShowInterrupted(f, interrupterGUID)
     local c = Colors().fail
     f.bar:SetMinMaxValues(0, 1)
     f.bar:SetValue(1)
-    f.bar:SetStatusBarColor(c.r, c.g, c.b, f.barAlpha or 1)
+    SetBarColor(f, c.r, c.g, c.b, f.barAlpha or 1)
     f.spellText:SetText(L["Interrupted"])
     f.timeText:SetText("")
     if f.shield then f.shield:Hide() end

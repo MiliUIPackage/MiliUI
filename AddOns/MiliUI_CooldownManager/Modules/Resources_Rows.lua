@@ -486,9 +486,10 @@ local function UpdateBarRow(row, cfg, def, key, cc, conds)
     local t = row.bar:GetStatusBarTexture()
     if t then
         if curveCol then
-            t:SetVertexColor(curveCol.r, curveCol.g, curveCol.b, tonumber(cfg.barAlpha) or 1)   -- 可能是秘密值：只交給引擎
+            -- 可能是秘密值：只交給引擎（漸染材質時 PaintBar 先過 IsSecret，是秘密就退成這個單色）
+            ns.Media.PaintBar(t, cfg.texture, curveCol.r, curveCol.g, curveCol.b, tonumber(cfg.barAlpha) or 1)
         else
-            t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1)
+            ns.Media.PaintBar(t, cfg.texture, fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1)
         end
     end
     PaintBarBG(row, cfg, barOv, fc)
@@ -536,7 +537,7 @@ local function UpdateAbsorbRow(row, cfg, def, key, cc, conds)
         ab:SetValue(0)
     end
     local t = ab:GetStatusBarTexture()
-    if t then t:SetVertexColor(fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
+    if t then ns.Media.PaintBar(t, cfg.texture, fc.r, fc.g, fc.b, tonumber(cfg.barAlpha) or 1) end
     PaintBarBG(row, cfg, barOv, fc)
     ApplyRowOverrides(row, barOv)
     if cfg.showText then
@@ -684,10 +685,11 @@ function R.PaintMirror(row, key, cfg, reversed)
     local t = row.bar:GetStatusBarTexture()
     if elapsed then
         row.bar:SetReverseFill(not reversed)
-        if t then t:SetVertexColor(bk[1], bk[2], bk[3], bk[4]) end
+        -- 已過時間：StatusBar 的填充畫的是「空的那截」的底色 ⇒ 不畫漸染（token nil；畫過的漸層照樣洗掉）
+        if t then ns.Media.PaintBar(t, nil, bk[1], bk[2], bk[3], bk[4]) end
         row.barBG:SetVertexColor(cc.r, cc.g, cc.b, 1)
     else
-        if t then t:SetVertexColor(cc.r, cc.g, cc.b, 1) end
+        if t then ns.Media.PaintBar(t, cfg.texture, cc.r, cc.g, cc.b, 1) end
         local bg = R.TimerBg(cfg, key, cc)
         row.barBG:SetVertexColor(bg[1], bg[2], bg[3], bg[4])
     end
@@ -1100,9 +1102,9 @@ local function UpdateHealthRow(row, cfg, key)
             if ok then col = c end
         end
         if col then
-            t:SetVertexColor(col.r, col.g, col.b, a)        -- 可能是秘密值：只交給引擎
+            ns.Media.PaintBar(t, cfg.texture, col.r, col.g, col.b, a)   -- 可能是秘密值：PaintBar 先擋、退單色只交給引擎
         else
-            t:SetVertexColor(base.r, base.g, base.b, a)
+            ns.Media.PaintBar(t, cfg.texture, base.r, base.g, base.b, a)
         end
     end
     PaintBarBG(row, cfg, nil, base)

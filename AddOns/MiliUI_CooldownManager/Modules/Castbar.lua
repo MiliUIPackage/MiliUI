@@ -228,6 +228,15 @@ local function SetFillTexture(bar, token)
 end
 CB.SetFillTexture = SetFillTexture
 
+-- 填充貼圖上色：材質選了漸染（Core/Media.lua 的 M.PaintBar）就畫雙色漸層，否則就是 SetVertexColor。
+-- r／g／b 可能是秘密數字（斷法就緒／不可打斷的染色）：PaintBar 自己先擋、是秘密就退單色。離線測試沒載 Media 時照舊。
+-- 專注目標施法條也走這支
+function CB.PaintFill(tex, token, r, g, b, a)
+    local M = ns.Media
+    if M and M.PaintBar then return M.PaintBar(tex, token, r, g, b, a) end
+    tex:SetVertexColor(r, g, b, a)
+end
+
 -- 材質 token 是不是動畫材質（判定在 Core/Media.lua；離線測試沒載 Media 時一律不是）
 function CB.IsFx(token)
     local M = ns.Media
@@ -785,7 +794,7 @@ local function PaintColorOn(h, st)
             r, g, b = C(c.uninterruptible, 0.529, 0.529, 0.529)
         end
     end
-    tex:SetVertexColor(r, g, b, 1)
+    CB.PaintFill(tex, cfg.texture, r, g, b, 1)
     -- 效果層：不可打斷／斷法就緒時壓透明，讓上面算好的狀態色露出來
     if st.flow and h.flowClip then
         FlowAlpha(h.flowClip, ni)
@@ -975,7 +984,7 @@ local function EndFade(color, label)
     -- 效果層不收（收條才收，HideBar）：唱完 ⇒ 邊淡出邊照播；帶顏色的（失敗）⇒ 凍結在當下、整層染上那個顏色
     if color then
         local tex = f.bar:GetStatusBarTexture()
-        if tex then tex:SetVertexColor(color.r, color.g, color.b, 1) end
+        if tex then CB.PaintFill(tex, (Cfg() or {}).texture, color.r, color.g, color.b, 1) end
         if S.flow then
             FxPause(f)
             FxTint(f, color.r, color.g, color.b)
@@ -1003,7 +1012,7 @@ local function ShowInterrupted()
     f.bar:SetValue(1)
     local c = Colors().interrupted
     local tex = f.bar:GetStatusBarTexture()
-    if tex then tex:SetVertexColor(C(c, 1, 0.204, 0.145)) end
+    if tex then CB.PaintFill(tex, (Cfg() or {}).texture, C(c, 1, 0.204, 0.145)) end
     -- 效果層凍結在當下、整層染上打斷色（不收：收了會露出靜態填充，圖案跳回起點）
     if S.flow then
         FxPause(f)

@@ -7,7 +7,8 @@
 --     幾何**，尺寸全部來自設定（Coolinator 規則）。
 --   * 文字：AbbreviateNumbers / AbbreviateLargeNumbers（C 端、吃秘密）+
 --     SetFormattedText（C 端）。
---   * 顏色：分量可能是秘密 → GetStatusBarTexture():SetVertexColor。
+--   * 顏色：分量可能是秘密 → GetStatusBarTexture():SetVertexColor（Media.PaintBar：
+--     選了漸染材質且分量是明文才畫雙色漸層，其餘就是 SetVertexColor）。
 ------------------------------------------------------------
 local _, ns = ...
 
@@ -219,7 +220,7 @@ local function ColorBar(bar, unit)
         end
     end
     if r == nil then r, g, b = 0, 0.9, 0.1 end
-    bar:GetStatusBarTexture():SetVertexColor(r, g, b, 1)
+    Media.PaintBar(bar:GetStatusBarTexture(), r, g, b, 1)   -- 漸染材質在這裡畫雙色，否則就是 SetVertexColor
 end
 
 -- 條值 + 文字。輪詢與事件都走這裡；整段 pcall 包住當保險
@@ -355,7 +356,7 @@ function Bar.ActivateFake(tip)
         local c = sb.customColor
         r, g, b = c.r, c.g, c.b
     end
-    bar:GetStatusBarTexture():SetVertexColor(r, g, b, 1)
+    Media.PaintBar(bar:GetStatusBarTexture(), r, g, b, 1)   -- 漸染材質在這裡畫雙色，否則就是 SetVertexColor
     bar:Show()
 end
 

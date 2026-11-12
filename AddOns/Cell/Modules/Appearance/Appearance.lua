@@ -409,7 +409,7 @@ local function CreatePreviewButtons()
 
             -- update color
             local r, g, b, lossR, lossG, lossB = F.GetHealthBarColor(healthPercent, health == 0, F.GetClassColor(Cell.vars.playerClass))
-            previewButton.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
+            F.PaintBarFill(previewButton.widgets.healthBar, true, r, g, b, CellDB["appearance"]["barAlpha"]) -- MiliUI (2026-11-13): ombre-aware
             previewButton.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, CellDB["appearance"]["lossAlpha"])
 
             healthPercentOld = healthPercent
@@ -565,20 +565,22 @@ local function UpdatePreviewButton(which)
         B.SetPowerSize(previewButton2, Cell.vars.currentLayoutTable["main"]["powerSize"])
     end
 
-    if not which or which == "color" or which == "alpha" or which == "shields" or which == "maxHealthLoss" or which == "reset" then
+    -- MiliUI (2026-11-13): "texture" repaints too -- switching to / away from "MiliUI Ombre" changes how the
+    -- fills are coloured (F.PaintBarFill: two-colour gradient on that texture, SetStatusBarColor otherwise)
+    if not which or which == "texture" or which == "color" or which == "alpha" or which == "shields" or which == "maxHealthLoss" or which == "reset" then
         -- power color
         local r, g, b = F.GetPowerBarColor("player", Cell.vars.playerClass)
-        previewButton.widgets.powerBar:SetStatusBarColor(r, g, b)
-        previewButton2.widgets.powerBar:SetStatusBarColor(r, g, b)
+        F.PaintBarFill(previewButton.widgets.powerBar, false, r, g, b)
+        F.PaintBarFill(previewButton2.widgets.powerBar, false, r, g, b)
 
         -- health color
         local lossR, lossG, lossB
         r, g, b, lossR, lossG, lossB = F.GetHealthBarColor(previewButton.perc or 1, previewButton.perc == 0, F.GetClassColor(Cell.vars.playerClass))
-        previewButton.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
+        F.PaintBarFill(previewButton.widgets.healthBar, true, r, g, b, CellDB["appearance"]["barAlpha"])
         previewButton.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, CellDB["appearance"]["lossAlpha"])
 
         r, g, b, lossR, lossG, lossB = F.GetHealthBarColor(0.6, false, F.GetClassColor(Cell.vars.playerClass))
-        previewButton2.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
+        F.PaintBarFill(previewButton2.widgets.healthBar, true, r, g, b, CellDB["appearance"]["barAlpha"])
         previewButton2.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, CellDB["appearance"]["lossAlpha"])
 
         -- bg alpha
@@ -1901,8 +1903,8 @@ local function UpdateAppearance(which)
             if not which or which == "texture" or which == "reset" then
                 B.SetTexture(b, tex)
             end
-            -- color
-            if not which or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "shields" or which == "reset" then
+            -- color (MiliUI 2026-11-13: also on "texture" -- the "MiliUI Ombre" texture colours the fills differently)
+            if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "shields" or which == "reset" then
                 B.UpdateColor(b)
             end
             -- outOfRangeAlpha

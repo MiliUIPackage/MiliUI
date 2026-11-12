@@ -560,7 +560,7 @@ local function ConfigureSeg(b, max, len, bar, vertical, spellColor)
         if sb.SetOrientation then sb:SetOrientation(orient) end
         if sb.SetReverseFill then sb:SetReverseFill(reverse) end
         local ft = sb:GetStatusBarTexture()
-        if ft then D.PaintFill(ft, fillStyle) end
+        if ft then D.PaintFill(ft, fillStyle, nil, true) end   -- 兩張貼圖各一道漸層會接不起來 ⇒ 漸染材質在分段時不畫雙色
     end
     seg.countFill = seg.count:GetStatusBarTexture()
     seg.progFill = seg.prog:GetStatusBarTexture()

@@ -2760,7 +2760,8 @@ UnitButton_UpdatePowerType = function(self)
         r, g, b, lossR, lossG, lossB, self.states.powerType = F.GetPowerBarColor(unit, self.states.class)
     end
 
-    self.widgets.powerBar:SetStatusBarColor(r, g, b)
+    -- MiliUI (2026-11-13): "MiliUI Ombre" texture paints the fill as a two-colour gradient (Utils.lua)
+    F.PaintBarFill(self.widgets.powerBar, false, r, g, b)
     self.widgets.powerBarLoss:SetVertexColor(lossR, lossG, lossB)
 end
 
@@ -3828,7 +3829,11 @@ end
 -- 明文路徑用 SetStatusBarColor, 曲線路徑用貼圖的 SetVertexColor（那支吃得下秘密分量）。
 -- 兩者是同一份顏色, 所以切換路徑時把另一層重設成白色, 免得留下上一條路徑的殘值。
 -- viaTexture 為 true 時貼圖上不了色（還沒有貼圖物件）就回 false, 由呼叫端退回明文。
-local function SetBarColor(bar, r, g, b, a, viaTexture)
+-- MiliUI (2026-11-13): ombre = this is a single colour the "MiliUI Ombre" texture may turn into its
+-- two-colour gradient (F.PaintOmbreFill in Utils.lua; it declines on other textures and on secret
+-- components, and always gets called so it can wipe a gradient it left earlier).
+local function SetBarColor(bar, r, g, b, a, viaTexture, ombre)
+    if F.PaintOmbreFill(bar, ombre, r, g, b, a) then return true end
     local tex = bar:GetStatusBarTexture()
     if viaTexture then
         if not tex then return false end
@@ -3856,6 +3861,8 @@ local function UnitButton_ApplyHealthColorCurves(self, baseR, baseG, baseB, barA
     local fullColor = Cell.vars.useFullColor and appearance["fullColor"][2] or nil
 
     local barDone, lossDone
+    -- MiliUI (2026-11-13): Cell's own by-health gradient modes keep their colouring, the ombre stays out
+    local ombre = not strfind(barMode, "^threshold")
 
     -- bar：閾值模式要曲線；滿血換色也要, percent == 1 這個比較一樣做不了
     if fullColor or strfind(barMode, "^threshold") then
@@ -3881,7 +3888,7 @@ local function UnitButton_ApplyHealthColorCurves(self, baseR, baseG, baseB, barA
 
             if self.__hcCurveSig then
                 local ok, col = pcall(calc.EvaluateCurrentHealthPercent, calc, curve)
-                if ok and col and SetBarColor(self.widgets.healthBar, col.r, col.g, col.b, barA, true) then
+                if ok and col and SetBarColor(self.widgets.healthBar, col.r, col.g, col.b, barA, true, ombre) then
                     barDone = true
                     --! 沒有自訂色的預估治療量沿用血條顏色的 40%
                     if not ihCustom then
@@ -4016,7 +4023,10 @@ UnitButton_UpdateHealthColor = function(self)
     end
 
     if not barDone then
-        SetBarColor(self.widgets.healthBar, barR, barG, barB, barA, false)
+        -- MiliUI (2026-11-13): single colour (class / custom / offline / charmed ...) -> ombre may take it;
+        -- Cell's by-health gradient modes ("threshold*") are left alone
+        SetBarColor(self.widgets.healthBar, barR, barG, barB, barA, false,
+            Cell.loaded and not strfind(CellDB["appearance"]["barColor"][1], "^threshold"))
     end
 
     if not lossDone then
@@ -5055,6 +5065,9 @@ function B.SetOrientation(button, orientation, rotateTexture)
     end
     healthBar:SetRotatesTexture(rotateTexture)
     powerBar:SetRotatesTexture(rotateTexture)
+    -- MiliUI (2026-11-13): an ombre gradient follows the bar's axis
+    F.RefreshOmbreFill(healthBar)
+    F.RefreshOmbreFill(powerBar)
 
     -- fix from MiliUI: the ruler measures along the health bar's own axis, and which corners
     -- the health bar hangs from flips with it (see B.MHL.Anchor)

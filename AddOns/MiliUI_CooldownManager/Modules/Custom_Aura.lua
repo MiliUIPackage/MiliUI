@@ -248,6 +248,11 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
                 gradCache[gsig] = hit
             end
             st.bgrad = hit
+        elseif not st.blizz and not st.vert and ns.Media.IsOmbre and ns.Media.IsOmbre(bar.texture) then
+            -- 漸染材質（Core/Media.lua）：沒開自訂漸層時畫「左濃右原色」的雙色，同一個欄位、同一段 initializeFrame 的畫法。
+            -- 這一招自己的顏色也照畫（漸染是材質的事）；直向與暴雪樣式不畫。色物件一樣先建好
+            local pair = ns.Media.OmbrePair(st.bfill[1], st.bfill[2], st.bfill[3], st.bfill[4])
+            if pair then st.bgrad = { o = "HORIZONTAL", sig = pair.sig, c1 = pair[1], c2 = pair[2] } end
         end
         barSig = table.concat({ "bars", string.format("%.2f,%.2f", st.bh, st.bgap), st.side, st.btex, C(st.bfill), C(st.bbg),
             tostring(st.spark), st.nameFont, st.nameSize, st.nameX, st.nameY, st.timeFont, st.timeSize, st.barStack, st.stBarPoint,

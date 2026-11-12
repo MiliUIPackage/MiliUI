@@ -1813,6 +1813,9 @@ LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
 -- ships). Bundle + self-register it so the default resolves without depending on the other addons being
 -- installed. LSM:Register no-ops if another addon already registered the name (identical file), never overrides.
 LSM:Register("statusbar", "MiliUI Satin", [[Interface\AddOns\Cell\Media\miliui_satin.png]])
+-- MiliUI (2026-11-13): "MiliUI Ombre" -- the file only carries the vertical shading; the horizontal two-colour
+-- gradient that makes it an ombre is painted by F.PaintOmbreFill below (unit button health / power fills).
+LSM:Register("statusbar", "MiliUI Ombre", [[Interface\AddOns\Cell\Media\miliui_ombre.png]])
 LSM:Register("font", "Visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
 
 function F.GetBarTexture()
@@ -1848,6 +1851,80 @@ end
 -- LSM name -> the text shown in a texture dropdown (dropdown:SetSelected matches on this text, not on the LSM name)
 function F.GetBarTextureLabel(name)
     return Cell.MiliMedia.TextureLabel(name)
+end
+
+-- MiliUI (2026-11-13): "MiliUI Ombre" bar texture -- the fill is a denser shade of its colour at the bar's origin
+-- and the plain colour at its leading edge. A texture can only multiply a colour darker, it cannot make it
+-- denser, so the gradient is two colours handed to Texture:SetGradient (origin = each channel ^ 2.6, leading
+-- edge = each channel * 0.88, same alpha on both; numbers shared with MiliUI_UnitFrames' M.PaintBar).
+--
+-- F.PaintOmbreFill(bar, allow, r, g, b, a) -> true when it painted the gradient; false = the caller paints
+-- the way it always did. It declines (and wipes a gradient it left earlier) when:
+--   * allow is false -- the caller's colour is not a single colour (Cell's own by-health gradient modes)
+--   * the appearance texture is not "MiliUI Ombre"
+--   * any component is a secret value (no arithmetic on those) -- checked BEFORE anything else touches them
+-- Lives here, not in UnitButton.lua, because that file sits on Lua's 200-local ceiling.
+-- The gradient hangs on the fill texture's corners, so it squeezes with the fill: the leading edge is always
+-- the plain colour. Vertical bars get it bottom -> top.
+do
+    local OMBRE_NAME, OMBRE_GAMMA, OMBRE_EDGE = "MiliUI Ombre", 2.6, 0.88
+    -- one colour pair per bar, reused: health events are dense, no CreateColor per paint
+    local ombre = setmetatable({}, {__mode = "k"})
+
+    function F.IsOmbreTexture()
+        return CellDB and CellDB["appearance"] and CellDB["appearance"]["texture"] == OMBRE_NAME or false
+    end
+
+    local function Apply(bar, tex, t)
+        tex:SetGradient(bar:GetOrientation() == "VERTICAL" and "VERTICAL" or "HORIZONTAL", t[1], t[2])
+    end
+
+    function F.PaintOmbreFill(bar, allow, r, g, b, a)
+        local tex = bar:GetStatusBarTexture()
+        local t = ombre[bar]
+        if allow and tex and issecretvalue
+            and not (issecretvalue(r) or issecretvalue(g) or issecretvalue(b) or issecretvalue(a))
+            and r and g and b and r >= 0 and g >= 0 and b >= 0
+            and F.IsOmbreTexture() then
+            a = a or 1
+            if not t then
+                t = {CreateColor(0, 0, 0, 1), CreateColor(0, 0, 0, 1)}
+                ombre[bar] = t
+            end
+            t[1]:SetRGBA(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a)
+            t[2]:SetRGBA(r * OMBRE_EDGE, g * OMBRE_EDGE, b * OMBRE_EDGE, a)
+            -- the bar keeps the plain colour (GetStatusBarColor readers), the gradient overrides the corners
+            bar:SetStatusBarColor(r, g, b, a)
+            Apply(bar, tex, t)
+            t.on = true
+            return true
+        end
+        if t and t.on then
+            t.on = nil
+            if tex then tex:SetVertexColor(1, 1, 1, 1) end -- four corners back to one colour
+        end
+        return false
+    end
+
+    -- Plain single-colour fill of a health / power StatusBar, ombre included. The unit buttons' power bar and
+    -- the Appearance tab's preview buttons paint through this (the unit buttons' health bar has its own
+    -- SetBarColor in UnitButton.lua, which calls F.PaintOmbreFill the same way).
+    function F.PaintBarFill(bar, isHealth, r, g, b, a)
+        local allow = true
+        if isHealth then -- Cell's own by-health gradient modes keep their colouring
+            allow = not strfind(CellDB["appearance"]["barColor"][1], "^threshold")
+        end
+        if not F.PaintOmbreFill(bar, allow, r, g, b, a) then
+            bar:SetStatusBarColor(r, g, b, a or 1)
+        end
+    end
+
+    -- the bar was turned (B.SetOrientation): re-hang the gradient it is wearing along the new axis
+    function F.RefreshOmbreFill(bar)
+        local t = ombre[bar]
+        local tex = t and t.on and bar:GetStatusBarTexture()
+        if tex then Apply(bar, tex, t) end
+    end
 end
 
 function F.GetFont(font)

@@ -65,6 +65,7 @@ function M.RegisterSharedMedia()
     lsmDone = true
     for _, def in ipairs({
         { "statusbar", LSM_NAME, M.TEXTURES.satin },
+        { "statusbar", "MiliUI Ombre", M.TEXTURES.ombre },
     }) do
         pcall(LSM.Register, LSM, def[1], def[2], def[3])
     end
@@ -94,8 +95,8 @@ end
 -- 數字是 2026-11-13 照使用者給的截圖量的：左＝每個通道取 2.6 次方（分量越小壓越多 ⇒ 變濃而不是變黑）、
 -- 右＝原色 ×0.88。白色怎麼取次方都是白色，所以純白的條沒有漸層。
 --
--- **不登記進 LibSharedMedia**：別的插件選到它只會拿到那張直向的圖、沒有漸層，名不符實。
--- 接了雙色上色的插件各自在下拉的 always 表列它。
+-- 跟 Satin 一樣登記進 LibSharedMedia（2026-11-13 使用者要求）。套組自己的插件都接了雙色上色；
+-- 套組以外的插件選到它只會拿到那張直向的圖、沒有橫向漸層。
 --
 -- ⚠ 漸層是掛在填充貼圖的四個角上的：條縮短時漸層跟著擠，最亮的永遠是填充的前緣。
 -- ⚠ 顏色分量是秘密值（身分受限的玩家走 C_ClassColor 管道）時不能做算術 ⇒ 退成整條原色，跟 Colors.lua 的 Dim 同一個取捨。

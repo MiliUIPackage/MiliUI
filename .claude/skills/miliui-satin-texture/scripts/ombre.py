@@ -19,7 +19,7 @@ STOPS_L = [0.95, 1.0, 0.96, 0.84]
 NAME = "miliui_ombre.png"
 
 # 自帶這張圖的插件（接了雙色漸層的才列；Core/Media.lua 的路徑要跟這裡一致）
-ADDONS = ["MiliUI_UnitFrames"]
+ADDONS = ["MiliUI_UnitFrames", "MiliUI_CooldownManager", "MiliUI_DamageMeters", "MiliUI_Tooltip", "Cell"]
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
 

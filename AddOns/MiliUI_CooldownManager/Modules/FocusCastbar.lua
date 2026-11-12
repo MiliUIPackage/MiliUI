@@ -470,7 +470,9 @@ local function PaintColorOn(h, ni, ready, has)
             r, g, b = C(c.immune, 0.529, 0.529, 0.529)
         end
     end
-    tex:SetVertexColor(r, g, b, 1)
+    -- 材質選了漸染就畫雙色漸層（CB.PaintFill → Core/Media.lua 的 M.PaintBar；秘密分量它自己擋、退單色）
+    local Paint = CB().PaintFill
+    if Paint then Paint(tex, (Cfg() or {}).texture, r, g, b, 1) else tex:SetVertexColor(r, g, b, 1) end
     -- 效果層：動畫照播，整層染上跟填充貼圖同一個顏色（使用者 2026-11-06 選的：不讓位）。可斷法、我方斷法冷卻中時那個顏色是白
     -- ⇒ 圖自己的顏色；斷法就緒／不可中斷時乘上狀態色。r／g／b 可能是秘密數字，只交給 SetVertexColor
     if h.fxOn then CB().Fx.Tint(h, r, g, b) end
@@ -936,7 +938,11 @@ local function PaintInterruptedOn(h, who, class)
     h.bar:SetMinMaxValues(0, 1)
     h.bar:SetValue(1)
     local tex = h.bar:GetStatusBarTexture()
-    if tex then tex:SetVertexColor(C(Colors().interrupted, 1, 0.204, 0.145)) end
+    if tex then
+        local Paint = CB().PaintFill
+        if Paint then Paint(tex, (Cfg() or {}).texture, C(Colors().interrupted, 1, 0.204, 0.145))
+        else tex:SetVertexColor(C(Colors().interrupted, 1, 0.204, 0.145)) end
+    end
     PaintNameOn(h, L["Interrupted"], nil)
     h.timeText:SetText("")
     ClearSpellTargetOn(h)                      -- 施法斷了，打向誰已經不重要

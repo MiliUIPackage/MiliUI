@@ -80,11 +80,11 @@ local function PaintBar(W, bar, src, ctx, rank)
     if s.barColorMode == "class" then
         if classKey ~= bar._colorClass then
             bar._colorClass = classKey
-            target:SetStatusBarColor(Win.BarColor(s, classFile, ctx.dmType))
+            Win.PaintFill(bar, Win.BarColor(s, classFile, ctx.dmType))
         end
     elseif ctx.fullRebuild or bar._colorClass ~= false then
         bar._colorClass = false
-        target:SetStatusBarColor(Win.BarColor(s, nil, ctx.dmType))
+        Win.PaintFill(bar, Win.BarColor(s, nil, ctx.dmType))
     end
 
     -- 文字顏色

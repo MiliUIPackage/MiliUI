@@ -500,7 +500,7 @@ local function RefreshDeathRecap(W)
         if D.IsSecret(evType) then evType = "" end
         local isHeal = (evType == "SPELL_HEAL" or evType == "SPELL_PERIODIC_HEAL")
         local isFatal = (i == count and not isHeal)
-        bar._target:SetStatusBarColor(isHeal and 0.10 or 0.60, isHeal and 0.50 or 0.08, isHeal and 0.10 or 0.08)
+        Win.PaintFill(bar, isHeal and 0.10 or 0.60, isHeal and 0.50 or 0.08, isHeal and 0.10 or 0.08)
 
         -- 秘密的法術名要**保留**（FontString 畫得出來）並用 SetFormattedText 交給
         -- C 端組字，不能碰 Lua 的 ..
@@ -568,7 +568,7 @@ local function RefreshEnemyPlayers(W)
         LayoutSpellBar(W, bar, -((i - 1) * stride), barH, texPath, leftFS, rightFS, offset)
         bar._target:SetMinMaxValues(0, maxAmt)
         bar._target:SetValue(p.total)
-        bar._target:SetStatusBarColor(Win.BarColor(s, D.SafeClass(p.class), W.srcDMType))
+        Win.PaintFill(bar, Win.BarColor(s, D.SafeClass(p.class), W.srcDMType))
         bar.label:SetText(D.StripRealm(p.name))
         bar.amount:SetText(D.FormatValue(p.total, p.amountPerSecond, s.numberFormat or 2))
         bar._spellID = nil
@@ -634,7 +634,7 @@ local function RefreshSpells(W)
         LayoutSpellBar(W, bar, -((i - 1) * stride), barH, texPath, leftFS, rightFS, offset)
         bar._target:SetMinMaxValues(0, maxAmt)
         bar._target:SetValue(spell.totalAmount)
-        bar._target:SetStatusBarColor(r, g, b)
+        Win.PaintFill(bar, r, g, b)
 
         local spellName
         if spID and C_Spell and C_Spell.GetSpellName then
@@ -712,7 +712,7 @@ local function RefreshSpells(W)
                 LayoutSpellBar(W, bar, startY - ((ti - 1) * stride), barH, texPath, leftFS, rightFS, 0)
                 bar._target:SetMinMaxValues(0, maxT)
                 bar._target:SetValue(t.total)
-                bar._target:SetStatusBarColor(0xDD/255, 0x31/255, 0x31/255)
+                Win.PaintFill(bar, 0xDD/255, 0x31/255, 0x31/255)
                 bar.label:SetText(D.StripRealm(t.name))
                 bar.amount:SetText(D.FormatValue(t.total, t.amountPerSecond, s.numberFormat or 2))
                 bar._spellID = nil

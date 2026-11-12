@@ -233,7 +233,7 @@ local function Populate(bar)
             -- 會蓋掉畫在 row 上的圖示」那個疊層問題（見 wow-frame-vs-texture-layering）。
             tb._target = Win.ApplyBarStyle(tb, s, texPath)
             Win.AnchorBarFill(tb, rowH)
-            tb._target:SetStatusBarColor(br, bg, bb)
+            Win.PaintFill(tb, br, bg, bb)
             tb._target:SetMinMaxValues(0, maxAmt)
             tb._target:SetValue(row.amount or 0)
 

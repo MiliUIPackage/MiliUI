@@ -1540,7 +1540,7 @@ local function UpdateRow(row, edb, isPreview, numSeg)
     local fc = (barOv and ValidColor(barOv.color)) or cc
     row.bar:SetMinMaxValues(0, max)
     row.bar:SetValue(cur or 0)
-    row.bar:SetStatusBarColor(fc.r, fc.g, fc.b, edb.barAlpha or 1)
+    Media.PaintBar(row.bar:GetStatusBarTexture(), fc.r, fc.g, fc.b, edb.barAlpha or 1)
     local bgc = barOv and ValidColor(barOv.bgColor)
     if bgc then
         row.barBG:SetVertexColor(bgc.r, bgc.g, bgc.b, bgc.a or edb.bgAlpha or 0.8)
@@ -1809,7 +1809,7 @@ local function Build(uf, edb)
     -- 預設吃全域的「法力藍」，跟能量條的法力同一個顏色
     local c = edb.color or (ns.db.global.colors.power and ns.db.global.colors.power[0])
               or { r = 0.2, g = 0.5, b = 1, a = 1 }
-    f.bar:SetStatusBarColor(c.r, c.g, c.b, (c.a or 1) * (edb.barAlpha or 1))
+    Media.PaintBar(f.bar:GetStatusBarTexture(), c.r, c.g, c.b, (c.a or 1) * (edb.barAlpha or 1))
     -- 底色比照資源列：主色的 25%
     f.bg:SetVertexColor(c.r * 0.25, c.g * 0.25, c.b * 0.25, edb.bgAlpha or 0.8)
     SizeEdges(f.edges)

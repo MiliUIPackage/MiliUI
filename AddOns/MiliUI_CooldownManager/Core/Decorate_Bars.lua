@@ -279,8 +279,15 @@ end
 -- 填充色的唯一來源：ApplyBarLook、無損刷新還原（Core/Glow.lua）、層數那一層（Core/StackGate.lua）、充能分段都問它
 -- spellColor ＝ 這一招的長條顏色（逐法術覆寫 barColor）：色表 ⇒ 一律單色（兩種外觀都是，條的漸層不套）；
 -- 不是色表（nil／false）＝ 跟隨條
+-- texture／vertical 跟著帶出去：漸染材質（Core/Media.lua 的 M.PaintBar）要看條自己的材質設定值，這一招自己的顏色也照畫漸染；
+-- 暴雪樣式的填充是圖集、不是條的材質 ⇒ 不帶
 function D.BarFillStyle(bar, spellColor)
-    if type(spellColor) == "table" then return { color = spellColor } end
+    if type(spellColor) == "table" then
+        if type(bar) == "table" and D.BarLook(bar) ~= "blizzard" then
+            return { color = spellColor, texture = bar.texture, vertical = bar.vertical }
+        end
+        return { color = spellColor }
+    end
     bar = type(bar) == "table" and bar or {}
     if D.BarLook(bar) ~= "blizzard" then return bar end
     local c = type(bar.blizzardColor) == "table" and bar.blizzardColor or BLIZZ_COLOR
@@ -516,7 +523,9 @@ local function MakeColor(r, g, b, a)
 end
 
 -- 填充貼圖上色的唯一出口：bar 的單色或漸層；solid（rgba 表）給了 ⇒ 一律單色（無損刷新的提醒色）
-function D.PaintFill(tex, bar, solid)
+-- 單色時材質選了漸染（bar.texture ＝ MiliUI Ombre、不是直向）⇒ 交給 Media.PaintBar 畫雙色；自訂漸層（bar.gradient）開著時自訂的優先。
+-- plain ＝ 不畫漸染（充能分段：計數條與進度條是兩張貼圖，各畫一道會接不起來）
+function D.PaintFill(tex, bar, solid, plain)
     if not tex then return end
     bar = type(bar) == "table" and bar or {}
     local cg = (not solid) and D.CleanGradient(bar.gradient) or nil
@@ -538,8 +547,11 @@ function D.PaintFill(tex, bar, solid)
         if whiteColor then pcall(tex.SetGradient, tex, "HORIZONTAL", whiteColor, whiteColor) end
         gradTex[tex] = nil
     end
+    local Paint = ns.Media and ns.Media.PaintBar          -- 離線測試的 Media 樁沒有這支 ⇒ 照舊 SetVertexColor
     if solid then
-        tex:SetVertexColor(C4(solid, 1, 1, 1, 1))
+        if Paint then Paint(tex, nil, C4(solid, 1, 1, 1, 1)) else tex:SetVertexColor(C4(solid, 1, 1, 1, 1)) end
+    elseif Paint then
+        Paint(tex, (not plain and not bar.vertical) and bar.texture or nil, C4(bar.color, 0.4, 0.6, 0.9, 1))
     else
         tex:SetVertexColor(C4(bar.color, 0.4, 0.6, 0.9, 1))
     end

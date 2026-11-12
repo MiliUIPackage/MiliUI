@@ -54,6 +54,12 @@ end
 M.BAR_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_satin.png"
 M.BAR_TEXTURE_NAME = "MiliUI Satin"
 
+-- 「MiliUI Ombre」（漸染）：長條左端是更濃的顏色、右端是原色。圖（Media/miliui_ombre.png，技能 miliui-satin-texture 的
+-- ombre.py 畫的）只有直向明暗；橫向那道漸層是上色時給兩個顏色（M.PaintBar，見下面「漸染」那一段）。
+-- 接法同 Satin：自帶檔、登記 LSM、名字直接解到自己的檔。不是動畫材質（不進 M.FX）
+M.OMBRE_TEXTURE = "Interface\\AddOns\\MiliUI_CooldownManager\\Media\\miliui_ombre.png"
+M.OMBRE_TEXTURE_NAME = "MiliUI Ombre"
+
 -- 動畫材質（2026-11-04 彩虹、11-06 宇宙星辰／閃電／熔岩／火焰、11-10 櫻花／青海波／天燈／客家花布／老花磚／珍珠奶茶／極光，
 -- 同日第三批 紅葉／螢火蟲／錦鯉水波／夜市霓虹／藍白拖、11-11 台灣藍鵲；
 -- 玩家問「施法條能不能多點皮膚」）。貼圖全部是腳本算的、不帶別人的檔：彩虹是技能 miliui-cdm-rainbow-texture、
@@ -185,7 +191,7 @@ M.FX_ORDER = { "MiliUI Rainbow", "MiliUI Rainbow Soft", "MiliUI Cosmos", "MiliUI
 
 -- 這支自己帶檔的材質：登記名 → 存檔值（這支存的就是登記名）。材質下拉拿它餵 ns.MiliMedia.TextureItems 的 always：
 -- LSM 清單裡沒有（新檔還沒重開遊戲）也照列。顯示名與順序在 Libs/MiliUIMedia.lua 的名冊，新材質兩邊都要加
-M.OWN_TEXTURES = { [M.BAR_TEXTURE_NAME] = M.BAR_TEXTURE_NAME }
+M.OWN_TEXTURES = { [M.BAR_TEXTURE_NAME] = M.BAR_TEXTURE_NAME, [M.OMBRE_TEXTURE_NAME] = M.OMBRE_TEXTURE_NAME }
 for _, name in ipairs(M.FX_ORDER) do M.OWN_TEXTURES[name] = name end
 
 -- token 是不是動畫材質（純函式）
@@ -206,6 +212,7 @@ function M.RegisterSharedMedia()
     if not lsm then return end
     lsmDone = true
     pcall(lsm.Register, lsm, "statusbar", M.BAR_TEXTURE_NAME, M.BAR_TEXTURE)
+    pcall(lsm.Register, lsm, "statusbar", M.OMBRE_TEXTURE_NAME, M.OMBRE_TEXTURE)
     for _, name in ipairs(M.FX_ORDER) do
         pcall(lsm.Register, lsm, "statusbar", name, M.FX[name].tex)
     end
@@ -216,6 +223,7 @@ M.RegisterSharedMedia()
 function M.Texture(token)
     if not token or token == "solid" then return M.WHITE8X8 end
     if token == M.BAR_TEXTURE_NAME then return M.BAR_TEXTURE end
+    if token == M.OMBRE_TEXTURE_NAME then return M.OMBRE_TEXTURE end
     if M.FX[token] then return M.FX[token].tex end
     local lsm = LSM()
     if lsm then
@@ -223,6 +231,100 @@ function M.Texture(token)
         if ok and path then return path end
     end
     return M.WHITE8X8
+end
+
+------------------------------------------------------------
+-- 漸染（MiliUI Ombre）：長條填充左端是更濃的顏色、右端是原色
+--
+-- 材質圖只能把顏色整體乘暗、做不出「變濃」，所以橫向那道漸層是這裡給兩個顏色（Texture:SetGradient）：
+-- 左＝每個分量取 2.6 次方（分量越小壓越多 ⇒ 變濃而不是變黑）、右＝每個分量 ×0.88，alpha 兩端相同
+-- （數字跟 MiliUI_UnitFrames 的 M.PaintBar 同一組）。白色怎麼取次方都是白色 ⇒ 純白的條只有右端暗一點。
+--
+-- 這支插件的材質是每個模組／每條各自設定的 ⇒ 判定吃**那條長條自己的材質設定值**（token），沒有全域開關。
+--   M.IsOmbre(token)                    token 是不是漸染（純函式）
+--   M.PaintBar(tex, token, r, g, b, a)  填充貼圖上色的統一出口：漸染畫雙色漸層，否則就是 SetVertexColor
+--   M.OmbrePair(r, g, b, a)             先建好的一對色物件（引擎寫的光環條：initializeFrame 裡不能 CreateColor，只查表）
+--
+-- ⚠ 漸層掛在填充貼圖的四個角上：條縮短時漸層跟著擠，最亮的永遠是填充的右端。
+-- ⚠ 顏色分量可能是秘密值（曲線挑出來的顏色、斷法就緒染色）：不能比較也不能算術 ⇒ 先過 ns.IsSecret，是秘密就退成原本的單色。
+-- ⚠ 一格一張貼圖的分段條（點數型、充能分段、一顆光環一格）與直向的條不接：漸層會變成每格各一道／方向不對。
+-- SetVertexColor 與 SetGradient 的關係沒查證（同 Core/Decorate_Bars.lua「漸層填充」的說明）⇒ 兩種模型都對的寫法：
+-- 畫漸層前先 SetVertexColor 白；畫過漸層的貼圖退回單色時先 SetGradient 白→白。沒畫過漸層的貼圖只有一個 SetVertexColor，跟以前完全一樣。
+------------------------------------------------------------
+local OMBRE_GAMMA = 2.6
+local OMBRE_RIGHT = 0.88
+
+function M.IsOmbre(token)
+    return token == M.OMBRE_TEXTURE_NAME
+end
+
+-- 材質路徑是不是漸染那張（引擎寫的光環條只拿得到解好的路徑；路徑就是那條自己的材質設定解出來的）
+function M.IsOmbrePath(path)
+    return path == M.OMBRE_TEXTURE
+end
+
+-- 每張貼圖一對色物件，重複使用（資源條的事件很密，不要每次 CreateColor）；[3] ＝ 這張貼圖現在畫著漸層
+local ombreColors = setmetatable({}, { __mode = "k" })
+local ombreWhite
+
+local function Secret(v)
+    local f = ns.IsSecret
+    return f ~= nil and f(v) and true or false
+end
+
+function M.PaintBar(tex, token, r, g, b, a)
+    if not tex then return end
+    local pair = ombreColors[tex]
+    -- 秘密值先擋，再做別的比較
+    if token ~= M.OMBRE_TEXTURE_NAME or not tex.SetGradient or not CreateColor
+        or Secret(r) or Secret(g) or Secret(b) or Secret(a)
+        or type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
+        if pair and pair[3] then
+            pair[3] = false
+            ombreWhite = ombreWhite or CreateColor(1, 1, 1, 1)
+            pcall(tex.SetGradient, tex, "HORIZONTAL", ombreWhite, ombreWhite)
+        end
+        tex:SetVertexColor(r, g, b, a)
+        return false
+    end
+    a = tonumber(a) or 1
+    if not pair then
+        pair = { CreateColor(0, 0, 0, 1), CreateColor(0, 0, 0, 1), false }
+        ombreColors[tex] = pair
+    end
+    -- 負的分量取小數次方是 NaN：先夾到 0
+    if r < 0 then r = 0 end
+    if g < 0 then g = 0 end
+    if b < 0 then b = 0 end
+    pair[1]:SetRGBA(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a)
+    pair[2]:SetRGBA(r * OMBRE_RIGHT, g * OMBRE_RIGHT, b * OMBRE_RIGHT, a)
+    tex:SetVertexColor(1, 1, 1, 1)
+    if not pcall(tex.SetGradient, tex, "HORIZONTAL", pair[1], pair[2]) then
+        tex:SetVertexColor(r, g, b, a)
+        return false
+    end
+    pair[3] = true
+    return true
+end
+
+-- 先建好的一對色物件（依顏色快取、不重配）：{ c1, c2, sig = 快取鍵 }；分量不是明文數字或沒有 CreateColor ⇒ nil。
+-- 給「樣式只能在 initializeFrame 裡烘」的光環條用：容器建立之前（正常插件路徑）叫，initializeFrame 裡只查表
+local ombrePairs = {}
+function M.OmbrePair(r, g, b, a)
+    if not CreateColor or Secret(r) or Secret(g) or Secret(b) or Secret(a) then return nil end
+    r, g, b, a = tonumber(r), tonumber(g), tonumber(b), tonumber(a) or 1
+    if not (r and g and b) then return nil end
+    if r < 0 then r = 0 end
+    if g < 0 then g = 0 end
+    if b < 0 then b = 0 end
+    local sig = ("ombre:%.3f,%.3f,%.3f,%.3f"):format(r, g, b, a)
+    local hit = ombrePairs[sig]
+    if not hit then
+        hit = { CreateColor(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a),
+                CreateColor(r * OMBRE_RIGHT, g * OMBRE_RIGHT, b * OMBRE_RIGHT, a), sig = sig }
+        ombrePairs[sig] = hit
+    end
+    return hit
 end
 
 -- 描邊旗標：主題「文字」的描邊下拉五個值。單色（MONOCHROME）＝關掉反鋸齒，像素字體要它才銳利
