@@ -17,9 +17,10 @@
 --
 -- 這是 vendor 複製：每支插件帶一份、各跑各的（只掛 `ns.MiliMedia`、沒有全域），玩家只裝其中一支也能用。
 -- 唯一 source 在 MiliUI/Libs/MiliUIMedia/，本體只放 source 不載入。
--- 純資料＋純函式：不碰任何框、不依賴 LibSharedMedia（清單由消費者自己問完再傳進來）。
+-- 名冊那半是純資料＋純函式、不依賴 LibSharedMedia（清單由消費者自己問完再傳進來）；
+-- 唯一會碰框的是檔尾的「漸染」疊層（MM.OmbrePaint），只在消費者把自己的 StatusBar 交進來時才動它。
 ------------------------------------------------------------
-local _, ns = ...
+local ADDON, ns = ...
 
 local MM = {}
 ns.MiliMedia = MM
@@ -120,3 +121,97 @@ function MM.TextureItems(list, always, locale, resolve)
     end
     return own, rest
 end
+
+------------------------------------------------------------
+-- 漸染（MiliUI Ombre）：長條左端是更濃的顏色、右端是原色——**用材質疊出來，不算顏色**
+--
+-- 一張圖乘上顏色只能整體變暗，做不出「變濃」；變濃＝顏色自己再乘自己。所以選了漸染的 StatusBar 會在填充上面多疊四張貼圖
+-- （2026-11-13 使用者在探針裡挑的濃度）：
+--   1. 底：純色（取 miliui_ombre.png 最右一行＝只有直向明暗），上條的顏色
+--   2. 3. 兩層純白、上條的顏色、混合模式 MOD（相乘）⇒ 顏色的三次方
+--   4. 頂：miliui_ombre_ramp.png（左端 10% 不透明 → 右端全不透明），上條的顏色 ⇒ 左邊透出底下濃的、右邊蓋回原色
+-- 四張都鋪滿**整條**、掛在條自己身上（緊貼在填充貼圖的上一個子層），再用一張錨在填充貼圖上的遮罩切掉沒血的那段
+-- ⇒ 漸層固定在整條上，扣血只是右邊被裁掉；條上的文字（OVERLAY）與別的框都還在它上面。
+-- （試過在條上蓋一個裁切子框：子框會蓋住條自己身上所有東西。2026-11-13 探針確認 MOD 層吃遮罩、不會漏到空的那段。）
+-- 顏色只是傳給貼圖（SetVertexColor），不做算術 ⇒ 秘密分量照樣能用。
+--
+-- miliui_ombre.png 本身（登記進 LibSharedMedia 的那張、下拉預覽鋪的也是它）是「左暗右亮」的灰階漸層：
+-- 疊層蓋在它上面所以平常看不到，套組以外的插件選到它、或疊層建不起來時，至少還是一道橫向漸層。
+--
+-- 兩張圖每支插件自己帶（Media/miliui_ombre.png、Media/miliui_ombre_ramp.png，技能 miliui-satin-texture 的 ombre.py 畫的）。
+-- 直向的條不疊（回 false，呼叫端照舊上色）。
+------------------------------------------------------------
+MM.OMBRE_NAME = "MiliUI Ombre"
+
+local OMBRE_BASE = "Interface\\AddOns\\" .. tostring(ADDON) .. "\\Media\\miliui_ombre.png"
+local OMBRE_RAMP = "Interface\\AddOns\\" .. tostring(ADDON) .. "\\Media\\miliui_ombre_ramp.png"
+local WHITE8X8 = "Interface\\BUTTONS\\WHITE8X8"
+
+function MM.IsOmbre(name)
+    return name == MM.OMBRE_NAME
+end
+
+-- StatusBar → 它的疊層（弱鍵：條被丟掉就跟著走；不在條上寫欄位）
+local ombreStacks = setmetatable({}, { __mode = "k" })
+
+local function OmbreBuild(bar, fill)
+    local mask = bar:CreateMaskTexture()
+    mask:SetTexture(WHITE8X8, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    local layer, sub = fill:GetDrawLayer()
+    layer, sub = layer or "ARTWORK", sub or 0
+    local st = { mask = mask }
+    for i = 1, 4 do
+        local n = sub + i
+        if n > 7 then n = 7 end
+        local t = bar:CreateTexture(nil, layer, nil, n)
+        t:SetAllPoints(bar)
+        if i == 1 then
+            t:SetTexture(OMBRE_BASE)
+            t:SetTexCoord(0.98, 1, 0, 1)      -- 最右一行：只剩直向明暗
+        elseif i == 4 then
+            t:SetTexture(OMBRE_RAMP)
+        else
+            t:SetTexture(WHITE8X8)
+            t:SetBlendMode("MOD")
+        end
+        t:AddMaskTexture(mask)
+        st[i] = t
+    end
+    ombreStacks[bar] = st
+    return st
+end
+
+-- 把 bar（消費者自己的 StatusBar）的填充畫成漸染。r/g/b/a 可以是秘密值。
+-- 回 true＝畫了；false＝沒畫（直向條、還沒有填充貼圖），呼叫端照舊上色。
+function MM.OmbrePaint(bar, r, g, b, a)
+    local fill = bar and bar.GetStatusBarTexture and bar:GetStatusBarTexture()
+    if not fill then return false end
+    if bar.GetOrientation and bar:GetOrientation() == "VERTICAL" then
+        MM.OmbreClear(bar)
+        return false
+    end
+    local st = ombreStacks[bar]
+    if not st then st = OmbreBuild(bar, fill) end
+    if st.fill ~= fill then                    -- 換過材質：填充貼圖可能是新的一顆
+        st.fill = fill
+        st.mask:ClearAllPoints()
+        st.mask:SetAllPoints(fill)
+    end
+    fill:SetVertexColor(r, g, b, a)
+    for i = 1, 4 do st[i]:SetVertexColor(r, g, b, a) end
+    if not st.on then
+        st.on = true
+        for i = 1, 4 do st[i]:Show() end
+    end
+    return true
+end
+
+-- 這條不再是漸染（換材質、轉成直向…）：把疊層收起來。沒疊過就什麼都不做。
+function MM.OmbreClear(bar)
+    local st = bar and ombreStacks[bar]
+    if st and st.on then
+        st.on = false
+        for i = 1, 4 do st[i]:Hide() end
+    end
+end
+

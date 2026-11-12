@@ -3829,9 +3829,9 @@ end
 -- 明文路徑用 SetStatusBarColor, 曲線路徑用貼圖的 SetVertexColor（那支吃得下秘密分量）。
 -- 兩者是同一份顏色, 所以切換路徑時把另一層重設成白色, 免得留下上一條路徑的殘值。
 -- viaTexture 為 true 時貼圖上不了色（還沒有貼圖物件）就回 false, 由呼叫端退回明文。
--- MiliUI (2026-11-13): ombre = this is a single colour the "MiliUI Ombre" texture may turn into its
--- two-colour gradient (F.PaintOmbreFill in Utils.lua; it declines on other textures and on secret
--- components, and always gets called so it can wipe a gradient it left earlier).
+-- MiliUI (2026-11-13): ombre = this is a single colour the "MiliUI Ombre" texture may take over with its
+-- layered gradient (F.PaintOmbreFill in Utils.lua; it declines on other textures and vertical bars, and
+-- always gets called so it can put away a stack it left earlier).
 local function SetBarColor(bar, r, g, b, a, viaTexture, ombre)
     if F.PaintOmbreFill(bar, ombre, r, g, b, a) then return true end
     local tex = bar:GetStatusBarTexture()

@@ -268,6 +268,7 @@ function Win.ApplyBarStyle(bar, s, texPath)
     -- 上一個樣式若是實心＋漸染，填充貼圖四個角還掛著漸層色；直接對貼圖再寫一次，不賭 SetStatusBarColor 會蓋掉
     local ft = bar.fill:GetStatusBarTexture()
     if ft then ft:SetVertexColor(0, 0, 0, 0) end
+    if ns.MiliMedia and ns.MiliMedia.OmbreClear then ns.MiliMedia.OmbreClear(bar.fill) end   -- 上一個樣式疊的漸染也收掉
     bar.line:SetStatusBarTexture(texPath)
     M.NoSnap(bar.line)
     bar.line:SetAlpha(s.barFillAlpha or 1)

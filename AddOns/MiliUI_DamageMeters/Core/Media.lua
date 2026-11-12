@@ -68,7 +68,7 @@ local MEDIA_PATH = "Interface\\AddOns\\MiliUI_DamageMeters\\Media\\"
 M.TEXTURES = {
     satin  = MEDIA_PATH .. "miliui_satin.png",
     tuktex = MEDIA_PATH .. "miliui_satin.png",   -- 舊 token 別名
-    ombre  = MEDIA_PATH .. "miliui_ombre.png",   -- MiliUI Ombre（漸染）：圖只有直向明暗，橫向漸層見 M.PaintBar
+    ombre  = MEDIA_PATH .. "miliui_ombre.png",   -- MiliUI Ombre（漸染）：這張是左暗右亮的灰階底，「左濃右原色」是疊層（M.PaintBar）
 }
 M.DEFAULT_TEXTURE = M.TEXTURES.satin
 
@@ -109,46 +109,29 @@ function M.BarTexture(token)
 end
 
 ------------------------------------------------------------
--- 漸染（MiliUI Ombre）：長條左端是更濃的顏色、右端是原色（做法與 MiliUI_UnitFrames 一致）
+-- 漸染（MiliUI Ombre）：長條左端是更濃的顏色、右端是原色
 --
--- 材質圖只能把顏色整體乘暗，做不出「變濃」，所以橫向那道漸層是這裡給兩個顏色（Texture:SetGradient），
--- 圖（Media/miliui_ombre.png）只管直向明暗。左＝每個通道取 2.6 次方（分量越小壓越多 ⇒ 變濃而不是變黑）、
--- 右＝原色 ×0.88。白色怎麼取次方都是白色，所以純白的條沒有漸層。
---
--- ⚠ 漸層是掛在填充貼圖的四個角上的：條縮短時漸層跟著擠，最亮的永遠是填充的前緣。
--- ⚠ 顏色分量是秘密值時不能做算術 ⇒ 退成整條原色。
+-- **用材質疊出來，不算顏色**：疊層（四張貼圖＋一張跟著填充走的遮罩）在共用的 Libs/MiliUIMedia.lua（MM.OmbrePaint），
+-- 這裡只負責「這條是不是漸染」與把條交過去。顏色只是傳給貼圖 ⇒ 秘密分量照樣能用；
+-- 漸層固定在整條上，條縮短只是右邊被裁掉。直向的條不疊（MM.OmbrePaint 回 false ⇒ 照舊單色）。
+-- miliui_ombre.png 本身是左暗右亮的灰階漸層（登記進 LibSharedMedia 的就是它），疊層蓋在它上面。
 ------------------------------------------------------------
-local OMBRE_GAMMA = 2.6
-local OMBRE_RIGHT = 0.88
-
 -- 「這條是不是漸染」看**那條長條實際套的材質**：吃設定值（token "ombre"／登記名）
 -- 或解析後的路徑（Win.ApplyBarStyle 記在 bar._texPath 的那個）都行，不去讀某個全域設定。
 function M.IsOmbre(token)
     return token == "ombre" or token == OMBRE_NAME or token == M.TEXTURES.ombre
 end
 
--- 每張貼圖一對色物件，重複使用（展開頁每 tick 每列都上色，不要每次 CreateColor）
-local ombreColors = setmetatable({}, { __mode = "k" })
-
--- 長條填充貼圖的上色統一走這支：token 是漸染就畫雙色漸層，否則照舊 SetVertexColor。
--- SetVertexColor 會把四個角寫成同一色 ⇒ 從漸染切回別的材質不用另外清。
+-- 長條填充貼圖的上色統一走這支：token 是漸染就交給疊層，否則照舊 SetVertexColor（順手把疊層收掉）。
 function M.PaintBar(tex, r, g, b, a, token)
     if not tex then return end
-    local secret = ns.Secret.IsSecret
-    -- 秘密值先擋，再做別的比較
-    if not M.IsOmbre(token) or secret(r) or secret(g) or secret(b) or secret(a) or r == nil then
-        tex:SetVertexColor(r, g, b, a)
-        return
+    local MM = ns.MiliMedia
+    local bar = MM and MM.OmbrePaint and tex.GetParent and tex:GetParent()
+    if bar then
+        if M.IsOmbre(token) and MM.OmbrePaint(bar, r, g, b, a) then return end
+        MM.OmbreClear(bar)
     end
-    a = a or 1
-    local pair = ombreColors[tex]
-    if not pair then
-        pair = { CreateColor(0, 0, 0, 1), CreateColor(0, 0, 0, 1) }
-        ombreColors[tex] = pair
-    end
-    pair[1]:SetRGBA(r ^ OMBRE_GAMMA, g ^ OMBRE_GAMMA, b ^ OMBRE_GAMMA, a)
-    pair[2]:SetRGBA(r * OMBRE_RIGHT, g * OMBRE_RIGHT, b * OMBRE_RIGHT, a)
-    tex:SetGradient("HORIZONTAL", pair[1], pair[2])
+    tex:SetVertexColor(r, g, b, a)
 end
 
 ------------------------------------------------------------

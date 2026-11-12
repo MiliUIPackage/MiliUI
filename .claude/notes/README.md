@@ -255,7 +255,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 182 篇）
+## 全部筆記（自動產生，共 183 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -411,6 +411,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-merchant.md](project-miliui-merchant.md) | 米利的商人視窗 MiliUI_Merchant —— 取代 Krowi_ExtendedVendorUI 的單體插件；為什麼沿用暴雪命名而不自己畫格子、IsShown 閘、收藏快取的兩個陷阱、批量購買與拍賣場標示（未實機）、待驗證清單 |
 | [project-miliui-minimap.md](project-miliui-minimap.md) | MiliUI_Minimap 方形小地圖＋社交列＋插件按鈕收納（取代 MBB）——接管暴雪小地圖的四條規則、方形遮罩的滑鼠死角、按鈕收納的掃描隔離與拆遮罩、「像被上了遮罩」四個成因（主因 SetParent 不帶 strata）、好友人數的語意換掉成本歸零、名單走聊天超連結、登入不夾位置、待驗證清單 |
 | [project-miliui-mythicplus.md](project-miliui-mythicplus.md) | 米利的傳奇鑰石 MiliUI_MythicPlus —— M+ 結算面板＋場次歷史＋探針；範圍判準是「畫在哪個宿主」、整趟合併分段兩倍的指紋、兩條統計策略、完賽觸發照 EUI、入口四處（設定視窗開面板要先關視窗）、聊天發佈（待實機驗證）、鑰石相關功能從本體搬來（secure 巨集／精簡 LibOpenRaid 接收端／AMT 借來的四項）、登入不夾位置、待驗證清單 |
+| [project-miliui-ombre-texture.md](project-miliui-ombre-texture.md) | 套組長條材質 MiliUI Ombre（漸染）是四張貼圖疊出來的，不是算顏色；疊層在共用 MiliUIMedia，MOD＋遮罩已實測 |
 | [project-miliui-options-label-width.md](project-miliui-options-label-width.md) | 自製設定介面放不下的字怎麼處理——左欄標籤過長自動換行、列高跟著長（不截「…」）；欄寬各宿主 Env.LABEL_W（頭像中韓 128／歐語 148）；下拉／勾選框／按鈕／彈窗的 opt-in 撐寬與換排 API、為什麼不能預設撐寬 |
 | [project-miliui-perf-tab.md](project-miliui-perf-tab.md) | MiliUI 設定視窗的「效能監控」分頁——插件 CPU/記憶體儀表板，Options/Tab_Perf.lua |
 | [project-miliui-pixel-snapping.md](project-miliui-pixel-snapping.md) | MiliUI_UnitFrames 的像素對齊規則——邊框／內縮走 P.Pixel（實體像素）、尺寸／座標走 P.Scale（UI 單位貼整數像素）；單位框從 UIParent 左下角起算、UIParent 內縮要重新定位；分段列整列先換整數像素再切格 |

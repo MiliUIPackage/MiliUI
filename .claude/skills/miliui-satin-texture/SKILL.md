@@ -44,17 +44,20 @@ cd "/Applications/World of Warcraft/_retail_/Interface" && python3 .claude/skill
 
 ## 姊妹款：MiliUI Ombre（米利UI: 漸染）
 
-2026-11-13 使用者拿別人的截圖要「左邊更濃、右邊原色」的橫向漸層。量出來左端＝職業色每個通道取 2.6 次方、右端＝原色 ×0.88，
-**材質圖做不出來**（圖只能整體乘暗，做不出變濃），所以拆成兩半：
+2026-11-13 使用者拿別人的截圖要「左邊更濃、右邊原色」的橫向漸層，而且**要實際材質、不要程式算顏色**
+（算顏色的 SetGradient 版做過一輪被退：扣血時漸層跟著擠、下拉預覽看不到、秘密值要退平塗）。
 
-- `scripts/ombre.py` 產 `Media/miliui_ombre.png`：只有直向明暗（三成高最亮、下緣 84%）。跑法同上，換腳本名。
-- 橫向漸層是程式給兩個顏色：`MiliUI_UnitFrames/Core/Media.lua` 的 `M.PaintBar`（`Texture:SetGradient`），血條與能量條的填充走它。
-  顏色分量是秘密值時退成整條原色。漸層掛在填充貼圖的角上，條縮短時跟著擠。
-- **跟 Satin 一樣登記進 LibSharedMedia**（`"MiliUI Ombre"`，2026-11-13 使用者要求）。套組以外的插件選到它只有直向那張圖、沒有橫向漸層。
-- 接了的五支（`ombre.py` 的 `ADDONS`）與各自的上色入口：MiliUI_UnitFrames `Media.PaintBar`（血條／能量條／施法條／資源條）、
-  MiliUI_DamageMeters `Media.PaintBar`＋`Win.PaintFill`、MiliUI_Tooltip `Media.PaintBar`（`Core/Bar.lua`）、
-  MiliUI_CooldownManager `Media.PaintBar(tex, token, …)`＋`D.PaintFill`／`CB.PaintFill`（材質是每條各自設定，判斷看那條自己的 token）、
-  Cell `F.PaintOmbreFill`／`F.PaintBarFill`（Utils.lua；`threshold*` 依血量換色模式不介入）。MiliUI_Skin 沒有材質選項，沒接。
-- 沒接的：每格各一張貼圖的分段條（資源點數、Pips、天空騎術活力…，接了會每格各一道）、直向條（Cell 例外，下濃上亮）、
+一張圖乘上顏色只能整體變暗，做不出「變濃」（變濃＝顏色自己再乘自己），所以是**四張貼圖疊出來**的，包成一種材質：
+
+- 疊層在共用的 `AddOns/MiliUI/Libs/MiliUIMedia/MiliUIMedia.lua` 檔尾（`MM.OmbrePaint(bar, r, g, b, a)`／`MM.OmbreClear(bar)`，
+  改完跑 `sync-widgets.py`）：底（原色）→ 兩層純白 MOD 相乘（三次方）→ 頂層 `miliui_ombre_ramp.png`（alpha 左 10% → 右 100%）蓋回原色。
+  四張鋪滿整條、掛在條自己身上，用一張錨在填充貼圖上的遮罩切掉沒血的那段 ⇒ 漸層固定在整條上。顏色只傳不算 ⇒ 秘密值可用。
+- `scripts/ombre.py` 一次產兩張圖到五支插件：`miliui_ombre.png`（登記進 LSM、下拉預覽鋪的那張：左暗右亮灰階漸層 × 直向明暗；
+  套組以外的插件選到就是看到它）與 `miliui_ombre_ramp.png`。跑法同上，換腳本名，兩張都要過 shrink。
+- 各插件的入口（判斷「這條是不是漸染」＋把條交給共用層）：MiliUI_UnitFrames／DamageMeters／Tooltip 的 `Media.PaintBar`、
+  MiliUI_CooldownManager `Media.PaintBar(tex, token, …)`（材質每條各自設定）、Cell `F.PaintOmbreFill`（Utils.lua；`threshold*` 模式不介入）。
+  MiliUI_Skin 沒有材質選項，沒接。
+- 不疊的（選了漸染只看到 `miliui_ombre.png` 那道灰階漸層）：直向條、一格一張貼圖的分段條、冷卻管理器裡引擎寫的光環條、
   暴雪圖集樣式、開了自訂漸層的條、Cell 的快速協助。
-- 已知限制：純白的條（牧師）沒有漸層；下拉裡的預覽只看得到直向那張圖。
+- 踩過的：在條上蓋裁切子框會蓋住條自己身上的文字與護盾（子框一定畫在父框所有 region 之上）；MOD 混合吃遮罩、不會漏到空的那段（探針實測）。
+  調濃度＝改 `ombre.py` 的 `RAMP_A0`／`RAMP_RGB` 或共用層的 MOD 層數，沒有 gamma 常數可調。
