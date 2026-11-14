@@ -61,6 +61,22 @@ end
 -- 項目由各米利系列插件自己註冊，清單與接口見 MiliUI/Menu.lua。
 -- 沒有任何插件註冊時 OpenAt 會自己判空不開，這裡不必先檢查。
 ------------------------------------------------------------
+-- 選單會長到 GameMenuFrame 的框外，level 要壓過設定按鈕（+10）。
+-- ⚠ 光是「選單框 +20」在永恆不夠：永恆版 GameMenuFrame 多了手把用的 `FrameGlow`
+--   （XML 寫死 frameLevel=505），而 `FrameGlowMixin:OnLoad` 會把標題框拉到它上面
+--   （Blizzard_SharedXMLBase/FocusEffects.lua：`headerFrame:SetFrameLevel(self:GetFrameLevel() + 1)`）
+--   ⇒ 標題「遊戲選項」在 506，選單往下翻開時字會整個浮在選單上面。
+--   正式服的標題框只有 +1，所以那邊看不出來。層級用讀的，不抄常數。
+local function RaiseMenu()
+    if not menu then return end
+    local level = GameMenuFrame:GetFrameLevel() + 20
+    local header = GameMenuFrame.Header
+    if header and header.GetFrameLevel then
+        level = math.max(level, header:GetFrameLevel() + 10)
+    end
+    menu:SetFrameLevel(math.min(level, 10000))
+end
+
 local function EnsureMenu()
     if menu then return menu end
     if not (MiliUI and MiliUI.Menu and MiliUI.Menu.Create) then return nil end
@@ -75,9 +91,8 @@ local function EnsureMenu()
         end
         HideUIPanel(GameMenuFrame)
     end)
-    -- 選單會長到 GameMenuFrame 的框外，level 要壓過設定按鈕（+10）
     menu:SetFrameStrata(GameMenuFrame:GetFrameStrata())
-    menu:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 20)
+    RaiseMenu()
     return menu
 end
 
