@@ -48,10 +48,16 @@ local function OpenSettings()
 end
 
 local function DoReload(_, button)
-    HideUIPanel(GameMenuFrame)
     if button == "RightButton" then
-        ReloadUI()  -- 右鍵不問，直接重載
+        -- 右鍵不問，直接重載。
+        -- ⚠ 這裡**不要**先 HideUIPanel：反正整個介面要重來，收選單是多餘的；
+        --   而永恆實機（2026-11-14 taint.log）這條路徑的 C_UI.Reload() 被擋
+        --   （「An action was blocked because of taint from MiliUI - Reload()」），
+        --   正式服同一段程式沒事。永恆版 GameMenuFrame 收起來時多跑一段手把／焦點
+        --   轉場（InputUtil.RegisterForInterfaceTransitions），先把它從點擊路徑上拿掉。
+        ReloadUI()
     else
+        HideUIPanel(GameMenuFrame)
         StaticPopup_Show("MILIUI_GAMEMENU_RELOAD")
     end
 end
