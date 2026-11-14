@@ -80,12 +80,32 @@ end
 -- ⚠ 12.1：受限內容裡 GetAverageItemLevel 可能回秘密值。秘密值進了 format
 -- 不會當場炸，但產出的字串是秘密的，SetText 之後量寬那一刻才引爆——
 -- 所以要在數字階段就洗掉，秘密就顯示「—」。
+--
+-- ⚠ 左鍵開角色視窗**必須走 secure 轉發**（跟天賦方塊同一條路，理由見 MicroMenu.lua）：
+-- 插件 Lua 直接叫 ToggleCharacter，角色視窗的 OnShow 整段在髒的執行流程裡跑。
+-- 永恆版的 OnShow 會去刷玩家頭像的血量文字（ShowStatusBarText），血量是秘密值，
+-- 髒的流程一比較就炸（2026-11-14 玩家回報，TextStatusBar.lua:110）。
 ------------------------------------------------------------
+local CHAR_REF = _G.CharacterMicroButton
+
+-- 回傳 true＝左鍵已經交給 secure 轉發，呼叫端不用再掛左鍵的 Lua
+local function ForwardLeftToCharacter(tile)
+    if not CHAR_REF then return false end
+    -- /click <名字> 而不是 clickbutton，見天賦方塊的說明
+    tile:SetAttribute("*type1", "macro")
+    tile:SetAttribute("*macrotext1", "/click " .. CHAR_REF:GetName())
+    tile:SetAttribute("useOnKeyDown", false)
+    return true
+end
+
 MakeTextBlock("ilvl", {
     clickable = true,
+    template  = CHAR_REF and "SecureActionButtonTemplate" or nil,
     events = { "PLAYER_AVG_ITEM_LEVEL_UPDATE", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_ENTERING_WORLD" },
     init = function(_, tile)
+        if ForwardLeftToCharacter(tile) then return end
         tile:SetScript("OnClick", function()
+            if InCombatLockdown() then return end
             pcall(ToggleCharacter, "PaperDollFrame")
         end)
     end,
@@ -115,17 +135,26 @@ end
 
 MakeTextBlock("durability", {
     clickable = true,
+    template  = CHAR_REF and "SecureActionButtonTemplate" or nil,
     events = { "UPDATE_INVENTORY_DURABILITY", "UPDATE_INVENTORY_ALERTS", "PLAYER_ENTERING_WORLD" },
     init = function(_, tile)
-        tile:SetScript("OnClick", function(self, button)
-            if button == "RightButton" then
-                -- 設定視窗跟面板從同一個錨點長出來，兩個一起開會疊在一起
-                ns.RepairPopup.Hide()
-                ns.OpenSettings("repair")
-            else
-                pcall(ToggleCharacter, "PaperDollFrame")
-            end
-        end)
+        local function OpenRepairSettings()
+            -- 設定視窗跟面板從同一個錨點長出來，兩個一起開會疊在一起
+            ns.RepairPopup.Hide()
+            ns.OpenSettings("repair")
+        end
+        if ForwardLeftToCharacter(tile) then
+            -- 右鍵不能直接掛在 secure 按鈕的 OnClick 上，見 Core/Bar.lua
+            ns.SecureRightClick(tile, OpenRepairSettings)
+        else
+            tile:SetScript("OnClick", function(self, button)
+                if button == "RightButton" then
+                    OpenRepairSettings()
+                elseif not InCombatLockdown() then
+                    pcall(ToggleCharacter, "PaperDollFrame")
+                end
+            end)
+        end
         tile:HookScript("OnEnter", function(self)
             -- ⚠ 戰鬥中走**舊的 GameTooltip**：面板裡有 secure 按鈕＝隱式保護框，
             --   戰鬥中根本 Show 不出來。提示是純顯示，任何時候都合法。
