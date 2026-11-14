@@ -1,8 +1,6 @@
 ---@class addonTableChattynator
 local addonTable = select(2, ...)
 
-local enableHooks = true
-
 local intensity = 0.8
 local hoverColor = {r = 59/255, g = 210/255, b = 237/255}
 local voiceActiveColor = {r = 33/255, g = 209/255, b = 45/255}
@@ -25,10 +23,13 @@ local chatButtons = {}
 
 local skinners = {
   ChatButton = function(button, tags)
+    local buttonsAlpha = 1 - addonTable.Config.Get("skins.dark.buttons_transparency")
+    local buttonsBackground = addonTable.Config.Get("skins.dark.buttons_hide_background") and 0 or buttonsAlpha
+    
     table.insert(chatButtons, button)
     button:SetSize(26, 28)
     button:SetNormalTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
-    button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15)
+    button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, buttonsBackground)
     button:GetNormalTexture():SetDrawLayer("BACKGROUND")
     button:SetPushedTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
     button:GetPushedTexture():SetVertexColor(0.05, 0.05, 0.05)
@@ -36,28 +37,16 @@ local skinners = {
     button:ClearHighlightTexture()
 
     button:HookScript("OnEnter", function()
-      if not enableHooks then
-        return
-      end
       button.Icon:SetVertexColor(hoverColor.r, hoverColor.g, hoverColor.b)
     end)
     button:HookScript("OnLeave", function()
-      if not enableHooks then
-        return
-      end
       button.Icon:SetVertexColor(intensity, intensity, intensity)
     end)
 
     button:HookScript("OnMouseDown", function()
-      if not enableHooks then
-        return
-      end
       button.Icon:AdjustPointsOffset(2, -2)
     end)
     button:HookScript("OnMouseUp", function()
-      if not enableHooks then
-        return
-      end
       button.Icon:AdjustPointsOffset(-2, 2)
     end)
 
@@ -69,26 +58,17 @@ local skinners = {
       button.Icon:SetSize(12, 12)
       button.Icon:ClearAllPoints()
       button.Icon:SetPoint("TOP", 0, -2);
-      (button.FriendCount or FriendsMicroButtonCount):SetTextColor(intensity, intensity, intensity)
+      (button.FriendCount or FriendsMicroButtonCount):SetTextColor(intensity, intensity, intensity, buttonsAlpha)
       button:HookScript("OnEnter", function()
-        if not enableHooks then
-          return
-        end
         (button.FriendCount or FriendsMicroButtonCount):SetTextColor(hoverColor.r, hoverColor.g, hoverColor.b)
       end)
       button:HookScript("OnLeave", function()
-        if not enableHooks then
-          return
-        end
         (button.FriendCount or FriendsMicroButtonCount):SetTextColor(intensity, intensity, intensity)
       end)
     elseif tags.channels then
       hooksecurefunc(button, "SetIconToState", function(self, state)
-        if not enableHooks then
-          return
-        end
         button:SetNormalTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
-        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15)
+        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, buttonsBackground)
         button:GetNormalTexture():SetDrawLayer("BACKGROUND")
         button:SetPushedTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
         button:GetPushedTexture():SetVertexColor(0.05, 0.05, 0.05)
@@ -99,33 +79,27 @@ local skinners = {
           button.Icon:SetVertexColor(voiceActiveColor.r, voiceActiveColor.g, voiceActiveColor.b)
         else
           button.Icon:SetTexture("Interface/Addons/Chattynator/Assets/ChatChannels.png")
-          button.Icon:SetVertexColor(intensity, intensity, intensity)
+          button.Icon:SetVertexColor(intensity, intensity, intensity, buttonsAlpha)
         end
         if button:IsMouseOver() then
           button:GetScript("OnEnter")(button)
         end
       end)
       button:HookScript("OnLeave", function()
-        if not enableHooks then
-          return
-        end
         button:UpdateVisibleState()
       end)
       button:UpdateVisibleState()
     elseif tags.voiceChatNoAudio or tags.voiceChatMuteMic then
       hooksecurefunc(button, "SetIconToState", function(self, state)
-        if not enableHooks then
-          return
-        end
         button:SetNormalTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
-        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15)
+        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, buttonsBackground)
         button:GetNormalTexture():SetDrawLayer("BACKGROUND")
         button:SetPushedTexture("Interface/AddOns/Chattynator/Assets/ChatButton.png")
         button:GetPushedTexture():SetVertexColor(0.05, 0.05, 0.05)
         button:GetPushedTexture():SetDrawLayer("BACKGROUND")
         button.Icon:ClearAllPoints()
         button.Icon:SetPoint("CENTER")
-      end)
+        end)
     elseif tags.menu then
       button.Icon = button:CreateTexture(nil, "ARTWORK")
       button.Icon:SetTexture("Interface/AddOns/Chattynator/Assets/ChatMenu.png")
@@ -145,21 +119,19 @@ local skinners = {
       end
       button.Icon:SetPoint("CENTER")
       button.Icon:SetSize(15, 15)
-      button.Icon:SetVertexColor(intensity, intensity, intensity)
+      button.Icon:SetVertexColor(intensity, intensity, intensity, buttonsAlpha)
     end
   end,
   ChatFrame = function(frame, tags)
     local alpha = 1 - addonTable.Config.Get("skins.dark.chat_transparency")
+    local hideSeparator = addonTable.Config.Get("skins.dark.edit_box_separator_gap") and -1 or 0
     table.insert(chatFrames, frame)
     frame.background = frame:CreateTexture(nil, "BACKGROUND")
     frame.background:SetPoint("TOP", frame.ScrollingMessagesWrapper, 0, 5)
     frame.background:SetPoint("LEFT")
-    frame.background:SetPoint("BOTTOMRIGHT", frame.ScrollingMessagesWrapper, 0, -5)
+    frame.background:SetPoint("BOTTOMRIGHT", frame.ScrollingMessagesWrapper, 0, -5 + hideSeparator)
 
     hooksecurefunc(frame, "SetBackgroundColor", function(_, r, g, b)
-      if not enableHooks then
-        return
-      end
       alpha = 1 - addonTable.Config.Get("skins.dark.chat_transparency")
       if addonTable.Config.Get("skins.dark.solid_chat_background") then
         frame.background:SetColorTexture(r, g, b, alpha)
@@ -182,13 +154,11 @@ local skinners = {
         tex:SetParent(addonTable.hiddenFrame)
       end
     end
-    local alpha = 1 - addonTable.Config.Get("skins.dark.chat_transparency")
+    local alpha = 1 - addonTable.Config.Get("skins.dark.edit_box_transparency")
     editBox.background = editBox:CreateTexture(nil, "BACKGROUND")
-    local value = 0.1
-    if addonTable.Config.Get("skins.dark.solid_chat_background") then
-      value = 0
-    end
-    editBox.background:SetColorTexture(value, value, value, alpha)
+    local editBoxColor = addonTable.Config.Get("skins.dark.edit_box_bg_color")
+
+    editBox.background:SetColorTexture(editBoxColor.r, editBoxColor.g, editBoxColor.b, alpha)
     editBox.background:SetPoint("TOPLEFT", editBox)
     editBox.background:SetPoint("BOTTOM", editBox)
     editBox.background:SetPoint("RIGHT", editBox)
@@ -243,7 +213,9 @@ local skinners = {
     tab:SetNormalFontObject("GameFontNormalSmall")
     if tab:GetFontString() == nil then
       tab:SetText(" ")
-    end
+    end    
+    local tabTextColor = addonTable.Config.Get("skins.dark.tab_text_color")
+    tab:GetFontString():SetTextColor(tabTextColor.r, tabTextColor.g, tabTextColor.b)
     tab:GetFontString():SetWordWrap(false)
     tab:GetFontString():SetNonSpaceWrap(false)
     local fsWidth
@@ -255,9 +227,6 @@ local skinners = {
     tab:GetFontString():SetWidth(fsWidth)
     tab:SetWidth(fsWidth)
     hooksecurefunc(tab, "SetText", function()
-      if not enableHooks then
-        return
-      end
       if tab.minWidth then
         fsWidth = tab:GetFontString():GetUnboundedStringWidth() + addonTable.Constants.TabPadding
       else
@@ -271,9 +240,6 @@ local skinners = {
     end)
     tab:GetFontString():SetPoint("TOP", 0, -5)
     tab:HookScript("OnEnter", function()
-      if not enableHooks then
-        return
-      end
       if tab.selected then
         tab.Left:SetAlpha(1)
         tab.Right:SetAlpha(1)
@@ -286,9 +252,6 @@ local skinners = {
       end
     end)
     local function SetSelected(_, state)
-      if not enableHooks then
-        return
-      end
       alpha = 1 - addonTable.Config.Get("skins.dark.tab_transparency")
       if not tab:IsMouseMotionFocus() then
         tab.Left:SetAlpha(alpha)
@@ -302,16 +265,10 @@ local skinners = {
       end
     end
     tab:HookScript("OnLeave", function()
-      if not enableHooks then
-        return
-      end
       SetSelected(tab, tab.selected)
     end)
     hooksecurefunc(tab, "SetSelected", SetSelected)
     hooksecurefunc(tab, "SetColor", function(_, r, g, b)
-      if not enableHooks then
-        return
-      end
       tab.Left:SetVertexColor(r, g, b)
       tab.Right:SetVertexColor(r, g, b)
       tab.Middle:SetVertexColor(r, g, b)
@@ -347,9 +304,6 @@ local skinners = {
     alpha3:SetDuration(0.5)
     alpha3:SetOrder(1)
     hooksecurefunc(tab, "SetFlashing", function(_, state)
-      if not enableHooks then
-        return
-      end
       tab:SetIgnoreParentAlpha(state)
       tab.FlashAnimation:SetPlaying(state)
       tab.LeftFlash:SetShown(state)
@@ -410,26 +364,50 @@ local function LoadSkin()
         tab.Middle:SetAlpha(alpha)
       end
     elseif settingName == "skins.dark.chat_transparency" then
-      local alpha = 1 - addonTable.Config.Get(settingName)
       for _, frame in ipairs(chatFrames) do
         frame:SetBackgroundColor(frame.backgroundColor.r, frame.backgroundColor.g, frame.backgroundColor.b)
       end
+    elseif settingName == "skins.dark.edit_box_transparency" then
+      local color = addonTable.Config.Get("skins.dark.edit_box_bg_color")
+      local alpha = 1 - addonTable.Config.Get("skins.dark.edit_box_transparency")
       for _, frame in ipairs(editBoxes) do
-        frame.background:SetAlpha(alpha)
+        frame.background:SetColorTexture(color.r, color.g, color.b, alpha)
+      end
+    elseif settingName == "skins.dark.tab_text_color" then
+      local color = addonTable.Config.Get(settingName)
+      for _, tab in ipairs(chatTabs) do
+        tab:GetFontString():SetTextColor(color.r, color.g, color.b)
+      end
+    elseif settingName == "skins.dark.edit_box_bg_color" then
+      local color = addonTable.Config.Get(settingName)
+      local alpha = 1 - addonTable.Config.Get("skins.dark.edit_box_transparency")
+      for _, frame in ipairs(editBoxes) do
+        frame.background:SetColorTexture(color.r, color.g, color.b, alpha)
       end
     elseif settingName == "skins.dark.solid_chat_background" then
-      local isSolid = addonTable.Config.Get(settingName)
       for _, frame in ipairs(chatFrames) do
         frame:SetBackgroundColor(frame.backgroundColor.r, frame.backgroundColor.g, frame.backgroundColor.b)
       end
-
-      local value = 0.1
-      if isSolid then
-        value = 0
+    elseif settingName == "skins.dark.edit_box_separator_gap" then
+      for _, frame in ipairs(chatFrames) do
+        local hideSeparator = addonTable.Config.Get(settingName) and -1 or 0
+        frame.background:SetPoint("BOTTOMRIGHT", frame.ScrollingMessagesWrapper, 0, -5 + hideSeparator)
       end
-      local alpha = 1 - addonTable.Config.Get("skins.dark.chat_transparency")
-      for _, frame in ipairs(editBoxes) do
-        frame.background:SetColorTexture(value, value, value, alpha)
+    elseif settingName == "skins.dark.buttons_transparency" then
+      local alpha = 1 - addonTable.Config.Get(settingName)
+      local hideBackground = addonTable.Config.Get("skins.dark.buttons_hide_background") and 0 or alpha
+      for _, button in ipairs(chatButtons) do
+        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, hideBackground)
+        if (button.FriendCount or FriendsMicroButtonCount) then
+          (button.FriendCount or FriendsMicroButtonCount):SetTextColor(intensity, intensity, intensity, alpha)
+        end
+        button.Icon:SetVertexColor(intensity, intensity, intensity, alpha)
+      end
+    elseif settingName == "skins.dark.buttons_hide_background" then
+      local alpha = 1 - addonTable.Config.Get("skins.dark.buttons_transparency")
+      local hideBackground = addonTable.Config.Get(settingName) and 0 or alpha
+      for _, button in ipairs(chatButtons) do
+        button:GetNormalTexture():SetVertexColor(0.15, 0.15, 0.15, hideBackground)
       end
     end
   end)
@@ -473,6 +451,7 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.DARK, "dark", LoadSkin, SkinFra
     option = "chat_transparency",
     default = 0.2,
   },
+  { type = "spacer" },
   {
     type = "slider",
     min = 0,
@@ -484,5 +463,55 @@ addonTable.Skins.RegisterSkin(addonTable.Locales.DARK, "dark", LoadSkin, SkinFra
     valuePattern = "%s%%",
     option = "tab_transparency",
     default = 0,
+  },
+  {
+    type = "colorPicker",
+    text = addonTable.Locales.TAB_TEXT_COLOR,
+    default = {r=1,g=215/255,b=0},
+    option = "tab_text_color"
+  },
+  { type = "spacer" },
+  {
+    type = "slider",
+    min = 0,
+    max = 100,
+    lowText = "0%",
+    highText = "100%",
+    scale = 100,
+    text = addonTable.Locales.EDIT_BOX_TRANSPARENCY,
+    valuePattern = "%s%%",
+    option = "edit_box_transparency",
+    default = 0.4,
+  },
+  {
+    type = "colorPicker",
+    text = addonTable.Locales.EDIT_BOX_BG_COLOR,
+    default = {r = 0.1, g = 0.1, b = 0.1},
+    option = "edit_box_bg_color"
+  },
+  {
+    type = "checkbox",
+    text = addonTable.Locales.EDIT_BOX_SEPARATOR_GAP,
+    option = "edit_box_separator_gap",
+    default = false,
+  },
+  { type = "spacer" },
+  {
+    type = "slider",
+    min = 0,
+    max = 100,
+    lowText = "0%",
+    highText = "100%",
+    scale = 100,
+    text = addonTable.Locales.BUTTONS_TRANSPARENCY,
+    valuePattern = "%s%%",
+    option = "buttons_transparency",
+    default = 0,
+  },
+  {
+    type = "checkbox",
+    text = addonTable.Locales.BUTTONS_HIDE_BACKGROUND,
+    option = "buttons_hide_background",
+    default = false,
   },
 })

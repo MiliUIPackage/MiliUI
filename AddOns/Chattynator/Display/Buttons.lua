@@ -298,7 +298,7 @@ function addonTable.Display.ButtonsBarMixin:Update()
   if position:match("left") then
     local offsetX, offsetY = -5, 20
     self.ScrollToBottomButton:ClearAllPoints()
-    if not addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) then
+    if addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) == "never" then
       offsetY = -2
     end
     if position:match("inside") then
@@ -327,12 +327,44 @@ function addonTable.Display.ButtonsBarMixin:Update()
       b:SetFrameStrata("HIGH")
     end
     self:SetSize(22, math.min(heightAvailable, currentHeight))
+  elseif position:match("right") then
+      local offsetX, offsetY = 5, 20
+      self.ScrollToBottomButton:ClearAllPoints()
+      if addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) == "never" then
+        offsetY = -2
+      end
+      if position:match("inside") then
+        offsetX, offsetY = -28, -2
+      end
+      self.ScrollToBottomButton:SetPoint("BOTTOMRIGHT", self:GetParent().ScrollingMessages, "BOTTOMRIGHT", -2, 5)
+      local startingOffsetY = offsetY
+      self:ClearAllPoints()
+      self:SetPoint("TOPLEFT", self:GetParent().ScrollingMessages, "TOPRIGHT", offsetX, offsetY)
+      for _, b in ipairs(self.buttons) do
+        local anchor = {"TOPLEFT", self:GetParent().ScrollingMessages, "TOPRIGHT", offsetX, offsetY}
+        if b == QuickJoinToastButton or b == FriendsMicroButton then
+          self.socialAnchor1 = anchor
+        end
+        b:ClearAllPoints()
+        b:SetPoint(unpack(anchor))
+        offsetY = offsetY - b:GetHeight() - 5
+      end
+
+      local heightAvailable = self:GetParent().ScrollingMessages:GetHeight() - 2 + startingOffsetY
+      local currentHeight = 0
+      for _, b in ipairs(self.buttons) do
+        currentHeight = currentHeight + b:GetHeight() + 5
+        b.fitsSize = currentHeight <= heightAvailable
+        b:SetShown(self.active and b.fitsSize)
+        b:SetFrameStrata("HIGH")
+      end
+      self:SetSize(22, math.min(heightAvailable, currentHeight))
   elseif position:match("tabs") then
-    local offsetX, offsetY = 2, -2
+    local offsetX, offsetY = 2, 0
     if position:match("outside") then
-      offsetY = 27 + 28 + 2
-      if not addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) then
-        offsetY = offsetY - 23
+      offsetY = 57
+      if addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) == "never" then
+        offsetY = offsetY - 22
       end
     end
     self.ScrollToBottomButton:ClearAllPoints()

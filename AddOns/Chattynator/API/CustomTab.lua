@@ -2,6 +2,7 @@
 local addonTable = select(2, ...)
 
 local delayedRegistrationFrame
+local hasRegisteredFontChanges = false
 
 local function CombatLogInstall(parent)
   if not CombatLogQuickButtonFrame_Custom then
@@ -50,7 +51,22 @@ local function CombatLogInstall(parent)
     ChatFrame2ButtonFrameUpButton:SetParent(addonTable.hiddenFrame)
     ChatFrame2ButtonFrameDownButton:SetParent(addonTable.hiddenFrame)
   end
+
+  local function UpdateFont()
+    ChatFrame2:SetFontObject(_G[addonTable.Messages.font])
+  end
+
+  if not hasRegisteredFontChanges then
+    hasRegisteredFontChanges = true
+    addonTable.CallbackRegistry:RegisterCallback("Render", function(_, messageCount)
+      if messageCount == nil then
+        UpdateFont()
+      end
+    end)
+  end
+
   ChatFrame2:Show()
+  UpdateFont()
 end
 
 Chattynator.API.RegisterCustomTab("COMBAT_LOG", "combat_log", CombatLogInstall)

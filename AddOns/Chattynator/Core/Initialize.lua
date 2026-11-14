@@ -250,3 +250,7 @@ frame:SetScript("OnEvent", function(_, eventName, data)
     addonTable.allChatFrames[1]:UpdateEditBox()
   end
 end)
+
+function Chattynator_AddonCompartmentCallback()
+  addonTable.CustomiseDialog.Toggle()
+end

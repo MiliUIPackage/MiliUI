@@ -15,6 +15,8 @@ function addonTable.CustomiseDialog.Components.GetCheckbox(parent, label, spacin
   checkBox:SetText(label)
   checkBox:SetNormalFontObject(GameFontHighlight)
   checkBox:GetFontString():SetPoint("RIGHT", holder, "CENTER", -30 - spacing, 0)
+  checkBox:GetFontString():SetPoint("LEFT", holder)
+  checkBox:GetFontString():SetJustifyH("RIGHT")
 
   addonTable.Skins.AddFrame("CheckBox", checkBox)
 
@@ -58,7 +60,7 @@ function addonTable.CustomiseDialog.Components.GetTab(parent, text)
   if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     tab = CreateFrame("Button", nil, parent, "PanelTopTabButtonTemplate")
     tab:SetScript("OnShow", function(self)
-      PanelTemplates_TabResize(self, 15, nil, 10)
+      PanelTemplates_TabResize(self, 15, nil, 70)
       PanelTemplates_DeselectTab(self)
     end)
   else
@@ -91,7 +93,13 @@ function addonTable.CustomiseDialog.Components.GetBasicDropdown(parent, labelTex
     for index = 1, #entryLabels do
       table.insert(entries, {entryLabels[index], values[index]})
     end
-    MenuUtil.CreateRadioMenu(dropdown, isSelectedCallback, onSelectionCallback, unpack(entries))
+    dropdown:SetupMenu(function(menu, rootDescription)
+      for index = 1, #entryLabels do
+        local label, value = entryLabels[index], values[index]
+        rootDescription:CreateRadio(label, isSelectedCallback, onSelectionCallback, value)
+      end
+      rootDescription:SetScrollMode(30 * 20)
+    end)
   end
   frame.SetValue = function(_, _)
     dropdown:GenerateMenu()
@@ -105,7 +113,7 @@ function addonTable.CustomiseDialog.Components.GetBasicDropdown(parent, labelTex
   return frame
 end
 
-function addonTable.CustomiseDialog.Components.GetSlider(parent, label, min, max, valuePattern, callback)
+function addonTable.CustomiseDialog.Components.GetSlider(parent, label, min, max, formatter, callback)
   local holder = CreateFrame("Frame", nil, parent)
   holder:SetHeight(40)
   holder:SetPoint("LEFT", parent, "LEFT", 30, 0)
@@ -123,12 +131,22 @@ function addonTable.CustomiseDialog.Components.GetSlider(parent, label, min, max
   holder.Slider:SetHeight(20)
   holder.Slider:Init(max, min, max, max - min, {
     [MinimalSliderWithSteppersMixin.Label.Right]  = CreateMinimalSliderFormatter(MinimalSliderWithSteppersMixin.Label.Right, function(value)
-      return WHITE_FONT_COLOR:WrapTextInColorCode(valuePattern:format(value))
+      return WHITE_FONT_COLOR:WrapTextInColorCode(formatter(value))
     end)
   })
 
   holder.Slider:RegisterCallback(MinimalSliderWithSteppersMixin.Event.OnValueChanged, function(_, value)
     callback(value)
+  end)
+  holder.Slider.Slider:HookScript("OnEnter", function()
+    if holder:GetScript("OnEnter") then
+      holder:GetScript("OnEnter")(holder)
+    end
+  end)
+  holder.Slider.Slider:HookScript("OnLeave", function()
+    if holder:GetScript("OnLeave") then
+      holder:GetScript("OnLeave")(holder)
+    end
   end)
 
   function holder:GetValue()
@@ -148,4 +166,128 @@ function addonTable.CustomiseDialog.Components.GetSlider(parent, label, min, max
   end)
 
   return holder
+end
+
+function addonTable.CustomiseDialog.Components.GetColorSwatch(parent, callback)
+  local colorSwatch
+  local hasAlpha = false
+  local colorPickerFrameMonitor = CreateFrame("Frame", nil, parent)
+  colorPickerFrameMonitor.OnUpdate = function()
+    if not ColorPickerFrame:IsVisible() then
+      colorPickerFrameMonitor:SetScript("OnUpdate", nil)
+    end
+    if colorPickerFrameMonitor.changed then
+      local c = {r = colorSwatch.pendingColor.r, g = colorSwatch.pendingColor.g, b = colorSwatch.pendingColor.b, a = hasAlpha and colorSwatch.pendingColor.a or nil}
+      callback(c)
+      colorSwatch.currentColor = CopyTable(c)
+      colorSwatch.pendingColor = nil
+    end
+    colorPickerFrameMonitor.changed = false
+  end
+  local cancelColor
+  colorPickerFrameMonitor:SetScript("OnHide", function() colorPickerFrameMonitor:SetScript("OnUpdate", nil) end)
+  colorSwatch = CreateFrame("Button", nil, parent, "ColorSwatchTemplate")
+  colorSwatch:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  colorSwatch:SetScript("OnClick", function(_, button)
+    hasAlpha = colorSwatch.currentColor.a ~= nil
+    if button == "LeftButton" then
+      local info = {}
+      info.r, info.g, info.b, info.opacity = colorSwatch.currentColor.r, colorSwatch.currentColor.g, colorSwatch.currentColor.b, colorSwatch.currentColor.a
+      info.hasOpacity = hasAlpha
+      cancelColor = colorSwatch.currentColor
+      info.swatchFunc = function()
+        colorPickerFrameMonitor.changed = true
+        local r, g, b = ColorPickerFrame:GetColorRGB()
+        local a = info.hasOpacity and ColorPickerFrame:GetColorAlpha() or nil
+        colorSwatch.pendingColor = CreateColor(r, g, b, a)
+        colorSwatch:SetColorRGB(r, g, b)
+      end
+      info.cancelFunc = function()
+        colorSwatch.pendingColor = cancelColor
+        colorSwatch:SetColorRGB(cancelColor.r, cancelColor.g, cancelColor.b)
+        callback({r = colorSwatch.pendingColor.r, g = colorSwatch.pendingColor.g, b = colorSwatch.pendingColor.b, a = hasAlpha and colorSwatch.pendingColor.a or nil})
+        colorSwatch.currentColor = cancelColor
+        colorSwatch.pendingColor = nil
+      end
+      colorPickerFrameMonitor:SetScript("OnUpdate", colorPickerFrameMonitor.OnUpdate)
+      ColorPickerFrame:SetupColorPickerAndShow(info);
+    else
+      colorSwatch.pendingColor = CreateColor(1, 1, 1, 1)
+      colorSwatch.currentColor = {r = colorSwatch.pendingColor.r, g = colorSwatch.pendingColor.g, b = colorSwatch.pendingColor.b, a = hasAlpha and colorSwatch.pendingColor.a or nil}
+      colorSwatch:SetColorRGB(1, 1, 1)
+      callback({r = colorSwatch.pendingColor.r, g = colorSwatch.pendingColor.g, b = colorSwatch.pendingColor.b, a = hasAlpha and colorSwatch.pendingColor.a or nil})
+      -- Update tooltip to hide text about resetting the color
+      colorSwatch:GetScript("OnLeave")(colorSwatch)
+      colorSwatch:GetScript("OnEnter")(colorSwatch)
+      colorSwatch.pendingColor = nil
+    end
+  end)
+
+  return colorSwatch
+end
+
+function addonTable.CustomiseDialog.Components.GetColorPicker(parent, label, offset, callback)
+  local holder = CreateFrame("Frame", nil, parent)
+  holder:SetHeight(40)
+  holder:SetPoint("LEFT", parent, "LEFT", 30, 0)
+  holder:SetPoint("RIGHT", parent, "RIGHT", -30, 0)
+  local swatch = addonTable.CustomiseDialog.Components.GetColorSwatch(holder, callback)
+
+  swatch:SetPoint("LEFT", holder, "CENTER", -4 - offset, 0)
+  local text = holder:CreateFontString(nil, nil, "GameFontHighlight")
+  text:SetPoint("RIGHT", holder, "CENTER", -22 - offset, 0)
+  text:SetText(label)
+
+  function holder:SetValue(color)
+    swatch.currentColor = CopyTable(color)
+    swatch:SetColor(CreateColor(color.r, color.g, color.b))
+  end
+
+  function holder:GetValue()
+    local raw = swatch.pendingColor or swatch.currentColor
+    local hasAlpha = swatch.currentColor.a ~= nil
+    return {r = raw.r, g = raw.g, b = raw.b, a = hasAlpha and raw.a or nil}
+  end
+
+  holder:SetScript("OnEnter", function()
+    swatch:GetScript("OnEnter")(swatch)
+  end)
+
+  holder:SetScript("OnLeave", function()
+    swatch:GetScript("OnLeave")(swatch)
+  end)
+
+  holder:SetScript("OnMouseUp", function(_, mouseButton)
+    swatch:Click(mouseButton)
+  end)
+
+  return holder
+end
+
+function addonTable.CustomiseDialog.Components.GetColorPickerWithCheckbox(parent, label, offset, callback)
+  local wrapper = CreateFrame("Frame", nil, parent)
+  wrapper:SetHeight(40)
+  wrapper:SetPoint("LEFT")
+  wrapper:SetPoint("RIGHT")
+  local colorPicker, checkBox
+
+  local function internalCallback()
+    callback({color = colorPicker:GetValue(), enabled = checkBox:GetChecked()})
+  end
+
+  colorPicker = addonTable.CustomiseDialog.Components.GetColorPicker(wrapper, label, offset, internalCallback)
+  checkBox = CreateFrame("CheckButton", nil, wrapper, "SettingsCheckboxTemplate")
+
+  checkBox:SetPoint("LEFT", wrapper, "CENTER", 30 - offset, 0)
+  checkBox:SetScript("OnClick", internalCallback)
+  checkBox:SetFrameLevel(colorPicker:GetFrameLevel() + 5)
+
+  addonTable.Skins.AddFrame("CheckBox", checkBox)
+
+  function wrapper:SetValue(value)
+    colorPicker:SetValue(value.color)
+    checkBox:SetChecked(value.enabled)
+  end
+
+  return wrapper
 end

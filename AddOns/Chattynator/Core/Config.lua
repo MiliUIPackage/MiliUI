@@ -78,7 +78,11 @@ local settings = {
   },
 
   EDIT_BOX_POSITION = {key = "edit_box_position", default = "bottom"},
+  EDIT_BOX_WIDTH = {key = "edit_box_width", default = 430},
+  EDIT_BOX_HEIGHT = {key = "edit_box_height", default = 32},
   KEEP_EDIT_BOX_VISIBLE = {key = "keep_edit_box_visible", default = false},
+  EDIT_BOX_HORIZONTAL_OFFSET = {key = "edit_box_horizontal_offset", default = 0},
+  EDIT_BOX_VERTICAL_OFFSET = {key = "edit_box_vertical_offset", default = 0},
 
   SKINS = {key = "skins", default = {}},
   DISABLED_SKINS = {key = "disabled_skins", default = {}},
@@ -94,9 +98,11 @@ local settings = {
 
   LINE_SPACING = {key = "line_spacing_2", default = 0},
   MESSAGE_SPACING = {key = "message_spacing", default = 5},
+  MESSAGE_ALIGNMENT = {key = "message_alignment", default = "left"},
   TIMESTAMP_FORMAT = {key = "timestamp_format", default = "%X"},
   SHOW_TIMESTAMP_SEPARATOR = {key = "show_timestamp_separator", default = true, refresh = {addonTable.Constants.RefreshReason.MessageWidget}},
   TIMESTAMP_SPACING = {key = "timestamp_spacing", default = 1},
+  TIMESTAMP_ON_RIGHT = {key = "timestamp_on_right", default = false, refresh = {addonTable.Constants.RefreshReason.MessageWidget}},
 
   MESSAGE_FONT = {key = "message_font", default = "default", refresh = {addonTable.Constants.RefreshReason.MessageFont}},
   MESSAGE_FONT_SIZE = {key = "message_font_size", default = 14, refresh = {addonTable.Constants.RefreshReason.MessageFont}},
@@ -106,6 +112,9 @@ local settings = {
   ENABLE_SMOOTH_SCROLLING_COMBAT = {key = "enable_smooth_scrolling_combat", default = false},
   TAB_FLASH_ON = {key = "tab_flash_on", default = "all"},
   SHOW_FONT_SHADOW = {key = "show_font_shadow", default = false, refresh = {addonTable.Constants.RefreshReason.MessageFont}},
+
+  FADE_COMPLETELY = {key = "fade_completely", default = true},
+  FADED_ALPHA = {key = "faded_alpha", default = 0.5},
 
   SHORTEN_FORMAT = {key = "shorten_format", default = "none", refresh = {addonTable.Constants.RefreshReason.MessageModifier}},
   CLASS_COLORS = {key = "class_colors", default = true, refresh = {addonTable.Constants.RefreshReason.MessageModifier}},

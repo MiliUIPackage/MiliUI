@@ -41,10 +41,65 @@ local function SetupGeneral(parent)
     discordText:SetPoint("LEFT", discordButton, "RIGHT", 10, 0)
     discordText:SetText(addonTable.Locales.DISCORD_DESCRIPTION)
   end
+  
+  do
+    local function GetTipsSection(rowContainer, details)
+      local header = rowContainer:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
+      header:SetJustifyH("LEFT")
+      header:SetPoint("TOP")
+      header:SetText(details.header)
+      header:SetHeight(30)
+      local text = rowContainer:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+      text:SetJustifyH("LEFT")
+      text:SetPoint("TOP", header, "BOTTOM")
+      text:SetText(details.text)
+      text:SetSpacing(3)
+
+      return {header, text}
+    end
+
+    local function MakeTipsRow(details1, details2)
+      local rowContainer = CreateFrame("Frame", nil, container)
+      rowContainer:SetPoint("LEFT", 35 + addonTable.Constants.ButtonFrameOffset, 0)
+      rowContainer:SetPoint("RIGHT", -35, 0)
+      rowContainer:SetHeight(110)
+      for _, row in ipairs(GetTipsSection(rowContainer, details1)) do
+        row:SetPoint("LEFT")
+        row:SetPoint("RIGHT", rowContainer, "CENTER", -15, 0)
+      end
+      for _, row in ipairs(GetTipsSection(rowContainer, details2)) do
+        row:SetPoint("RIGHT")
+        row:SetPoint("LEFT", rowContainer, "CENTER", 15, 0)
+      end
+      return rowContainer
+    end
+
+    local tipsRows = {
+      MakeTipsRow({
+        header = CreateTextureMarkup("Interface\\AddOns\\Chattynator\\Assets\\SettingsCog.png", 64, 64, 13, 13, 0, 1, 0, 1) .. "  " .. addonTable.Locales.CUSTOMIZABLE,
+        text = addonTable.Locales.TIPS_CUSTOMIZABLE,
+      }, {
+        header = addonTable.Locales.THEMES,
+        text = addonTable.Locales.TIPS_THEMES,
+      }),
+      MakeTipsRow({
+        header = CreateTextureMarkup("Interface\\AddOns\\Chattynator\\Assets\\Search.png", 64, 64, 13, 13, 0, 1, 0, 1) .. "  " .. addonTable.Locales.MOVING_THE_WINDOW,
+        text = addonTable.Locales.TIPS_MOVING_THE_WINDOW,
+      }, {
+        header = addonTable.Locales.ACCESSING_DEFAULT_SETTINGS,
+        text = addonTable.Locales.TIPS_ACCESSING_DEFAULT_SETTINGS,
+      }),
+    }
+    for _, row in ipairs(tipsRows) do
+      row:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+      table.insert(allFrames, row)
+    end
+    tipsRows[1]:SetPoint("TOP", allFrames[#allFrames - #tipsRows], "BOTTOM", 0, -30)
+  end
 
   do
-    local header = addonTable.CustomiseDialog.Components.GetHeader(container, addonTable.Locales.DEVELOPMENT_IS_TIME_CONSUMING)
-    header:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+    local header = addonTable.CustomiseDialog.Components.GetHeader(container, addonTable.Locales.DEVELOPMENT_IS_DONE_BY_A_HUMAN)
+    header:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
     table.insert(allFrames, header)
 
     local donateFrame = CreateFrame("Frame", nil, container)
@@ -190,24 +245,10 @@ local function SetupGeneral(parent)
     addonTable.Skins.AddFrame("Button", importButton)
   end
 
-  local storeMessages = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.STORE_MESSAGES, 28, function(state)
-    addonTable.Config.Set(addonTable.Config.Options.STORE_MESSAGES, state)
-  end)
-  storeMessages.option = addonTable.Config.Options.STORE_MESSAGES
-  storeMessages:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -70)
-  table.insert(allFrames, storeMessages)
-
-  local removeOldMessages = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.REMOVE_OLD_MESSAGES, 28, function(state)
-    addonTable.Config.Set(addonTable.Config.Options.REMOVE_OLD_MESSAGES, state)
-  end)
-  removeOldMessages.option = addonTable.Config.Options.REMOVE_OLD_MESSAGES
-  removeOldMessages:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
-  table.insert(allFrames, removeOldMessages)
-
   local customTabsDropdown = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.SPECIAL_TABS)
   do
     customTabsDropdown.SetValue = nil
-    customTabsDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+    customTabsDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -70)
     customTabsDropdown.DropDown:SetDefaultText(GRAY_FONT_COLOR:WrapTextInColorCode(addonTable.Locales.TOGGLE_COMBAT_LOG_ETC))
     local function IsActive(customType)
       local windows = addonTable.Config.Get(addonTable.Config.Options.WINDOWS)
@@ -337,12 +378,16 @@ local function SetupLayout(parent)
     local entries = {
       addonTable.Locales.LEFT_OUTSIDE,
       addonTable.Locales.LEFT_INSIDE,
+      addonTable.Locales.RIGHT_OUTSIDE,
+      addonTable.Locales.RIGHT_INSIDE,
       addonTable.Locales.TABS_ABOVE,
       addonTable.Locales.TABS_BELOW,
     }
     local values = {
       "outside_left",
       "inside_left",
+      "outside_right",
+      "inside_right",
       "outside_tabs",
       "inside_tabs",
     }
@@ -350,20 +395,34 @@ local function SetupLayout(parent)
   end
   table.insert(allFrames, buttonPositionDropdown)
 
+  local editBoxHorizontalOffset, editBoxWidth
   local editBoxPositionDropdown = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.EDIT_BOX_POSITION, function(value)
     return addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_POSITION) == value
   end, function(value)
     addonTable.Config.Set(addonTable.Config.Options.EDIT_BOX_POSITION, value)
+    if value == 'bottom' or value == 'top' then
+      editBoxHorizontalOffset:Hide()
+      editBoxWidth:Hide()
+    else
+      editBoxHorizontalOffset:Show()
+      editBoxWidth:Show()
+    end
   end)
   editBoxPositionDropdown:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
   do
     local entries = {
       addonTable.Locales.BOTTOM,
       addonTable.Locales.TOP,
+      addonTable.Locales.SCREEN_BOTTOM,
+      addonTable.Locales.SCREEN_CENTER,
+      addonTable.Locales.SCREEN_TOP,
     }
     local values = {
       "bottom",
-      "top"
+      "top",
+      "screenBottom",
+      "screenCenter",
+      "screenTop"
     }
     editBoxPositionDropdown:Init(entries, values)
   end
@@ -376,6 +435,52 @@ local function SetupLayout(parent)
   keepEditBoxVisible:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
   table.insert(allFrames, keepEditBoxVisible)
 
+  editBoxWidth = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.EDIT_BOX_WIDTH, 200, 700, function(x) return string.format("%spx", x) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.EDIT_BOX_WIDTH, value)
+  end)
+  editBoxWidth.option = addonTable.Config.Options.EDIT_BOX_WIDTH
+  editBoxWidth:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  editBoxWidth:Hide()
+  editBoxWidth:SetCollapsesLayout(true)
+  table.insert(allFrames, editBoxWidth)
+
+  local editBoxHeight = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.EDIT_BOX_HEIGHT, 12, 48, function(x) return string.format("%spx", x) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.EDIT_BOX_HEIGHT, value)
+  end)
+  editBoxHeight.option = addonTable.Config.Options.EDIT_BOX_HEIGHT
+  editBoxHeight:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  table.insert(allFrames, editBoxHeight)
+
+  editBoxHorizontalOffset = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.EDIT_BOX_HORIZONTAL_OFFSET, -400, 400, function(x) return string.format("%spx", x) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.EDIT_BOX_HORIZONTAL_OFFSET, value)
+  end)
+  editBoxHorizontalOffset.option = addonTable.Config.Options.EDIT_BOX_HORIZONTAL_OFFSET
+  editBoxHorizontalOffset:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  editBoxHorizontalOffset:Hide()
+  editBoxHorizontalOffset:SetCollapsesLayout(true)
+  table.insert(allFrames, editBoxHorizontalOffset)
+
+  local editBoxVerticalOffset = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.EDIT_BOX_VERTICAL_OFFSET,-150, 150, function(x) return string.format("%spx", x) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.EDIT_BOX_VERTICAL_OFFSET, value)
+  end)
+  editBoxVerticalOffset.option = addonTable.Config.Options.EDIT_BOX_VERTICAL_OFFSET
+  editBoxVerticalOffset:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  table.insert(allFrames, editBoxVerticalOffset)
+
+  local fadedAlpha
+  local fadeChatCompletely = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.FADE_WHEN_NOT_IN_USE, 28, function(state)
+    addonTable.Config.Set(addonTable.Config.Options.FADE_COMPLETELY, state)
+  end)
+  fadeChatCompletely.option = addonTable.Config.Options.FADE_COMPLETELY
+  fadeChatCompletely:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, fadeChatCompletely)
+
+  fadedAlpha = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.FADED_TRANSPARENCY, 0, 100, function(x) return string.format("%s%%", x) end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.FADED_ALPHA, 1 - value / 100)
+  end)
+  fadedAlpha:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  table.insert(allFrames, fadedAlpha)
+
   local locked = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.LOCK_CHAT, 28, function(state)
     addonTable.Config.Set(addonTable.Config.Options.LOCKED, state)
   end)
@@ -384,11 +489,12 @@ local function SetupLayout(parent)
   table.insert(allFrames, locked)
 
   container:SetScript("OnShow", function()
+    fadedAlpha:SetValue((1 - addonTable.Config.Get(addonTable.Config.Options.FADED_ALPHA))* 100)
     for _, f in ipairs(allFrames) do
       if f.SetValue then
         if f.option then
           f:SetValue(addonTable.Config.Get(f.option))
-        else
+        elseif f.DropDown then
           f:SetValue()
         end
       end
@@ -408,7 +514,7 @@ local function SetupMessages(parent)
   table.insert(allFrames, fontDropdown)
 
   local fontSize
-  fontSize = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_FONT_SIZE, 2, 40, "%spx", function()
+  fontSize = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_FONT_SIZE, 2, 40, function(x) return string.format("%spx", x) end, function()
     addonTable.Config.Set(addonTable.Config.Options.MESSAGE_FONT_SIZE, fontSize:GetValue())
   end)
   fontSize.option = addonTable.Config.Options.MESSAGE_FONT_SIZE
@@ -416,13 +522,34 @@ local function SetupMessages(parent)
   table.insert(allFrames, fontSize)
 
   local messageSpacing
-  messageSpacing = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_SPACING, 0, 60, "%spx", function()
+  messageSpacing = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_SPACING, 0, 60, function(x) return string.format("%spx", x) end, function()
     addonTable.Config.Set(addonTable.Config.Options.MESSAGE_SPACING, messageSpacing:GetValue())
   end)
   messageSpacing.option = addonTable.Config.Options.MESSAGE_SPACING
   messageSpacing:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
   table.insert(allFrames, messageSpacing)
 
+  local messageAlignment = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.MESSAGE_ALIGNMENT, function(value)
+    return addonTable.Config.Get(addonTable.Config.Options.MESSAGE_ALIGNMENT) == value
+  end, function(value)
+    addonTable.Config.Set(addonTable.Config.Options.MESSAGE_ALIGNMENT, value)
+  end)
+  messageAlignment:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  do
+    local entries = {
+      addonTable.Locales.LEFT,
+      addonTable.Locales.CENTER,
+      addonTable.Locales.RIGHT,
+    }
+    local values = {
+      "left",
+      "center",
+      "right"
+    }
+    messageAlignment:Init(entries, values)
+  end
+  table.insert(allFrames, messageAlignment)
+  
   local messageOutline = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.MESSAGE_FONT_OUTLINE, function(value)
     return addonTable.Config.Get(addonTable.Config.Options.MESSAGE_FONT_OUTLINE) == value
   end, function(value)
@@ -459,12 +586,26 @@ local function SetupMessages(parent)
   table.insert(allFrames, enableMessageFade)
 
   local messageFadeTimer
-  messageFadeTimer = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_FADE_TIME, 5, 240, "%ss", function()
+  messageFadeTimer = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.MESSAGE_FADE_TIME, 5, 240, function(x) return string.format("%ss", x) end, function()
     addonTable.Config.Set(addonTable.Config.Options.MESSAGE_FADE_TIME, messageFadeTimer:GetValue())
   end)
   messageFadeTimer.option = addonTable.Config.Options.MESSAGE_FADE_TIME
   messageFadeTimer:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
   table.insert(allFrames, messageFadeTimer)
+
+  local storeMessages = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.STORE_MESSAGES, 28, function(state)
+    addonTable.Config.Set(addonTable.Config.Options.STORE_MESSAGES, state)
+  end)
+  storeMessages.option = addonTable.Config.Options.STORE_MESSAGES
+  storeMessages:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+  table.insert(allFrames, storeMessages)
+
+  local removeOldMessages = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.REMOVE_OLD_MESSAGES, 28, function(state)
+    addonTable.Config.Set(addonTable.Config.Options.REMOVE_OLD_MESSAGES, state)
+  end)
+  removeOldMessages.option = addonTable.Config.Options.REMOVE_OLD_MESSAGES
+  removeOldMessages:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, 0)
+  table.insert(allFrames, removeOldMessages)
 
   container:SetScript("OnShow", function()
     local LibSharedMedia = LibStub and LibStub:GetLibrary("LibSharedMedia-3.0", true)
@@ -541,13 +682,20 @@ local function SetupFormatting(parent)
   showSeparator.option = addonTable.Config.Options.SHOW_TIMESTAMP_SEPARATOR
   showSeparator:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
   table.insert(allFrames, showSeparator)
-
+  
   local timestampSpacing
-  timestampSpacing = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.TIMESTAMP_SPACING, 0, 200, "%s%%", function()
+  timestampSpacing = addonTable.CustomiseDialog.Components.GetSlider(container, addonTable.Locales.TIMESTAMP_SPACING, 0, 200, function(x) return string.format("%s%%", x) end, function()
     addonTable.Config.Set(addonTable.Config.Options.TIMESTAMP_SPACING, timestampSpacing:GetValue() / 100)
   end)
   timestampSpacing:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
   table.insert(allFrames, timestampSpacing)
+
+  local timestampOnRight = addonTable.CustomiseDialog.Components.GetCheckbox(container, addonTable.Locales.TIMESTAMP_ON_RIGHT, 28, function(state)
+    addonTable.Config.Set(addonTable.Config.Options.TIMESTAMP_ON_RIGHT, state)
+  end)
+  timestampOnRight.option = addonTable.Config.Options.TIMESTAMP_ON_RIGHT
+  timestampOnRight:SetPoint("TOP", allFrames[#allFrames], "BOTTOM")
+  table.insert(allFrames, timestampOnRight)
 
   local shorteningDropdown = addonTable.CustomiseDialog.Components.GetBasicDropdown(container, addonTable.Locales.SHORTEN_CHANNELS, function(value)
     return addonTable.Config.Get(addonTable.Config.Options.SHORTEN_FORMAT) == value
@@ -638,24 +786,36 @@ local function SetupThemes(parent)
 
   local skinKey = addonTable.Config.Get(addonTable.Config.Options.CURRENT_SKIN)
   local currentSkin = addonTable.Skins.availableSkins[skinKey]
+  local spacer = false
   for index, option in ipairs(currentSkin.options) do
-    local optionKey = "skins." .. skinKey .. "." .. option.option
+    local optionKey = "skins." .. skinKey .. "." .. (option.option or "")
+    local offset = (index == 1 and -30 or 0) + (spacer and -30 or 0)
+    spacer = false
     if option.type == "slider" then
       local slider
-      slider = addonTable.CustomiseDialog.Components.GetSlider(container, option.text, option.min, option.max, option.valuePattern, function()
+      slider = addonTable.CustomiseDialog.Components.GetSlider(container, option.text, option.min, option.max, function(x) return option.valuePattern:format(x) end, function()
         addonTable.Config.Set(optionKey, slider:GetValue() / (option.scale or 1))
       end)
       slider.option = optionKey
       slider.scale = option.scale
-      slider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, index == 1 and -30 or 0)
+      slider:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, offset)
       table.insert(allFrames, slider)
     elseif option.type == "checkbox" then
       local checkbox = addonTable.CustomiseDialog.Components.GetCheckbox(container, option.text, 28, function(state)
         addonTable.Config.Set(optionKey, state)
       end)
       checkbox.option = optionKey
-      checkbox:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, -30)
+      checkbox:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, offset)
       table.insert(allFrames, checkbox)
+    elseif option.type == "colorPicker" then
+      local colorPicker = addonTable.CustomiseDialog.Components.GetColorPicker(container, option.text, 28, function(state)
+        addonTable.Config.Set(optionKey, state)
+      end)
+      colorPicker.option = optionKey
+      colorPicker:SetPoint("TOP", allFrames[#allFrames], "BOTTOM", 0, offset)
+      table.insert(allFrames, colorPicker)
+    elseif option.type == "spacer" then
+      spacer = true
     end
   end
 

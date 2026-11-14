@@ -17,7 +17,6 @@ local counter = 0
 
 local chatTabs = {}
 local chatFrames = {}
-local chatButtons = {}
 
 local skinners = {
   ChatButton = function(button, tags)
@@ -65,7 +64,7 @@ local skinners = {
   ChatFrame = function(frame, tags)
     local alpha = 1 - addonTable.Config.Get("skins.blizzard.chat_transparency")
     table.insert(chatFrames, frame)
-    frame.background = CreateFrame("Frame", nil, frame, "FloatingBorderedFrame")
+    frame.background = CreateFrame("Frame", "ChattynatorChatFrameBackground" .. #chatFrames, frame, "FloatingBorderedFrame")
     frame.background:SetFrameStrata("BACKGROUND")
     frame.background:SetFrameLevel(frame:GetFrameLevel() - 1)
     frame.background:SetPoint("TOPLEFT", frame.ScrollingMessagesWrapper, 0, 2)

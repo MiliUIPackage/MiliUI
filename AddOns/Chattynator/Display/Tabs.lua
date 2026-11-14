@@ -168,17 +168,19 @@ function addonTable.Display.TabsBarMixin:SetupPool()
         self.chatFrame:SavePosition()
       end)
       function tabButton:SetSelected(state)
-        self:SetFlashing(false)
-        self.selected = state
+        if state then
+          tabButton:SetFlashing(false)
+        end
+        tabButton.selected = state
       end
       function tabButton:SetColor(r, g, b)
-        self.color = {r = r, g = g, b = b}
+        tabButton.color = {r = r, g = g, b = b}
       end
       function tabButton:GetColor()
-        return self.color.r, self.color.g, self.color.b
+        return tabButton.color.r, tabButton.color.g, tabButton.color.b
       end
       function tabButton:SetFlashing(state)
-        self.flashing = state
+        tabButton.flashing = state
       end
       addonTable.Skins.AddFrame("ChatTab", tabButton)
     end

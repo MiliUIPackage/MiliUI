@@ -7,6 +7,7 @@ addonTable.CustomiseDialog.TYPE_LAYOUT = {
     {"EMOTE"},
     {"YELL"},
     {"GUILD", GUILD_CHAT},
+    {"GUILD_DISCORD", GUILD_DISCORD},
     {"OFFICER", OFFICER_CHAT},
     {"GUILD_ACHIEVEMENT"},
     {"ACHIEVEMENT"},

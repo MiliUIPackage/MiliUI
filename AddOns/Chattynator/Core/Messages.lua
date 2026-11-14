@@ -266,7 +266,9 @@ function addonTable.MessagesMonitorMixin:OnLoad()
     if settingName == addonTable.Config.Options.MESSAGE_SPACING then
       self.spacing = addonTable.Config.Get(addonTable.Config.Options.MESSAGE_SPACING)
       renderNeeded = true
-    elseif settingName == addonTable.Config.Options.TIMESTAMP_FORMAT or settingName == addonTable.Config.Options.TIMESTAMP_SPACING then
+    elseif settingName == addonTable.Config.Options.MESSAGE_ALIGNMENT then
+      renderNeeded = true
+    elseif settingName == addonTable.Config.Options.TIMESTAMP_FORMAT or settingName == addonTable.Config.Options.TIMESTAMP_SPACING or settingName == addonTable.Config.Options.TIMESTAMP_ON_RIGHT then
       self.timestampFormat = addonTable.Config.Get(addonTable.Config.Options.TIMESTAMP_FORMAT)
       self:SetInset()
       renderNeeded = true
@@ -488,7 +490,6 @@ function addonTable.MessagesMonitorMixin:OnEvent(eventName, ...)
     end
   elseif eventName == "PLAYER_LOGIN" then
     self.playerLoginFired = true
-    local oldFontKey = self.fontKey
     self.fontKey = addonTable.Config.Get(addonTable.Config.Options.MESSAGE_FONT)
     self.font = addonTable.Core.GetFontByID(self.fontKey)
     self.scalingFactor = addonTable.Core.GetFontScalingFactor()
@@ -532,6 +533,19 @@ function addonTable.MessagesMonitorMixin:OnEvent(eventName, ...)
     self.incomingType = nil
     self.playerGUID = nil
     self.lineID = nil
+  end
+end
+
+function addonTable.MessagesMonitorMixin:PlayerLevelUp(...)
+  if addonTable.Constants.IsForever then
+    ChatFrameUtil.DisplayLevelUp(self, ...);
+  end
+end
+
+function addonTable.MessagesMonitorMixin:PlayerLevelChanged(...)
+  if addonTable.Constants.IsRetail then
+    local oldLevel, newLevel, real = ...;
+    ChatFrameUtil.DisplayLevelUp(self, oldLevel, newLevel, real);
   end
 end
 
@@ -920,7 +934,7 @@ local function GetDecoratedSenderName(event, ...)
     local _, englishClass, _, _, _, _, _, playerLevel = GetPlayerInfoByGUID(senderGUID);
 
     if issecretvalue(playerLevel) and addonTable.Config.Get(addonTable.Config.Options.SHOW_LEVEL) then
-      decoratedPlayerName = decoratedPlayerName .. " (" .. playerLevel .. ")"
+      decoratedPlayerName = playerLevel .. ":" .. decoratedPlayerName
     end
 
     if englishClass then

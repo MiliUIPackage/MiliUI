@@ -128,6 +128,7 @@ function addonTable.Core.CreateFont(lsmPath, outline, shadow, force)
   fonts[key] = globalName
 
   local fontFamily = _G[globalName]
+  fontFamily:SetJustifyH("LEFT")
 
   if shadow == "SHADOW" then
     for _, a in ipairs(alphabet) do

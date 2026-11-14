@@ -169,6 +169,7 @@ function addonTable.Core.ApplyOverrides()
   end)
 
   if ChatFrameUtil and ChatFrameUtil.DeactivateChat then
+    local updater = CreateFrame("Frame")
     hooksecurefunc(ChatFrameUtil, "DeactivateChat", function(editBox)
       if editBox == ChatFrame1EditBox then
         local visible = addonTable.Config.Get(addonTable.Config.Options.KEEP_EDIT_BOX_VISIBLE)
@@ -176,6 +177,13 @@ function addonTable.Core.ApplyOverrides()
         if visible then
           editBox:SetAlpha(1)
         end
+        updater:SetScript("OnUpdate", function()
+          updater:SetScript("OnUpdate", nil)
+          editBox:SetShown(visible)
+          if visible then
+            editBox:SetAlpha(1)
+          end
+        end)
       else
         editBox:Hide()
       end

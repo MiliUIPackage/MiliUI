@@ -1,10 +1,16 @@
 ---@class addonTableChattynator
 local addonTable = select(2, ...)
 
-local playerPattern = "(|Hplayer:[^|]+|h%[?)(|?)([^|]-)(|?r?)(%]?|h)"
+local playerPattern = "(|Hplayer:[^|]+|h%[?)(|?c?)([^|]-)(|?r?)(%]?|h)"
 local function Level(data)
   if data.typeInfo.player and data.typeInfo.player.level then
-    data.text = data.text:gsub(playerPattern, "%1%2%3 (" .. data.typeInfo.player.level .. ")%4|r%5")
+    data.text = data.text:gsub(playerPattern, function(x1, x2, x3, x4, x5)
+      if x2 == "|c" then
+        return x1 .. x2 .. x3:gsub("([fF][fF]%x%x%x%x%x%x)", "%1" .. data.typeInfo.player.level .. ":") .. x4 .. x5
+      else
+        return x1 .. x2 .. x3, data.typeInfo.player.level .. x4 .. x5
+      end
+    end, 1)
   end
 end
 

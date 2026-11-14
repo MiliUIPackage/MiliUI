@@ -107,13 +107,51 @@ function addonTable.Display.ChatFrameMixin:OnLoad()
     elseif settingName == addonTable.Config.Options.EDIT_BOX_POSITION and self:GetID() == 1 then
       self:UpdateEditBox()
       self.ButtonsBar:Update()
+    elseif settingName == addonTable.Config.Options.EDIT_BOX_WIDTH and self:GetID() == 1 then
+      self:UpdateEditBox()
+      self.ButtonsBar:Update()
+    elseif settingName == addonTable.Config.Options.EDIT_BOX_HEIGHT and self:GetID() == 1 then
+      self:UpdateEditBox()
+      self.ButtonsBar:Update()
+    elseif settingName == addonTable.Config.Options.EDIT_BOX_HORIZONTAL_OFFSET and self:GetID() == 1 then
+      self:UpdateEditBox()
+      self.ButtonsBar:Update()
+    elseif settingName == addonTable.Config.Options.EDIT_BOX_VERTICAL_OFFSET and self:GetID() == 1 then
+      self:UpdateEditBox()
+      self.ButtonsBar:Update()
     elseif settingName == addonTable.Config.Options.SHOW_TABS then
       self:ApplyTabsShowing()
       self.ButtonsBar:Update()
+    elseif settingName == addonTable.Config.Options.FADE_COMPLETELY then
+      self.shouldFadeCompletely = addonTable.Config.Get(addonTable.Config.Options.FADE_COMPLETELY)
+    elseif settingName == addonTable.Config.Options.FADED_ALPHA then
+      self.fadedAlpha = addonTable.Config.Get(addonTable.Config.Options.FADED_ALPHA)
     end
   end)
 
   addonTable.Skins.AddFrame("ChatFrame", self)
+
+  self.shouldFadeCompletely = addonTable.Config.Get(addonTable.Config.Options.FADE_COMPLETELY)
+  self.fadedAlpha = addonTable.Config.Get(addonTable.Config.Options.FADED_ALPHA)
+
+  local step = 0.08
+  C_Timer.NewTicker(step, function()
+    local alpha = self:GetAlpha()
+    if not self.shouldFadeCompletely or self:IsMouseOver() or self.ButtonsBar:IsMouseOver() or ChatFrame1EditBox:HasFocus() or self.ScrollingMessages:IsAnyShown() or alpha < self.fadedAlpha or not self.ScrollingMessages:IsShown() then
+      if alpha < 1 then
+        local newAlpha = alpha + step * 8
+        self:SetAlpha(newAlpha)
+      end
+    elseif self.shouldFadeCompletely then
+      if alpha > 0 and not self.ScrollingMessages:IsAnyShown() then
+        local newAlpha = math.max(self.fadedAlpha, alpha - 1/3 * step)
+        self:SetAlpha(newAlpha)
+      end
+    end
+    if self:GetID() == 1 then
+      ChatFrame1EditBox:SetAlpha(self:GetAlpha())
+    end
+  end)
 end
 
 function addonTable.Display.ChatFrameMixin:Reset()
@@ -184,6 +222,7 @@ end
 
 function addonTable.Display.ChatFrameMixin:ApplyTabsShowing()
   local position = addonTable.Config.Get(addonTable.Config.Options.BUTTON_POSITION)
+  self.ScrollingMessages:SetPoint("TOPRIGHT",position == "outside_right" and -34 or 0, 0)
   if addonTable.Config.Get(addonTable.Config.Options.SHOW_TABS) ~= "never" then
     self.ScrollingMessagesWrapper:SetPoint("TOPLEFT", position == "outside_left" and 34 or 2, -27)
   else
@@ -195,20 +234,35 @@ function addonTable.Display.ChatFrameMixin:UpdateEditBox()
   if self:GetID() ~= 1 then
     return
   end
-
   local position = addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_POSITION)
+  local xOffset = addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_HORIZONTAL_OFFSET)
+  local yOffset = addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_VERTICAL_OFFSET)
+  local width = addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_WIDTH)/2
   ChatFrame1EditBox:ClearAllPoints()
   ChatFrame1EditBox:SetScale(addonTable.Core.GetFontScalingFactor())
+  ChatFrame1EditBox:SetHeight(addonTable.Config.Get(addonTable.Config.Options.EDIT_BOX_HEIGHT))
 
   if position == "bottom" then
     local _, _, _, clampBottom = self:GetClampRectInsets()
     self.ScrollingMessagesWrapper:SetPoint("BOTTOMRIGHT", 0, 6 + ChatFrame1EditBox:GetHeight() * ChatFrame1EditBox:GetScale() - clampBottom)
-    ChatFrame1EditBox:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, ChatFrame1EditBox:GetHeight() - clampBottom * ChatFrame1EditBox:GetScale())
+    ChatFrame1EditBox:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, yOffset + ChatFrame1EditBox:GetHeight() - clampBottom * ChatFrame1EditBox:GetScale())
     ChatFrame1EditBox:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, ChatFrame1EditBox:GetHeight() - clampBottom * ChatFrame1EditBox:GetScale())
   elseif position == "top" then
     self.ScrollingMessagesWrapper:SetPoint("BOTTOMRIGHT", 0, 5)
-    ChatFrame1EditBox:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
+    ChatFrame1EditBox:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0 + yOffset)
     ChatFrame1EditBox:SetPoint("TOPRIGHT", self, "TOPRIGHT", 0, 0)
+  elseif position == "screenBottom" then
+    self.ScrollingMessagesWrapper:SetPoint("BOTTOMRIGHT", 0, 5)
+    ChatFrame1EditBox:SetPoint("BOTTOMLEFT", nil, "BOTTOM", -width + xOffset, 0 + yOffset)
+    ChatFrame1EditBox:SetPoint("BOTTOMRIGHT", nil, "BOTTOM", width + xOffset, 0)
+  elseif position == "screenCenter" then
+    self.ScrollingMessagesWrapper:SetPoint("BOTTOMRIGHT", 0, 5)
+    ChatFrame1EditBox:SetPoint("LEFT", nil, "CENTER", -width + xOffset, 0 + yOffset)
+    ChatFrame1EditBox:SetPoint("RIGHT", nil, "CENTER", width + xOffset, 0)
+  elseif position == "screenTop" then
+    self.ScrollingMessagesWrapper:SetPoint("BOTTOMRIGHT", 0, 5)
+    ChatFrame1EditBox:SetPoint("TOPLEFT", nil, "TOP", -width + xOffset, 0 + yOffset)
+    ChatFrame1EditBox:SetPoint("TOPRIGHT", nil, "TOP", width + xOffset, 0)
   end
 
   local font = addonTable.Core.GetFontByID(addonTable.Config.Get(addonTable.Config.Options.MESSAGE_FONT))

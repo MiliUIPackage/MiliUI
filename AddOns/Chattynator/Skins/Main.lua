@@ -10,7 +10,9 @@ local currentSkinner = function() end
 function addonTable.Skins.InstallOptions()
   for key, skin in pairs(addonTable.Skins.availableSkins) do
     for _, opt in ipairs(skin.options) do
-      addonTable.Config.Install("skins." .. key .. "." .. opt.option, opt.default)
+      if opt.type ~= "spacer" then
+        addonTable.Config.Install("skins." .. key .. "." .. opt.option, opt.default)
+      end
     end
   end
 end

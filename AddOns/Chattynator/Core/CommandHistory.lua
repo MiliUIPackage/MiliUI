@@ -37,7 +37,7 @@ function addonTable.Core.InitializeChatCommandLogging()
     CHATTYNATOR_COMMAND_HISTORY = newHistory
   end
   local lines = CHATTYNATOR_COMMAND_HISTORY
-  local index = #lines
+  local index = #lines + 1
   local top
 
   ChatFrame1EditBox:SetAltArrowKeyMode(false)
@@ -56,7 +56,7 @@ function addonTable.Core.InitializeChatCommandLogging()
       end
       if lines[#lines] ~= text then
         table.insert(lines, text)
-        index = #lines
+        index = #lines + 1
       end
     end
   end)
@@ -65,16 +65,16 @@ function addonTable.Core.InitializeChatCommandLogging()
     if C_ChatInfo and C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() then
       return
     end
-    if key == "UP" and index > 0 then
-      if index == #lines then
+    if key == "UP" and index > 1 and #lines > 0 then
+      if index > #lines then
         top = GetCurrent(ChatFrame1EditBox)
       end
-      ChatFrame1EditBox:SetText(lines[index])
       index = index - 1
+      ChatFrame1EditBox:SetText(lines[index])
     elseif key == "DOWN" then
-      if index + 1 < #lines then
-        ChatFrame1EditBox:SetText(lines[index + 2])
-        index = index + 1
+      index = math.min(#lines + 1, index + 1)
+      if index <= #lines then
+        ChatFrame1EditBox:SetText(lines[index])
       elseif top then
         ChatFrame1EditBox:SetText(top)
         top = nil
@@ -84,6 +84,6 @@ function addonTable.Core.InitializeChatCommandLogging()
 
   ChatFrame1EditBox:HookScript("OnEditFocusLost", function(_, key)
     top = nil
-    index = #lines
+    index = #lines + 1
   end)
 end
