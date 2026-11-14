@@ -11,11 +11,11 @@
 | AdvancedInterfaceOptions | 2.1.9 | 2016-11-13 d26ef58e7 | https://www.curseforge.com/wow/addons/advancedinterfaceoptions |
 | AppearanceTooltip | v81 | 2026-03-22 ce2cb0c4a | https://www.curseforge.com/projects/101155 |
 | Auctionator | 320 | 2026-04-10 a092008e9 | https://www.curseforge.com/wow/addons/auctionator |
-| Baganator | 829 | 2026-09-23 73ae195e6 | https://github.com/plusmouse/Baganator（套組用的是 fork 的 miliui 分支，見 notes/project-baganator-miliui-skin.md） |
+| Baganator | 855 | 2026-11-14 50097c3a6 | https://github.com/plusmouse/Baganator（套組用的是 fork 的 miliui 分支，見 notes/project-baganator-miliui-skin.md） |
 | BuffReminders | v6.8.7 | 2026-10-15 09fa1b9d1 | https://www.curseforge.com/projects/1441094 |
 | BugSack | v12.0.4 | 2026-03-17 66dbf6bca | https://github.com/funkydude/BugSack |
-| Cell | r317_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
-| Chattynator | 227 | 2026-10-15 6425e9f11 | https://github.com/plusmouse/Chattynator |
+| Cell | r318_MiliUI | 2026-10-16 c414a5fb6 | fork 自 https://github.com/enderneko/Cell，**2026-08-16 起不再追上游、我們自己就是上游** |
+| Chattynator | 235 | 2026-11-14 c9c9272b0 | https://github.com/plusmouse/Chattynator |
 | DiGuaTimelineAudioHelper | 2.0.8 | 2026-10-20 10b98bea5 | 待補 |
 | EasyExperienceBar | 2026.03.09.A | 2026-10-24 84fa0f796（收錄） | 待補 |
 | HandyNotes | v1.6.31 | 2026-08-14 4982afee5 | https://www.curseforge.com/projects/14154 |
@@ -45,7 +45,7 @@
 | PremadeGroupsFilter | 7.5.2 | 2026-08-14 fb9edc38a | https://github.com/0xbs/premade-groups-filter |
 | SharedMedia | 3.1.0-191 | 2026-10-15 58f869f49（收錄） | 待補 |
 | Shooter | 1.0.8 | 2026-10-15 58f869f49（收錄） | 待補 |
-| Syndicator | 282 | 2026-09-23 188dbdf29 | https://github.com/plusmouse/Syndicator |
+| Syndicator | 290-1-g63b09fa | 2026-11-14 5c8ca9e0a | https://github.com/plusmouse/Syndicator |
 | TeleportMenu | v12.8 | 2026-08-21 6df5723ef | https://www.curseforge.com/projects/1087836 |
 | TinyInspect-Remake | v1.5.3 | 2026-10-15 c251ed5f0 | 待補 |
 | TrueStatValues | 1.5.7 | 2026-10-24 84fa0f796（收錄） | https://www.curseforge.com/projects/437378 |
