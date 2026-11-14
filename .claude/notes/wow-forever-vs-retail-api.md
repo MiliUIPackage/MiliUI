@@ -89,3 +89,9 @@ Forever 獨有：`Blizzard_SwingTimer`、`Blizzard_LegacySystem`、`Blizzard_Leg
 - **Mainline 專屬的 XML 模板在永恆可能不存在**：`CharacterFrameTabTemplate`（Mainline 版 CharacterFrame.xml，被 Camelot 版整檔取代）→ BugSack 開視窗報 `Couldn't find inherited node`。它的父模板 `PanelTabButtonTemplate`（SharedXML，Mainline 家族共用）還在。凡是借用「被 Camelot 整檔取代的面板」裡定義的模板都要查；查法：forever 分支的 TOC 看那個 XML 有沒有 `[ExcludeLoadGameType camelot]`。
 - **不要在 `PLAYER_LOGIN` 開頭主動補事件**：Cell 第一階段在 PLAYER_LOGIN 第一行主動呼叫 `ACTIVE_TALENT_GROUP_CHANGED()`，它當場 `Fire("SpecChanged")` → `F.UpdateLayout`，而 `Cell.vars.groupType`／`playerNameShort` 還沒設 → `UnitButton.lua` 「table index is nil」，**PLAYER_LOGIN 後半整段不跑**，後面 Nicknames 等一串都是連鎖。那個主動呼叫本來就多餘：PLAYER_LOGIN 裡原本就有一行無條件的 `UpdateSpecVars()`。教訓：一筆錯誤後面跟著同一支插件的「nil key／nil 值」錯誤，先懷疑是初始化函式中途炸掉，修第一筆就好。
 
+
+## 實機回報（2026-11-14，ESC 選單兩件）
+
+- **永恆版 `GameMenuFrame.Header` 的 frame level 是 506，不是 +1**：永恆多了手把用的 `FrameGlow`（XML 寫死 `frameLevel="505"`），`FrameGlowMixin:OnLoad` 會 `headerFrame:SetFrameLevel(self:GetFrameLevel() + 1)`（Blizzard_SharedXMLBase/FocusEffects.lua）。凡是 `layoutType = DialogFrameWithHeaderTemplate` 且帶 `FrameGlow` 的框都一樣。掛在這種框上、會蓋到標題的自製子框，層級要**讀 `Header:GetFrameLevel()` 再往上疊**，不要寫死「父框 +N」（`MiliUI/Enhance/GameMenu_MiliUIButton.lua` 的 `RaiseMenu`）。
+- **永恆不要在同一次點擊裡「先 `HideUIPanel(GameMenuFrame)` 再 `ReloadUI()`」**：`C_UI.Reload()` 會被擋（taint.log：`An action was blocked because of taint from MiliUI - Reload()`），介面不重載、跳暴雪的插件被阻擋彈窗；正式服同一段沒事。拿掉前面的 `HideUIPanel` 就好了（使用者實機確認）。確切機制沒查到，只知道永恆版 GameMenuFrame 收起來時多跑一段 `InputUtil.RegisterForInterfaceTransitions` 的手把／焦點轉場。
+- **這類錯誤 BugSack 看不到**：套組那份 BugGrabber 把 `ADDON_ACTION_FORBIDDEN`／`BLOCKED` 的 `grabError` 註解掉了。要查就 `/console taintLog 2` → `/reload` → 重現，讀 `_forever_/Logs/taint.log` grep `blocked`。
