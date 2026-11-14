@@ -17,6 +17,8 @@ for index, key in ipairs(addonTable.Constants.AllWarbandIndexes) do
   warbandBags[key] = index
 end
 
+local GetBagNumSlots = Syndicator.API.GetContainerNumSlots
+
 local function GetEmptyPending()
   return {
     bags = {},
@@ -31,6 +33,19 @@ local function GetEmptyPending()
   }
 end
 
+local function GetInfo(slotInfo)
+  return {
+    itemID = slotInfo.itemID,
+    itemCount = slotInfo.stackCount,
+    iconTexture = slotInfo.iconFileID,
+    itemLink = slotInfo.hyperlink,
+    quality = slotInfo.quality,
+    isBound = slotInfo.isBound,
+    hasLoot = slotInfo.hasLoot,
+  }
+end
+
+
 -- Assumed to run after PLAYER_LOGIN
 function SyndicatorBagCacheMixin:OnLoad()
   FrameUtil.RegisterFrameForEvents(self, {
@@ -44,9 +59,6 @@ function SyndicatorBagCacheMixin:OnLoad()
     "BANKFRAME_CLOSED",
     "PLAYERBANKSLOTS_CHANGED",
   })
-  if not addonTable.Constants.CharacterBankTabsActive then
-    self:RegisterEvent("PLAYERBANKBAGSLOTS_CHANGED")
-  end
   if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     -- Bank items reagent bank updating
     self:RegisterEvent("TRADE_SKILL_ITEM_CRAFTED_RESULT")
@@ -54,6 +66,8 @@ function SyndicatorBagCacheMixin:OnLoad()
     self:RegisterEvent("BANK_TABS_CHANGED")
     self:RegisterEvent("BANK_TAB_SETTINGS_UPDATED")
     self:RegisterEvent("PLAYER_ACCOUNT_BANK_TAB_SLOTS_CHANGED")
+  else
+    self:RegisterEvent("PLAYERBANKBAGSLOTS_CHANGED")
   end
   if addonTable.Constants.IsRetail then
     -- Keystone level changing due to start/end of an M+ dungeon
@@ -110,23 +124,13 @@ function SyndicatorBagCacheMixin:OnEvent(eventName, ...)
       self:QueueCaching()
     end
 
-  elseif eventName == "PLAYERREAGENTBANKSLOTS_CHANGED" then
-    if self.bankOpen or time() - self.craftingTime < craftingItemUpdateDelay then
-      self.pending.bank[Enum.BagIndex.Reagentbank] = true
-      if not self.bankOpen then -- can only scan changed slots when bank is closed
-        self.pending.reagentBankSlots[...] = true
-      end
-      self:QueueCaching()
-    end
-
-  elseif eventName == "REAGENTBANK_UPDATE" then
-    self.pending.bank[Enum.BagIndex.Reagentbank] = true
-    if self.bankOpen then
-      self:QueueCaching()
-    end
-
   elseif eventName == "BAG_CONTAINER_UPDATE" then
     self:UpdateContainerSlots()
+
+    if self.bankOpen and addonTable.Constants.BankTabsAsBags then
+      self:ScanBankTabs()
+      self:QueueCaching()
+    end
 
   elseif eventName == "PLAYERBANKBAGSLOTS_CHANGED" then
     self:UpdateContainerSlots()
@@ -226,27 +230,58 @@ function SyndicatorBagCacheMixin:ScanBankTabs()
     return
   end
 
-  if addonTable.Constants.CharacterBankTabsActive then
-    local allTabs = C_Bank.FetchPurchasedBankTabData(Enum.BankType.Character)
-    local characterData = SYNDICATOR_DATA.Characters[self.currentCharacter]
-    local bank = characterData.bankTabs
+  local function DoBagSlot(bagID, slotID, bag)
+    bag[slotID] = {}
 
-    for index, tabDetails in ipairs(allTabs) do
-      if not bank[index] then
-        bank[index] = { slots = {}, iconTexture = QUESTION_MARK_ICON, name = "", depositFlags = 0 }
+    local location = {bagID = bagID, slotIndex = slotID}
+    local itemID = C_Item.DoesItemExist(location) and C_Item.GetItemID(location)
+    if itemID then
+      if C_Item.IsItemDataCachedByID(itemID) then
+        local slotInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+        if slotInfo then
+          bag[slotID] = GetInfo(slotInfo)
+        end
+      else
+        addonTable.Utilities.LoadItemData(itemID, function()
+          local slotInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+          if slotInfo and slotInfo.itemID == itemID then
+            bag[slotID] = GetInfo(slotInfo)
+          end
+        end)
       end
-      bank[index].iconTexture = tabDetails.icon
-      bank[index].name = tabDetails.name
-      bank[index].depositFlags = tabDetails.depositFlags
     end
-    if next(characterData.bank) then
-      characterData.bank = {}
-      characterData.void = {}
-      characterData.containerInfo.bank = {}
-      addonTable.CallbackRegistry:TriggerEvent("VoidCacheUpdate", self.currentCharacter)
-    end
-    self.pending.containerBags.bank = true
   end
+
+  local allTabs = C_Bank.FetchPurchasedBankTabData(Enum.BankType.Character)
+  local characterData = SYNDICATOR_DATA.Characters[self.currentCharacter]
+  local bank = characterData.bankTabs
+
+  for index, tabDetails in ipairs(allTabs) do
+    if not bank[index] then
+      bank[index] = { slots = {}, iconTexture = QUESTION_MARK_ICON, name = "", depositFlags = 0 }
+    end
+    bank[index].iconTexture = tabDetails.icon
+    bank[index].name = tabDetails.name
+    bank[index].depositFlags = tabDetails.depositFlags
+  end
+  if next(characterData.bank) then
+    characterData.bank = {}
+    characterData.void = {}
+    characterData.containerInfo.bank = {}
+    addonTable.CallbackRegistry:TriggerEvent("VoidCacheUpdate", self.currentCharacter)
+  end
+
+  if addonTable.Constants.BankTabsAsBags then
+    local characterBankBags = {}
+    SYNDICATOR_DATA.Characters[self.currentCharacter].containerInfo.characterBank = characterBankBags
+
+    characterBankBags[1] = {}
+    for index = 2, #allTabs do
+      DoBagSlot(Enum.BagIndex.Characterbanktab, index, characterBankBags)
+    end
+  end
+
+  self.pending.containerBags.bank = true
 
   if C_Bank.FetchBankLockedReason(Enum.BankType.Account) ~= nil then
     return
@@ -264,6 +299,17 @@ function SyndicatorBagCacheMixin:ScanBankTabs()
     warband.bank[index].name = tabDetails.name
     warband.bank[index].depositFlags = tabDetails.depositFlags
   end
+
+  if addonTable.Constants.BankTabsAsBags then
+    local warbandBankBags = {}
+    SYNDICATOR_DATA.Characters[self.currentCharacter].containerInfo.warbandBank = warbandBankBags
+
+    warbandBankBags[1] = {}
+    for index = 2, #allTabs do
+      DoBagSlot(Enum.BagIndex.Accountbanktab, index, warbandBankBags)
+    end
+  end
+
   self.pending.containerBags.warband = true
 end
 
@@ -360,19 +406,6 @@ function SyndicatorBagCacheMixin:OnUpdate()
   local waiting = 0
   local loopsFinished = false
 
-  local function GetInfo(slotInfo)
-    return {
-      itemID = slotInfo.itemID,
-      itemCount = slotInfo.stackCount,
-      iconTexture = slotInfo.iconFileID,
-      itemLink = slotInfo.hyperlink,
-      quality = slotInfo.quality,
-      isBound = slotInfo.isBound,
-      hasLoot = slotInfo.hasLoot,
-    }
-  end
-
-
   local function DoSlot(bagID, slotID, bag)
     -- Create raw location as optimisation (~20% time saving)
     -- Equivalent to ItemLocation:CreateFromBagAndSlot(bagID, slotID)
@@ -407,7 +440,7 @@ function SyndicatorBagCacheMixin:OnUpdate()
     local bagIndex = bagBags[bagID]
     bags[bagIndex] = {}
     local bagData = bags[bagIndex]
-    for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
+    for slotID = 1, GetBagNumSlots(bagID) do
       DoSlot(bagID, slotID, bagData)
     end
   end

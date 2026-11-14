@@ -148,3 +148,14 @@ end
 function Syndicator.API.GetSearchKeywords()
   return CopyTable(addonTable.Search.GetKeywords())
 end
+
+Syndicator.API.GetContainerNumSlots = C_Container.GetContainerNumSlots
+if addonTable.Constants.IsForever then
+  Syndicator.API.GetContainerNumSlots = function(bagID)
+    if bagID == Enum.BagIndex.Keyring then
+      return GetKeyRingSize()
+    else
+      return C_Container.GetContainerNumSlots(bagID)
+    end
+  end
+end

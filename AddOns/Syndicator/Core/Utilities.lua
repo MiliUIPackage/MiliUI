@@ -29,20 +29,39 @@ do
   end
 end
 
+function addonTable.Utilities.GetRegionalRulesetName()
+  if C_GameRules.IsGameRuleActive(Enum.GameRule.PvPRuleset) and C_GameRules.IsGameRuleActive(Enum.GameRule.RPRuleset) then
+    return "RPPvP"
+  elseif C_GameRules.IsGameRuleActive(Enum.GameRule.PvPRuleset) then
+    return "PvP"
+  elseif C_GameRules.IsGameRuleActive(Enum.GameRule.RPRuleset) then
+    return "RP"
+  elseif C_GameRules.IsGameRuleActive(Enum.GameRule.HardcoreRuleset) then
+    return "HC"
+  else
+    return "PvE"
+  end
+end
+
 if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
   function addonTable.Utilities.GetCharacterFullName()
-    local name = UnitName("player")
-    return name
+    local name, surname = UnitName("player")
+    return name .. Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR .. surname .. "-" .. addonTable.Utilities.GetRegionalRulesetName()
   end
 
-  addonTable.Utilities.GetCharacterName = addonTable.Utilities.GetCharacterFullName
+  function addonTable.Utilities.GetCharacterName()
+    local name, surname = UnitName("player")
+    return name .. Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR .. surname
+  end
 else
   function addonTable.Utilities.GetCharacterFullName()
     local characterName, realm = UnitFullName("player")
     return characterName .. "-" .. realm
   end
+
   function addonTable.Utilities.GetCharacterName()
-    return (UnitName("player"))
+    local name = UnitName("player")
+    return name
   end
 end
 
@@ -201,7 +220,7 @@ end
 local cachedConnectedRealms = {}
 if RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() then
   function addonTable.Utilities.CacheConnectedRealms()
-    cachedConnectedRealms = {""}
+    cachedConnectedRealms = {addonTable.Utilities.GetRegionalRulesetName()}
   end
 else
   function addonTable.Utilities.CacheConnectedRealms()

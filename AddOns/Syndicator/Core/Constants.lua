@@ -23,6 +23,8 @@ addonTable.Constants = {
   IsBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC,
   IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
 
+  IsTalebound = GetGameType and GetGameType() == "wowhack",
+
   IsTitan = GetBuildInfo():match("^3%.8") ~= nil,
 
   IsLegacyAH = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC or IsUsingLegacyAuctionClient ~= nil and IsUsingLegacyAuctionClient(),
@@ -45,8 +47,9 @@ addonTable.Constants.IsClassic = addonTable.Constants.IsClassic and not addonTab
 addonTable.Constants.IsBrokenTooltipScanning = false
 
 if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
-  addonTable.Constants.WarbandBankActive = true
+  addonTable.Constants.WarbandBankActive = addonTable.Constants.IsRetail
   addonTable.Constants.CharacterBankTabsActive = true
+  addonTable.Constants.BankTabsAsBags = C_Bank.ShouldUsePlayerBagsInBank and C_Bank.ShouldUsePlayerBagsInBank() or false
   table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
   addonTable.Constants.BagSlotsCount = 5
   addonTable.Constants.MaxBagSize = 42
@@ -75,7 +78,7 @@ if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
   }
 end
 
-if addonTable.Constants.IsEra or (KeyRingButtonIDToInvSlotID and not addonTable.Constants.IsMists) then
+if addonTable.Constants.IsEra or addonTable.Constants.IsForever or (KeyRingButtonIDToInvSlotID and not addonTable.Constants.IsMists) then
   table.insert(addonTable.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
 end
 if addonTable.Constants.IsEra then

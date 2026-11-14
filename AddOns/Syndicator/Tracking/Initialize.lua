@@ -70,8 +70,8 @@ local function InitCurrentCharacter()
       bank = {},
       money = 0,
       details = {
-        realmNormalized = RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and "" or GetNormalizedRealmName(),
-        realm = RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and "" or GetRealmName(),
+        realmNormalized = RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and addonTable.Utilities.GetRegionalRulesetName() or GetNormalizedRealmName(),
+        realm = RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and addonTable.Utilities.GetRegionalRulesetName() or GetRealmName(),
         character = addonTable.Utilities.GetCharacterName(),
         show = {
           inventory = true,

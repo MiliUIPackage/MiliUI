@@ -153,6 +153,22 @@ function SyndicatorItemSummariesMixin:GenerateCharacterSummary(characterName, st
           summary[key].equipped = summary[key].equipped + item.itemCount
         end
       end
+
+      for _, item in ipairs(details.containerInfo.characterBank or {}) do
+        if item.itemLink then
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
+          GenerateBase(key)
+          summary[key].equipped = summary[key].equipped + item.itemCount
+        end
+      end
+
+      for _, item in ipairs(details.containerInfo.warbandBank or {}) do
+        if item.itemLink then
+          local key = addonTable.Utilities.GetItemKey(item.itemLink)
+          GenerateBase(key)
+          summary[key].equipped = summary[key].equipped + item.itemCount
+        end
+      end
     end
 
     for _, bag in pairs(details.bank) do

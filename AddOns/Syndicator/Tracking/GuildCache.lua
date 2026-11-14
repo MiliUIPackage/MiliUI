@@ -78,7 +78,7 @@ function SyndicatorGuildCacheMixin:GetGuildKey()
   local oldGuild = self.currentGuild
 
   self.currentGuild = nil
-  realm = realm or GetNormalizedRealmName()
+  realm = (RegionalUniqueNamesEnabled and RegionalUniqueNamesEnabled() and addonTable.Utilities.GetRegionalRulesetName()) or realm or GetNormalizedRealmName()
 
   local guildKey = guildName .. "-" .. realm
 

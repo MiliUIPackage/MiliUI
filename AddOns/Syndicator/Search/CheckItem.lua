@@ -696,14 +696,16 @@ end
 
 local UPGRADE_PATH_PATTERN = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING and "^" .. ITEM_UPGRADE_TOOLTIP_FORMAT_STRING:gsub("%%s", ".*"):gsub("%%d", ".*")
 local currentSeasonBonusIDs = {
+  [13751] = true,
+  [13335] = true,
 }
 
 local function CheckBonusIDs(itemLink)
   local _, main = LinkUtil.ExtractLink(itemLink)
   local entries = {strsplit(":", main)}
-  local bonusIDCount = tonumber(entries[14])
+  local bonusIDCount = tonumber(entries[13])
   if bonusIDCount and bonusIDCount > 0 then
-    for i = 15, 14 + bonusIDCount do
+    for i = 14, 13 + bonusIDCount do
       if currentSeasonBonusIDs[tonumber(entries[i])] then
         return true
       end
@@ -1536,6 +1538,7 @@ if addonTable.Constants.IsForever then
   stats["SPELL_DAMAGE_DONE"] = "spell damage"
   stats["SPELL_HEALING_DONE"] = "spell healing"
   stats["SPELL_PENETRATION"] = "spell piercing"
+  stats["MANA_REGENERATION"] = "mana regeneration per 5 sec"
 end
 
 for s, english in pairs(stats) do
