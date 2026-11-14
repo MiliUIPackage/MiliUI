@@ -400,6 +400,9 @@ local function HideBagButtons()
   if BagBarExpandToggle then
     BagBarExpandToggle:SetParent(GW.HiddenFrame)
   end
+  if BagsBar then
+    BagsBar:SetParent(GW.HiddenFrame)
+  end
 end
 
 local function SetConstants()

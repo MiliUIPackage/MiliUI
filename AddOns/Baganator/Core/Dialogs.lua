@@ -1,12 +1,11 @@
----@class addonTableBaganator
-local addonTable = select(2, ...)
+local addonName, addonTable = ...
 
 local counter = 0
 local function GenerateDialog()
   counter = counter + 1
-  local dialog = CreateFrame("Frame", "BaganatorDialog" .. counter, UIParent)
+  local dialog = CreateFrame("Frame", addonName .. "Dialog" .. counter, UIParent)
   dialog:SetToplevel(true)
-  table.insert(UISpecialFrames, "BaganatorDialog" .. counter)
+  table.insert(UISpecialFrames, addonName .. "Dialog" .. counter)
   dialog:SetPoint("TOP", 0, -135)
   dialog:EnableMouse(true)
   dialog:SetFrameStrata("DIALOG")
@@ -28,6 +27,14 @@ local function GenerateDialog()
   dialog.text:SetJustifyH("CENTER")
 
   addonTable.Skins.AddFrame("Dialog", dialog)
+
+  dialog:SetScript("OnShow", function()
+    addonTable.Gamepad.AnnounceShow(dialog, true)
+  end)
+
+  dialog:SetScript("OnHide", function()
+    addonTable.Gamepad.AnnounceHide(dialog, true)
+  end)
 
   return dialog
 end
@@ -128,6 +135,9 @@ function addonTable.Dialogs.ShowConfirm(text, yesText, noText, confirmCallback)
     dialog.cancelButton:SetScript("OnClick", function()
       dialog:Hide()
     end)
+
+    addonTable.Skins.AddFrame("Button", dialog.acceptButton)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
 
     confirmDialogsBySkin[currentSkinKey] = dialog
   end
@@ -272,8 +282,9 @@ function addonTable.Dialogs.ShowDualChoice(text, option1Text, option2Text, optio
       dialog:Hide()
     end)
 
-    --addonTable.Skins.AddFrame("Button", dialog.acceptButton)
-    --addonTable.Skins.AddFrame("Button", dialog.cancelButton)
+    addonTable.Skins.AddFrame("Button", dialog.option1Button)
+    addonTable.Skins.AddFrame("Button", dialog.option2Button)
+    addonTable.Skins.AddFrame("Button", dialog.cancelButton)
 
     dualChoiceDialogsBySkin[currentSkinKey] = dialog
   end

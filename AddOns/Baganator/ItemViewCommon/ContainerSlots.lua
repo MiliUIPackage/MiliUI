@@ -3,7 +3,7 @@ local addonTable = select(2, ...)
 
 local swapTracker = CreateFrame("Frame")
 
-function ApplyCursor(targetInventorySlot, associatedTargetBag)
+local function ApplyCursor(targetInventorySlot, associatedTargetBag)
   local location = C_Cursor.GetCursorItem()
   -- Handle bags dragged from other equipment slots or items dropped into bags
   if location == nil or not location:HasAnyLocation() or not C_Item.DoesItemExist(location) or select(6, C_Item.GetItemInfoInstant(C_Item.GetItemID(location))) ~= Enum.ItemClass.Container then
@@ -44,7 +44,7 @@ function ApplyCursor(targetInventorySlot, associatedTargetBag)
             addonTable.NewItems:ClearNewItem(0, 1)
             C_Container.PickupContainerItem(0, 1)
             if not C_Item.DoesItemExist(location) or C_Item.GetItemGUID(location) ~= movedGUID then
-              for index = 1, C_Container.GetContainerNumSlots(bagID) do
+              for index = 1, Syndicator.API.GetContainerNumSlots(bagID) do
                 local potentialLocation = {bagID = bagID, slotIndex = index}
                 if C_Item.DoesItemExist(potentialLocation) then
                   if C_Item.GetItemGUID(potentialLocation) == movedGUID then
@@ -110,7 +110,7 @@ end
 function BaganatorRetailBagSlotButtonMixin:OnLoad()
   self.SlotBackground = self:CreateTexture(nil, "BACKGROUND", nil, -1)
   self.SlotBackground:SetAllPoints(self.icon)
-  self.SlotBackground:SetTexture((select(2, GetInventorySlotInfo("Bag1"))))
+  self.SlotBackground:SetAtlas("bags-item-slot64")
 end
 
 function BaganatorRetailBagSlotButtonMixin:Init()
@@ -553,7 +553,5 @@ function BaganatorBagSlotsContainerMixin:OnEvent(eventName)
       SetItemButtonDesaturated(button, false)
       button:Enable()
     end
-  elseif eventName == "MODIFIER_STATE_CHANGED" then
-    self:UpdateAllButtons()
   end
 end

@@ -49,6 +49,12 @@ function BaganatorCategoryViewsCategoryButtonMixin:OnLeave()
   SetCursor(nil);
 end
 
+local focussedSection = nil
+
+function addonTable.CategoryViews.GetFocussedSectionIndex()
+  return focussedSection
+end
+
 function addonTable.CategoryViews.GetSectionButtonPool(parent)
   return CreateFramePool("Button", parent, nil, nil, false, function(button)
     if button.arrow then
@@ -137,6 +143,12 @@ function addonTable.CategoryViews.GetSectionButtonPool(parent)
       addonTable.CallbackRegistry:UnregisterCallback("SearchMonitorComplete", self)
       self.fadeAnimation:Stop()
     end)
+    function button:OnSmartNavSelect()
+      focussedSection = button.index
+    end
+    function button:OnSmartNavDeselect()
+      focussedSection = nil
+    end
     function button:CheckResults(text)
       self.fadeAnimation:Stop()
       self.lastText = text

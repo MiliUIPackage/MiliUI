@@ -159,7 +159,6 @@ local function GetCategoryContainer(parent, pickupCallback)
     frame:GetFontString():SetPoint("RIGHT", -8, 0)
     frame:GetFontString():SetPoint("LEFT", 40, 0)
     frame:GetFontString():SetJustifyH("LEFT")
-    local default = addonTable.CategoryViews.Constants.SourceToCategory[frame.value]
     local categoryEnd = frame.value == addonTable.CategoryViews.Constants.SectionEnd
     frame:SetEnabled(not categoryEnd)
     frame.repositionButton:SetShown(not categoryEnd)

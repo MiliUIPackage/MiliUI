@@ -17,11 +17,13 @@ function BaganatorCategoryViewsItemsPreparationMixin:PrepareItems(everything, ca
   local loopComplete = false
   local processedKey = {}
 
+  local isReversed = addonTable.Config.Get(addonTable.Config.Options.SORT_START_AT_BOTTOM)
+  local projectile = Enum.ItemClass.Projectile
+  local potion = Enum.ItemClass.Consumable
+  local isAmmoReversed = addonTable.Constants.IsForever or addonTable.Constants.IsClassic
+
   for index, item in ipairs(everything) do
     local key = item.key
-    -- Needs to be set here as the later code will ensure fields are shared,
-    -- when invertedItemCount shouldn't be
-    item.invertedItemCount = -item.itemCount
     item.index = index
     local seen = self.seenData[key]
     if not processedKey[key] then
@@ -53,6 +55,15 @@ function BaganatorCategoryViewsItemsPreparationMixin:PrepareItems(everything, ca
       processedKey[key] = true
     else
       setmetatable(item, {__index = seen, __newindex = seen})
+    end
+
+    -- Needs to be set here as the later code will ensure fields are shared,
+    -- when invertedItemCount shouldn't be
+    -- Special case for ammo and potions to ensure smallest stacks used first
+    if isAmmoReversed and (item.classID == projectile or item.classID == potion) and not isReversed then
+      rawset(item, "invertedItemCount", item.itemCount)
+    else
+      rawset(item, "invertedItemCount", -item.itemCount)
     end
   end
 

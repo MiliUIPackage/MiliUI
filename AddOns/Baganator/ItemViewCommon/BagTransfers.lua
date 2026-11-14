@@ -43,7 +43,7 @@ do
 end
 
 local TransferToBank
-if Syndicator and Syndicator.Constants.WarbandBankActive then
+if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
   local warbandPrevCounts = nil
 
   TransferToBank = function(matches, characterName, callback)
@@ -85,7 +85,7 @@ if Syndicator and Syndicator.Constants.WarbandBankActive then
       error("unrecognised bank type")
     end
 
-    local status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBankIndexes, bankSlots)
+    local status = addonTable.Transfers.FromBagsToBags(matches, bankIndexes, bankSlots)
 
     if status == addonTable.Constants.SortStatus.Complete then
       warbandPrevCounts = nil

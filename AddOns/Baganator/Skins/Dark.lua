@@ -105,11 +105,11 @@ local function ItemButtonQualityHook(frame, quality)
     local c = ITEM_QUALITY_COLORS[quality]
     if c then
       frame.IconBorder:SetVertexColor(c.r, c.g, c.b, quality > 1 and 1 or 0.5)
-      frame.IconBorder:Show()
     else
       frame.IconBorder:SetVertexColor(color.r, color.g, color.b, 1)
-      frame.IconBorder:Show()
     end
+    frame.IconBorder:Show()
+    frame.icon:SetTexCoord(unpack(texCoords))
   end
 end
 local function ItemButtonTextureHook(frame)
@@ -177,6 +177,9 @@ local allItemButtons = {}
 local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrSimpleHooked = true
+    if frame.icon:GetMaskTexture(1) then
+      frame.icon:RemoveMaskTexture(frame.icon:GetMaskTexture(1))
+    end
     local r, g, b = Lighten(color.r, color.g, color.b, -0.2)
     if not tags.containerBag then
       table.insert(allItemButtons, frame)

@@ -789,7 +789,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsGrid(container)
   local cachedItemButtonCounter = 0
   local function GetCachedItemButton()
     -- Use cached item buttons from cached layout views
-    if addonTable.Constants.IsRetail then
+    if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
       return CreateFrame("ItemButton", nil, container, "BaganatorRetailCachedItemButtonTemplate")
     else
       cachedItemButtonCounter = cachedItemButtonCounter + 1

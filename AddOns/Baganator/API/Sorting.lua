@@ -1,6 +1,6 @@
 ---@class addonTableBaganator
 local addonTable = select(2, ...)
-if addonTable.Constants.IsRetail then
+if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
   Baganator.API.RegisterContainerSort(addonTable.Locales.BLIZZARD, "blizzard", function(isReverse, containerType)
     C_Container.SetSortBagsRightToLeft(not isReverse)
     if containerType == Baganator.API.Constants.ContainerType.Backpack then

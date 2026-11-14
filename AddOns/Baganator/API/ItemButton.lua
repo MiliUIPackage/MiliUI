@@ -453,8 +453,12 @@ if addonTable.Constants.IsRetail then
     end
 
     KeystoneText:SetText(level)
+    local color
     if iconSettings.useQualityColors then
-      local color = C_ChallengeMode.GetKeystoneLevelRarityColor(tonumber(level))
+      color = C_ChallengeMode.GetKeystoneLevelRarityColor(tonumber(level))
+    end
+
+    if color then
       KeystoneText:SetTextColor(color.r, color.g, color.b)
     else
       KeystoneText:SetTextColor(1,1,1)

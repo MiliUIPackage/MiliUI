@@ -1,6 +1,7 @@
 ## Interface: 120100, 120105, 16001, 50504, 38001, 20506, 11509
+## ExcludeLoadGameType: wowhack
 ## Title: Baganator
-## Version: 829
+## Version: 855
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -31,6 +32,7 @@ Core\Config.lua
 Core\Utilities.lua
 Core\SlashCmd.lua
 Core\Welcome.lua
+Core\Gamepad.lua
 Core\Dialogs.lua
 Core\Initialize.lua
 
@@ -67,6 +69,7 @@ ItemViewCommon\ItemButton.lua
 ItemViewCommon\ItemButton.xml
 ItemViewCommon\Pools.lua
 ItemViewCommon\ContainerSlots.lua
+ItemViewCommon\BankContainerTabSlots.lua
 ItemViewCommon\ContainerSlots.xml
 ItemViewCommon\Components.xml
 ItemViewCommon\Layouts.lua
@@ -88,6 +91,8 @@ ItemViewCommon\BankViewCharacterView.lua
 ItemViewCommon\BankViewCharacterView.xml
 ItemViewCommon\BankViewCharacterTabsView.lua
 ItemViewCommon\BankViewCharacterTabsView.xml
+ItemViewCommon\BankViewCharacterTabsAsBagsView.lua
+ItemViewCommon\BankViewCharacterTabsAsBagsView.xml
 ItemViewCommon\BankViewWarbandView.lua
 ItemViewCommon\BankViewWarbandView.xml
 ItemViewCommon\BankView.lua
@@ -97,13 +102,17 @@ ItemViewCommon\BagTransfers.lua
 ItemViewCommon\NewItemsTracking.lua
 ItemViewCommon\AnchorSetter.lua
 ItemViewCommon\ShowBlizzardBagPreferences.lua
+ItemViewCommon\LinkGamepadGrid.lua
 ItemViewCommon\Initialize.lua
 
 SingleViews\Pools.lua
+SingleViews\ComputeGamepadGrid.lua
 SingleViews\BankViewCharacterView.lua
 SingleViews\BankViewCharacterView.xml
 SingleViews\BankViewCharacterTabsView.lua
 SingleViews\BankViewCharacterTabsView.xml
+SingleViews/BankViewCharacterTabsAsBagsView.lua
+SingleViews/BankViewCharacterTabsAsBagsView.xml
 SingleViews\BankViewWarbandView.lua
 SingleViews\BankViewWarbandView.xml
 SingleViews\BankView.xml
@@ -123,12 +132,15 @@ CategoryViews\CategoryGrouping.lua
 CategoryViews\CategorySort.lua
 CategoryViews\ItemsPreparation.lua
 CategoryViews\SpecialisedSplitting.lua
+CategoryViews\ComputeGamepadGrid.lua
 CategoryViews\Components.lua
 CategoryViews\Components.xml
 CategoryViews\BankViewCharacterView.lua
 CategoryViews\BankViewCharacterView.xml
 CategoryViews\BankViewCharacterTabsView.lua
 CategoryViews\BankViewCharacterTabsView.xml
+CategoryViews\BankViewCharacterTabsAsBagsView.lua
+CategoryViews\BankViewCharacterTabsAsBagsView.xml
 CategoryViews\BankViewWarbandView.lua
 CategoryViews\BankViewWarbandView.xml
 CategoryViews\BankView.xml
@@ -175,3 +187,4 @@ Compatibility\Contexts.lua
 Compatibility\ItemLevels.lua
 Compatibility\AuctionValue.lua
 Compatibility\BankType.lua
+Compatibility\Unusable.lua

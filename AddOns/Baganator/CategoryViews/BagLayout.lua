@@ -434,12 +434,12 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         button.moveOffscreen = IsSectionToggled(details.section)
         table.insert(layoutsShown, button)
         button.type = details.type
+        button.index = index .. "_" .. bagIndexes[1]
       else
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
       end
     elseif details.type == "category" then
       if #details.results > 0 and not hidden[details.source] then
-        local searchResults = details.results
         local layout = layoutsBySource[details.sourceKey]
         if not layout then
           layout = table.remove(unusedLayouts)
@@ -483,7 +483,73 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     addonTable.Utilities.DebugOutput("category group show", debugprofilestop() - start2)
   end
 
-  return addonTable.CategoryViews.PackSimple(layoutsShown, activeLabels, 0, 0, bagWidth, addonTable.CategoryViews.Utilities.GetMinWidth(bagWidth))
+  local width, height = addonTable.CategoryViews.PackSimple(layoutsShown, activeLabels, 0, 0, bagWidth, addonTable.CategoryViews.Utilities.GetMinWidth(bagWidth))
+
+  local firstHit, lastHit
+  if addonTable.Constants.IsGamepadInUse then
+    local index = 0
+    for _, layout in ipairs(container.activeLayouts) do
+      if layout.type == "category" then
+        for _, itemButton in ipairs(layout.buttons) do
+          index = index + 1
+          itemButton.gamepadIndex = index
+          if not firstHit then
+            firstHit = itemButton
+          end
+        end
+        lastHit = layout.buttons[#layout.buttons]
+      end
+    end
+  end
+
+  return width, height, firstHit, lastHit
+end
+
+function addonTable.CategoryViews.BagLayoutMixin:RestoreGamepadFocus(bagIndexes)
+  local container = self:GetParent()
+  if container.showing then
+    C_Timer.After(0, function()
+      addonTable.Gamepad.SetTargetButton(container, self.firstHit)
+    end)
+    container.showing = false
+  else
+    local focus = addonTable.ItemButtonUtil.GetGamepadFocus()
+    if focus then
+      if tIndexOf(bagIndexes, focus.bag) ~= nil then
+        local found = false
+        local itemButton
+        for _, layout in ipairs(container.activeLayouts) do
+          if layout.type == "category" then
+            for _, b in ipairs(layout.buttons) do
+              if b.gamepadIndex == focus.index then
+                itemButton = b
+                found = true
+                break
+              end
+              if found then
+                break
+              end
+            end
+          end
+        end
+        if itemButton then
+          C_Timer.After(0, function()
+            addonTable.Gamepad.SetTargetButton(container, itemButton)
+          end)
+        end
+      end
+    end
+    local sectionFocus = addonTable.CategoryViews.GetFocussedSectionIndex()
+    if sectionFocus then
+      for _, layout in ipairs(container.activeLayouts) do
+        if layout.index == sectionFocus then
+          C_Timer.After(0, function()
+            addonTable.Gamepad.SetTargetButton(container, layout)
+          end)
+        end
+      end
+    end
+  end
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, callback)
@@ -523,9 +589,10 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
   local function Next()
     if index > #calls then
       if #calls > 0 or refreshState[addonTable.Constants.RefreshReason.Cosmetic] or refreshState[addonTable.Constants.RefreshReason.ItemWidgets] or refreshState[addonTable.Constants.RefreshReason.ItemTextures] or refreshState[addonTable.Constants.RefreshReason.Layout] then
-        self.state.maxWidth, self.state.maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, CopyTable(self.state.composed), self.state.emptySlotsOrder, self.state.emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+        self.state.maxWidth, self.state.maxHeight, self.firstHit, self.lastHit = self:Display(bagWidth, bagIndexes, bagTypes, CopyTable(self.state.composed), self.state.emptySlotsOrder, self.state.emptySlotsByType, bagWidth, sideSpacing, topSpacing)
       end
-      callback(self.state.maxWidth, self.state.maxHeight)
+      callback(self.state.maxWidth, self.state.maxHeight, self.firstHit, self.lastHit)
+      self:RestoreGamepadFocus(bagIndexes)
     else
       index = index + 1
       calls[index - 1]()

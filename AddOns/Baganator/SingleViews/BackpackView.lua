@@ -139,6 +139,10 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
     tAppendAll(self.AllButtons, self.AllFixedButtons)
     tAppendAll(self.AllButtons, self.TopButtons)
 
+    self.SearchWidget:LinkDown(activeBag.buttons[1])
+
+    local bottomButtons = {self.CurrencyButton}
+
     local lastButton = self.CurrencyButton
     lastButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
     lastButton:SetPoint("LEFT", self.Container, -2, 0)
@@ -152,6 +156,7 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
       button:SetShown(layout:GetHeight() > 0)
       button:ClearAllPoints()
       if button:IsShown() then
+        table.insert(bottomButtons, button)
         self.buttonsWidth = self.buttonsWidth + 5 + button:GetWidth()
         button:SetPoint("LEFT", lastButton, "RIGHT", 5, 0)
         lastButton = button
@@ -163,6 +168,13 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
       lastButton, self, 5, addonTable.API.customRegions["backpack"]["bottom_left"]
     )
     addonTable.Utilities.AddButtons(self.AllButtons, self.TopButtons[#self.TopButtons], self, 0, addonTable.API.customRegions["backpack"]["top_left"])
+
+    local all = {activeBag}
+    tAppendAll(all, activeBagCollapsibles)
+    addonTable.SingleViews.ComputeGamepadGrid(all, self.SearchWidget.SearchBox, bottomButtons, function(b)
+      self.CurrencyWidget:AddGamepadUp(b)
+    end)
+    self.CurrencyWidget:AddGamepadLeft(bottomButtons[#bottomButtons])
   end
 
   -- Necessary extra call as collapsing bag region buttons get updated
@@ -171,6 +183,13 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
 
   if self.refreshState[addonTable.Constants.RefreshReason.Layout] then
     self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - self.buttonsWidth - 10, self.Container:GetWidth())
+  end
+
+  if self.showing then
+    C_Timer.After(0, function()
+      addonTable.Gamepad.SetTargetButton(self, activeBag.buttons[1])
+    end)
+    self.showing = false
   end
 
   addonTable.CallbackRegistry:TriggerEvent("ViewComplete")

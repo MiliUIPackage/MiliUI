@@ -3,6 +3,7 @@
     <KeyValues>
       <KeyValue key="characterTemplate" value="BaganatorCategoryViewBankViewCharacterViewTemplate"/>
       <KeyValue key="characterTabsTemplate" value="BaganatorCategoryViewBankViewCharacterTabsViewTemplate"/>
+      <KeyValue key="characterTabsAsBagsTemplate" value="BaganatorCategoryViewBankViewCharacterTabsAsBagsViewTemplate"/>
       <KeyValue key="warbandTemplate" value="BaganatorCategoryViewBankViewWarbandViewTemplate"/>
     </KeyValues>
   </Frame>

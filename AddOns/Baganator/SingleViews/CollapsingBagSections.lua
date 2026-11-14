@@ -119,6 +119,7 @@ function addonTable.SingleViews.ArrangeCollapsibles(activeCollapsibles, originBa
 
   local lastCollapsible
   local addedHeight = 0
+  local prevOrigin = originBag
   for index, layout in ipairs(activeCollapsibles) do
     local key = originCollapsibles[index].key
     local hidden = addonTable.Config.Get(addonTable.Config.Options.HIDE_SPECIAL_CONTAINER)[key]
@@ -128,6 +129,7 @@ function addonTable.SingleViews.ArrangeCollapsibles(activeCollapsibles, originBa
     if hidden then
       layout:SetPoint("TOPLEFT", UIParent, "TOPRIGHT", 2000, 0)
     end
+    layout.visible = not hidden
     layout:Show()
     if not hidden then
       divider:SetPoint("BOTTOM", layout, "TOP", 0, topSpacing / 2 + dividerOffset)
@@ -143,6 +145,7 @@ function addonTable.SingleViews.ArrangeCollapsibles(activeCollapsibles, originBa
         end
         lastCollapsible = layout
       end
+      prevOrigin = layout
     end
   end
   return addedHeight + endPadding

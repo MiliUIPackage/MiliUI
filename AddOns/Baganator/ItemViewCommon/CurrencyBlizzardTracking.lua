@@ -79,7 +79,7 @@ function addonTable.ItemViewCommon.SyncCurrenciesTrackedWithBlizzard()
 end
 
 function addonTable.ItemViewCommon.SetCurrencyTrackedBlizzard(toTrackCurrencyID, state)
-  if Syndicator.Constants.IsRetail then
+  if Syndicator.Constants.IsRetail or Syndicator.Constants.IsForever then
     C_CurrencyInfo.SetCurrencyBackpackByID(toTrackCurrencyID, state)
   else -- Only versions of classic with currency (due to checks earlier)
     local index = 0

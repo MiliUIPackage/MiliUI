@@ -35,6 +35,7 @@ local skinners = {
   ItemButton = function(frame, tags)
     frame.bgrElvUISkin = true
     S:HandleItemButton(frame, true)
+    S:HandleItemButtonCrop(frame)
     S:HandleIconBorder(frame.IconBorder)
     frame.SlotBackground:Show()
     frame.SlotBackground:SetAllPoints()
@@ -47,12 +48,11 @@ local skinners = {
       else
         frame.backdrop.forcedBorderColors = {r, g, b, a}
       end
+      frame.icon:SetTexCoord(unpack(E.TexCoords))
     end)
-    if frame.SetItemButtonTexture then
-      hooksecurefunc(frame, "SetItemButtonTexture", function()
-        frame.icon:SetTexCoord(unpack(E.TexCoords))
-      end)
-    end
+    hooksecurefunc(frame.icon, "SetTexture", function()
+      frame.icon:SetTexCoord(unpack(E.TexCoords))
+    end)
     if frame.JunkIcon then
       frame.JunkIcon:SetAtlas('bags-junkcoin', true)
     end

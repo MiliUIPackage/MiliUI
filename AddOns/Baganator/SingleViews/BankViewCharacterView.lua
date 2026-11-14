@@ -140,8 +140,6 @@ function BaganatorSingleViewBankViewCharacterViewMixin:UpdateForCharacter(charac
   end
 
   if self.refreshState[addonTable.Constants.RefreshReason.Layout] then
-    local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
-
     self.bankHeight = activeBank:GetHeight()
 
     -- Copied from SingleViews/BagView.lua

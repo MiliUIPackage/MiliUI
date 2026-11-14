@@ -8,6 +8,7 @@ addonTable.Search = {}
 addonTable.ItemViewCommon = {
   Utilities = {}
 }
+addonTable.Gamepad = {}
 addonTable.ViewManagement = {}
 addonTable.SingleViews = {}
 addonTable.CategoryViews = {}

@@ -48,7 +48,7 @@ function addonTable.CustomiseDialog.Initialize()
     return false
   end
 
-  -- Create shortcut to open Baganator options from the Bliizzard addon options
+  -- Create shortcut to open Baganator options from the Blizzard addon options
   -- panel
   do
     local optionsFrame = CreateFrame("Frame")

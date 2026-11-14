@@ -9,5 +9,8 @@
         <FontString parentKey="Money" inherits="GameFontHighlight" enableMouse="true"/>
       </Layer>
     </Layers>
+    <Frames>
+      <Button parentKey="MoneyButton"/>
+    </Frames>
   </Frame>
 </Ui>

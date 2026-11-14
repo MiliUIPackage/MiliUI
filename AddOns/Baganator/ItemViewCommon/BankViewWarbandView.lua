@@ -89,14 +89,8 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:OnLoad()
   addonTable.Skins.AddFrame("Button", self.WithdrawMoneyButton)
   addonTable.Skins.AddFrame("Button", self.DepositMoneyButton)
 
-  if Syndicator.Constants.CharacterBankTabsActive then
-    self.purchaseButton = CreateFrame("Button", nil, self, "BaganatorRightSideTabButtonTemplate,BankPanelPurchaseButtonScriptTemplate")
-    self.purchaseButton:SetAttribute("overrideBankType", Enum.BankType.Account)
-  else
-    self.purchaseButton = CreateFrame("Button", nil, self, "BaganatorSecureRightSideTabButtonTemplate")
-    self.purchaseButton:SetAttribute("type", "click")
-    self.purchaseButton:SetAttribute("clickbutton", AccountBankPanel.PurchasePrompt.TabCostFrame.PurchaseButton)
-  end
+  self.purchaseButton = CreateFrame("Button", nil, self, "BaganatorRightSideTabButtonTemplate,BankPanelPurchaseButtonScriptTemplate")
+  self.purchaseButton:SetAttribute("overrideBankType", Enum.BankType.Account)
   self.purchaseButton:HookScript("OnClick", function()
     PlaySound(SOUNDKIT.IG_MAINMENU_OPTION);
   end)

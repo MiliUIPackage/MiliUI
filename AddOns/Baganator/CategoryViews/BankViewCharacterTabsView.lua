@@ -126,7 +126,7 @@ function BaganatorCategoryViewBankViewCharacterTabsViewMixin:ShowTab(character, 
     bagWidth = bagWidth * 2
     bagIndexes = Syndicator.Constants.AllBankIndexes
   end
-  self.LayoutManager:Layout(bagData, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
+  self.LayoutManager:Layout(bagData, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight, firstVisible, lastVisible)
     self.Container:SetSize(
       math.max(addonTable.CategoryViews.Utilities.GetMinWidth(bagWidth), self:GetButtonsWidth(sideSpacing), maxWidth),
       maxHeight
@@ -143,9 +143,13 @@ function BaganatorCategoryViewBankViewCharacterTabsViewMixin:ShowTab(character, 
 
     self.refreshState = {}
 
+    addonTable.CategoryViews.ComputeGamepadGrid(self.activeLayouts, self.SearchWidget.SearchBox, {self.DepositReagentsButton:IsShown() and self.DepositReagentsButton or nil}, function(b)
+      self.CurrencyWidget:AddGamepadUp(b)
+    end)
+
     addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
 
-    self:GetParent():OnTabFinished()
+    self:GetParent():OnTabFinished(firstVisible, lastVisible)
   end)
 end
 

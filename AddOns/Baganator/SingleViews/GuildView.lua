@@ -260,11 +260,11 @@ function BaganatorSingleViewGuildViewMixin:OpenTabEditor()
     UIErrorsFrame:AddMessage(addonTable.Locales.CANNOT_EDIT_GUILD_BANK_TAB_ERROR, 1.0, 0.1, 0.1, 1.0)
     return
   end
-  if addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsRetail or addonTable.Constants.IsForever then
     GuildBankPopupFrame.mode = IconSelectorPopupFrameModes.Edit
   end
   GuildBankPopupFrame:Show()
-  if not addonTable.Constants.IsRetail then
+  if addonTable.Constants.IsClassic then
     GuildBankPopupFrame:Update()
   end
   GuildBankPopupFrame:SetParent(UIParent)
@@ -608,7 +608,7 @@ function BaganatorSingleViewGuildViewMixin:UpdateForGuild(guild, isLive)
     local width = self.NotVisitedText:IsShown() and self.NotVisitedText:GetWidth() or self.NoTabsText:GetWidth()
     self:SetSize(
       math.max(400, width) + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset + 40,
-      80 + topSpacing / 2
+      150 + topSpacing / 2
     )
   else
     local tabsHeight = #self.Tabs * (self.Tabs[1]:GetHeight() + 12) * self.Tabs[1]:GetScale() + 20 * self.Tabs[1]:GetScale()

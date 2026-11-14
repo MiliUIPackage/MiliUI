@@ -441,6 +441,11 @@ function BaganatorCustomiseDialogMixin:OnLoad()
   self.Inset:Hide()
   self:SetScript("OnMouseWheel", function() end)
 
+  if addonTable.Constants.IsGamepadInUse then
+    self.layoutType = "ButtonFrameTemplateNoPortrait"
+    self.FrameGlow = CreateFrame("Frame", nil, self, "FrameGlowTemplate")
+  end
+
   self:SetTitle(addonTable.Locales.CUSTOMISE_BAGANATOR)
 
   self.Tabs = {}
@@ -654,7 +659,7 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
   do
     local DONATE_OPTIONS = {{
       type = "header",
-      text = addonTable.Locales.DEVELOPMENT_IS_TIME_CONSUMING,
+      text = addonTable.Locales.DEVELOPMENT_IS_DONE_BY_A_HUMAN,
       level = 2,
     }}
     local optionFrames = GenerateFrames(DONATE_OPTIONS, frame)
@@ -1250,4 +1255,10 @@ function BaganatorCustomiseDialogMixin:OnShow()
   local tabsWidth = self.Tabs[#self.Tabs]:GetRight() - self.Tabs[1]:GetLeft()
 
   self:SetWidth(math.max(self:GetWidth(), tabsWidth + 20))
+
+  addonTable.Gamepad.AnnounceShow(self)
+end
+
+function BaganatorCustomiseDialogMixin:OnHide()
+  addonTable.Gamepad.AnnounceHide(self)
 end

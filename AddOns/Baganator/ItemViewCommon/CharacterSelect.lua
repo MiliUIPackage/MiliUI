@@ -28,6 +28,11 @@ function BaganatorCharacterSelectMixin:OnLoad()
   self:SetMovable(true)
   self:SetUserPlaced(false)
 
+  if addonTable.Constants.IsGamepadInUse then
+    self.layoutType = "ButtonFrameTemplateNoPortrait"
+    self.FrameGlow = CreateFrame("Frame", nil, self, "FrameGlowTemplate")
+  end
+
   addonTable.Skins.AddFrame("ButtonFrame", self)
   addonTable.Skins.AddFrame("Button", self.ManageCharactersButton)
 
@@ -120,10 +125,28 @@ function BaganatorCharacterSelectMixin:UpdateList()
   tAppendAll(currentRealms, everythingElse)
 
   self.ScrollBox:SetDataProvider(CreateDataProvider(currentRealms), true)
+
+  local frames = self.ScrollBox:GetFrames()
+  for i = 2, #frames do
+    addonTable.Gamepad.LinkButtons(frames[i], "Up", frames[i - 1])
+  end
+  addonTable.Gamepad.LinkButtons(frames[1], "Up", self.SearchBox)
+  addonTable.Gamepad.LinkButtons(frames[#frames], "Down", self.ManageCharactersButton)
 end
 
 function BaganatorCharacterSelectMixin:OnShow()
   self:UpdateList()
+  addonTable.Gamepad.AnnounceShow(self)
+  local first = self.ScrollBox:GetFrames()[1]
+  if first then
+    C_Timer.After(0, function()
+      addonTable.Gamepad.SetTargetButton(self, first)
+    end)
+  end
+end
+
+function BaganatorCharacterSelectMixin:OnHide()
+  addonTable.Gamepad.AnnounceHide(self)
 end
 
 function BaganatorCharacterSelectMixin:OnDragStart()

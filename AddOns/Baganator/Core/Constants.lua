@@ -20,6 +20,8 @@ addonTable.Constants = {
   BattlePetCageID = 82800,
 
   MaxPinnedCurrencies = 100,
+
+  IsGamepadInUse = InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled() or false,
 }
 
 addonTable.Constants.IsClassic = addonTable.Constants.IsClassic and not addonTable.Constants.IsForever
@@ -39,6 +41,7 @@ addonTable.Constants.Events = {
   "BagHide",
   "QuickSearch",
   "CharacterSelectToggle",
+  "CharacterSelectHide",
   "CharacterSelect",
   "BankToggle",
   "BankShow",
@@ -47,7 +50,10 @@ addonTable.Constants.Events = {
   "GuildShow",
   "GuildHide",
   "CurrencyPanelToggle",
+  "CurrencyPanelHide",
   "RefreshStateChange",
+
+  "CloseAll",
 
   "ViewComplete",
   "BagCacheAfterNewItemsUpdate",
@@ -62,6 +68,8 @@ addonTable.Constants.Events = {
   "CategoryItemDropped",
   "CategoryAddItemStart",
   "CategoryAddItemEnd",
+
+  "GamepadItemButtonFocus",
 
   "ForceClearedNewItems",
 

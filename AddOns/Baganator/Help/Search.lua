@@ -57,6 +57,23 @@ function addonTable.Help.ShowSearchDialog()
     frame:StopMovingOrSizing()
     frame:SetUserPlaced(false)
   end)
+  if addonTable.Constants.IsGamepadInUse then
+    frame.layoutType = "ButtonFrameTemplateNoPortrait"
+    frame.FrameGlow = CreateFrame("Frame", nil, frame, "FrameGlowTemplate")
+  end
+  frame:SetScript("OnShow", function()
+    addonTable.Gamepad.AnnounceShow(frame, true)
+  end)
+  addonTable.Gamepad.AnnounceShow(frame, true)
+  frame:SetScript("OnHide", function()
+    addonTable.Gamepad.AnnounceHide(frame, true)
+  end)
+  function frame:StartFocus()
+    frame.FrameGlow:Show()
+  end
+  function frame:EndFocus()
+    frame.FrameGlow:Hide()
+  end
   frame.CloseButton:SetScript("OnClick", function()
     frame:Hide()
   end)
@@ -195,5 +212,8 @@ function addonTable.Help.ShowSearchDialog()
 
   ScrollUtil.InitScrollBoxWithScrollBar(frame.ScrollBox, frame.ScrollBar, CreateScrollBoxLinearView(0, 20, 0, 0))
   frame.ScrollBox:SetPanExtent(50)
+  function frame:FocusGamepad()
+    addonTable.Gamepad.SetScrollBox(frame, frame.ScrollBox)
+  end
   frame:Raise()
 end

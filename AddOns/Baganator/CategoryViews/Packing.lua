@@ -18,6 +18,7 @@ function addonTable.CategoryViews.PackSimple(activeLayouts, activeLabels, baseOf
 
   local offsetXRoot = 0
   local offsetY = 0
+  local currentRow = 1
   local lastOffsetX = 0
   local prevLayout = nil
   local endOfLineLabels = {}
@@ -64,7 +65,10 @@ function addonTable.CategoryViews.PackSimple(activeLayouts, activeLabels, baseOf
     categoriesInRow = {}
     prevHeight = 0
     wrapIndex = 1
+    currentRow = currentRow + 1
   end
+
+  local prevButtonsLayout = nil
 
   local indentFactor = 0.2
   for index, layout in ipairs(activeLayouts) do
@@ -100,7 +104,10 @@ function addonTable.CategoryViews.PackSimple(activeLayouts, activeLabels, baseOf
       layout:SetPoint("TOPLEFT", offsetXRoot + baseOffsetX, baseOffsetY + offsetY)
       offsetY = offsetY - layout:GetHeight() - headerPadding
       prevLayout = layout
+      layout.row = currentRow
+      currentRow = currentRow + 1
     elseif layout.type == "category" and #layout.buttons > 0 then
+      prevButtonsLayout = layout
       offsetXRoot = math.max(#layout.section - 1, 0) * (iconSize * indentFactor + iconPadding)
       table.insert(categoriesInRow, {layout = layout, label = activeLabels[index], level = math.max(0, #layout.section - 1), rootLimit = math.ceil(math.max(math.log(#layout.buttons)/math.log(3), 1)), goldenLimit = math.max(math.floor(math.sqrt(#layout.buttons/1.618)), 1)})
       local oldWrapIndex = wrapIndex
@@ -140,8 +147,10 @@ function addonTable.CategoryViews.PackSimple(activeLayouts, activeLabels, baseOf
           break
         end
       end
+      layout.row = currentRow
       prevLayout = layout
     end
+    layout.visible = layout.moveOffscreen ~= true
   end
   maxWidth = math.max(maxWidth, lastOffsetX)
 

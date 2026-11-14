@@ -169,6 +169,11 @@ function BaganatorCurrencyPanelMixin:OnShow()
   if C_CurrencyInfo.RequestCurrencyDataForAccountCharacters then
     C_CurrencyInfo.RequestCurrencyDataForAccountCharacters()
   end
+  addonTable.Gamepad.AnnounceShow(self)
+end
+
+function BaganatorCurrencyPanelMixin:OnHide()
+  addonTable.Gamepad.AnnounceHide(self)
 end
 
 function BaganatorCurrencyPanelMixin:UpdateForCursor()
@@ -580,6 +585,7 @@ function addonTable.ItemViewCommon.GetCurrencyPanel(frameName)
   frame:Hide()
   frame:OnLoad()
   frame:SetScript("OnShow", frame.OnShow)
+  frame:SetScript("OnHide", frame.OnHide)
   frame:SetScript("OnDragStart", frame.OnDragStart)
   frame:SetScript("OnDragStop", frame.OnDragStop)
   frame:SetScript("OnEvent", frame.OnEvent)

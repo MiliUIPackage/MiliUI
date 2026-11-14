@@ -56,16 +56,17 @@ function BaganatorCurrencyWidgetMixin:OnLoad()
       addonTable.ShowGoldSummaryRealm(self.Money, "ANCHOR_TOP")
     end
   end
-  self.Money:SetScript("OnEnter", function()
+  self.MoneyButton:SetScript("OnEnter", function()
     UpdateMoneyDisplay()
     frame:RegisterEvent("MODIFIER_STATE_CHANGED")
     frame:SetScript("OnEvent", UpdateMoneyDisplay)
   end)
 
-  self.Money:SetScript("OnLeave", function()
+  self.MoneyButton:SetScript("OnLeave", function()
     frame:UnregisterEvent("MODIFIER_STATE_CHANGED")
     GameTooltip:Hide()
   end)
+  self.MoneyButton:SetAllPoints(self.Money)
 end
 
 function BaganatorCurrencyWidgetMixin:OnShow()
@@ -215,4 +216,17 @@ function BaganatorCurrencyWidgetMixin:UpdateCurrencies(character)
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
     addonTable.Utilities.DebugOutput("currency update", debugprofilestop() - start)
   end
+end
+
+function BaganatorCurrencyWidgetMixin:AddGamepadLeft(button)
+  local lastButton
+  for _, text in ipairs(self.activeCurrencyTexts) do
+    addonTable.Gamepad.LinkButtons(text.button, "Left", lastButton or button)
+    lastButton = text.button
+  end
+  addonTable.Gamepad.LinkButtons(self.MoneyButton, "Left", lastButton or button)
+end
+
+function BaganatorCurrencyWidgetMixin:AddGamepadUp(button)
+  addonTable.Gamepad.LinkButtons(self.MoneyButton, "Up", button)
 end

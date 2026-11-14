@@ -3,6 +3,12 @@ local addonTable = select(2, ...)
 
 addonTable.ItemButtonUtil = {}
 
+local itemButtonFocus
+
+function addonTable.ItemButtonUtil.GetGamepadFocus()
+  return itemButtonFocus
+end
+
 local itemCallbacks = {}
 local iconSettings = {}
 
@@ -471,7 +477,7 @@ function BaganatorRetailCachedItemButtonMixin:UpdateTextures()
 end
 
 function BaganatorRetailCachedItemButtonMixin:SetItemDetails(details)
-  self:SetItemButtonTexture(details.iconTexture)
+  self.icon:SetTexture(details.iconTexture)
   self:SetItemButtonQuality(details.quality, details.itemLink, false, details.isBound)
   SetItemButtonCount(self, details.itemCount, details.itemCount and details.itemCount > 9999) -- true results in abbreviating large numbers
   SetItemButtonDesaturated(self, false);
@@ -587,7 +593,7 @@ function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
 end
 
 function BaganatorRetailLiveContainerItemButtonMixin:PreClickHook(mouseButton)
-  if mouseButton == "RightButton" and not IsModifiedClick() and addonTable.ViewManagement.GetBankFrame():IsShown() and tIndexOf(Syndicator.Constants.AllBagIndexes, self:GetParent():GetID()) ~= nil and
+  if addonTable.Constants.IsRetail and mouseButton == "RightButton" and not IsModifiedClick() and addonTable.ViewManagement.GetBankFrame():IsShown() and tIndexOf(Syndicator.Constants.AllBagIndexes, self:GetParent():GetID()) ~= nil and
       self.BGR.itemLocation and C_Item.DoesItemExist(self.BGR.itemLocation) and C_Bank.IsItemAllowedInBankType(addonTable.ViewManagement.GetBankFrame():GetBankType(), self.BGR.itemLocation) then
     addonTable.BankTransferManager:Queue(self:GetParent():GetID(), self:GetID())
   elseif self.BGR and self.BGR.itemID and not IsModifierKeyDown() then
@@ -639,7 +645,7 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   ClearItemButtonOverlay(self);
 
   self:SetHasItem(texture);
-  self:SetItemButtonTexture(texture);
+  self.icon:SetTexture(texture);
 
   self:SetItemButtonQuality(quality, nil, true, isBound);
 
@@ -648,7 +654,9 @@ function BaganatorRetailLiveContainerItemButtonMixin:SetItemDetails(cacheData)
 
   self:UpdateExtended();
   self:UpdateJunkItem(quality, noValue);
-  self:SetReadable(readable);
+  if not addonTable.Constants.IsGamepadInUse then -- This taints the SmartNav, so we skip it
+    self:SetReadable(readable);
+  end
   self:SetMatchesSearch(true)
   self.Cooldown:Hide()
 
@@ -746,6 +754,62 @@ function BaganatorRetailLiveContainerItemButtonMixin:ClearNewItem()
   if (self.flashAnim:IsPlaying() or self.newitemglowAnim:IsPlaying()) then
     self.flashAnim:Stop();
     self.newitemglowAnim:Stop();
+  end
+end
+
+local clicker = CreateFrame("Button", "BaganatorItemButtonClicker", UIParent, "SecureActionButtonTemplate")
+clicker:SetAttribute("type2", "click")
+clicker:RegisterForClicks("AnyDown")
+local stopTargeting = CreateFrame("Button", "BaganatorItemButtonStopTargeting", UIParent, "SecureActionButtonTemplate")
+stopTargeting:SetAttribute("type1", "stop")
+stopTargeting:RegisterForClicks("AnyDown", "AnyUp")
+local clearCursorButton = CreateFrame("Button", "BaganatorItemButtonClearCursor", UIParent)
+clearCursorButton:SetScript("OnClick", function()
+  ClearCursor()
+end)
+
+clicker:HookScript("OnClick", function()
+  if SpellIsTargeting() then
+    SetOverrideBindingClick(stopTargeting, true, "PAD2", stopTargeting:GetName())
+  end
+end)
+
+if addonTable.Constants.IsGamepadInUse then
+  local monitor = CreateFrame("Frame")
+  monitor:RegisterEvent("PLAYER_REGEN_DISABLED")
+  monitor:RegisterEvent("CURSOR_CHANGED")
+  monitor:SetScript("OnEvent", function(_, eventName)
+    if eventName == "PLAYER_REGEN_DISABLED" then
+      ClearOverrideBindings(clicker)
+    elseif not InCombatLockdown() then
+      ClearOverrideBindings(stopTargeting)
+      ClearOverrideBindings(clearCursorButton)
+
+      if not InCombatLockdown() and eventName == "CURSOR_CHANGED" and GetCursorInfo() == "item" then
+        SetOverrideBindingClick(clearCursorButton, true, "PAD2", clearCursorButton:GetName())
+      end
+    end
+  end)
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:OnSmartNavSelect()
+  if InCombatLockdown() or not self.BGR or not self.BGR.itemLink then
+    return
+  end
+  clicker:SetAttribute("clickbutton2", self)
+  SetOverrideBindingClick(clicker, true, "PAD3", clicker:GetName(), "RightButton")
+  if self.gamepadIndex then
+    itemButtonFocus = {index = self.gamepadIndex, slot = self:GetID(), bag = self:GetParent():GetID()}
+  end
+end
+
+function BaganatorRetailLiveContainerItemButtonMixin:OnSmartNavDeselect()
+  if InCombatLockdown() then
+    return
+  end
+  ClearOverrideBindings(clicker)
+  if self.gamepadIndex then
+    itemButtonFocus = nil
   end
 end
 
@@ -856,7 +920,7 @@ function BaganatorRetailLiveGuildItemButtonMixin:SetItemDetails(cacheData, tabIn
   itemCount = cacheData.itemCount
   quality = cacheData.quality or quality
 
-  SetItemButtonTexture(self, texture);
+  self.icon:SetTexture(texture);
   SetItemButtonCount(self, itemCount);
   SetItemButtonDesaturated(self, locked);
 
@@ -932,7 +996,7 @@ end
 function BaganatorClassicCachedItemButtonMixin:SetItemDetails(details)
   GetInfo(self, details)
 
-  SetItemButtonTexture(self, details.iconTexture);
+  self.icon:SetTexture(details.iconTexture);
   SetItemButtonQuality(self, details.quality); -- Doesn't do much
   ApplyQualityBorderClassic(self, details.quality)
   SetItemButtonCount(self, details.itemCount, details.itemCount and details.itemCount > 9999);
@@ -1139,7 +1203,7 @@ function BaganatorClassicLiveContainerItemButtonMixin:SetItemDetails(cacheData)
   local noValue = info and info.hasNoValue;
   local itemID = info and info.itemID;
 
-  SetItemButtonTexture(self, texture);
+  self.icon:SetTexture(texture);
   SetItemButtonQuality(self, quality, itemID);
   ApplyQualityBorderClassic(self, quality)
   SetItemButtonCount(self, itemCount, itemCount and itemCount > 9999);
@@ -1336,7 +1400,7 @@ function BaganatorClassicLiveGuildItemButtonMixin:SetItemDetails(cacheData, tabI
   itemCount = cacheData.itemCount
   quality = cacheData.quality or quality
 
-  SetItemButtonTexture(self, texture);
+  self.icon:SetTexture(texture);
   SetItemButtonCount(self, itemCount);
   SetItemButtonDesaturated(self, locked);
   ApplyQualityBorderClassic(self, quality)
