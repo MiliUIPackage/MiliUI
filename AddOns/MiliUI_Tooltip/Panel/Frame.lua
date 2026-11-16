@@ -444,34 +444,48 @@ end
 ------------------------------------------------------------
 -- 淡出：世界單位的提示在滑鼠離開時是暴雪 C 端的 FadeOut（調原生 alpha），原生被我們壓在 0、面板是獨立的框 ⇒
 -- 面板不會跟著淡。FadeOut 後掛勾（Core/Hooks.lua 的 OnFadeOut）叫這裡，面板自己淡；新內容／重新顯示時 Unfade 拉回 1。
--- 動畫是自己的框上的 AnimationGroup，第一次淡出才建（沒用到的面板零成本）
+-- 淡出用面板自己的 OnUpdate 逐幀寫 SetAlpha，**不用 AnimationGroup**：Alpha 動畫開始時引擎會記下框底下每張貼圖當時的 alpha，
+-- 動畫被 Stop 時還原回去（顏色不還原）。淡出途中滑到下一個單位 ⇒ 池裡的貼圖已經重畫成新內容、Unfade 才停動畫 ⇒
+-- 新內容拿到「上一份內容同一格」的 alpha（2026-11-17 實機：從獵人滑到寵物，分隔線左段全白、◆ 剩線的透明度）。
+-- OnUpdate 只在淡出那 LOOK.FADE 秒掛著，淡完或 Unfade 就拆
 -- instant：「滑開立即消失」——tip 當場 Hide，但面板要等下一幀才拆（Try.lua 的 OnSkinHide 延一幀）⇒ 這一幀先透明
 ------------------------------------------------------------
-function Panel.FadeOut(panel, instant)
-    local group = panel.fadeGroup
-    panel.faded = true
-    if instant then
-        if group and group:IsPlaying() then group:Stop() end
+local function FadeStep(panel, elapsed)
+    local left = (panel.fadeLeft or 0) - (elapsed or 0)
+    if left <= 0 then
+        panel.fadeLeft = nil
+        panel:SetScript("OnUpdate", nil)
         panel:SetAlpha(0)
         return
     end
-    if not group then
-        group = panel:CreateAnimationGroup()
-        local alpha = group:CreateAnimation("Alpha")
-        alpha:SetFromAlpha(1)
-        alpha:SetToAlpha(0)
-        alpha:SetDuration(LOOK.FADE)
-        group:SetToFinalAlpha(true)
-        panel.fadeGroup = group
+    panel.fadeLeft = left
+    panel:SetAlpha(left / LOOK.FADE)
+end
+
+local function StopFade(panel)
+    if panel.fadeLeft then
+        panel.fadeLeft = nil
+        panel:SetScript("OnUpdate", nil)
     end
-    if not group:IsPlaying() then group:Play() end
+end
+
+function Panel.FadeOut(panel, instant)
+    panel.faded = true
+    if instant then
+        StopFade(panel)
+        panel:SetAlpha(0)
+        return
+    end
+    if not panel.fadeLeft then
+        panel.fadeLeft = LOOK.FADE
+        panel:SetScript("OnUpdate", FadeStep)
+    end
 end
 
 function Panel.Unfade(panel)
     if not panel or not panel.faded then return end
     panel.faded = nil
-    local group = panel.fadeGroup
-    if group and group:IsPlaying() then group:Stop() end
+    StopFade(panel)
     panel:SetAlpha(1)
 end
 

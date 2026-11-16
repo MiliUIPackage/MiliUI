@@ -609,12 +609,28 @@ do
     eq("沒淡過：Unfade 不寫 alpha", writes, 0)
     P.FadeOut(panel, true)
     eq("立即：當場 alpha 0（不建動畫）", panel.alpha, 0)
-    check("立即：沒有動畫群組", panel.fadeGroup == nil)
+    check("立即：不掛 OnUpdate", panel.scripts.OnUpdate == nil)
     P.Unfade(panel)
     eq("新內容：拉回 1", panel.alpha, 1)
     writes = 0
     P.Unfade(panel)
     eq("拉回之後再 Unfade 不重寫", writes, 0)
+
+    -- 漸淡走 OnUpdate 不走 AnimationGroup（2026-11-17：動畫被停時引擎還原各貼圖的舊 alpha，新內容的分隔線左右不同色）
+    P.FadeOut(panel)
+    local step = panel.scripts.OnUpdate
+    check("漸淡：掛 OnUpdate", type(step) == "function")
+    check("漸淡：不建動畫群組", panel.fadeGroup == nil)
+    step(panel, ns.Panel.LOOK.FADE / 2)
+    check("漸淡：一半時間 alpha 0.5", math.abs(panel.alpha - 0.5) < 1e-9)
+    P.Unfade(panel)
+    eq("淡到一半來新內容：拉回 1", panel.alpha, 1)
+    check("淡到一半來新內容：OnUpdate 拆掉", panel.scripts.OnUpdate == nil)
+    P.FadeOut(panel)
+    panel.scripts.OnUpdate(panel, ns.Panel.LOOK.FADE + 1)
+    eq("淡完：alpha 0", panel.alpha, 0)
+    check("淡完：OnUpdate 拆掉", panel.scripts.OnUpdate == nil)
+    P.Unfade(panel)
 end
 
 H.finish("Render_test")
