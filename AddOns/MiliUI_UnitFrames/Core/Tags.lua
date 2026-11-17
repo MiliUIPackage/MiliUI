@@ -39,7 +39,7 @@ local INFO_TAGS = {
     -- 換小隊只會發 GROUP_ROSTER_UPDATE，那個事件推的是 reaction 桶（Core/Events.lua）
     group = "reaction", group_label = "reaction",
     -- 永恆版：姓氏跟名字同一個事件來；快樂度由 UNIT_HAPPINESS 推 info 桶（Core/Events.lua）
-    surname = "info", fullname = "info", happiness = "info",
+    firstname = "info", surname = "info", fullname = "info", happiness = "info",
 }
 
 -- 秘密值 tag：走「佔位符 → 最後串接」管線，值從不進 Lua 字串運算
@@ -51,6 +51,16 @@ local INFO_TAGS = {
 -- ⚠ 這個 local 必須宣告在 SECRET_TAGS **之前**：下面的 closure 抓的是 upvalue，
 -- 放後面會抓到 nil 全域（跟 _CSU 同一個坑）。曲線物件是常數，每次 render 重查沒有意義。
 local PERCENT_CURVE = CurveConstants and CurveConstants.ScaleTo100
+
+-- 名＋姓（永恆版）。UnitName 的第二個回傳在永恆是姓氏、在正式服是伺服器名 ⇒ 正式服只回名字。
+-- 受限單位的姓氏可能是秘密字串：只判 nil、明文才比空字串，其餘直接串接。
+-- ⚠ 要宣告在 SECRET_TAGS 之前（同 _CSU）
+local function FullName(u)
+    local name, surname = UnitName(u)
+    if name == nil or not ns.IS_FOREVER or surname == nil then return name end
+    if not IsSecret(surname) and surname == "" then return name end
+    return name .. " " .. surname
+end
 
 local SECRET_TAGS = {
     curhp = { kind = "number", fn = function(u) return UnitHealth(u) end },
@@ -86,7 +96,13 @@ local SECRET_TAGS = {
     healabsorbs_short = { kind = "number", fn = function(u)
         return UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(u) or 0
     end },
-    name  = { kind = "string", fn = function(u) return UnitName(u) end },
+    -- 永恆版 [name] 預設帶姓氏（一般設定的 showSurname，使用者定案 2026-11-17）；
+    -- 不管設定、只要名字的用 [firstname]
+    name  = { kind = "string", fn = function(u)
+        if ns.IS_FOREVER and ns.db.global.showSurname ~= false then return FullName(u) end
+        return (UnitName(u))
+    end },
+    firstname = { kind = "string", fn = function(u) return (UnitName(u)) end },
     -- 姓氏（永恆版）。UnitName 的第二個回傳在永恆是姓氏、在正式服是伺服器名 ⇒ 正式服一律不輸出。
     -- 受限單位的姓氏可能是秘密字串：只判 nil、明文才比空字串，其餘直接串接。
     surname = { kind = "string", fn = function(u)
@@ -95,12 +111,7 @@ local SECRET_TAGS = {
         return surname
     end },
     -- 名＋姓，空格接（暴雪自己的顯示也是空格）。沒姓氏、或在正式服，就等於 [name]
-    fullname = { kind = "string", fn = function(u)
-        local name, surname = UnitName(u)
-        if name == nil or not ns.IS_FOREVER or surname == nil then return name end
-        if not IsSecret(surname) and surname == "" then return name end
-        return name .. " " .. surname
-    end },
+    fullname = { kind = "string", fn = function(u) return FullName(u) end },
     -- 獵人寵物的快樂度字樣（暴雪的 PET_HAPPINESS1～3 全域字串，各語系都是官方譯名）。
     -- 只有永恆版的寵物框有值，其餘整個 token 不輸出
     happiness = { kind = "string", fn = function(u, uf)

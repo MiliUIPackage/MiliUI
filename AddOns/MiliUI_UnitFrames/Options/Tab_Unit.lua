@@ -18,7 +18,7 @@ local PosSize, Pos = Specs.PosSize, Specs.Pos
 local TAG_SYNTAX_HELP = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."]
 
 -- 永恆版才有值的 tag，另起一段說明：只在永恆版列，正式服的玩家不必看到用不到的語法
-local TAG_SYNTAX_HELP_FOREVER = L["Forever only: [surname] (surname) and [fullname] (name and surname); [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."]
+local TAG_SYNTAX_HELP_FOREVER = L["Forever only: [name] includes the surname unless you turn that off under Global style; [firstname] [surname] [fullname] always give the name alone / the surname alone / both; [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."]
 
 local UNIT_LIST = {
     { key = "player",       label = L["Player"] },

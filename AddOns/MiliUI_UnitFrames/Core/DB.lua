@@ -238,6 +238,8 @@ function DB.BuildDefaults()
             borderColor = black(1),
             numberFormat = "auto",       -- auto | wan | km | raw（見 Tags.NumberMode）
             percentDecimals = 0,
+            -- 永恆版：[name] 要不要帶姓氏（預設帶；正式服沒有姓氏，這個鍵沒有作用）
+            showSurname = true,
             -- 光環倒數的時間格式（Elements/Auras.lua）："mmss" 兩分鐘以內印 1:59、以上 3m｜"minutes" 2m → 90。
             -- 新鍵由 MergeDefaults 補，不必遷移
             auraTimeFormat = "mmss",

@@ -97,7 +97,7 @@ local function BuildFakeCache(unitKey)
         -- 玩家沒辦法對位置 —— 真實框只有在團隊裡才畫得出來
         group = "3", group_label = (GROUP or "Group") .. " 3",
         -- 永恆版的三個字串 tag：預覽沒有姓氏；快樂度只有寵物框有（固定「高興」，同圖示）
-        surname = "", fullname = base.name,
+        firstname = base.name, surname = "", fullname = base.name,
         happiness = (ns.IS_FOREVER and unitKey == "pet") and PET_HAPPINESS3 or "",
         powertype = 0,            -- 玩家框由下面 ApplyPowerFields 換成本人的資源
         dead = false, ghost = false, offline = false,

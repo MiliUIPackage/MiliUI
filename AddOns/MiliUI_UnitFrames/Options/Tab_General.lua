@@ -157,6 +157,14 @@ local CONTROLS = {
 -- 永恆版：獵人寵物沒有專精（見 Core/Cache.lua 的 PlayerPetSpec），「寵物專精色」這一節
 -- 從標題刪到下一個標題之前。在檔案層刪 ⇒ 分頁內容與設定搜尋（列舉的是同一張表）一起少掉
 if ns.IS_FOREVER then
+    -- 姓氏開關：接在「百分比小數」後面（同一組文字顯示設定）。正式服沒有姓氏，不列
+    for i, spec in ipairs(CONTROLS) do
+        if spec.key == "percentDecimals" then
+            tinsert(CONTROLS, i + 1, { type = "toggle", key = "showSurname", label = L["Show surnames in names"] })
+            tinsert(CONTROLS, i + 2, { type = "text", label = L["Adds the surname to every [name] text. Turn it off if names get cut short; [fullname] and [firstname] ignore this setting."] })
+            break
+        end
+    end
     for i, spec in ipairs(CONTROLS) do
         if spec.type == "header" and spec.label == L["Pet specialization colors"] then
             tremove(CONTROLS, i)
