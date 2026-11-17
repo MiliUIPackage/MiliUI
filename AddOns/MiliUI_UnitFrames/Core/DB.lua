@@ -910,7 +910,9 @@ function DB.BuildDefaults()
                     -- 位置在框內右上角：名字靠左、血量數字靠右下，這一角是空的。
                     icons = ns.IS_FOREVER and {
                         enabled = true,
-                        happiness = { enabled = true, x = 100, y = -2, w = 18, h = 18, level = ICON_LEVEL },
+                        -- showWhen：always 一律顯示／content 滿足以下才顯示／unhappy 不高興才顯示
+                        happiness = { enabled = true, x = 100, y = -2, w = 18, h = 18, level = ICON_LEVEL,
+                                      showWhen = "always" },
                     } or nil,
                 },
             },

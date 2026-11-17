@@ -641,3 +641,7 @@ L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "显示�
 L["Forever only: [name] includes the surname unless you turn that off under Global style; [firstname] [surname] [fullname] always give the name alone / the surname alone / both; [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "永恒版专用：[name] 默认带姓氏，可在“全域样式”关闭；[firstname]／[surname]／[fullname] 固定输出只有名字／只有姓氏／名字加姓氏；[happiness]（猎人宠物的心情文字）、[happiness:happiness]（按心情上色）；条件 unhappy／content／happy，例如 [gray_if_happy:happiness]。"
 L["Show surnames in names"] = "名字显示姓氏"
 L["Adds the surname to every [name] text. Turn it off if names get cut short; [fullname] and [firstname] ignore this setting."] = "所有 [name] 文字都会带上姓氏。名字被截断的话可以关掉；[fullname] 与 [firstname] 不受这个设置影响。"
+L["Show when"] = "显示时机"
+L["Always"] = "始终显示"
+L["Content or unhappy"] = "满足或不高兴时"
+L["Unhappy only"] = "仅不高兴时"

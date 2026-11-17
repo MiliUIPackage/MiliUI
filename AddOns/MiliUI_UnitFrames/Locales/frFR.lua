@@ -643,3 +643,7 @@ L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "Affiche 
 L["Forever only: [name] includes the surname unless you turn that off under Global style; [firstname] [surname] [fullname] always give the name alone / the surname alone / both; [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "Forever uniquement : [name] inclut le nom de famille sauf si vous le désactivez dans le style global ; [firstname] [surname] [fullname] donnent toujours le nom seul / le nom de famille seul / les deux ; [happiness] (humeur de votre familier de chasseur en texte) et [happiness:happiness] (coloré selon l'humeur) ; les conditions unhappy / content / happy, par ex. [gray_if_happy:happiness]."
 L["Show surnames in names"] = "Afficher les noms de famille"
 L["Adds the surname to every [name] text. Turn it off if names get cut short; [fullname] and [firstname] ignore this setting."] = "Ajoute le nom de famille à tous les textes [name]. Désactivez-le si les noms sont tronqués ; [fullname] et [firstname] ignorent ce réglage."
+L["Show when"] = "Afficher quand"
+L["Always"] = "Toujours"
+L["Content or unhappy"] = "Content ou mécontent"
+L["Unhappy only"] = "Mécontent uniquement"

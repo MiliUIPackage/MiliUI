@@ -860,6 +860,11 @@ local function IconSpecs(els)
                 tinsert(list, { type = "text", label = L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] })
             elseif d.key == "happiness" then
                 tinsert(list, { type = "text", label = L["Shows your hunter pet's mood. An unhappy pet deals less damage."] })
+                tinsert(list, { type = "dropdown", sub = "icons", sub2 = d.key, key = "showWhen", label = L["Show when"], items = {
+                    { text = L["Always"], value = "always" },
+                    { text = L["Content or unhappy"], value = "content" },
+                    { text = L["Unhappy only"], value = "unhappy" },
+                } })
             end
             -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
             if els.icons[d.key].restAnimated ~= nil then

@@ -643,3 +643,7 @@ L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "사냥�
 L["Forever only: [name] includes the surname unless you turn that off under Global style; [firstname] [surname] [fullname] always give the name alone / the surname alone / both; [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "Forever 전용: [name]은 기본적으로 성을 포함하며 전체 스타일에서 끌 수 있습니다. [firstname] [surname] [fullname]은 항상 이름만 / 성만 / 둘 다 출력합니다. [happiness] (사냥꾼 소환수의 기분 문자), [happiness:happiness] (기분에 따라 색상); 조건 unhappy / content / happy, 예: [gray_if_happy:happiness]."
 L["Show surnames in names"] = "이름에 성 표시"
 L["Adds the surname to every [name] text. Turn it off if names get cut short; [fullname] and [firstname] ignore this setting."] = "모든 [name] 문자에 성을 붙입니다. 이름이 잘리면 끄세요. [fullname]과 [firstname]은 이 설정의 영향을 받지 않습니다."
+L["Show when"] = "표시 조건"
+L["Always"] = "항상"
+L["Content or unhappy"] = "만족 또는 불만족일 때"
+L["Unhappy only"] = "불만족일 때만"

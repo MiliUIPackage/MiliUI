@@ -64,6 +64,9 @@ local PREVIEW_GROUP = 3
 -- 只畫圖不接滑鼠：接了會搶走單位按鈕的點擊與滑鼠提示
 local HAPPINESS_ATLAS = { "UI-PetMad", "UI-PetNeutral", "UI-PetHappiness" }
 
+-- 顯示條件（設定 showWhen）→ 最高到哪個快樂度還顯示。沒列到的值（含 always）＝一律顯示
+local HAPPINESS_MAX = { content = 2, unhappy = 1 }
+
 local atlasCache = {}
 local function AtlasInfo(name)
     local v = atlasCache[name]
@@ -303,7 +306,11 @@ local function Update(uf, edb, bucket)
     -- 寵物快樂度：UNIT_HAPPINESS 推 info 桶（Core/Events.lua），換寵物走 unitchanged
     local hp = uf.iconTextures.happiness
     if hp and not hp.disabled and edb.happiness and edb.happiness.enabled then
-        local atlas = HAPPINESS_ATLAS[ns.Cache.PetHappiness(uf) or 0]
+        local mood = ns.Cache.PetHappiness(uf)
+        local max = HAPPINESS_MAX[edb.happiness.showWhen] or 3
+        -- 預覽固定是「高興」，套了條件就永遠看不到 ⇒ 改畫條件內最高的那張，位置才對得到
+        if preview and mood then mood = max end
+        local atlas = mood and mood <= max and HAPPINESS_ATLAS[mood]
         if atlas then
             hp.tex:SetAtlas(atlas)
             hp:Show()

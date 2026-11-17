@@ -643,3 +643,7 @@ L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "Пока
 L["Forever only: [name] includes the surname unless you turn that off under Global style; [firstname] [surname] [fullname] always give the name alone / the surname alone / both; [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "Только Forever: [name] включает фамилию, если не отключить это в общем стиле; [firstname] [surname] [fullname] всегда дают только имя / только фамилию / оба; [happiness] (настроение питомца охотника текстом) и [happiness:happiness] (цвет по настроению); условия unhappy / content / happy, например [gray_if_happy:happiness]."
 L["Show surnames in names"] = "Показывать фамилии в именах"
 L["Adds the surname to every [name] text. Turn it off if names get cut short; [fullname] and [firstname] ignore this setting."] = "Добавляет фамилию ко всем текстам [name]. Отключите, если имена обрезаются; [fullname] и [firstname] не зависят от этой настройки."
+L["Show when"] = "Показывать когда"
+L["Always"] = "Всегда"
+L["Content or unhappy"] = "Доволен или недоволен"
+L["Unhappy only"] = "Только недоволен"
