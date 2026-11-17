@@ -903,6 +903,13 @@ function DB.BuildDefaults()
                                 stackAnchor = "TOP", stackX = 0, stackY = 4,
                                 durationText = false, durationThreshold = 60, filterMode = "all",
                                 blacklist = satedBlacklist() },
+                    -- 小圖示：寵物框原本沒有這個元件，永恆版才為了快樂度表情加上（獵人寵物，
+                    -- 不高興會掉傷害 ⇒ 預設開）。正式服整個不建，設定頁也不會多一顆「圖示」。
+                    -- 位置在框內右上角：名字靠左、血量數字靠右下，這一角是空的。
+                    icons = ns.IS_FOREVER and {
+                        enabled = true,
+                        happiness = { enabled = true, x = 100, y = -2, w = 18, h = 18, level = ICON_LEVEL },
+                    } or nil,
                 },
             },
 

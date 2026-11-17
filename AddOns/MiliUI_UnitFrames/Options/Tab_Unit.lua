@@ -17,6 +17,9 @@ local PosSize, Pos = Specs.PosSize, Specs.Pos
 -- 對不上而且不報錯（靜默退成英文）。
 local TAG_SYNTAX_HELP = L["Syntax: [name] [level] [curhp] [maxhp] [perchp] [curmp] [maxmp] [percmp] [shields] [healabsorbs] (blank when there is no shield), [shields_short] [healabsorbs_short] (abbreviated), [class] [race] [creaturetype] [classification], [group] [group_label] (raid group as a number / with the label, blank outside a raid); conditional coloring [gray_if_dead:Dead], [class:name], [difficulty:level]."]
 
+-- 永恆版才有值的 tag，另起一段說明：只在永恆版列，正式服的玩家不必看到用不到的語法
+local TAG_SYNTAX_HELP_FOREVER = L["Forever only: [surname] (surname) and [fullname] (name and surname); [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."]
+
 local UNIT_LIST = {
     { key = "player",       label = L["Player"] },
     { key = "target",       label = L["Target"] },
@@ -347,6 +350,7 @@ end
 local function BarTextSpecs(list, name, unitKey)
     tinsert(list, { type = "header", label = L["Text"] })
     tinsert(list, { type = "text", label = TAG_SYNTAX_HELP })
+    if ns.IS_FOREVER then tinsert(list, { type = "text", label = TAG_SYNTAX_HELP_FOREVER }) end
     tinsert(list, { type = "text", label = L["Coordinates are relative to this bar's top-left corner; the text moves with the bar."] })
     TextListSpecs(list, unitKey, name)
 end
@@ -845,13 +849,17 @@ local function IconSpecs(els)
         { key = "pvp",        label = "PvP" },
         -- 只有玩家／目標的預設值有 group 鍵，其他單位不會出現這一節
         { key = "group",      label = L["Group number"] },
+        -- 永恆版的寵物框才有（預設值本身就只在永恆版建）；forever 這道閘是擋「從永恆版匯入的設定檔」
+        { key = "happiness",  label = L["Pet happiness"], forever = true },
     }
     for _, d in ipairs(defs) do
-        if els.icons[d.key] then
+        if els.icons[d.key] and (not d.forever or ns.IS_FOREVER) then
             tinsert(list, { type = "header", label = d.label })
             tinsert(list, { type = "toggle", sub = "icons", sub2 = d.key, key = "enabled", label = L["Show"] })
             if d.key == "group" then
                 tinsert(list, { type = "text", label = L["Shows the raid group number. Hidden outside a raid, or when the unit isn't in your raid."] })
+            elseif d.key == "happiness" then
+                tinsert(list, { type = "text", label = L["Shows your hunter pet's mood. An unhappy pet deals less damage."] })
             end
             -- 只有玩家框的 status 有這兩個鍵，其他單位不會冒出無效選項
             if els.icons[d.key].restAnimated ~= nil then
@@ -896,6 +904,7 @@ local function TextsSpecs(unitKey)
         { type = "text", label = L["Health and power numbers are set under their own bars (Health bar / Power bar)."] },
         { type = "text", label = TAG_SYNTAX_HELP },
     }
+    if ns.IS_FOREVER then tinsert(list, { type = "text", label = TAG_SYNTAX_HELP_FOREVER }) end
     TextListSpecs(list, unitKey, "texts")
     return list
 end

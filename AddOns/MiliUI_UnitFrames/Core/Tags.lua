@@ -38,6 +38,8 @@ local INFO_TAGS = {
     shields_short = "health", healabsorbs_short = "health",
     -- 換小隊只會發 GROUP_ROSTER_UPDATE，那個事件推的是 reaction 桶（Core/Events.lua）
     group = "reaction", group_label = "reaction",
+    -- 永恆版：姓氏跟名字同一個事件來；快樂度由 UNIT_HAPPINESS 推 info 桶（Core/Events.lua）
+    surname = "info", fullname = "info", happiness = "info",
 }
 
 -- 秘密值 tag：走「佔位符 → 最後串接」管線，值從不進 Lua 字串運算
@@ -85,6 +87,26 @@ local SECRET_TAGS = {
         return UnitGetTotalHealAbsorbs and UnitGetTotalHealAbsorbs(u) or 0
     end },
     name  = { kind = "string", fn = function(u) return UnitName(u) end },
+    -- 姓氏（永恆版）。UnitName 的第二個回傳在永恆是姓氏、在正式服是伺服器名 ⇒ 正式服一律不輸出。
+    -- 受限單位的姓氏可能是秘密字串：只判 nil、明文才比空字串，其餘直接串接。
+    surname = { kind = "string", fn = function(u)
+        if not ns.IS_FOREVER then return nil end
+        local _, surname = UnitName(u)
+        return surname
+    end },
+    -- 名＋姓，空格接（暴雪自己的顯示也是空格）。沒姓氏、或在正式服，就等於 [name]
+    fullname = { kind = "string", fn = function(u)
+        local name, surname = UnitName(u)
+        if name == nil or not ns.IS_FOREVER or surname == nil then return name end
+        if not IsSecret(surname) and surname == "" then return name end
+        return name .. " " .. surname
+    end },
+    -- 獵人寵物的快樂度字樣（暴雪的 PET_HAPPINESS1～3 全域字串，各語系都是官方譯名）。
+    -- 只有永恆版的寵物框有值，其餘整個 token 不輸出
+    happiness = { kind = "string", fn = function(u, uf)
+        local mood = ns.Cache.PetHappiness(uf)
+        return mood and _G["PET_HAPPINESS" .. mood] or nil
+    end },
     -- ⚠ 種族／職業只對「真玩家」有意義。對寵物、載具、被控生物這類
     --   player-controlled 但非玩家的單位：UnitRace 回 nil，UnitClass 回的是
     --   「該單位的名字」——照抄會在種族欄印出寵物名。一律先閘掉。
@@ -132,6 +154,10 @@ local conditions = {
     helpful = function(uf) return uf.cache.assist end,
     hostile = function(uf) return uf.cache.hostile end,
     attackable = function(uf) return uf.cache.attackable end,
+    -- 獵人寵物的快樂度（永恆版的寵物框才會成立）
+    unhappy = function(uf) return ns.Cache.PetHappiness(uf) == 1 end,
+    content = function(uf) return ns.Cache.PetHappiness(uf) == 2 end,
+    happy = function(uf) return ns.Cache.PetHappiness(uf) == 3 end,
 }
 Tags.conditions = conditions
 
@@ -142,12 +168,14 @@ local CONDITION_BUCKETS = {
     tapped = "reaction", pc = "reaction", npc = "reaction",
     afk = "reaction", dnd = "reaction", combat = "reaction",
     helpful = "reaction", hostile = "reaction", attackable = "reaction",
+    unhappy = "info", content = "info", happy = "info",
 }
 
 local COLOR_BUCKETS = {
     class = "reaction", reaction = "reaction", classreaction = "reaction",
     difficulty = "info",          -- 難度色讀的是等級
     power = "powertype",
+    happiness = "info",
 }
 
 ------------------------------------------------------------

@@ -385,6 +385,15 @@ SCOPED = {
     },
 }
 
+-- 獵人寵物的快樂度（永恆版）。事件只在永恆版登記：正式服不保證有這個事件名，
+-- 註冊不存在的事件是硬錯。info 桶＝文字 tag（[happiness] 與三個條件）＋小圖示。
+-- force：同一次 flush 裡稍早若有別的事件推過 info，那次讀的是舊快樂度。
+if ns.IS_FOREVER then
+    SPECIAL.UNIT_HAPPINESS = function()
+        RefreshUnit("pet", "info", true, "happiness")
+    end
+end
+
 -- ⚠⚠ 旗標要在**檔案載入期**就立起來，不能等 Events.Start()。
 -- 各元件模組是在自己被載入時（也就是 PLAYER_LOGIN 之前）就呼叫 ns.Events.Register 的，
 -- 那一刻 unitScoped 若還是空的，UNIT_TARGET 會先被掛上全域 frame，等 Start 再掛一次

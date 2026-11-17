@@ -638,3 +638,6 @@ L["Coordinates are relative to this bar's top-left corner; the text moves with t
 L["Health and power numbers are set under their own bars (Health bar / Power bar)."] = "생명력과 자원 수치는 각 바에서 설정합니다 (생명력 바 / 자원 바)."
 L["Add text"] = "텍스트 추가"
 L["Delete text %d?"] = "텍스트 %d을(를) 삭제할까요?"
+L["Pet happiness"] = "소환수 만족도"
+L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "사냥꾼 소환수의 기분을 표시합니다. 소환수가 불만족하면 공격력이 떨어집니다."
+L["Forever only: [surname] (surname) and [fullname] (name and surname); [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "Forever 전용: [surname] (성), [fullname] (이름과 성); [happiness] (사냥꾼 소환수의 기분 문자), [happiness:happiness] (기분에 따라 색상); 조건 unhappy / content / happy, 예: [gray_if_happy:happiness]."

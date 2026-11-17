@@ -321,6 +321,18 @@ function Colors.Threshold(uf, edb, r, g, b, a)
     return r, g, b, a
 end
 
+-- 獵人寵物的快樂度色（紅／黃／綠）。拿不到快樂度（正式服、不是寵物框、不是獵人寵物）回白色
+local HAPPINESS_COLOR = {
+    { 1.00, 0.25, 0.25 },
+    { 1.00, 0.82, 0.00 },
+    { 0.30, 0.90, 0.30 },
+}
+methods.happiness = function(uf, edb, value, choice, alphaKey)
+    local c = HAPPINESS_COLOR[ns.Cache.PetHappiness(uf) or 0]
+    if not c then return 1, 1, 1, alphaOf(edb, alphaKey, 1) end
+    return c[1], c[2], c[3], alphaOf(edb, alphaKey, 1)
+end
+
 methods.gray = function(uf, edb, value, choice, alphaKey)
     local c = G().gray
     return c.r, c.g, c.b, alphaOf(edb, alphaKey, c.a)

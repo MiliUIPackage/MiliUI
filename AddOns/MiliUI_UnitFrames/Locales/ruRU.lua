@@ -638,3 +638,6 @@ L["Coordinates are relative to this bar's top-left corner; the text moves with t
 L["Health and power numbers are set under their own bars (Health bar / Power bar)."] = "Числа здоровья и ресурса настраиваются в своих полосах (Полоса здоровья / Полоса ресурса)."
 L["Add text"] = "Добавить текст"
 L["Delete text %d?"] = "Удалить текст %d?"
+L["Pet happiness"] = "Настроение питомца"
+L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "Показывает настроение питомца охотника. Недовольный питомец наносит меньше урона."
+L["Forever only: [surname] (surname) and [fullname] (name and surname); [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "Только Forever: [surname] (фамилия) и [fullname] (имя и фамилия); [happiness] (настроение питомца охотника текстом) и [happiness:happiness] (цвет по настроению); условия unhappy / content / happy, например [gray_if_happy:happiness]."

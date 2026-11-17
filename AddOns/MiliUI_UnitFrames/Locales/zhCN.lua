@@ -636,3 +636,6 @@ L["Coordinates are relative to this bar's top-left corner; the text moves with t
 L["Health and power numbers are set under their own bars (Health bar / Power bar)."] = "生命值和能量数值在各自的条里设置（血条／能量条）。"
 L["Add text"] = "添加文字"
 L["Delete text %d?"] = "删除文字 %d？"
+L["Pet happiness"] = "宠物快乐度"
+L["Shows your hunter pet's mood. An unhappy pet deals less damage."] = "显示猎人宠物的心情。宠物不高兴时造成的伤害会降低。"
+L["Forever only: [surname] (surname) and [fullname] (name and surname); [happiness] (your hunter pet's mood as text) and [happiness:happiness] (colored by mood); the conditions unhappy / content / happy, e.g. [gray_if_happy:happiness]."] = "永恒版专用：[surname]（姓氏）、[fullname]（名字加姓氏）；[happiness]（猎人宠物的心情文字）、[happiness:happiness]（按心情上色）；条件 unhappy／content／happy，例如 [gray_if_happy:happiness]。"

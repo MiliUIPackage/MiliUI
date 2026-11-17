@@ -166,6 +166,26 @@ function Cache.PlayerPetSpec()
     return PlainPositive(pcall(GetSpecInfo, idx, false, true))
 end
 
+-- 獵人寵物的快樂度（永恆版才有；1 不高興／2 滿足／3 高興，其餘一律 nil）。
+-- 判準照暴雪 PetHappinessIndicatorMixin：C_PetInfo.GetPetHappiness ＋ HasPetUI 的 isHunterPet。
+-- 這支 API 問的是「玩家的寵物欄」，跟 unit token 無關 ⇒ 只有寵物框答，其他框一律 nil
+-- （不然目標框選到隨便一隻怪也會掛上你寵物的表情）。
+-- 預覽：永恆版的寵物框固定回 3，設定頁才對得到位置。
+-- 第二、三個回傳值是傷害百分比與忠誠度增減，目前沒有人用。
+local HAPPINESS_VALID = { true, true, true }
+function Cache.PetHappiness(uf)
+    if not ns.IS_FOREVER then return nil end
+    if uf and uf.unitKey ~= "pet" then return nil end
+    if uf and uf.isPreview then return 3 end
+    local get = C_PetInfo and C_PetInfo.GetPetHappiness
+    if not (get and HasPetUI) then return nil end
+    local _, isHunterPet = HasPetUI()
+    if not isHunterPet then return nil end
+    local mood, damage, loyalty = get()
+    if mood == nil or IsSecret(mood) or not HAPPINESS_VALID[mood] then return nil end
+    return mood, damage, loyalty
+end
+
 -- ⚠ 專精 API 問的是「玩家的寵物欄」，跟 unit token 無關 —— 所以要先確定這個框畫的
 -- 真的是那隻寵物，不然目標框選到隨便一隻怪也會被塗上你寵物的專精色。
 -- 呼叫端已經用 ownerClass 閘過（主人是自己），這裡再排除載具：
