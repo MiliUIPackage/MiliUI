@@ -911,8 +911,8 @@ function DB.BuildDefaults()
                     icons = ns.IS_FOREVER and {
                         enabled = true,
                         -- showWhen：always 一律顯示／content 滿足以下才顯示／unhappy 不高興才顯示
-                        happiness = { enabled = true, x = 100, y = -2, w = 18, h = 18, level = ICON_LEVEL,
-                                      showWhen = "always" },
+                        happiness = { enabled = true, x = 102, y = 0, w = 15, h = 15, level = ICON_LEVEL,
+                                      showWhen = "content" },
                     } or nil,
                 },
             },
