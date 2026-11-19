@@ -883,6 +883,11 @@ local function MakeRow(parent)
     row.textFrame:SetAllPoints(row)
     row.textFrame:SetFrameLevel(row:GetFrameLevel() + 20)
     row.text = row.textFrame:CreateFontString(nil, "OVERLAY")
+    -- ⚠ 建立時就給字型：LayoutRow 只在「要顯示數值」時才設字型，而 UpdateRow 的
+    -- 清空路徑（格數讀到 0、上限讀不到）不管顯不顯示都會 SetText("")。
+    -- 符文列預設印倒數（中間數值關著）⇒ 這個字串從沒拿過字型，格數一讀到 0 就
+    -- 「Font not set」，而且是 0.1 秒的 Metro 在叫，會連環報
+    Media.SetPixelFont(row.text, 10, "OUTLINE")
     row.text:SetDrawLayer("OVERLAY", 7)
     row.text:SetJustifyH("CENTER")
     row.text:SetJustifyV("MIDDLE")
