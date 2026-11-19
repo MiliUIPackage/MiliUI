@@ -451,6 +451,10 @@ local function CreatePanel()
     end)
     -- 開窗淡入：OnUpdate lerp，結束就把 handler 拆掉，平時零成本
     panel:SetScript("OnShow", function(self)
+        -- ⚠ 第一件事：重算 1px 外框。W.CreateFrame（Stylize）當初 HookScript 的 OnShow 對帳
+        -- 被這個 SetScript 整個蓋掉了，不補叫的話 UI／祖先縮放變了之後外框會不見或變 2px
+        -- （.claude/notes/wow-1px-border-rules.md）
+        W.RefreshEdge(self)
         SetCombatLocked(InCombatLockdown())
         RefreshBanner()
         self:SetAlpha(0)

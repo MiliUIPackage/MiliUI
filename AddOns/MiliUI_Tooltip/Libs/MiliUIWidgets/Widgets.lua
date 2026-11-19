@@ -1888,6 +1888,7 @@ function W.CreateChoicePopup(parent, width, text, choices)
     -- 高度貼著字長：上緣 12＋字高＋字與按鈕間距 14＋按鈕 22＋下緣 12（固定 96 的話一行字中間空一大塊）
     -- 寬度也在顯示時重量一次：建立當下字型可能還沒就緒、字寬量成 0
     popup:SetScript("OnShow", function(self)
+        RefreshEdge(self)   -- W.CreateFrame 掛的 1px 外框對帳被這個 SetScript 蓋掉了，自己補叫
         mask:Show()
         Layout()
         local textH = fs:GetStringHeight() or 0
@@ -1939,6 +1940,7 @@ function W.CreateConfirmPopup(parent, width, text, onAccept)
     popup.text = fs
 
     popup:SetScript("OnShow", function(self)
+        RefreshEdge(self)   -- W.CreateFrame 掛的 1px 外框對帳被這個 SetScript 蓋掉了，自己補叫
         mask:Show()
         GrowPopupForText(self, fs, 84, 22, 12, 14)
     end)
@@ -2100,7 +2102,8 @@ function W.CreateInputPopup(parent, width, title, fields)
     popup:SetBackdropBorderColor(W.Accent(1))
     popup:SetPoint("CENTER")
     popup.mask = mask
-    popup:SetScript("OnShow", function() mask:Show() end)
+    -- 先補叫 1px 外框對帳：W.CreateFrame 當初 HookScript 的那份被這個 SetScript 蓋掉了
+    popup:SetScript("OnShow", function(self) RefreshEdge(self) mask:Show() end)
     popup:SetScript("OnHide", function() mask:Hide() end)
     popup:Hide()
 

@@ -12,6 +12,8 @@
 --       formW      = 580,                          -- 選用：BuildScrollBody 的預設寬
 --       title      = function() return "..." end,  -- 字串或函式（建窗時才求值）；nil＝只長把手 chip
 --       position   = function() return db.optionsWindow end,   -- 存 { x, y } 的表；回 nil 就不存不套
+--                                                  -- x／y 是 UIParent 單位的中心偏移；開窗時超出 UIParent
+--                                                  -- 半寬／半高的只在這次擺回中央，存檔不改（見 ApplyPosition）
 --       escape     = "special",                    -- "special"＝tinsert(UISpecialFrames)（預設）
 --                                                  -- "panels" ＝W.CloseOnEscape（開天賦／法術書不關）
 --       tabs       = { { id =, label =, hidden = true? }, ... },   -- 選用；沒有就不長分頁列
@@ -110,16 +112,38 @@ function W.CreateOptionsWindow(spec)
         w.y = math.floor(fy - cy + 0.5)
     end
 
+    -- 存到畫面外時拉回中央：不然視窗「其實開著但看不到」，下一次開窗會變成關掉它。
+    --
+    -- 比較基準是 **UIParent 自己的半寬／半高**：存檔的 x／y 是 SavePosition 用 UIParent:GetCenter()
+    -- 算的，單位是 UIParent 座標，所以拿 UIParent 的尺寸來比才是同一把尺。GetScreenWidth() 不保證
+    -- 跟 UIParent 寬度相同：玩家另外把 UIParent 縮放設得跟 uiScale CVar 不同時 UIParent 的尺寸會變
+    -- （實例：CVar 0.76、實際 0.53，UIParent 寬差四成；GetScreenWidth() 那時回多少沒有實機確認過），
+    -- 兩者不一致的話拖到靠邊的視窗會每次開窗都被歸回中央。拿不到 UIParent 尺寸才退回舊基準
+    -- （.claude/notes/wow-login-screen-size-not-final.md）。
+    --
+    -- 只夾**這次套用的值**、不寫回存檔：尺寸只要哪一刻是錯的，寫回去就把正常位置永久打壞；
+    -- 不寫回的話下次開窗尺寸對了就回到原位。真的在畫面外的，SavePosition 會在玩家下次拖曳時
+    -- 自然寫成新位置；平常顯示則還有 SetClampedToScreen 由引擎夾住。
+    -- 只有型別不對（不是數字）才寫回 0 —— 那是壞資料，留著也沒用。
+    local function HalfExtent(uiSize, screenSize, fallback)
+        local v = uiSize
+        if type(v) ~= "number" or v <= 0 then v = screenSize end
+        if type(v) ~= "number" or v <= 0 then v = fallback end
+        return v / 2
+    end
+
     local function ApplyPosition()
         local w = spec.position()
         if not w then return end
-        -- 存到畫面外時拉回中央：不然視窗「其實開著但看不到」，下一次開窗會變成關掉它
-        local maxX = (GetScreenWidth() or 1920) / 2
-        local maxY = (GetScreenHeight() or 1080) / 2
-        if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end
-        if type(w.y) ~= "number" or math.abs(w.y) > maxY then w.y = 0 end
+        if type(w.x) ~= "number" then w.x = 0 end
+        if type(w.y) ~= "number" then w.y = 0 end
+        local maxX = HalfExtent(UIParent:GetWidth(), GetScreenWidth(), 1920)
+        local maxY = HalfExtent(UIParent:GetHeight(), GetScreenHeight(), 1080)
+        local x, y = w.x, w.y
+        if math.abs(x) > maxX then x = 0 end
+        if math.abs(y) > maxY then y = 0 end
         panel:ClearAllPoints()
-        panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
+        panel:SetPoint("CENTER", UIParent, "CENTER", x, y)
     end
 
     --------------------------------------------------------
@@ -243,6 +267,10 @@ function W.CreateOptionsWindow(spec)
             if spec.onHide then spec.onHide(panel) end
         end)
         panel:SetScript("OnShow", function()
+            -- ⚠ 第一件事：重算 1px 外框。W.CreateFrame（Stylize）當初 HookScript 的 OnShow 對帳
+            -- 被上面這個 SetScript 整個蓋掉了，不在這裡補叫，UI／祖先縮放變了之後外框會不見或變 2px，
+            -- 要 /reload 才回來（.claude/notes/wow-1px-border-rules.md）。兩種 lockAfterOnShow 順序都一樣先做
+            W.RefreshEdge(panel)
             if spec.lockAfterOnShow then
                 if spec.onShow then spec.onShow(panel) end
                 SetCombatLocked(InCombatLockdown())   -- 戰鬥中開窗也要鎖
@@ -270,7 +298,7 @@ function W.CreateOptionsWindow(spec)
     -- 開關
     --------------------------------------------------------
     function win.Present()
-        ApplyPosition()     -- 每次開啟都校正位置（存到畫面外會拉回中央）
+        ApplyPosition()     -- 每次開啟都校正位置（存到畫面外的這次擺回中央，存檔不動）
         panel:Show()
         panel:Raise()       -- 已開但被其他對話框蓋住時拉到最前，免得看起來像沒反應
     end
