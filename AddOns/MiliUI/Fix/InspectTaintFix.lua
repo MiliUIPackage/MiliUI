@@ -20,6 +20,14 @@
 local AddonName = ...
 if AddonName ~= "MiliUI" then return end
 
+-- ⚠ 2026-11-20 實驗性停用：整支不做事（下面的程式都不會跑）。
+--   理由：(1) 上面寫的成因——舊單位框插件的 tooltip 路徑——已經不在套組裡；
+--   (2) 第 1 段包的那兩個全域，檢視裝等的插件現在自己就擋秘密 GUID；
+--   (3) 第 2 段把暴雪觀察視窗的 OnEvent／OnShow 換成我們的函式，等於讓暴雪的程式永遠在
+--       插件的執行環境下跑——隔壁 TooltipTaintFix.lua 檔頭寫的正是「這樣反而製造秘密值錯誤」。
+--   觀察視窗若因此報錯，把下面這一行刪掉就還原；實機確認沒事的話整支連同 TOC 那行一起刪。
+do return end
+
 local pcall = pcall
 local type = type
 local string_find = string.find
