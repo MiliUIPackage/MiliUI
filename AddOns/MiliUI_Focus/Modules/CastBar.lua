@@ -78,10 +78,14 @@ local barFrame, twin       -- 畫面上那條、震動用的分身（見「開�
 local barStatusBar, barIcon, barSpark, nameText, bangText, timeText   -- 本尊零件的別名（BuildParts 建在 barFrame 上）
 local targetText           -- 法術打向誰（條右下角、職業色）
 local twinOn = false       -- 這次開唱帶著分身（Arm 到 End 之間）
--- 範例條＋可拖曳：編輯模式或本插件設定視窗任一開著就算（isInEditMode＝兩者 OR）
+-- 範例條＋可拖曳：編輯模式或本插件設定視窗任一開著就算（isInEditMode＝兩者 OR）。
+-- 編輯模式的進出訊號、選取框、拖曳走共用層（Libs/MiliUIEditMode.lua）；設定視窗開著＝mover:SetForced
+local EM = ns.MiliUIEditMode
 local isInEditMode = false
-local editModeOpen, settingsOpen = false, false
+local settingsOpen = false
+local mover               -- barFrame 的編輯模式 mover（CreateBarFrame 建）
 local HideBar   -- forward declaration（供 ticker / OnUpdate 引用）
+local UpdateEditModeState   -- forward declaration（編輯模式 mover 的 onChange 引用）
 
 -- 畫到條上的東西：本尊一定畫，分身顯示中也畫
 local function Each(fn, ...)
@@ -552,14 +556,13 @@ local function UpdateBarSize()
     UpdateBarSizeOn(twin)
 end
 
+-- 放手（共用層已確認不在戰鬥、清過 SetUserPlaced）：照框的現況存 CENTER 偏移（四捨五入）、照存檔重貼
 local function SaveDragPosition(self)
-    self:StopMovingOrSizing()
-    self:SetUserPlaced(false)
-    local cx, cy = UIParent:GetCenter()
-    local fx, fy = self:GetCenter()
+    local x, y = EM.CenterOffset(self)
+    if not x then return end
     local db = DB()
-    db.x = math.floor(fx - cx + 0.5)
-    db.y = math.floor(fy - cy + 0.5)
+    db.x, db.y = x, y
+    UpdateBarPosition()
     ns.Fire("SettingsChanged")
 end
 
@@ -663,28 +666,14 @@ local function CreateBarFrame()
     twin.shake = MakeShake(twin)
     twin.shake:SetScript("OnFinished", function() EndShake() end)
 
-    -- 拖曳（編輯模式）
-    barFrame:RegisterForDrag("LeftButton")
-    barFrame:SetScript("OnDragStart", function(self)
-        if self.unlocked then self:StartMoving() end
-    end)
-    barFrame:SetScript("OnDragStop", SaveDragPosition)
-
-    -- 編輯模式選取框
-    local editSelection = CreateFrame("Frame", nil, barFrame, "EditModeSystemSelectionTemplate")
-    -- ⚠⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
-    --   我們不是真的 Edit Mode 系統，點一下不拖曳就讓暴雪帶著本插件的 taint 掃過
-    --   每一個已註冊系統（動作條也在內）；當下靜默，戰鬥中動作條被封鎖才爆出來。
-    editSelection:SetScript("OnMouseDown", function() end)
-    editSelection:SetAllPoints()
-    editSelection:Hide()
-    editSelection:RegisterForDrag("LeftButton")
-    editSelection:SetScript("OnDragStart", function() barFrame:StartMoving() end)
-    editSelection:SetScript("OnDragStop", function() SaveDragPosition(barFrame) end)
-    editSelection.system = {
-        GetSystemName = function() return ns.L["Focus cast bar"] end,
-    }
-    barFrame.editSelection = editSelection
+    -- 編輯模式選取框與拖曳（共用層）：範例條顯示中（編輯模式或設定視窗開著）、而且有在監控才亮
+    mover = EM.Attach(barFrame, {
+        name     = function() return ns.L["Focus cast bar"] end,
+        enabled  = function() return Monitoring() and true or false end,
+        save     = SaveDragPosition,
+        restore  = UpdateBarPosition,
+        onChange = function() UpdateEditModeState() end,
+    })
     UpdateBarSize()
     -- OnUpdate 不在此掛：一般模式施法時才掛 LegacyOnUpdate；秘密模式改用 displayTicker。
 end
@@ -1105,13 +1094,14 @@ local function RefreshFromFocus()
 end
 
 ----------------------------------------------------------------------
--- 編輯模式（三層 hook）
+-- 範例條（編輯模式或設定視窗開著）：進出訊號由共用層派送（下一幀），設定視窗由 SetSettingsOpen 叫
 ----------------------------------------------------------------------
-local function UpdateEditModeState()
+function UpdateEditModeState()
     if not ns.db then return end
     local wasPreview = isInEditMode
-    isInEditMode = editModeOpen or settingsOpen
+    isInEditMode = EM.IsActive() or settingsOpen
     CreateBarFrame()
+    mover:SetForced(settingsOpen)   -- 設定視窗開著也亮選取框、可拖（值沒變不派送）
     if isInEditMode and Monitoring() then
         -- 進入編輯模式：停掉施法中的每幀回呼/ticker，顯示靜態範例
         active = false
@@ -1119,7 +1109,6 @@ local function UpdateEditModeState()
         EndShake()
         barFrame.shake:Stop()
         barFrame:SetScript("OnUpdate", nil)
-        barFrame.unlocked = true
         barFrame:EnableMouse(true)
         barIcon:SetTexture(132329)                 -- 範例圖示（隨便一個法術）
         SetName(ns.L["Focus cast bar"], true)     -- 範例條當重要法術，看得到驚嘆號
@@ -1135,15 +1124,14 @@ local function UpdateEditModeState()
         barStatusBar:SetStatusBarColor(c.r, c.g, c.b)
         ShowGlow()                                 -- 範例條直接亮，看得到發光長相
         PaintKickGlow(false)                       -- 範例條是可以斷的施法
-        barFrame.editSelection:ShowHighlighted()
+        mover:Refresh()
         UpdateBarPosition()
         UpdateBarSize()
         barFrame:Show()
     else
         if not barFrame then return end
-        barFrame.unlocked = false
         barFrame:EnableMouse(false)
-        barFrame.editSelection:Hide()
+        mover:Refresh()
         if not active then
             StopGlow()
             StopKickGlow()
@@ -1152,21 +1140,6 @@ local function UpdateEditModeState()
         -- 剛離開範例：專注目標若正在施法，接回真正的讀條
         if wasPreview then RefreshFromFocus() end
     end
-end
-
-local editModeHooked = false
-local function HookEditMode()
-    if editModeHooked then return end
-    if not EditModeManagerFrame then return end
-    editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", function() editModeOpen = true;  UpdateEditModeState() end)
-    EditModeManagerFrame:HookScript("OnHide", function() editModeOpen = false; UpdateEditModeState() end)
-    if EditModeManagerFrame:IsShown() then editModeOpen = true; UpdateEditModeState() end
-end
-
-HookEditMode()  -- Tier 1
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)  -- Tier 2
 end
 
 ----------------------------------------------------------------------
@@ -1345,7 +1318,6 @@ end)
 ns.RegisterCallback("Init", "castbar", function()
     RefreshInterruptSpells()
     CreateBarFrame()
-    HookEditMode()  -- Tier 3
     -- 冷卻管理器的專注目標施法條開關變了：重套（讓位／接回）。它比我們早載入，API 這時一定在（沒有就是沒裝）
     local api = _G.MiliUI_CooldownManager
     if type(api) == "table" and type(api.RegisterCallback) == "function" then

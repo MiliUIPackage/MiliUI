@@ -746,55 +746,21 @@ end
 --   暴雪那幾顆按鈕的位置還原（＝空的原版小地圖現形、疊在我們的位置上）。
 --   既有的 EDIT_MODE_LAYOUTS_UPDATED 只在版面**真的被改存**時才發，
 --   純進出補不到這一刀。延一幀是接管的通則（理由見 TakeOver 的註解）。
+--
+-- 進出訊號走共用層（Libs/MiliUIEditMode.lua）：三重訊號、處理器只改旗標，狀態變了才在下一幀
+-- 通知這裡（同一幀三路都到也只通知一次）。
 ------------------------------------------------------------
 local isInEditMode = false
 
 function Skin.InEditMode() return isInEditMode end
 
-local function OnEditModeEnter()
-    -- 三路訊號誰先到都一樣，去重是為了不要一次進場跑三遍 Apply
-    if isInEditMode then return end
-    isInEditMode = true
+ns.MiliUIEditMode.OnChange("Skin", function(active)
+    active = active and true or false
+    if isInEditMode == active then return end
+    isInEditMode = active
     Skin.RefreshDrag()
-    C_Timer.After(0, function() ns.Safe(Skin.Apply) end)
-end
-
-local function OnEditModeExit()
-    if not isInEditMode then return end
-    isInEditMode = false
-    Skin.RefreshDrag()
-    C_Timer.After(0, function() ns.Safe(Skin.Apply) end)
-end
-
--- 三重訊號，全部冪等（同 MiliUI_InfoBar/Core/Bar.lua，那支踩掉了時序的坑）：
---   ① 管理視窗的 Show/Hide  ② EnterEditMode/ExitEditMode 方法本體
---   ③ 官方的 EventRegistry 事件
--- 只掛 ① 實測會漏接。
-local editModeHooked = false
-local function HookEditMode()
-    if editModeHooked or not EditModeManagerFrame then return end
-    editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", OnEditModeEnter)
-    EditModeManagerFrame:HookScript("OnHide", OnEditModeExit)
-    if EditModeManagerFrame.EnterEditMode then
-        hooksecurefunc(EditModeManagerFrame, "EnterEditMode", OnEditModeEnter)
-    end
-    if EditModeManagerFrame.ExitEditMode then
-        hooksecurefunc(EditModeManagerFrame, "ExitEditMode", OnEditModeExit)
-    end
-    if EditModeManagerFrame:IsShown() then OnEditModeEnter() end
-end
-Skin.HookEditMode = HookEditMode
-
--- Blizzard_EditMode 是需求載入的，開檔時通常還不在
-HookEditMode()
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
-end
-if EventRegistry and EventRegistry.RegisterCallback then
-    EventRegistry:RegisterCallback("EditMode.Enter", OnEditModeEnter, "MiliUIMinimap")
-    EventRegistry:RegisterCallback("EditMode.Exit", OnEditModeExit, "MiliUIMinimap")
-end
+    ns.Safe(Skin.Apply)
+end)
 
 ------------------------------------------------------------
 -- 事件
@@ -807,7 +773,6 @@ local ZONE_EVENTS = {
 ns.RegisterCallback("Init", "Skin", function()
     Build()
     Skin.Apply()
-    HookEditMode()   -- 保底：開檔時 Blizzard_EditMode 沒載入、也沒走到 ContinueOnAddOnLoaded
 
     local ev = CreateFrame("Frame")
     for _, e in ipairs(ZONE_EVENTS) do ev:RegisterEvent(e) end

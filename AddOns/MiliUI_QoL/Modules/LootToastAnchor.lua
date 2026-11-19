@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 -- 自訂戰利品通知位置（戰利品通知過濾的選做項，開關獨立）
 --
--- 做法：一個自己的錨框（編輯模式可拖、存 UIParent CENTER 偏移，技能 wow-editmode-draggable），
+-- 做法：一個自己的錨框（編輯模式可拖、存 UIParent CENTER 偏移；拖曳走共用層 Libs/MiliUIEditMode.lua），
 -- 勾選時把 AlertFrame 錨到它上面：
 --   AlertFrame:ClearAllPoints(); AlertFrame:SetPoint("BOTTOM", anchor, "BOTTOM")
 -- 取消勾選時改回暴雪 XML 的原位 BOTTOM, UIParent, BOTTOM, 0, 128。
@@ -22,9 +22,10 @@ ns.LootToastAnchor = AN
 local ANCHOR_W, ANCHOR_H = 280, 90
 local DEFAULT_OFFSET_Y = 128      -- AlertFrames.xml：<Anchor point="BOTTOM" x="0" y="128"/>
 
+local EM = ns.MiliUIEditMode
+
 local started = false
 local moved = false
-local isInEditMode = false
 
 local function Cfg()
     return ns.db and ns.db.lootToast
@@ -54,94 +55,33 @@ local function PlaceAnchor()
 end
 
 ------------------------------------------------------------
--- 拖曳：手動算，不用 StartMoving（技能第 3 節）
+-- 編輯模式拖曳（Libs/MiliUIEditMode.lua）：選取框（開檔就建）、三重進出訊號、手動拖曳、
+-- 格線吸附、戰鬥閘都在共用層。錨框是普通框，戰鬥中進出也安全。
 ------------------------------------------------------------
-local dragState, dragDriver
-
-local function EndDrag()
-    if not dragState then return end
-    dragState = nil
-    if dragDriver then dragDriver:Hide() end
+local function MoveEnabled()
     local c = Cfg()
-    local cx, cy = UIParent:GetCenter()
-    local fx, fy = anchor:GetCenter()
-    if c and cx and fx then
-        c.x = math.floor(fx - cx + 0.5)
-        c.y = math.floor(fy - cy + 0.5)
-    end
-    PlaceAnchor()
+    return (started and c and c.moveEnabled) and true or false
 end
 
-local function DragTick()
-    local d = dragState
-    if not d then return end
-    -- 收不到 OnDragStop 的情況（滑鼠出視窗、被別的框吃掉）自己補救
-    if not IsMouseButtonDown("LeftButton") then EndDrag() return end
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    local dx, dy = cx / scale - d.cx, cy / scale - d.cy
-    local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-    anchor:ClearAllPoints()
-    anchor:SetPoint("TOPLEFT", UIParent, "TOPLEFT", (d.left + dx) - pl, (d.top + dy) - pt)
-end
+local UpdateEditModeState   -- 下面定義
 
-local function BeginDrag()
-    local left, top = anchor:GetLeft(), anchor:GetTop()
-    if not (left and top) then return end
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    dragState = { cx = cx / scale, cy = cy / scale, left = left, top = top }
-    if not dragDriver then
-        dragDriver = CreateFrame("Frame")
-        dragDriver:Hide()
-        dragDriver:SetScript("OnUpdate", DragTick)
-    end
-    dragDriver:Show()
-end
+local mover = EM.Attach(anchor, {
+    name     = "戰利品通知",
+    enabled  = MoveEnabled,
+    save     = function(f)
+        local c = Cfg()
+        local x, y = EM.CenterOffset(f)
+        if c and x then c.x, c.y = x, y end
+        PlaceAnchor()
+    end,
+    restore  = PlaceAnchor,
+    onChange = function() UpdateEditModeState() end,
+})
 
-------------------------------------------------------------
--- 選取框：借 EditModeSystemSelectionTemplate 的藍框，pcall＋自畫備援
-------------------------------------------------------------
-local sel
-do
-    local ok, f = pcall(CreateFrame, "Frame", nil, anchor, "EditModeSystemSelectionTemplate")
-    if ok and f then
-        -- ⚠⚠ 模板 XML 的 OnMouseDown 會呼叫 EditModeManagerFrame:SelectSystem(self.parent)，
-        -- 暴雪讀我們寫的 parent ⇒ 整條選取流程帶著本插件的 taint 掃過每個系統（快捷列在內）。
-        -- 點一下必須 no-op 化（[[wow-121-addon-code-in-secure-stack]] 入口 8）。
-        f:SetScript("OnMouseDown", function() end)
-        f.system = { GetSystemName = function() return "戰利品通知" end }
-        sel = f
-    else
-        f = CreateFrame("Frame", nil, anchor, "BackdropTemplate")
-        f:EnableMouse(true)
-        -- 1px 邊是實體像素、顯示時才換算（檔案載入時 UI 縮放還沒定），貼圖關像素貼齊
-        -- （.claude/notes/wow-1px-border-rules.md）
-        f.ShowHighlighted = function(self)
-            self:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
-                               edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = ns.P.Pixel(1) })
-            ns.P.NoSnapBackdrop(self)
-            self:SetBackdropColor(0.25, 0.6, 1, 0.15)
-            self:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
-            self:Show()
-        end
-        sel = f
-    end
-    sel:SetAllPoints(anchor)
-    sel:Hide()
-    sel:RegisterForDrag("LeftButton")
-    sel:SetScript("OnDragStart", BeginDrag)
-    sel:SetScript("OnDragStop", EndDrag)
-end
-
-local function UpdateEditModeState()
-    local c = Cfg()
-    if isInEditMode and started and c and c.moveEnabled then
-        sel:ShowHighlighted()
-    else
-        EndDrag()
-        sel:Hide()
-    end
+-- 選取框亮／收；收起來時拖到一半的照現況存下
+function UpdateEditModeState()
+    mover:Refresh()
+    if not (EM.IsActive() and MoveEnabled()) then mover:EndDrag(true) end
 end
 
 ------------------------------------------------------------
@@ -175,38 +115,7 @@ function AN.IsMoved()
     return moved
 end
 
-------------------------------------------------------------
--- 進出編輯模式：三重訊號，全部冪等（技能第 4 節）。錨框是普通框，戰鬥中進出也安全。
-------------------------------------------------------------
-local function OnEnter() isInEditMode = true;  UpdateEditModeState() end
-local function OnExit()  isInEditMode = false; UpdateEditModeState() end
-
-local editModeHooked = false
-local function HookEditMode()
-    if editModeHooked or not EditModeManagerFrame then return end
-    editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", OnEnter)
-    EditModeManagerFrame:HookScript("OnHide", OnExit)
-    if EditModeManagerFrame.EnterEditMode then
-        hooksecurefunc(EditModeManagerFrame, "EnterEditMode", OnEnter)
-    end
-    if EditModeManagerFrame.ExitEditMode then
-        hooksecurefunc(EditModeManagerFrame, "ExitEditMode", OnExit)
-    end
-    if EditModeManagerFrame:IsShown() then OnEnter() end
-end
-
-HookEditMode()
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
-end
-if EventRegistry and EventRegistry.RegisterCallback then
-    EventRegistry:RegisterCallback("EditMode.Enter", OnEnter, "MiliUIQoL_LootToastAnchor")
-    EventRegistry:RegisterCallback("EditMode.Exit",  OnExit,  "MiliUIQoL_LootToastAnchor")
-end
-
 ns.RegisterCallback("Init", "LootToastAnchor", function()
-    HookEditMode()
     started = true
     AN.Apply()
 end)

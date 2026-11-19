@@ -25,6 +25,7 @@ Libs\Callbacks.lua
 Libs\MiliUIMedia.lua
 Libs\MiliUIDB.lua
 Libs\MiliUIMinimapButton.lua
+Libs\MiliUIEditMode.lua
 Locales\Locale.lua
 Locales\zhTW.lua
 Locales\zhCN.lua

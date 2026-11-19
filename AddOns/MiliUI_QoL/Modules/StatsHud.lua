@@ -33,7 +33,7 @@
 -- | 物件 | 動作 |
 -- |---|---|
 -- | UIParent | 我們的框的 parent ＋ 錨點；讀 GetLeft／GetTop／GetEffectiveScale 換算位置 |
--- | EditModeManagerFrame | `HookScript("OnShow"/"OnHide")`、`hooksecurefunc("EnterEditMode"/"ExitEditMode")`、EventRegistry 的 EditMode.Enter／Exit（後置勾，只改自己的狀態）；讀 `IsShown()` |
+-- | EditModeManagerFrame | 不直接碰：進出訊號走共用層 `Libs/MiliUIEditMode.lua`（它掛的勾只改旗標、下一幀才派送）；選取框借 `EditModeSystemSelectionTemplate` 的外觀 |
 -- | GameTooltip | SetOwner／SetText／AddLine／Show／Hide（可拖曳時滑過的說明） |
 --
 -- 寫入暴雪欄位：無。我們的框是普通框（沒有 secure 子物件）⇒ 戰鬥中顯示、隱藏、拖曳都合法。
@@ -330,9 +330,12 @@ local function OnEvent(_, event)
 end
 
 ------------------------------------------------------------
--- 暴雪編輯模式：開著時可以拖（三重訊號、全部冪等，技能 wow-editmode-draggable 第 4 節；
--- 後置勾，只改自己的狀態；不寫它的任何欄位）
+-- 暴雪編輯模式：開著時可以拖。進出訊號走共用層（Libs/MiliUIEditMode.lua：三重訊號、下一幀派送、
+-- 不寫暴雪的任何欄位），這裡只收「狀態變了」。
+-- 拖曳沿用框自己的 StartMoving（普通框、會 SetScale）：共用層的手動拖曳以 UIParent 單位算位移，
+-- 縮放過的框套不上，所以選取框也還是自己建、把拖曳轉給框。
 ------------------------------------------------------------
+local EM = ns.MiliUIEditMode
 local editHooked = false
 local function SetEditMode(on)
     on = on and true or false
@@ -342,22 +345,10 @@ local function SetEditMode(on)
 end
 
 local function HookEditMode()
-    local em = _G.EditModeManagerFrame
-    if editHooked or not em then return end
+    if editHooked then return end
     editHooked = true
-    em:HookScript("OnShow", function() SetEditMode(true) end)
-    em:HookScript("OnHide", function() SetEditMode(false) end)
-    if type(em.EnterEditMode) == "function" then
-        hooksecurefunc(em, "EnterEditMode", function() SetEditMode(true) end)
-    end
-    if type(em.ExitEditMode) == "function" then
-        hooksecurefunc(em, "ExitEditMode", function() SetEditMode(false) end)
-    end
-    if EventRegistry and EventRegistry.RegisterCallback then
-        EventRegistry:RegisterCallback("EditMode.Enter", function() SetEditMode(true) end, "MiliUIQoL_StatsHud")
-        EventRegistry:RegisterCallback("EditMode.Exit", function() SetEditMode(false) end, "MiliUIQoL_StatsHud")
-    end
-    editMode = S.ToBool(em:IsShown()) == true
+    EM.OnChange("StatsHud", SetEditMode)
+    editMode = EM.IsActive() and true or false
 end
 
 ------------------------------------------------------------

@@ -10,11 +10,18 @@ description: Make a custom WoW addon frame draggable inside Blizzard's Edit Mode
 搭編輯模式的進出訊號順風車，拖曳與存檔全部自己來。位置存成相對 UIParent CENTER
 的偏移，跟解析度／UI 縮放脫鉤。
 
-參考實作（新到舊）：
-- `MiliUI_InfoBar/Core/Bar.lua` —— **最完整**：保護框（帶 secure 子按鈕）、三重訊號、
-  pcall 備援、手動拖曳。2026-08-29 的地雷全在這裡踩掉的。
-- `MiliUI_DamageMeters/Meter/Move.lua` —— 手動拖曳機制的出處（含吸附與縮放）。
-- `MiliUI_BloodlustMusic/Music.lua` —— 最簡版（**注意：缺下面幾個修補**，見 Gotchas）。
+**新的框不要照這份手寫**：這份配方已經做成共用層 `ns.MiliUIEditMode`
+（唯一 source 在 `AddOns/MiliUI/Libs/MiliUIEditMode/`，用法見那裡的 README），
+`EM.Attach(frame, opts)` 一行接上。這份文件留著講「為什麼」。
+
+參考實作：
+- 走共用層：`MiliUI_InfoBar/Core/Bar.lua`（保護框、設定遮罩借同一個 mover 拖）、
+  `MiliUI_BossTimeline/Timeline/Screen.lua`（設定視窗開著也能拖＝`SetForced`）、
+  `MiliUI_Focus/Modules/CastBar.lua`、`MiliUI_QoL/Modules/LootToastAnchor.lua`、
+  `MiliUI_BloodlustMusic`、`MiliUI_ChatBar`、`MiliUI_BurstPotionHelper`。
+- 只用共用層的進出訊號（`EM.OnChange`）、拖曳自己來：`MiliUI_DamageMeters/Meter/Move.lua`
+  （拖的當下就吸別的視窗）、`MiliUI_QoL/Modules/StatsHud.lua`（框會 SetScale）、
+  `MiliUI_Minimap/Map/Skin.lua`。
 
 ## 1. 框的設定（movable、非 user-placed）
 

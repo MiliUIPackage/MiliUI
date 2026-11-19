@@ -28,6 +28,10 @@ metadata:
   （不用 StartMoving）、暴雪格線吸附（Shift 不吸）、戰鬥閘 `Write`（宿主受保護且戰鬥中記到脫戰；REGEN_DISABLED 同步收拖曳）。
   位置怎麼存由宿主的 `save`／`restore` 決定（`CenterOffset`／`ApplyCenter` 是建議存法）。離線測試在 source 旁 `Tests/`。
   已換：BloodlustMusic（條＋提醒）、ChatBar（save 交給 Anchor.OnDragStop）、BurstPotionHelper（原本沒有編輯模式，新加）。
+  2026-11-19 再換四支走 Attach：BossTimeline（Screen，SetForced）、QoL 戰利品通知錨點、Focus 施法條、InfoBar（設定遮罩借同一個 mover；
+  放手自己叫 Snap.OnDragStop 不給 snapKey，維持「不看 Shift」）。只換進出訊號（`EM.OnChange`）、拖曳留著的三支：DamageMeters（拖的當下
+  互吸、動的是定位框）、QoL StatsHud（框會 SetScale，共用層的手動拖曳以 UIParent 單位算，套不上）、Minimap。
+  刻意不換：QuestTracker（規矩是輪詢、不掛勾）、CrusadingStrikes（只讀一次狀態）、UnitFrames／CooldownManager（保護框與暴雪檢視器，另案）。
   **未換**：Focus CastBar、CrusadingStrikes、DamageMeters Move.lua、InfoBar、Minimap、QoL 兩支、QuestTracker、BossTimeline；
   UnitFrames／CooldownManager 刻意不動（它們還掛暴雪系統框，規矩不同）。**三支換用的實機都還沒驗**。
 - **MiliUIMinimapButton**（2026-10-18）：小地圖鈕——`Create(opts)` → `handle:Apply()`；31×31、暴雪圓框、沿邊緣拖曳存**角度**、

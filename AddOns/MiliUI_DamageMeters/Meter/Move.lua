@@ -459,10 +459,13 @@ end
 -- 編輯模式
 --
 -- 不註冊真正的 Edit Mode system（那要碰暴雪內部、會污染），只是搭它的
--- 顯示/隱藏狀態順風車，並沿用它的藍色選取框當視覺。
+-- 進出訊號順風車，並沿用它的藍色選取框當視覺。
+-- 進出訊號走共用層（Libs/MiliUIEditMode.lua：三重訊號、處理器只改旗標、下一幀才派送）。
+-- 選取框與拖曳留在這裡：拖曳跟標題列共用一套（拖的當下就吸別的視窗、超過 DRAG_SLOP 才算拖、
+-- 沒被牽連成保護框的定位框戰鬥中照樣拖得動），而且動的是定位框不是選取框的父框（內容框），
+-- 共用層的 Attach 套不上。
 ------------------------------------------------------------
 local _editing = false
-local _editHooked = false
 
 function Move.IsEditing() return _editing end
 
@@ -499,21 +502,13 @@ local function UpdateEditState()
 end
 Move.UpdateEditState = UpdateEditState
 
-local function HookEditMode()
-    if _editHooked then return end
-    if not EditModeManagerFrame then return end
-    _editHooked = true
-    EditModeManagerFrame:HookScript("OnShow", function() _editing = true;  UpdateEditState() end)
-    EditModeManagerFrame:HookScript("OnHide", function() _editing = false; UpdateEditState() end)
-    if EditModeManagerFrame:IsShown() then _editing = true; UpdateEditState() end
-end
-Move.HookEditMode = HookEditMode
-
--- 三層掛勾：Blizzard_EditMode 是需求載入的，開檔時通常還不在
-HookEditMode()
-if not _editHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
-end
+-- 狀態變了（下一幀）才同步本地旗標，旗標與視窗狀態永遠在同一次呼叫裡一起變
+ns.MiliUIEditMode.OnChange("Move", function(active)
+    active = active and true or false
+    if _editing == active then return end
+    _editing = active
+    UpdateEditState()
+end)
 
 ------------------------------------------------------------
 -- 掛到視窗上

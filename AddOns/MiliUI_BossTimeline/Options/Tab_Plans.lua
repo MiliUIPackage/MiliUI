@@ -1558,7 +1558,7 @@ local function BuildSidebar()
     sideEmpty:SetJustifyH("LEFT")
 
     -- 讀取中（等冒險指南重讀的那半秒）：轉圈＋一行灰字，跟「還沒有首領」同一個位置
-    -- （掛在 bossList 底下當欄位：Refresh 的 upvalue 已經貼著 60 的上限）
+    -- （掛在 bossList 底下當欄位：當初 Refresh 的 upvalue 貼著 60 的上限；後來拆出 RefreshReminders 已鬆開）
     local sideLoading = CreateFrame("Frame", nil, tab)
     bossList.loading = sideLoading
     sideLoading:SetPoint("TOPLEFT", bossList, "TOPLEFT", 4, -4)

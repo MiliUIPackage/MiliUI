@@ -1016,93 +1016,47 @@ local function SavePosition()
 end
 
 ----------------------------------------------------------------------
--- 編輯模式拖曳
+-- 編輯模式拖曳（Libs/MiliUIEditMode.lua）
 --
--- 不用 StartMoving：實測在「保護框＋編輯模式」這條路上拖不動，套組裡
--- 真正在動的實作（MiliUI_DamageMeters 的 Meter/Move.lua）也是自己算——
--- 記下按下那一刻的游標與框位置，拖曳中每幀用游標差值 ClearAllPoints/
--- SetPoint 重定位（OOC 對保護框合法，編輯模式必然 OOC）。driver 只在
--- 拖曳中存在 OnUpdate，平常零成本。
+-- 選取框（EnsureBar 時就建、pcall＋自畫備援）、三重進出訊號（處理器只改旗標、下一幀才派送）、
+-- 手動拖曳（保護框＋編輯模式那條路 StartMoving 拖不動）、戰鬥閘（選取框是保護框的子層，
+-- 戰鬥中的 Show／Hide 記到脫戰）都在共用層。設定視窗的搬家遮罩也借同一個 mover 拖。
+-- 放手照舊：先走 MiliUISnap 對齊（不看 Shift，跟以前一樣），再存 CENTER 偏移、照存檔重貼。
 ----------------------------------------------------------------------
-local editSelection
-local isInEditMode = false
-local dragState
-local dragDriver
+local EM = ns.MiliUIEditMode
+local barMover
 local SNAP_KEY = "infoBar"   -- 磁吸註冊表裡的名字（Libs/MiliUISnap.lua）
 
-local function EndBarDrag()
-    if not dragState then return end
-    dragState = nil
-    if dragDriver then dragDriver:Hide() end
-    -- 放手離套組其他框 2px 內就貼齊（Libs/MiliUISnap.lua），再照現況存座標
-    if ns.Snap then ns.Snap.OnDragStop(SNAP_KEY) end
-    SavePosition()
-    ApplyPosition()
+local function EnsureEditMover()
+    if barMover or not bar then return end
+    barMover = EM.Attach(bar, {
+        name     = L["BAR_NAME"],
+        enabled  = function() return (db and db.enabled and bar) and true or false end,
+        -- 停靠中位置由邊決定，拖了也會被貼回去
+        canDrag  = function() return not Docked() end,
+        save     = function()
+            if ns.Snap then ns.Snap.OnDragStop(SNAP_KEY) end
+            SavePosition()
+            ApplyPosition()
+        end,
+        restore  = function() ApplyPosition() end,
+    })
 end
 
-local function DragTick()
-    local d = dragState
-    if not d then return end
-    -- 有些情況收不到 OnDragStop（滑鼠移出視窗、被別的框吃掉），自己確認一次
-    if not IsMouseButtonDown("LeftButton") or InCombatLockdown() then
-        EndBarDrag()
-        return
-    end
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    local dx, dy = cx / scale - d.cx, cy / scale - d.cy
-    local pl, pt = UIParent:GetLeft(), UIParent:GetTop()
-    bar:ClearAllPoints()
-    bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", (d.left + dx) - pl, (d.top + dy) - pt)
-end
+-- 進出編輯模式（共用層下一幀派送；資訊列關著、bar 沒建也照跑）：
+-- 編輯模式會把被我們藏起來的暴雪微型選單重新 Show 出來，離開時強制重推一次 hider 修回去
+EM.OnChange("bar", function(active)
+    local t0 = Perf.Begin()
+    if not active and ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
+    Perf.End(active and "editmode enter" or "editmode exit", t0)
+end)
 
 local function BeginBarDrag()
-    if not bar or InCombatLockdown() then return end
-    if Docked() then return end   -- 停靠中位置由邊決定，拖了也會被貼回去
-    local left, top = bar:GetLeft(), bar:GetTop()
-    if not (left and top) then return end
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    dragState = { cx = cx / scale, cy = cy / scale, left = left, top = top }
-    if not dragDriver then
-        dragDriver = CreateFrame("Frame")
-        dragDriver:Hide()
-        dragDriver:SetScript("OnUpdate", DragTick)
-    end
-    dragDriver:Show()
+    if barMover then barMover:BeginDrag() end
 end
 
--- 選取框在 EnsureBar 就先建好（不要等進了編輯模式才建——在暴雪的 OnShow
--- 執行路徑裡建框是沒驗證過的時序，套組裡在動的實作全都是開檔就建）。
--- 模板建立包 pcall：DamageMeters 的實作就是這樣防的，建不出來就自己畫一個
--- 藍框頂著，拖曳照常。
-local function EnsureEditSelection()
-    if editSelection or not bar then return end
-    local ok, sel = pcall(CreateFrame, "Frame", nil, bar, "EditModeSystemSelectionTemplate")
-    if ok and sel then
-        -- ⚠ 模板的 XML 綁了 OnMouseDown → EditModeManagerFrame:SelectSystem(self.parent)。
-        -- 我們不是真的 Edit Mode 系統，讓它跑下去就是把 bar 塞進暴雪的選取流程
-        -- （報錯＋染污編輯模式）。點一下不拖曳的行為改成 no-op。
-        sel:SetScript("OnMouseDown", function() end)
-        sel.system = {
-            GetSystemName = function() return L["BAR_NAME"] end,
-        }
-    else
-        sel = CreateFrame("Frame", nil, bar, "BackdropTemplate")
-        sel:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = P.Pixel(1) })
-        P.NoSnapBackdrop(sel)
-        sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
-        sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
-        sel:EnableMouse(true)
-        sel.ShowHighlighted = sel.Show
-        sel.isFallback = true
-    end
-    sel:SetAllPoints(bar)
-    sel:Hide()
-    sel:RegisterForDrag("LeftButton")
-    sel:SetScript("OnDragStart", BeginBarDrag)
-    sel:SetScript("OnDragStop", EndBarDrag)
-    editSelection = sel
+local function EndBarDrag()
+    if barMover then barMover:EndDrag(true) end
 end
 
 ----------------------------------------------------------------------
@@ -1170,76 +1124,9 @@ function ns.SetBarMoveOverlayShown(shown)
     end)
 end
 
+-- 選取框依狀態亮／收（共用層走戰鬥閘：戰鬥中記到脫戰）
 local function UpdateEditModeState()
-    if isInEditMode and db and db.enabled and bar then
-        EnsureEditSelection()
-        editSelection:ShowHighlighted()
-    elseif editSelection then
-        -- 戰鬥中離開編輯模式時這裡可能已在 lockdown，Hide 保護子框會被封鎖
-        ns.Defer("editsel-hide", function()
-            if not isInEditMode and editSelection then editSelection:Hide() end
-        end)
-    end
-end
-
--- 三層掛勾：檔案層 → Blizzard_EditMode 載入時 → PLAYER_LOGIN 保底
---
--- ⚠⚠ 處理器裡只改旗標，工作一律丟到下一幀。這幾個入口全部跑在暴雪的
--- EnterEditMode／ExitEditMode **裡面**（EventRegistry 的 TriggerEvent 不走
--- securecall；HookScript 的 OnHide 是在 ExitEditMode 呼叫 self:Hide() 時同步觸發），
--- 而 ExitEditMode **可能在戰鬥中執行**（暴雪不會因為進戰鬥就關掉編輯模式，戰鬥中
--- 照樣進得去也出得來）——那時我們的
--- 處理器在它裡面跑完，它接下來重套整個版面（每排快捷列 UpdateShownButtons）就
--- 染成 InfoBar 的、在戰鬥中被擋。2026-09-07 引擎點名的那 24 個 SetShown 就是這個
--- 形狀。三層掛勾都冪等，同一幀只跑最後一次。
-local editModeHooked = false
-local function ApplyEditModeState()
-    local t0 = Perf.Begin()
-    UpdateEditModeState()
-    -- 編輯模式會把被我們藏起來的暴雪微型選單重新 Show 出來，
-    -- 離開時強制重推一次 hider 修回去
-    if not isInEditMode and ns.MicroMenu then ns.MicroMenu.UpdateBlizzardHidden(true) end
-    Perf.End(isInEditMode and "editmode enter" or "editmode exit", t0)
-end
-local function OnEditModeEnter()
-    isInEditMode = true
-    ns.NextFrame("editmode", ApplyEditModeState)
-end
-local function OnEditModeExit()
-    isInEditMode = false
-    ns.NextFrame("editmode", ApplyEditModeState)
-end
-
-local function HookEditMode()
-    if editModeHooked then return end
-    if not EditModeManagerFrame then return end
-    editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", OnEditModeEnter)
-    EditModeManagerFrame:HookScript("OnHide", OnEditModeExit)
-    -- 第三重訊號：直接掛在方法上。只要編輯模式真的啟動，EnterEditMode 一定
-    -- 執行——不管管理視窗的 Show/Hide 或 EventRegistry 的派送有什麼時序妖
-    if EditModeManagerFrame.EnterEditMode then
-        hooksecurefunc(EditModeManagerFrame, "EnterEditMode", OnEditModeEnter)
-    end
-    if EditModeManagerFrame.ExitEditMode then
-        hooksecurefunc(EditModeManagerFrame, "ExitEditMode", OnEditModeExit)
-    end
-    if EditModeManagerFrame:IsShown() then
-        OnEditModeEnter()
-    end
-end
-
-HookEditMode()
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
-end
-
--- 官方訊號：EnterEditMode/ExitEditMode 內部就會發這兩個 EventRegistry 事件
--- （Blizzard_EditMode/Shared/EditModeManager.lua），不依賴管理視窗的
--- Show/Hide 時序。跟上面的掛勾並存，全部冪等，誰先到都一樣。
-if EventRegistry and EventRegistry.RegisterCallback then
-    EventRegistry:RegisterCallback("EditMode.Enter", OnEditModeEnter, "MiliUIInfoBar")
-    EventRegistry:RegisterCallback("EditMode.Exit", OnEditModeExit, "MiliUIInfoBar")
+    if barMover then barMover:Refresh() end
 end
 
 ----------------------------------------------------------------------
@@ -1250,9 +1137,10 @@ function ns.PrintDebug()
     print(ns.PREFIX_COLOR .. "MiliUI_InfoBar debug|r")
     print("  EditModeManagerFrame：" .. (EditModeManagerFrame and "存在" or "nil")
         .. (EditModeManagerFrame and (EditModeManagerFrame:IsShown() and "／顯示中" or "／隱藏") or ""))
-    print("  掛勾完成：" .. onoff(editModeHooked) .. "　編輯模式中：" .. onoff(isInEditMode))
+    print("  掛勾完成：" .. onoff(EM.hooked) .. "　編輯模式中：" .. onoff(EM.IsActive()))
+    local editSelection = barMover and barMover.selection
     if editSelection then
-        print("  選取框：" .. (editSelection.isFallback and "備援自畫框" or "官方模板")
+        print("  選取框：" .. (barMover.isFallback and "備援自畫框" or "官方模板")
             .. (editSelection:IsShown() and "／顯示中" or "／隱藏")
             .. "　尺寸 " .. math.floor((editSelection:GetWidth() or 0) + 0.5)
             .. "x" .. math.floor((editSelection:GetHeight() or 0) + 0.5)
@@ -1321,7 +1209,7 @@ local function EnsureBar()
     end)
 
     ApplyPosition()
-    EnsureEditSelection()
+    EnsureEditMover()
     EnsureSettingsOverlay()
 
     -- 寵物對戰接管畫面時只降 alpha：bar 是保護框，戰鬥中 Hide 會被封鎖，
@@ -1435,7 +1323,6 @@ end
 ns.Events.Register("PLAYER_REGEN_ENABLED", "defer", FlushDeferred)
 ns.Events.Register("PLAYER_LOGIN", "boot", function()
     ns.InitDB()
-    HookEditMode()
     -- 登入時暴雪的 UpdateUIParentPosition 早就跑過了，掛勾接不到那次：
     -- 現在的 TOPLEFT 偏移就是它的值（我們還沒動過 UIParent）
     blizzTopOffset = CurrentTopOffset()

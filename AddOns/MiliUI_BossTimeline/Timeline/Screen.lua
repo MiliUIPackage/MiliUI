@@ -6,8 +6,8 @@
 --   * 設定視窗開著（且勾了「畫面上同步預覽」）、或在編輯模式 → 時間軸是空的就畫假資料
 -- 預覽狀態下框可以直接拖（設定視窗開著時）或在編輯模式裡拖；兩邊存同一個位置。
 --
--- 拖曳照 wow-editmode-draggable 技能：手動算位移、不用 StartMoving；
--- 選取框借 EditModeSystemSelectionTemplate 的外觀，OnMouseDown 一定要中和（見技能 Gotchas）。
+-- 拖曳走共用層（Libs/MiliUIEditMode.lua）：選取框、三重進出訊號、手動拖曳、格線吸附、戰鬥閘都在那裡。
+-- 設定視窗開著也能拖＝mover:SetForced。
 --
 -- 縮放：外層 holder 不縮放、只管位置；Display 的框掛在 holder 中央再 SetScale。
 -- 位置偏移要是在被縮放的框上設，拖曳與存檔的單位會跟著縮放走（.claude/notes/wow-setscale-offset-units.md）。
@@ -19,15 +19,16 @@ local L = ns.L
 ns.Screen = {}
 local Screen = ns.Screen
 
-local holder, display, selection, hint
-local inEditMode = false
+local EM = ns.MiliUIEditMode
+
+local holder, display, mover, hint
 local optionsOpen = false
 local inCombat = false      -- 自己記：PLAYER_REGEN_DISABLED 派送當下 InCombatLockdown() 還是 false
 
 local function DB() return ns.db.display end
 
 local function PreviewWanted()
-    return inEditMode or (optionsOpen and ns.db.previewOnScreen)
+    return EM.IsActive() or (optionsOpen and ns.db.previewOnScreen)
 end
 
 local function Filter(kind)
@@ -43,6 +44,13 @@ local function Collect(out, filter)
     return ns.Mock.Collect(out, filter)
 end
 
+-- 時間軸要不要跑。只在副本裡：野外的時間軸事件（世界首領、別的插件在外面加的條）不畫；預覽不受限
+local function Running(preview)
+    local d = DB()
+    local allowed = d.visibility ~= "instance" or IsInInstance()
+    return (d.enabled and ((ns.Events.HasAny(Filter) and allowed) or preview)) and true or false
+end
+
 ------------------------------------------------------------
 -- 位置與拖曳
 ------------------------------------------------------------
@@ -52,74 +60,19 @@ local function ApplyPosition()
     holder:SetPoint("CENTER", UIParent, "CENTER", d.x or 0, d.y or 0)
 end
 
-local dragState, dragDriver
-
-local function EndDrag()
-    if not dragState then return end
-    dragState = nil
-    if dragDriver then dragDriver:Hide() end
-    local cx, cy = UIParent:GetCenter()
-    local fx, fy = holder:GetCenter()
+-- 放手：照框的現況存 CENTER 偏移（四捨五入），再照存檔重貼
+local function SavePosition()
     local d = DB()
-    d.x = math.floor(fx - cx + 0.5)
-    d.y = math.floor(fy - cy + 0.5)
+    local x, y = EM.CenterOffset(holder)
+    if x then d.x, d.y = x, y end
     ApplyPosition()
     ns.Fire("ScreenMoved")
-end
-
-local function DragTick()
-    local s = dragState
-    if not s then return end
-    -- 收不到放開（滑鼠出視窗、被別的框吃掉）時自己補救
-    if not IsMouseButtonDown("LeftButton") or InCombatLockdown() then EndDrag() return end
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    local dx, dy = cx / scale - s.cx, cy / scale - s.cy
-    holder:ClearAllPoints()
-    holder:SetPoint("CENTER", UIParent, "CENTER", s.x + dx, s.y + dy)
-end
-
-local function BeginDrag()
-    if InCombatLockdown() then return end
-    local d = DB()
-    local scale = UIParent:GetEffectiveScale()
-    local cx, cy = GetCursorPosition()
-    dragState = { cx = cx / scale, cy = cy / scale, x = d.x or 0, y = d.y or 0 }
-    if not dragDriver then
-        dragDriver = CreateFrame("Frame")
-        dragDriver:Hide()
-        dragDriver:SetScript("OnUpdate", DragTick)
-    end
-    dragDriver:Show()
 end
 
 ------------------------------------------------------------
 -- 建立
 ------------------------------------------------------------
-local function CreateSelection()
-    local ok, sel = pcall(CreateFrame, "Frame", nil, holder, "EditModeSystemSelectionTemplate")
-    if ok and sel then
-        -- ⚠⚠ 模板 XML 綁的 OnMouseDown 會呼叫 EditModeManagerFrame:SelectSystem(self.parent)；
-        -- 我們不是真的系統，讓它跑下去會帶著本插件的污染掃過每一個已註冊系統（動作條也在內）
-        sel:SetScript("OnMouseDown", function() end)
-        sel.system = { GetSystemName = function() return L["MiliUI Boss Timeline"] end }
-    else
-        sel = CreateFrame("Frame", nil, holder, "BackdropTemplate")
-        sel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8",
-                          edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = ns.P.Pixel(1) })
-        ns.P.NoSnapBackdrop(sel)
-        sel:SetBackdropColor(0.25, 0.6, 1, 0.15)
-        sel:SetBackdropBorderColor(0.25, 0.6, 1, 0.9)
-        sel.ShowHighlighted = sel.Show
-    end
-    sel:SetAllPoints(holder)
-    sel:EnableMouse(true)
-    sel:RegisterForDrag("LeftButton")
-    sel:SetScript("OnDragStart", BeginDrag)
-    sel:SetScript("OnDragStop", EndDrag)
-    sel:Hide()
-    return sel
-end
+local UpdateState   -- 下面定義（選取框的 onChange 要叫它）
 
 local function Create()
     if holder then return end
@@ -134,7 +87,14 @@ local function Create()
     display:SetCollector(Collect)
     display:SetFilter(Filter)
 
-    selection = CreateSelection()
+    mover = EM.Attach(holder, {
+        name     = L["MiliUI Boss Timeline"],
+        save     = SavePosition,
+        restore  = ApplyPosition,
+        -- 時間軸在跑才亮選取框（「在編輯模式或設定視窗開著」由 Editing() 那一半管）
+        enabled  = function() return Running(PreviewWanted()) end,
+        onChange = function() if ns.db then UpdateState() end end,
+    })
 
     -- 設定視窗開著時的提示：一行小字，跟在框的上緣
     hint = holder:CreateFontString(nil, "OVERLAY")
@@ -150,26 +110,24 @@ end
 ------------------------------------------------------------
 -- 套用與狀態
 ------------------------------------------------------------
-local function UpdateState()
+function UpdateState()
     if not holder then return end
     local d = DB()
     local preview = PreviewWanted()
-    -- 只在副本裡：野外的時間軸事件（世界首領、別的插件在外面加的條）不畫；預覽不受限
-    local allowed = d.visibility ~= "instance" or IsInInstance()
-    local run = d.enabled and ((ns.Events.HasAny(Filter) and allowed) or preview)
-    display:SetRunning(run and true or false)
-    holder:SetShown(run and true or false)
+    local run = Running(preview)
+    display:SetRunning(run)
+    holder:SetShown(run)
     -- 戰鬥外淡一點（預覽時照常，不然調的時候看不清楚）
     holder:SetAlpha((preview or inCombat) and 1 or (d.oocAlpha or 1))
 
-    -- 選取框：編輯模式用模板的藍框；設定視窗開著時也給一個可抓的區域
+    -- 選取框：編輯模式用模板的藍框；設定視窗開著（且勾了同步預覽）時也給一個可抓的區域
+    mover:SetForced(optionsOpen and ns.db.previewOnScreen)
+    mover:Refresh()
     if run and preview then
-        selection:ShowHighlighted()
-        hint:SetShown(optionsOpen and not inEditMode)
+        hint:SetShown(optionsOpen and not EM.IsActive())
     else
-        selection:Hide()
         hint:Hide()
-        EndDrag()
+        mover:EndDrag(true)
     end
 end
 
@@ -197,38 +155,7 @@ function Screen.Refresh()
     UpdateState()
 end
 
-------------------------------------------------------------
--- 編輯模式：三路訊號，全部冪等（見 wow-editmode-draggable 技能）
-------------------------------------------------------------
-local function OnEnterEditMode() inEditMode = true;  UpdateState() end
-local function OnExitEditMode()  inEditMode = false; UpdateState() end
-
-local editModeHooked = false
-local function HookEditMode()
-    if editModeHooked or not EditModeManagerFrame then return end
-    editModeHooked = true
-    EditModeManagerFrame:HookScript("OnShow", OnEnterEditMode)
-    EditModeManagerFrame:HookScript("OnHide", OnExitEditMode)
-    if EditModeManagerFrame.EnterEditMode then
-        hooksecurefunc(EditModeManagerFrame, "EnterEditMode", OnEnterEditMode)
-    end
-    if EditModeManagerFrame.ExitEditMode then
-        hooksecurefunc(EditModeManagerFrame, "ExitEditMode", OnExitEditMode)
-    end
-    if EditModeManagerFrame:IsShown() then OnEnterEditMode() end
-end
-
-HookEditMode()
-if not editModeHooked and EventUtil and EventUtil.ContinueOnAddOnLoaded then
-    EventUtil.ContinueOnAddOnLoaded("Blizzard_EditMode", HookEditMode)
-end
-if EventRegistry and EventRegistry.RegisterCallback then
-    EventRegistry:RegisterCallback("EditMode.Enter", OnEnterEditMode, "MiliUI_BossTimeline")
-    EventRegistry:RegisterCallback("EditMode.Exit", OnExitEditMode, "MiliUI_BossTimeline")
-end
-
 ns.RegisterCallback("Init", "screen", function()
-    HookEditMode()
     Screen.Apply()
 end)
 
