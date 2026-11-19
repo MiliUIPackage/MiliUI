@@ -409,8 +409,10 @@ W.MakeDragHandle(handle, target, onMoved)           -- 把任何區域變成把�
 
 - **設定視窗的內容**：分頁清單、尺寸、派送方式、開關時要多做的事都是宿主專屬的，
   寫在各插件的 `Options/Panel.lua`（只剩 spec ＋ 宿主專屬的部分，骨架在上面的 `Window.lua`）。
-  還沒接上骨架的有兩支：本體（頂部 banner、開窗淡入、外掛分頁的動態註冊與重排、唯讀分頁不蓋戰鬥遮罩）
-  與 MiliUI_UnitFrames（設定搜尋、遮擋監看 `ns.WatchOccluder` 要在骨架的 SetScript 之前掛、開窗的點擊記錄穿插在開關步驟之間）。
+  還沒接上骨架的只剩本體（頂部 banner、開窗淡入、外掛分頁的動態註冊與重排、唯讀分頁不蓋戰鬥遮罩）。
+  MiliUI_UnitFrames 已接上：設定搜尋、格線開關、遮擋監看 `ns.WatchOccluder` 都走 HookScript，一律放 `onBuilt`
+  （骨架的 SetScript 之後；早一步掛會被整個蓋掉）；點擊記錄要穿插在開關步驟之間，所以它自己用
+  `win.Build()`／`win.Present()`／`win.SelectTab()` 組 Open。
 - **設定搜尋**（`Options/Search.lua`，在 MiliUI_UnitFrames）：機制是通用的（靠
   `Controls.Build` 回傳的 `rows` 定位到某一列），但它另外還耦合了宿主的 `ReportError` /
   `OpenOptions` / callback 系統。等到真的有第二個插件需要搜尋，再連同那幾項一起併進
