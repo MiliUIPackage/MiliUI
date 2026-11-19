@@ -817,34 +817,21 @@ function DB.BuildDefaults()
 end
 
 ------------------------------------------------------------
--- 明確 nil-merge：只補 nil、不覆蓋使用者值
+-- 明確 nil-merge：只補 nil、不覆蓋使用者值（共用層 Libs/MiliUIDB.lua，契約見
+-- MiliUI/Libs/MiliUIDB/README.md）。這支的兩道閘：
+--   keepScalar  使用者存了 false（例如 anchor = false）就尊重它，不把預設的表灌進去
+--   atomic      Atomic 的表：存檔沒這個鍵才整張給，設定檔裡原本就有的（含空表）不碰
+-- DB.MergeDefaults 對外簽章不變（設定分頁、匯入、離線測試都在叫），一律帶同一組 opts。
 ------------------------------------------------------------
+local MiliUIDB = ns.MiliUIDB
+local MERGE_OPTS = { atomic = ATOMIC, keepScalar = true }
+
 local function MergeDefaults(dst, src)
-    for k, v in pairs(src) do
-        local cur = dst[k]
-        if type(v) == "table" then
-            local fresh = cur == nil
-            if fresh then
-                cur = {}
-                dst[k] = cur
-            end
-            -- 使用者存了 false（例如 anchor = false）就尊重它，不把預設的表灌進去
-            -- Atomic 的表：剛建的才灌，設定檔裡原本就有的（含空表）不碰
-            if type(cur) == "table" and (fresh or not ATOMIC[v]) then
-                MergeDefaults(cur, v)
-            end
-        elseif cur == nil then
-            dst[k] = v
-        end
-    end
+    MiliUIDB.MergeDefaults(dst, src, MERGE_OPTS)
 end
 DB.MergeDefaults = MergeDefaults
 
-local function DeepCopy(t)
-    local o = {}
-    for k, v in pairs(t) do o[k] = type(v) == "table" and DeepCopy(v) or v end
-    return o
-end
+local DeepCopy = MiliUIDB.DeepCopy
 DB.DeepCopy = DeepCopy
 
 local function Wipe(t)
@@ -1149,22 +1136,20 @@ local MIGRATIONS = {
 }
 DB.MIGRATIONS = MIGRATIONS
 
+-- 把一份設定檔從 fromVersion 補到目前版本（認不出來當 0、跑全套）。每步各自 pcall
+-- （共用層 MiliUIDB.Migrate），炸掉的那步交 ns.ReportError（有的話），其他步照跑。
+local function StepError(_, err)
+    if ns.ReportError then ns.ReportError(err) end
+end
 function DB.MigrateProfile(profile, fromVersion)
     if type(profile) ~= "table" then return end
-    local from = tonumber(fromVersion) or 0
-    for v = from + 1, ns.DB_VERSION do
-        local step = MIGRATIONS[v]
-        if step then
-            local ok, err = pcall(step, profile)
-            if not ok and ns.ReportError then ns.ReportError(err) end
-        end
-    end
+    MiliUIDB.Migrate(profile, MIGRATIONS, tonumber(fromVersion) or 0, ns.DB_VERSION, StepError)
 end
 
-function DB.Migrate(sv)
+-- seen ＝ max(存檔的 schemaVersion, schemaVersionSeen)，由 DB.Init 的版本閘（MiliUIDB.Versioned）算好傳進來
+function DB.Migrate(sv, seen)
     -- 起點取 max(目前版本, 曾經看過的最高版本)：跑過新版又退版、再升回來時，
     -- 那幾步已經生效過，重跑會把玩家在新版刻意調回去的值又改掉。
-    local seen = math.max(sv.schemaVersion or 0, sv.schemaVersionSeen or 0)
     for _, profile in pairs(sv.profiles or {}) do
         DB.MigrateProfile(profile, seen)
     end
@@ -1185,20 +1170,11 @@ function DB.Init()
     if fresh then MiliUI_CooldownManager_DB = {} end
     local sv = MiliUI_CooldownManager_DB
 
-    if fresh or sv.schemaVersion == nil then
-        -- 全新的 SV 不必跑遷移：預設值本來就是最新的形狀
-        sv.schemaVersion = ns.DB_VERSION
-    elseif sv.schemaVersion > ns.DB_VERSION then
-        -- 來自較新版：對齊到目前版本，但記住看過第幾版（見 DB.Migrate）
-        sv.schemaVersionSeen = math.max(sv.schemaVersionSeen or 0, sv.schemaVersion)
-        sv.schemaVersion = ns.DB_VERSION
-    elseif sv.schemaVersion < ns.DB_VERSION then
-        DB.Migrate(sv)
-        sv.schemaVersion = ns.DB_VERSION
-    end
-    if (sv.schemaVersionSeen or 0) < sv.schemaVersion then
-        sv.schemaVersionSeen = sv.schemaVersion
-    end
+    -- 版本號閘（共用層 MiliUIDB.Versioned）：
+    --   全新的 SV（剛建的表一定沒有 schemaVersion）或沒有版本號 → 不必跑遷移：預設值本來就是最新的形狀
+    --   來自較新版 → 對齊到目前版本，但記住看過第幾版（schemaVersionSeen，見 DB.Migrate）
+    --   較舊 → DB.Migrate(sv, seen)，之後寫成目前版本；最後 schemaVersionSeen 推到目前版本
+    MiliUIDB.Versioned(sv, ns.DB_VERSION, function(_, seen) DB.Migrate(sv, seen) end)
 
     sv.profiles     = sv.profiles or {}
     sv.profileKeys  = sv.profileKeys or {}

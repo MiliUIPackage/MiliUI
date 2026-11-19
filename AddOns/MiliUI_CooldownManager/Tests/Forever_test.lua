@@ -163,6 +163,7 @@ ns.Events.Register = function(ev, key, fn, unit)
     return realRegister(ev, key, fn, unit)
 end
 
+Load("Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 Load("Core/DB.lua")
 Load("Core/DB_Custom.lua")
 local DB = ns.DB
@@ -386,6 +387,7 @@ local function RogueResources(forever)
     local L2 = Loader(renv, rns)
     L2("Core/Init.lua")
     rns.Defer = function(fn) queue[#queue + 1] = fn end         -- Init.lua 的 Defer 走 C_Timer：換成手動
+    L2("Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
     L2("Core/DB.lua")
     L2("Core/DB_Custom.lua")
     rns.RefreshSpec()

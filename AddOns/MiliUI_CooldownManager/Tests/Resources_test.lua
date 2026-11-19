@@ -116,6 +116,7 @@ local function Load(rel, extra)
     chunk("MiliUI_CooldownManager", ns)
 end
 
+Load("Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 Load("Core/DB.lua")
 
 Load("Core/DB_Custom.lua")

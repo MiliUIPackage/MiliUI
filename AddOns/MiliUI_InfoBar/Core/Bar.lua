@@ -69,22 +69,16 @@ end
 ----------------------------------------------------------------------
 -- SavedVariables（`local db` 宣告在上面的取色函式之前）
 ----------------------------------------------------------------------
-local function CopyDefaults(src, dst)
-    for k, v in pairs(src) do
-        if type(v) == "table" then
-            if type(dst[k]) ~= "table" then dst[k] = {} end
-            CopyDefaults(v, dst[k])
-        elseif dst[k] == nil then
-            dst[k] = v
-        end
-    end
-end
+-- 補預設值走共用層（Libs/MiliUIDB.lua，不帶 opts）：只補 nil、存檔那格不是表就換成預設表、
+-- 遞迴合併——⚠ 陣列也會按索引補洞，所以玩家可增刪的清單不能把種子放進 DB_DEFAULTS
+-- （見 Config.lua 與 Core/Mounts.lua）。注意參數順序是（存檔, 預設值）。
+local MergeDefaults = ns.MiliUIDB.MergeDefaults
 
 function ns.InitDB()
     if db then return db end
     MiliUI_InfoBar_DB = MiliUI_InfoBar_DB or {}
     db = MiliUI_InfoBar_DB
-    CopyDefaults(ns.DB_DEFAULTS, db)
+    MergeDefaults(db, ns.DB_DEFAULTS)
     -- 一次性遷移：v1 的預設位置寫死 (0,-420) 而且當時拖曳是壞的，清掉讓
     -- 「沒拖過＝nil」的預設接手。真的拖去那個座標的人不存在（拖曳從沒動過）。
     -- 之後預設位置再改（2026-11-06：跟隨官方微型選單那排 → 畫面正上方置中）
@@ -1304,7 +1298,7 @@ function ns.ResetDB()
     local warband = db.warband
     local coreSync = type(db.repair) == "table" and db.repair.coreSync or nil
     wipe(db)
-    CopyDefaults(ns.DB_DEFAULTS, db)
+    MergeDefaults(db, ns.DB_DEFAULTS)
     if type(warband) == "table" then db.warband = warband end
     db.posVersion = 2       -- 位置遷移已經是最新格式，別讓它再跑一次
     -- 自動修裝的遷移印記也一樣：wipe 把它清掉的話，下次登入又會從 MiliUI_DB

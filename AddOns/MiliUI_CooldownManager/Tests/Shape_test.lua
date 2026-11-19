@@ -132,6 +132,7 @@ end
 ------------------------------------------------------------
 -- 3. 設定繼承（Core/DB.lua 的 ns.Setting）
 ------------------------------------------------------------
+Load(here .. "/../Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 Load(here .. "/../Core/DB.lua")
 Load(here .. "/../Core/DB_Custom.lua")
 ns.RefreshSpec()

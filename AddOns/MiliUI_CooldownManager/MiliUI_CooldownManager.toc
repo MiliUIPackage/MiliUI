@@ -29,6 +29,7 @@ Libs\MiliUIMedia.lua
 Libs\MiliUIGlow\MiliUIGlow.lua
 Libs\MiliUISnap.lua
 Libs\MiliUIMinimapButton.lua
+Libs\MiliUIDB.lua
 Locales\Locale.lua
 Locales\zhTW.lua
 Locales\zhCN.lua

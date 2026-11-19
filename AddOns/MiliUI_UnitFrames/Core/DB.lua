@@ -1215,7 +1215,8 @@ function ns.FillReversed(edb)
 end
 
 ------------------------------------------------------------
--- 明確 nil-merge：只補 nil、不覆蓋使用者值
+-- 明確 nil-merge：只補 nil、不覆蓋使用者值（共用層 Libs/MiliUIDB.lua 的 userSized，
+-- 契約見 MiliUI/Libs/MiliUIDB/README.md）
 ------------------------------------------------------------
 -- ⚠ 長度由設定檔自己決定的陣列：**不補洞**。
 -- MergeDefaults 不分陣列與雜湊，`dst[4] == nil` 就整條補一份預設進去。對 texts 來說
@@ -1230,24 +1231,11 @@ end
 -- 舊設定檔沒有任何血量文字時，它替 hpbar 建一張空的 texts，不能被補成預設那兩條。
 -- 只有表**不存在**（新設定檔、加這個鍵之前的設定檔）才整串補預設。
 local USER_SIZED_ARRAYS = { texts = true }
+local MERGE_OPTS = { userSized = USER_SIZED_ARRAYS }
 
+local MiliUIDB = ns.MiliUIDB
 local function MergeDefaults(dst, src)
-    for k, v in pairs(src) do
-        local cur = dst[k]
-        if USER_SIZED_ARRAYS[k] and type(cur) == "table" then
-            -- 條目數以現有的為準：只補既有條目缺的鍵，不新增、不刪除
-            for i = 1, #cur do
-                if type(cur[i]) == "table" and type(v[i]) == "table" then
-                    MergeDefaults(cur[i], v[i])
-                end
-            end
-        elseif type(v) == "table" then
-            if type(cur) ~= "table" then dst[k] = {}; cur = dst[k] end
-            MergeDefaults(cur, v)
-        elseif cur == nil then
-            dst[k] = v
-        end
-    end
+    MiliUIDB.MergeDefaults(dst, src, MERGE_OPTS)
 end
 DB.MergeDefaults = MergeDefaults
 
@@ -1784,19 +1772,18 @@ local PROFILE_MIGRATIONS = {
     end,
 }
 
--- 把一份設定檔從 fromVersion 補到目前版本。fromVersion 認不出來就當最舊的跑全套。
+-- 把一份設定檔從 fromVersion 補到目前版本。fromVersion 認不出來就當最舊的（1）跑全套。
+-- 每步各自 pcall（共用層 MiliUIDB.Migrate），炸掉的那步**靜默吞掉**、其他步照跑——
+-- 這支從來不回報遷移錯誤，onError 給空函式維持原樣（不給的話共用層會丟進 geterrorhandler）。
+local function SilentStepError() end
 function DB.MigrateProfile(profile, fromVersion)
     if type(profile) ~= "table" then return end
-    local from = tonumber(fromVersion) or 1
-    for v = from + 1, ns.DB_VERSION do
-        local step = PROFILE_MIGRATIONS[v]
-        if step then pcall(step, profile) end
-    end
+    MiliUIDB.Migrate(profile, PROFILE_MIGRATIONS, tonumber(fromVersion) or 1, ns.DB_VERSION, SilentStepError)
 end
 
-function DB.Migrate(db)
-    local from = db.schemaVersion
-
+-- 帳號層＋設定檔層的遷移。DB.Init 的版本閘（MiliUIDB.Versioned）只在存檔版本較舊時叫這支：
+-- from ＝ 存檔的 schemaVersion，seen ＝ max(from, schemaVersionSeen)。
+function DB.Migrate(db, from, seen)
     -- 帳號層：v2 單一帳號設定 → 具名設定檔。舊 SV 的 global/units 直接搬進「預設」。
     if from < 2 then
         if db.global or db.units then
@@ -1810,7 +1797,7 @@ function DB.Migrate(db)
     -- ⚠ 起點取 max(目前版本, 曾經看過的最高版本)。跑過新版又退版、之後再升回來時，
     -- 那幾步遷移已經在這份 SV 上生效過了 —— 再跑一次會把使用者在新版刻意調回去的
     -- 值又改掉（值閘只認「還等於舊預設」，認不出「使用者剛剛才改回舊預設的樣子」）。
-    local seen = math.max(from, db.schemaVersionSeen or 0)
+    -- seen 由 MiliUIDB.Versioned 算好傳進來。
     for _, profile in pairs(db.profiles or {}) do
         DB.MigrateProfile(profile, seen)
     end
@@ -1846,24 +1833,16 @@ DB.CharKey = CharKey
 function DB.Init()
     MiliUI_UnitFrames_DB = type(MiliUI_UnitFrames_DB) == "table" and MiliUI_UnitFrames_DB or {}
     local db = MiliUI_UnitFrames_DB
-    db.schemaVersion = db.schemaVersion or ns.DB_VERSION
-    if db.schemaVersion > ns.DB_VERSION then
-        -- SV 來自較新版（或開發期版本號被重置）：對齊到目前版本，之後的遷移才跑得到。
-        -- ⚠ 但要記住「這份 SV 其實看過第幾版」。只把版本壓回來的話，日後升回新版時
-        -- 那幾步遷移會**再跑一次** —— 而值閘型的遷移（例如把某個舊預設值換成新的）
-        -- 會把使用者在新版刻意改回去的設定又改掉。這跟 Share.Import 那次踩的是
-        -- 同一種「值閘在錯誤的時機重跑」。
-        db.schemaVersionSeen = math.max(db.schemaVersionSeen or 0, db.schemaVersion)
-        db.schemaVersion = ns.DB_VERSION
-    end
-    if db.schemaVersion < ns.DB_VERSION then
-        DB.Migrate(db)
-        db.schemaVersion = ns.DB_VERSION
-    end
-    -- 走完之後把「看過的最高版本」推上去，供下次降版／升版比對
-    if (db.schemaVersionSeen or 0) < db.schemaVersion then
-        db.schemaVersionSeen = db.schemaVersion
-    end
+    -- 版本號閘（共用層 MiliUIDB.Versioned）：
+    --   沒有 schemaVersion → 當全新，直接寫成目前版本、不跑遷移
+    --   較舊 → DB.Migrate(db, from, seen)，之後寫成目前版本
+    --   較新（或開發期版本號被重置）→ 對齊到目前版本，之後的遷移才跑得到。
+    --     ⚠ 但要記住「這份 SV 其實看過第幾版」（schemaVersionSeen）。只把版本壓回來的話，
+    --     日後升回新版時那幾步遷移會**再跑一次** —— 而值閘型的遷移（例如把某個舊預設值
+    --     換成新的）會把使用者在新版刻意改回去的設定又改掉。這跟 Share.Import 那次踩的是
+    --     同一種「值閘在錯誤的時機重跑」。
+    -- 走完之後把「看過的最高版本」推到目前版本，供下次降版／升版比對。
+    MiliUIDB.Versioned(db, ns.DB_VERSION, function(from, seen) DB.Migrate(db, from, seen) end)
 
     db.profiles = db.profiles or {}
     db.profileKeys = db.profileKeys or {}
@@ -1923,12 +1902,8 @@ function DB.IsCharProfile(name)
     return type(name) == "string" and name:sub(1, #CHAR_PREFIX) == CHAR_PREFIX
 end
 
--- 深拷貝：兩份設定檔絕不能共用同一張子表
-local function DeepCopy(t)
-    local o = {}
-    for k, v in pairs(t) do o[k] = type(v) == "table" and DeepCopy(v) or v end
-    return o
-end
+-- 深拷貝：兩份設定檔絕不能共用同一張子表（共用層 Libs/MiliUIDB.lua）
+local DeepCopy = MiliUIDB.DeepCopy
 
 -- "char:米利 - 世界之樹" → "米利 - 世界之樹"（顯示層要用）
 function DB.CharProfileOwner(name)

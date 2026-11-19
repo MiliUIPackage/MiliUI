@@ -183,7 +183,7 @@ blockDefaults.ms.source = "world"
 ns.DB_DEFAULTS = {
     enabled      = true,
     -- x / y 刻意不放預設：nil = 玩家沒拖過，位置是畫面正上方置中
-    -- （Core/Bar.lua 的 ApplyDefaultPosition）。CopyDefaults 只補 nil 欄位，
+    -- （Core/Bar.lua 的 ApplyDefaultPosition）。MergeDefaults 只補 nil 欄位，
     -- 放了預設值反而把「沒拖過」這個狀態蓋掉。
     height       = 26,
     fontSize     = 12,
@@ -225,7 +225,7 @@ ns.DB_DEFAULTS = {
     --   放進去會變成「還原預設值」還原不掉。
     warbandVaultMode = "total",
     -- 坐騎（Core/Mounts.lua）。⚠ **只能有這兩格空表**：分類是有序陣列，
-    -- 而 CopyDefaults 是遞迴合併、會按索引把陣列補回來——種子放這裡的話，
+    -- 而 MergeDefaults 是遞迴合併、會按索引把陣列補回來——種子放這裡的話，
     -- 玩家刪掉第 2 個分類之後每次登入又會冒出來。種子改在 Mounts.lua 裡種，
     -- 用 profile.version 當印記。
     mounts = {

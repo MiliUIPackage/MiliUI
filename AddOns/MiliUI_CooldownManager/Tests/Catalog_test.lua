@@ -175,6 +175,7 @@ end
 env.CreateFrame = env.CreateFrame or function()    -- DB.lua 載入時建一個等脫戰的框（這裡用不到）
     return { SetScript = function() end, RegisterEvent = function() end, UnregisterEvent = function() end }
 end
+LoadInto(here .. "/../Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 LoadInto(here .. "/../Core/DB.lua")
 LoadInto(here .. "/../Core/DB_Custom.lua")
 LoadInto(PATH)

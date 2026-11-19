@@ -53,9 +53,11 @@ M.DeepCopy = DeepCopy
 --
 -- opts（都是選用，沒給就是上面的行為）：
 --   userSized = { key = true }
---       長度由存檔自己決定的陣列（單位框的 texts）：存檔那格是非空陣列時**不補洞**，
+--       長度由存檔自己決定的陣列（單位框的 texts）：存檔那格**是表**（含空表）就**不補洞**，
 --       只對既有條目逐一補缺的鍵。匯入一份條目較少的設定檔，不會多長出幾行沒設定過的。
---       存檔那格是空表或不是表時照一般規則整張補。
+--       ⚠ 空表也算玩家的選擇：條目刪光就是 {}，補回預設等於刪不掉。
+--       只有存檔那格不存在（或不是表）才照一般規則整串補預設。
+--       判斷只看鍵名、不看深度；而且比「預設是不是表」先判（跟單位框原本那份同順序）。
 --   atomic = 弱鍵集合（atomic[預設子表] = true）
 --       「整張表當一個值」的預設（冷卻管理器的資源條上色規則）：存檔**沒有這個鍵**才整張給，
 --       已經有（含空表）就一個字都不合併——逐元素合併會把預設規則的欄位灌進玩家自己的
@@ -70,15 +72,15 @@ local function MergeDefaults(dst, src, opts)
     local keepScalar = opts and opts.keepScalar
     for k, v in pairs(src) do
         local cur = dst[k]
-        if type(v) == "table" then
-            if userSized and userSized[k] and type(cur) == "table" and cur[1] ~= nil then
-                -- 條目數以存檔為準：只補既有條目缺的鍵，不新增、不刪除
-                for i = 1, #cur do
-                    if type(cur[i]) == "table" and type(v[i]) == "table" then
-                        MergeDefaults(cur[i], v[i], opts)
-                    end
+        if userSized and userSized[k] and type(cur) == "table" then
+            -- 條目數以存檔為準（含空表）：只補既有條目缺的鍵，不新增、不刪除
+            for i = 1, #cur do
+                if type(cur[i]) == "table" and type(v[i]) == "table" then
+                    MergeDefaults(cur[i], v[i], opts)
                 end
-            elseif cur == nil then
+            end
+        elseif type(v) == "table" then
+            if cur == nil then
                 dst[k] = DeepCopy(v)
             elseif type(cur) == "table" then
                 if not (atomic and atomic[v]) then

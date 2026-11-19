@@ -66,12 +66,12 @@ local function OldMinimap(dst, src)
     end
 end
 
--- 單位框版
+-- 單位框版（v22 起：存檔那格是表就不補洞，含空表）
 local USER_SIZED_ARRAYS = { texts = true }
 local function OldUF(dst, src)
     for k, v in pairs(src) do
         local cur = dst[k]
-        if USER_SIZED_ARRAYS[k] and type(cur) == "table" and cur[1] ~= nil then
+        if USER_SIZED_ARRAYS[k] and type(cur) == "table" then
             for i = 1, #cur do
                 if type(cur[i]) == "table" and type(v[i]) == "table" then
                     OldUF(cur[i], v[i])
@@ -150,6 +150,8 @@ local function Fixtures()
         { texts = {}, rules = {}, nested = { list = { 1, 2 }, deep = false } },
         { rules = { { check = 9, mine = true } }, color = { r = 0.5 } },
         { schemaVersion = 1, nested = { deep = { deeper = { v = 2, w = 3 } } } },
+        { texts = false, rules = false, reaction = 3 },
+        { texts = { "x", { color = false } }, nested = { deep = { deeper = {} } } },
     }
 end
 
@@ -194,6 +196,42 @@ do
     eq("userSized：不補洞", #c.texts, 1)
     eq("userSized：既有條目補鍵", c.texts[1].y, 0)
     eq("userSized：既有值不動", c.texts[1].size, 1)
+
+    local US = { userSized = { texts = true } }
+    local TD = function() return { texts = { { size = 2, y = 0 }, { size = 3 } } } end
+    local g = { texts = {} }
+    M.MergeDefaults(g, TD(), US)
+    eq("userSized：空表不補（刪光的清單留空）", #g.texts, 0)
+    check("userSized：空表仍是同一張表", type(g.texts) == "table" and next(g.texts) == nil)
+
+    local h = {}
+    M.MergeDefaults(h, TD(), US)
+    eq("userSized：不存在才整串補", #h.texts, 2)
+    eq("userSized：整串補的內容", h.texts[2].size, 3)
+
+    local i2 = { texts = { { size = 9 }, { y = 4 }, { size = 7, y = 1 } } }
+    M.MergeDefaults(i2, TD(), US)
+    eq("userSized：條目較多也不刪", #i2.texts, 3)
+    eq("userSized：第二條補缺的鍵", i2.texts[2].size, 3)
+    eq("userSized：第二條既有值不動", i2.texts[2].y, 4)
+    eq("userSized：預設沒有的第三條不碰", i2.texts[3].size, 7)
+
+    local j = { texts = false }
+    M.MergeDefaults(j, TD(), US)
+    eq("userSized：存檔不是表（false）照一般規則整串補", type(j.texts) == "table" and #j.texts, 2)
+    local j2 = { texts = 5 }
+    M.MergeDefaults(j2, TD(), US)
+    eq("userSized：存檔不是表（數字）照一般規則整串補", type(j2.texts) == "table" and #j2.texts, 2)
+
+    local deep = { elements = { hpbar = { texts = {} } } }
+    M.MergeDefaults(deep, { elements = { hpbar = { texts = { { size = 1 } }, w = 1 } } }, US)
+    eq("userSized：只看鍵名不看深度（巢狀空表不補）", #deep.elements.hpbar.texts, 0)
+    eq("userSized：巢狀其餘鍵照補", deep.elements.hpbar.w, 1)
+
+    local k2 = { texts = { "a", {} } }
+    M.MergeDefaults(k2, TD(), US)
+    eq("userSized：條目不是表就跳過", k2.texts[1], "a")
+    eq("userSized：下一條照補", k2.texts[2].size, 3)
 
     local at = setmetatable({}, { __mode = "k" })
     local rules = { { a = 1 } }; at[rules] = true

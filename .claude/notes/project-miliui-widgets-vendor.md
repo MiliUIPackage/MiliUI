@@ -22,7 +22,12 @@ metadata:
   （`run_tests.sh` 會跑，對照組是換掉前四種原文）。預設行為＝通用那份 nil-merge；單位框的 `userSized`、
   冷卻管理器的 `atomic`／`keepScalar` 做成 opts。已換：14 支（Merchant／ShoppingList／Tooltip／Skin／Minimap／QuestTracker／
   MythicPlus／BossTimeline／CrusadingStrikes／CharacterNotes／Focus／QoL／DamageMeters／AuraEnhance）；
-  **UnitFrames／CooldownManager 尚未換**（API 已容納它們的閘；CDM 有自己的離線測試要一起改）。
+  2026-11-19 再換三支：UnitFrames（`userSized={texts=true}`、MigrateProfile 認不出版本當 1、onError 空函式維持靜默）、
+  CooldownManager（`atomic`＋`keepScalar`、onError 走 ns.ReportError；`DB.MergeDefaults`／`DB.DeepCopy` 對外簽章不變）、
+  InfoBar（只換補預設值，posVersion／colorVersion 兩段一次性遷移原樣）。同時把共用層 `userSized` 改成單位框 v22 的規則：
+  **存檔那格是表（含空表）就不補洞**，舊寫法（非空才算）會把玩家刪光的 texts 補回來。
+  驗收做法：新舊版（`git show`）各載進 stub 環境跑登入＋切設定檔＋匯入，整張 SV 逐鍵比對——1239 組構造輸入＋真實存檔改成每個舊版本號
+  重放，全等；唯一差異是版本號欄位不是數字時舊版在 Init 丟錯、共用層 `tonumber` 後照跑（插件自己只寫數字，存檔被外力改壞才遇到）。
 - **MiliUIEditMode**（2026-10-18）：`wow-editmode-draggable` 技能配方的程式碼版——`Attach(frame, opts)` 給選取框
   （pcall 模板＋自畫備援、OnMouseDown no-op）、三重進出訊號（派送延一幀、EventRegistry owner 用各自的表）、手動拖曳
   （不用 StartMoving）、暴雪格線吸附（Shift 不吸）、戰鬥閘 `Write`（宿主受保護且戰鬥中記到脫戰；REGEN_DISABLED 同步收拖曳）。

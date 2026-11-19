@@ -83,7 +83,7 @@ end
 ------------------------------------------------------------
 -- 設定檔（戰隊共用 / 角色專屬）
 --
--- ⚠ 種子**不能**放進 ns.DB_DEFAULTS：CopyDefaults 是遞迴合併，陣列會按索引
+-- ⚠ 種子**不能**放進 ns.DB_DEFAULTS：MergeDefaults 是遞迴合併，陣列會按索引
 -- 補洞，玩家刪掉第 2 個分類之後每次登入又會被補回來。所以 DB_DEFAULTS 只有
 -- `{ shared = {}, chars = {} }`，種子在這裡種、用 version 當印記
 -- （同 warband.migration 的思路）。ResetDB 清掉整包之後也會走同一條路重種。

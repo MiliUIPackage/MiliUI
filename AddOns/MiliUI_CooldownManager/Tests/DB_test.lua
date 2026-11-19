@@ -89,6 +89,7 @@ local function LoadOne(path)
     chunk("MiliUI_CooldownManager", ns)
 end
 local function LoadDB()
+    LoadOne(here .. "/../Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
     LoadOne(DB_PATH)
     LoadOne(DB_CUSTOM_PATH)
 end

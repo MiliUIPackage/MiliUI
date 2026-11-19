@@ -132,6 +132,7 @@ local function load(rel)
     assert(chunk, err)
     chunk("MiliUI_CooldownManager", ns)
 end
+load("Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 load("Core/DB.lua")
 load("Core/DB_Custom.lua")
 load("Core/Catalog.lua")

@@ -80,6 +80,7 @@ local function Load(path)
     assert(chunk, err)
     chunk("MiliUI_CooldownManager", ns)
 end
+Load(here .. "/../Libs/MiliUIDB.lua")      -- 共用層要在 DB.lua 之前（TOC 同順序）
 Load(DB_PATH)
 Load(DB_CUSTOM_PATH)
 local DB = ns.DB
