@@ -136,7 +136,8 @@ local function CreatePopup()
     mask:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8" })
     mask:SetBackdropColor(0.15, 0.15, 0.15, 0.7)
     mask:Hide()
-    popup:SetScript("OnShow", function() mask:Show() end)
+    -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
+    popup:SetScript("OnShow", function(self) W.RefreshEdge(self) mask:Show() end)
     popup:SetScript("OnHide", function() mask:Hide() end)
 
     popup.title = popup:CreateFontString(nil, "OVERLAY")

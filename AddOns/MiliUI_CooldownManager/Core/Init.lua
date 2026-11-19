@@ -414,6 +414,7 @@ local function BuildConflictPopup()
 
     -- 高度在 OnShow 量（字串換行後的高度要等字型就緒才準）
     popup:SetScript("OnShow", function(self)
+        W.RefreshEdge(self)   -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
         mask:Show()
         local h = PAD * 2 + (msg:GetStringHeight() or 0)
         for _, d in ipairs(descs) do
@@ -481,6 +482,7 @@ local function BuildFalconNotice()
 
     -- 高度在 OnShow 量（字串換行後的高度要等字型就緒才準）
     popup:SetScript("OnShow", function(self)
+        W.RefreshEdge(self)   -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
         P.Height(self, math.ceil(PAD * 2 + (msg:GetStringHeight() or 0) + GAP + BTN_H))
     end)
     popup:Hide()

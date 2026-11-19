@@ -844,7 +844,8 @@ local function Build()
     popup:SetBackdropBorderColor(W.Accent(1))
     -- 視窗比設定面板高：置中在螢幕上，不然會偏到面板的某一邊
     popup:SetPoint("CENTER", UIParent, "CENTER")
-    popup:SetScript("OnShow", function() mask:Show() end)
+    -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
+    popup:SetScript("OnShow", function(self) W.RefreshEdge(self) mask:Show() end)
     popup:SetScript("OnHide", function()
         mask:Hide()
         W.CloseDropdowns()

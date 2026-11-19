@@ -44,7 +44,8 @@ local function Build()
     popup:SetFrameLevel(410)
     popup:SetBackdropBorderColor(W.Accent(1))
     popup:SetPoint("CENTER")
-    popup:SetScript("OnShow", function() mask:Show() end)
+    -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
+    popup:SetScript("OnShow", function(self) W.RefreshEdge(self) mask:Show() end)
     popup:SetScript("OnHide", function()
         mask:Hide()
         ns.db.seenIntro = true       -- ESC 關掉也算看過

@@ -30,7 +30,7 @@ UIParent 比最終值小（2026-10-12 實例：CVar 0.76、實際 0.53，登入�
 - 設定視窗骨架（共用層 `Window.lua` 的 ApplyPosition，只在**開視窗時**跑，登入那個坑踩不到）2026-11-20 改成：
   跟 **UIParent 自己的半寬／半高**比（存檔是 UIParent 單位，原本拿 `GetScreenWidth()` 比不是同一把尺），
   超出範圍只把這次套用的值當 0、**不寫回存檔**；只有型別不是數字才寫回 0。
-  本體 `MiliUI/Options/Panel.lua` 的 ApplyPosition 還是舊寫法（比 GetScreenWidth、會寫回），沒接骨架所以沒跟著改。
+  本體 `MiliUI/Options/Panel.lua` 的 ApplyPosition 同日比照改掉（它沒接骨架，自己留一份同樣的寫法）。
 - ⚠ 還有一處同型：`MiliUI_MythicPlus/Core/DB.lua` 的 `MigratePanelTop`（v1→v2 一次性遷移，CENTER 位移換 TOP 位移）
   在 `DB.Init` 用 `GetScreenHeight()` 換算——只跑一次、算偏了玩家拖一下就好，沒修；再寫同型遷移時別在登入時算。
 - 回報「位置存不住／reload 後跑掉」時先看存檔座標是不是帶小數又剛好是夾邊公式的值，

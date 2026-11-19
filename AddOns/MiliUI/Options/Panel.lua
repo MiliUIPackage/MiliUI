@@ -110,14 +110,27 @@ local function SavePosition()
     w.y = math.floor(fy - cy + 0.5)
 end
 
+-- 存到畫面外時拉回中央。跟共用骨架同一套規則（理由見 Libs/MiliUIWidgets/Window.lua 的
+-- ApplyPosition 註解）：比 UIParent 自己的半寬／半高；只夾這次套用的值、不寫回存檔；
+-- 只有型別不對才寫回 0
+local function HalfExtent(uiSize, screenSize, fallback)
+    local v = uiSize
+    if type(v) ~= "number" or v <= 0 then v = screenSize end
+    if type(v) ~= "number" or v <= 0 then v = fallback end
+    return v / 2
+end
+
 local function ApplyPosition()
     local w = ns.WindowPos()
-    local maxX = (GetScreenWidth() or 1920) / 2
-    local maxY = (GetScreenHeight() or 1080) / 2
-    if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end
-    if type(w.y) ~= "number" or math.abs(w.y) > maxY then w.y = 0 end
+    if type(w.x) ~= "number" then w.x = 0 end
+    if type(w.y) ~= "number" then w.y = 0 end
+    local maxX = HalfExtent(UIParent:GetWidth(), GetScreenWidth(), 1920)
+    local maxY = HalfExtent(UIParent:GetHeight(), GetScreenHeight(), 1080)
+    local x, y = w.x, w.y
+    if math.abs(x) > maxX then x = 0 end
+    if math.abs(y) > maxY then y = 0 end
     panel:ClearAllPoints()
-    panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
+    panel:SetPoint("CENTER", UIParent, "CENTER", x, y)
 end
 
 local currentTab

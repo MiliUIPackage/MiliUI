@@ -192,7 +192,8 @@ local function EnsurePicker()
     picker:SetFrameLevel(410)
     picker:SetBackdropBorderColor(W.Accent(1))
     picker:SetPoint("CENTER")
-    picker:SetScript("OnShow", function() mask:Show() end)
+    -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
+    picker:SetScript("OnShow", function(self) W.RefreshEdge(self) mask:Show() end)
     picker:SetScript("OnHide", function() mask:Hide() end)
     picker:Hide()
 

@@ -107,6 +107,7 @@ local function GetPrompt()
     -- 高度貼著字長：上緣 14 ＋ 字高 ＋ 字與按鈕間距 14 ＋ 按鈕 22 ＋ 下緣 12。
     -- 顯示時才量：建立當下字型可能還沒就緒、字高量成 0
     f:SetScript("OnShow", function(self)
+        W.RefreshEdge(self)   -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
         local h = fs:GetStringHeight() or 0
         if h > 0 then ns.P.Height(self, 14 + h + 14 + 22 + 12) end
     end)

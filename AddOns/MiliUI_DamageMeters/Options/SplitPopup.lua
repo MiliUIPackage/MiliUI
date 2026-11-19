@@ -154,7 +154,8 @@ local function Ensure()
     -- 層級先設好再建子物件：之後建的下拉與按鈕才會跟著這一層
     ApplyLayer()
     popup:SetBackdropBorderColor(W.Accent(1))
-    popup:SetScript("OnShow", function() mask:Show() end)
+    -- W.CreateFrame 掛的 1px 外框重算被這個 SetScript 蓋掉，自己補叫
+    popup:SetScript("OnShow", function(self) W.RefreshEdge(self) mask:Show() end)
     popup:SetScript("OnHide", function()
         mask:Hide()
         -- 別抓著視窗的參照：彈窗是單例，下一次開可能是從別的視窗
