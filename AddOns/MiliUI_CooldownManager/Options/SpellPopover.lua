@@ -705,6 +705,378 @@ function Pop.BuildScroll()
     frame.body, frame.scroll = body, scroll
 end
 
+-- 以下三支是 Build 的中段／後段，照原本的順序由 Build 叫：拆出來是因為 Build 一支捕捉的 upvalue
+-- 逼近 Lua 5.1 的 60 上限（每支只抓自己那一段用到的檔案層 local；掛在 Pop 上，不多佔主 chunk 的 local）
+
+-- 層數發光／層數換色／層數當填充／層數刻度（發光分頁＋外觀分頁）
+function Pop.BuildStackRows(NoteRow)
+    -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
+    -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
+    -- 放「發光」分頁（檔頭的分頁表）；以前接在增益持續時間那幾列後面、沒換 buildTab，一直落在「增益持續時間」分頁
+    Pop.buildTab = "glow"
+    local sgr = NewRow(L["Stack glow"], Pop.StackGlowWhen)
+    local scb = W.CreateCheckButton(sgr, nil, function(on)
+        if not Pop.cur then return end
+        if on then
+            local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
+            -- 光環格只做 ≥（frame.kind 是 Refresh 寫的這一格的種類）：比較子不寫
+            local op = frame.kind == "aura" and ns.StackGate.DEFAULT_OP or StackOpNow()
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
+        else
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
+        end
+        Changed()
+    end)
+    scb:SetPoint("LEFT", sgr, "LEFT", CTRL_X, 0)
+    local opItems = {}
+    for i, op in ipairs(ns.StackGate.OPS) do
+        opItems[i] = { text = op == ">=" and "≥" or op == "<=" and "≤" or op == "==" and "=" or op, value = op }
+    end
+    local opdd = W.CreateDropdown(sgr, 44, opItems, function(value)
+        if not Pop.cur then return end
+        frame.stackOpSel, frame.stackOpFor = value, Pop.cur.id
+        if StackOn() then
+            -- ≥ 是預設：存 nil（跟沒設過的舊存檔一樣）
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", value ~= ns.StackGate.DEFAULT_OP and value or nil)
+            Changed()
+        else
+            Pop.Refresh()                -- 「< 1」的紅字／灰字要跟著換
+        end
+    end)
+    opdd:SetPoint("LEFT", scb, "RIGHT", 8, 0)
+    frame.stackOpDD = opdd
+    -- 光環格：下拉藏起來、同一個位置放固定的「≥」（數字框照錨在下拉上，藏著的框位置不變）
+    local ge = sgr:CreateFontString(nil, "OVERLAY")
+    ge:SetFontObject(W.fontNormal)
+    ge:SetPoint("CENTER", opdd, "CENTER", 0, 0)
+    ge:SetText("≥")
+    ge:Hide()
+    frame.stackGE = ge
+    local num = W.CreateNumberBox(sgr, 40, 1, function(v)
+        if not Pop.cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackNum:GetValue() ~= n then frame.stackNum:SetValue(n) end
+        if StackOn() then
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
+            Changed()
+        else
+            Pop.Refresh()
+        end
+    end)
+    num:SetPoint("LEFT", opdd, "RIGHT", 4, 0)
+    local sswatch = W.CreateColorPicker(sgr, nil, true, function(rr, g, b, a)
+        if not StackOn() then return end
+        ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
+        Changed()
+    end)
+    sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(sgr, "stackGlow", L["Stack glow"]):SetPoint("LEFT", sswatch, "RIGHT", 10, 0)
+    frame.stackCB, frame.stackNum, frame.stackSwatch = scb, num, sswatch
+    local shit = CreateFrame("Frame", nil, sgr)
+    shit:SetPoint("TOPLEFT", sgr, "TOPLEFT", 0, 0)
+    shit:SetPoint("BOTTOMLEFT", sgr, "BOTTOMLEFT", 0, 0)
+    shit:SetWidth(LABEL_W)
+    shit:EnableMouse(true)
+    shit:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" and Pop.cur then
+            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowType", nil)
+            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", nil)
+            frame.stackOpSel = nil
+            Changed()
+        end
+    end)
+    -- 「< 1」永遠不成立：數字框標紅（Refresh）＋這一列灰字（只在那個組合出現）
+    frame.stackNumColor = { num:GetTextColor() }
+    local nvRow = CreateFrame("Frame", nil, frame.body)
+    local nvTip = Note(nvRow)
+    nvTip:SetPoint("TOPLEFT", nvRow, "TOPLEFT", CTRL_X, -2)
+    nvTip:SetWidth(ROW_W - CTRL_X)
+    nvTip:SetWordWrap(true)
+    nvTip:SetText(L["Fewer than 1 stack is never true."])
+    local nvH = 2 + math.max(14, nvTip:GetStringHeight() or 0) + 6
+    nvRow:SetSize(ROW_W, nvH)
+    local nvEntry = { frame = nvRow, h = nvH, when = StackNever }
+    nvEntry.remeasure = function()
+        local sh2 = nvTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        nvRow:SetHeight(nh)
+        nvEntry.h = nh
+    end
+    AddRow(nvEntry)
+    local str = NewRow(L["Glow style"], Pop.StackGlowWhen)
+    local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
+        if not StackOn() then return end
+        ns.DB.SetOverride(Pop.cur.id, "stackGlowType", value)
+        Changed()
+    end)
+    sdd:SetMaxWidth(ROW_W - CTRL_X)
+    sdd:SetPoint("LEFT", str, "LEFT", CTRL_X, 0)
+    frame.stackTypeDD = sdd
+    -- 說明（下一列灰字）
+    local snRow = CreateFrame("Frame", nil, frame.body)
+    local snTip = Note(snRow)
+    snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
+    snTip:SetWidth(ROW_W - CTRL_X)
+    snTip:SetWordWrap(true)
+    snTip:SetText(L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
+    local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
+    snRow:SetSize(ROW_W, snH)
+    local snEntry = { frame = snRow, h = snH, when = Pop.StackGlowWhen }
+    snEntry.remeasure = function()
+        local sh2 = snTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        snRow:SetHeight(nh)
+        snEntry.h = nh
+    end
+    AddRow(snEntry)
+    frame.stackNoteFS, frame.stackNoteEntry = snTip, snEntry
+
+    -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
+    -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
+    Pop.buildTab = "look"
+    local scr = NewRow(nil, BlizzAuraBar)
+    local scbtn = W.CreateButton(scr, L["Stack colors (%d)"]:format(0), "normal", ROW_W - CTRL_X, 22)
+    scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
+    scbtn:SetScript("OnClick", function()
+        if not Pop.cur then return end
+        ns.StackColors.Open(Pop.cur.key, Pop.cur.id, function() Changed() end)
+    end)
+    frame.stackColorsBtn = scbtn
+
+    -- 層數當填充（增益長條）：勾選框＋「最大層數」數字框；沒勾時數字框記著要用的值（預設 5）
+    local sbr, sbh = NewRow(L["Stacks as fill"], BlizzAuraBar)
+    local sbcb = W.CreateCheckButton(sbr, nil, function(on)
+        if not Pop.cur then return end
+        if on then
+            local n = ns.StackGate.Threshold(frame.stackBarNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
+        else
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", nil)
+        end
+        Changed()
+    end)
+    sbcb:SetPoint("LEFT", sbr, "LEFT", CTRL_X, 0)
+    local sbl = sbr:CreateFontString(nil, "OVERLAY")
+    sbl:SetFontObject(W.fontNormal)
+    sbl:SetPoint("LEFT", sbcb, "RIGHT", 8, 0)
+    sbl:SetText(L["Max stacks"])
+    local sbnum = W.CreateNumberBox(sbr, 40, 1, function(v)
+        if not Pop.cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackBarNum:GetValue() ~= n then frame.stackBarNum:SetValue(n) end
+        if StackBarOn() then
+            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
+            Changed()
+        end
+    end)
+    sbnum:SetPoint("LEFT", sbl, "RIGHT", 6, 0)
+    ns.Specs.DemoMark(sbr, "stacksAsFill", L["Stacks as fill"]):SetPoint("LEFT", sbnum, "RIGHT", 10, 0)
+    frame.stackBarCB, frame.stackBarNum = sbcb, sbnum
+    RightClickClears(sbr, sbh, "stackBar")
+    NoteRow(L["The bar shows the stack count (0 up to the max) instead of the remaining time."], BlizzAuraBar)
+
+    -- 層數刻度（增益長條）：勾選框＋位置輸入框（1,5,8；留白＝每一層）＋色票
+    local tkr, tkh = NewRow(L["Stack ticks"], BlizzAuraBar)
+    local tkcb = W.CreateCheckButton(tkr, nil, function(on)
+        if not Pop.cur then return end
+        if on then
+            local at = ns.StackGate.ParseTicks(frame.stackTicksBox:GetText(), TickMax()) or "all"
+            local c = frame.stackTicksSwatch.color or ns.StackGate.TICK_COLOR
+            local t = { at = at, color = { r = c.r, g = c.g, b = c.b, a = c.a } }
+            if not StackBarOn() then
+                t.max = ns.StackGate.Threshold(frame.stackTicksNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
+            end
+            ns.DB.SetOverride(Pop.cur.id, "stackTicks", t)
+        else
+            ns.DB.SetOverride(Pop.cur.id, "stackTicks", nil)
+        end
+        Changed()
+    end)
+    tkcb:SetPoint("LEFT", tkr, "LEFT", CTRL_X, 0)
+    local tkbox = W.CreateEditBox(tkr, 110, 20)
+    tkbox:SetPoint("LEFT", tkcb, "RIGHT", 8, 0)
+    tkbox:SetMaxLetters(120)
+    local function CommitTicks(self)
+        if not Pop.cur then return end
+        local at = ns.StackGate.ParseTicks(self:GetText(), TickMax())
+        if at == nil then
+            -- 一個能用的都沒有：還原成存著的（沒勾就清空）
+            local t = StackTicksTable()
+            self:SetText(t and ns.StackGate.TicksText(t.at) or "")
+            self:SetCursorPosition(0)
+            return
+        end
+        self:SetText(ns.StackGate.TicksText(at))
+        self:SetCursorPosition(0)
+        local t = StackTicksTable()
+        local old = t and ns.StackGate.TicksText(t.at)
+        if t and old ~= ns.StackGate.TicksText(at) then
+            if SetTicksField("at", at) then Changed() end
+        end
+    end
+    tkbox:SetScript("OnEnterPressed", function(self) CommitTicks(self); self:ClearFocus() end)
+    tkbox:HookScript("OnEditFocusLost", CommitTicks)
+    local tksw = W.CreateColorPicker(tkr, nil, true, function(rr, g, b, a)
+        if not Pop.cur then return end
+        if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
+    end)
+    tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
+    ns.Specs.DemoMark(tkr, "stackTicks", L["Stack ticks"]):SetPoint("LEFT", tksw, "RIGHT", 10, 0)
+    frame.stackTicksCB, frame.stackTicksBox, frame.stackTicksSwatch = tkcb, tkbox, tksw
+    RightClickClears(tkr, tkh, "stackTicks")
+    -- 刻度自己的最大層數：只有沒勾層數當填充時才出現（勾了就跟它共用）
+    local tmr, tmh = NewRow(L["Max stacks"], function(kind, class)
+        return BlizzAuraBar(kind, class) and not StackBarOn()
+    end)
+    local tmnum = W.CreateNumberBox(tmr, 40, 1, function(v)
+        if not Pop.cur then return end
+        local n = ns.StackGate.Threshold(v) or 1
+        if frame.stackTicksNum:GetValue() ~= n then frame.stackTicksNum:SetValue(n) end
+        if SetTicksField("max", n) then Changed() end
+    end)
+    tmnum:SetPoint("LEFT", tmr, "LEFT", CTRL_X, 0)
+    frame.stackTicksNum = tmnum
+    RightClickClears(tmr, tmh, "stackTicks")
+    NoteRow(L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."], BlizzAuraBar)
+end
+
+-- 音效分頁：每個觸發的音效下拉＋語音播報列、施放後提醒、音效的天賦條件、沒有音效的保底說明
+function Pop.BuildSoundRows(NoteRow)
+    -- 音效：下拉＋試聽（右鍵整列清掉＝無）
+    Pop.buildTab = "sound"
+    for _, t in ipairs(SOUNDS) do
+        local cls = t.class
+        local function BaseWhen(kind, class)
+            if t.when then return t.when(kind, class) end
+            return class == cls
+        end
+        local SoundRowWhen = t.charge and ChargeWhen(BaseWhen) or BaseWhen
+        local sr, sh = NewRow(t.label, SoundRowWhen, t.help)
+        local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
+        W.FitButton(listen, 44, 20)
+        listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
+        local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
+        local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
+            if not Pop.cur then return end
+            ns.DB.SetOverride(Pop.cur.id, t.field, (type(value) == "string" and value ~= "") and value or nil)
+            Changed()
+        end)
+        sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
+        listen:SetScript("OnClick", function()
+            local v = sdd:GetSelected()
+            if type(v) == "string" and ns.Sound then ns.Sound.Preview(v) end
+        end)
+        sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
+        RightClickClears(sr, sh, t.field)
+
+        -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽（沒有對應欄位的不出這一列）
+        local field = SPEAK_OF[t.field]
+        if field then
+            local kr, kh = NewRow(L["Speak"], function(kind, class)
+                return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
+            end, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
+            local entry = { field = field }
+            local kcb = W.CreateCheckButton(kr, nil, function(on)
+                if not Pop.cur then return end
+                if on then
+                    local txt = strtrim(entry.box:GetText() or "")
+                    ns.DB.SetOverride(Pop.cur.id, field, txt ~= "" and txt or true)
+                else
+                    ns.DB.SetOverride(Pop.cur.id, field, nil)
+                end
+                Changed()
+            end)
+            kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
+            local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
+            W.FitButton(klisten, 44, 20)
+            klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
+            local kbox = W.CreateEditBox(kr, 80, 20)
+            kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
+            kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
+            kbox:SetMaxLetters(100)
+            kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+            -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
+            kbox:HookScript("OnEditFocusLost", function(self)
+                if not Pop.cur or not kcb:GetChecked() then return end
+                local txt = strtrim(self:GetText() or "")
+                local want = txt ~= "" and txt or true
+                if Override(field) == want then return end
+                ns.DB.SetOverride(Pop.cur.id, field, want)
+                Changed()
+            end)
+            klisten:SetScript("OnClick", function()
+                if not Pop.cur then return end
+                local txt = strtrim(kbox:GetText() or "")
+                local S = ns.Sound
+                S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(Pop.cur.id)))
+            end)
+            entry.cb, entry.box, entry.listen = kcb, kbox, klisten
+            speaks[#speaks + 1] = entry
+            RightClickClears(kr, kh, field)
+        end
+        -- 下一列灰字（就緒音效的只在有充能時：沒有充能時它的意思本來就清楚）
+        if t.note then
+            NoteRow(t.note, t.noteCharge and ChargeWhen(SoundRowWhen) or SoundRowWhen)
+        end
+    end
+    -- 施放後提醒的延遲／倒數、音效的天賦條件（H3）
+    Pop.BuildCastRows(NoteRow)
+    Pop.BuildSoundTalent(NoteRow)
+    -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
+    local nsRow = CreateFrame("Frame", nil, frame.body)
+    local nsTip = Note(nsRow)
+    nsTip:SetPoint("TOPLEFT", nsRow, "TOPLEFT", CTRL_X, -2)
+    nsTip:SetWidth(ROW_W - CTRL_X)
+    nsTip:SetWordWrap(true)
+    nsTip:SetText(L["No sounds available."])
+    local nsH = 2 + math.max(14, nsTip:GetStringHeight() or 0) + 6
+    nsRow:SetSize(ROW_W, nsH)
+    local nsEntry = { frame = nsRow, h = nsH, when = function() return NoSounds() end }
+    nsEntry.remeasure = function()
+        local sh2 = nsTip:GetStringHeight()
+        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
+        nsRow:SetHeight(nh)
+        nsEntry.h = nh
+    end
+    AddRow(nsEntry)
+end
+
+-- 黃字強調說明（各分頁底部說明的正上方）
+function Pop.BuildEmphasisRows(EmphasisRow, BlizzCooldown, DurationRows)
+    -- 強調說明（黃字）：「先倒增益持續時間」的適用範圍，各在自己的分頁、底部說明的正上方
+    -- 「增益持續時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
+    for _, tab in ipairs({ "text", "look" }) do
+        EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
+            function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, tab)
+        -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
+        EmphasisRow(L["What's equipped in this slot has no buff to track."],
+            function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, tab)
+        -- 條層選了往前補 ⇒ 疊層關掉：增益持續時間那一段停用的原因（解不出增益時讓上一句講）
+        EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
+            function(kind, class) return DurationRows(kind, class) and not CurSlotNoBuff() and Pop.OverlaySuppressed(kind) end, tab)
+    end
+    -- 飾品欄的觸發發光解不出觸發增益：原因（發光分頁）
+    EmphasisRow(L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."]
+        :format(L["Custom ID"], L["Aura"]), Pop.SlotNoProcWhen, "glow")
+    -- 條層選了往前補 ⇒ 觸發發光疊層也關掉：觸發發光那一列停用的原因
+    EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
+        function(kind, class) return Pop.ProcWhen(kind, class) and not Pop.SlotNoProcWhen(kind, class) and Pop.OverlaySuppressed(kind) end,
+        "glow")
+    -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
+    EmphasisRow(L["This trinket has no buff to track."],
+        function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")
+    EmphasisRow(L["Nothing is equipped in this slot."],
+        function(kind) return kind == "aura" and CurSlotBuffMissing() == "empty" end, "general")
+    EmphasisRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
+        BlizzCooldownSound, "sound")
+    -- 沸點：沒點天賦（明文 false；讀不到不出）
+    EmphasisRow(L["You haven't learned %s, so nothing on this page has any effect."]:format(L["Boiling Point"]),
+        function() return Pop.EchoNoTalent() end, "echo")
+end
+
 local function Build()
     if frame then return end
     frame = W.CreateFrame(nil, ns.Options.panel, WIDTH, 200)
@@ -1322,335 +1694,10 @@ local function Build()
     -- 圖示分頁（長條上的圖示位置、自訂圖示）：同上，自己的函式
     Pop.BuildIconTab(NoteRow)
 
-    -- 層數發光（暴雪的增益）：勾選框＋比較子下拉（≥ ≤ = > <）＋數字框＋色票；
-    -- 沒勾時下拉與數字框記著要用的值，勾下去才一起寫。
-    -- 放「發光」分頁（檔頭的分頁表）；以前接在增益持續時間那幾列後面、沒換 buildTab，一直落在「增益持續時間」分頁
-    Pop.buildTab = "glow"
-    local sgr = NewRow(L["Stack glow"], Pop.StackGlowWhen)
-    local scb = W.CreateCheckButton(sgr, nil, function(on)
-        if not Pop.cur then return end
-        if on then
-            local n = ns.StackGate.Threshold(frame.stackNum:GetValue()) or ns.StackGate.DEFAULT_THRESHOLD
-            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
-            -- 光環格只做 ≥（frame.kind 是 Refresh 寫的這一格的種類）：比較子不寫
-            local op = frame.kind == "aura" and ns.StackGate.DEFAULT_OP or StackOpNow()
-            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", op ~= ns.StackGate.DEFAULT_OP and op or nil)
-        else
-            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
-        end
-        Changed()
-    end)
-    scb:SetPoint("LEFT", sgr, "LEFT", CTRL_X, 0)
-    local opItems = {}
-    for i, op in ipairs(ns.StackGate.OPS) do
-        opItems[i] = { text = op == ">=" and "≥" or op == "<=" and "≤" or op == "==" and "=" or op, value = op }
-    end
-    local opdd = W.CreateDropdown(sgr, 44, opItems, function(value)
-        if not Pop.cur then return end
-        frame.stackOpSel, frame.stackOpFor = value, Pop.cur.id
-        if StackOn() then
-            -- ≥ 是預設：存 nil（跟沒設過的舊存檔一樣）
-            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", value ~= ns.StackGate.DEFAULT_OP and value or nil)
-            Changed()
-        else
-            Pop.Refresh()                -- 「< 1」的紅字／灰字要跟著換
-        end
-    end)
-    opdd:SetPoint("LEFT", scb, "RIGHT", 8, 0)
-    frame.stackOpDD = opdd
-    -- 光環格：下拉藏起來、同一個位置放固定的「≥」（數字框照錨在下拉上，藏著的框位置不變）
-    local ge = sgr:CreateFontString(nil, "OVERLAY")
-    ge:SetFontObject(W.fontNormal)
-    ge:SetPoint("CENTER", opdd, "CENTER", 0, 0)
-    ge:SetText("≥")
-    ge:Hide()
-    frame.stackGE = ge
-    local num = W.CreateNumberBox(sgr, 40, 1, function(v)
-        if not Pop.cur then return end
-        local n = ns.StackGate.Threshold(v) or 1
-        if frame.stackNum:GetValue() ~= n then frame.stackNum:SetValue(n) end
-        if StackOn() then
-            ns.DB.SetOverride(Pop.cur.id, "stackGlow", n)
-            Changed()
-        else
-            Pop.Refresh()
-        end
-    end)
-    num:SetPoint("LEFT", opdd, "RIGHT", 4, 0)
-    local sswatch = W.CreateColorPicker(sgr, nil, true, function(rr, g, b, a)
-        if not StackOn() then return end
-        ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", { r = rr, g = g, b = b, a = a })
-        Changed()
-    end)
-    sswatch:SetPoint("LEFT", num, "RIGHT", 10, 0)
-    ns.Specs.DemoMark(sgr, "stackGlow", L["Stack glow"]):SetPoint("LEFT", sswatch, "RIGHT", 10, 0)
-    frame.stackCB, frame.stackNum, frame.stackSwatch = scb, num, sswatch
-    local shit = CreateFrame("Frame", nil, sgr)
-    shit:SetPoint("TOPLEFT", sgr, "TOPLEFT", 0, 0)
-    shit:SetPoint("BOTTOMLEFT", sgr, "BOTTOMLEFT", 0, 0)
-    shit:SetWidth(LABEL_W)
-    shit:EnableMouse(true)
-    shit:SetScript("OnMouseUp", function(_, button)
-        if button == "RightButton" and Pop.cur then
-            ns.DB.SetOverride(Pop.cur.id, "stackGlow", nil)
-            ns.DB.SetOverride(Pop.cur.id, "stackGlowColor", nil)
-            ns.DB.SetOverride(Pop.cur.id, "stackGlowType", nil)
-            ns.DB.SetOverride(Pop.cur.id, "stackGlowOp", nil)
-            frame.stackOpSel = nil
-            Changed()
-        end
-    end)
-    -- 「< 1」永遠不成立：數字框標紅（Refresh）＋這一列灰字（只在那個組合出現）
-    frame.stackNumColor = { num:GetTextColor() }
-    local nvRow = CreateFrame("Frame", nil, frame.body)
-    local nvTip = Note(nvRow)
-    nvTip:SetPoint("TOPLEFT", nvRow, "TOPLEFT", CTRL_X, -2)
-    nvTip:SetWidth(ROW_W - CTRL_X)
-    nvTip:SetWordWrap(true)
-    nvTip:SetText(L["Fewer than 1 stack is never true."])
-    local nvH = 2 + math.max(14, nvTip:GetStringHeight() or 0) + 6
-    nvRow:SetSize(ROW_W, nvH)
-    local nvEntry = { frame = nvRow, h = nvH, when = StackNever }
-    nvEntry.remeasure = function()
-        local sh2 = nvTip:GetStringHeight()
-        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-        nvRow:SetHeight(nh)
-        nvEntry.h = nh
-    end
-    AddRow(nvEntry)
-    local str = NewRow(L["Glow style"], Pop.StackGlowWhen)
-    local sdd = W.CreateDropdown(str, ROW_W - CTRL_X, GlowTypeItems(), function(value)
-        if not StackOn() then return end
-        ns.DB.SetOverride(Pop.cur.id, "stackGlowType", value)
-        Changed()
-    end)
-    sdd:SetMaxWidth(ROW_W - CTRL_X)
-    sdd:SetPoint("LEFT", str, "LEFT", CTRL_X, 0)
-    frame.stackTypeDD = sdd
-    -- 說明（下一列灰字）
-    local snRow = CreateFrame("Frame", nil, frame.body)
-    local snTip = Note(snRow)
-    snTip:SetPoint("TOPLEFT", snRow, "TOPLEFT", CTRL_X, -2)
-    snTip:SetWidth(ROW_W - CTRL_X)
-    snTip:SetWordWrap(true)
-    snTip:SetText(L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
-    local snH = 2 + math.max(14, snTip:GetStringHeight() or 0) + 6
-    snRow:SetSize(ROW_W, snH)
-    local snEntry = { frame = snRow, h = snH, when = Pop.StackGlowWhen }
-    snEntry.remeasure = function()
-        local sh2 = snTip:GetStringHeight()
-        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-        snRow:SetHeight(nh)
-        snEntry.h = nh
-    end
-    AddRow(snEntry)
-    frame.stackNoteFS, frame.stackNoteEntry = snTip, snEntry
+    -- 層數那幾列、音效分頁（拆成 Pop.BuildStackRows／BuildSoundRows：Build 的 upvalue 上限）
+    Pop.BuildStackRows(NoteRow)
 
-    -- 層數換色（增益長條）：按鈕寫著目前筆數，點開是編輯器（Options/StackColors.lua）
-    -- 這一列沒有標籤：按鈕靠右、寬度至少到控件欄，長譯文往左邊（空著的標籤欄）撐（Refresh 換字後 FitButton）
-    Pop.buildTab = "look"
-    local scr = NewRow(nil, BlizzAuraBar)
-    local scbtn = W.CreateButton(scr, L["Stack colors (%d)"]:format(0), "normal", ROW_W - CTRL_X, 22)
-    scbtn:SetPoint("RIGHT", scr, "RIGHT", 0, 0)
-    scbtn:SetScript("OnClick", function()
-        if not Pop.cur then return end
-        ns.StackColors.Open(Pop.cur.key, Pop.cur.id, function() Changed() end)
-    end)
-    frame.stackColorsBtn = scbtn
-
-    -- 層數當填充（增益長條）：勾選框＋「最大層數」數字框；沒勾時數字框記著要用的值（預設 5）
-    local sbr, sbh = NewRow(L["Stacks as fill"], BlizzAuraBar)
-    local sbcb = W.CreateCheckButton(sbr, nil, function(on)
-        if not Pop.cur then return end
-        if on then
-            local n = ns.StackGate.Threshold(frame.stackBarNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
-            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
-        else
-            ns.DB.SetOverride(Pop.cur.id, "stackBar", nil)
-        end
-        Changed()
-    end)
-    sbcb:SetPoint("LEFT", sbr, "LEFT", CTRL_X, 0)
-    local sbl = sbr:CreateFontString(nil, "OVERLAY")
-    sbl:SetFontObject(W.fontNormal)
-    sbl:SetPoint("LEFT", sbcb, "RIGHT", 8, 0)
-    sbl:SetText(L["Max stacks"])
-    local sbnum = W.CreateNumberBox(sbr, 40, 1, function(v)
-        if not Pop.cur then return end
-        local n = ns.StackGate.Threshold(v) or 1
-        if frame.stackBarNum:GetValue() ~= n then frame.stackBarNum:SetValue(n) end
-        if StackBarOn() then
-            ns.DB.SetOverride(Pop.cur.id, "stackBar", { max = n })
-            Changed()
-        end
-    end)
-    sbnum:SetPoint("LEFT", sbl, "RIGHT", 6, 0)
-    ns.Specs.DemoMark(sbr, "stacksAsFill", L["Stacks as fill"]):SetPoint("LEFT", sbnum, "RIGHT", 10, 0)
-    frame.stackBarCB, frame.stackBarNum = sbcb, sbnum
-    RightClickClears(sbr, sbh, "stackBar")
-    NoteRow(L["The bar shows the stack count (0 up to the max) instead of the remaining time."], BlizzAuraBar)
-
-    -- 層數刻度（增益長條）：勾選框＋位置輸入框（1,5,8；留白＝每一層）＋色票
-    local tkr, tkh = NewRow(L["Stack ticks"], BlizzAuraBar)
-    local tkcb = W.CreateCheckButton(tkr, nil, function(on)
-        if not Pop.cur then return end
-        if on then
-            local at = ns.StackGate.ParseTicks(frame.stackTicksBox:GetText(), TickMax()) or "all"
-            local c = frame.stackTicksSwatch.color or ns.StackGate.TICK_COLOR
-            local t = { at = at, color = { r = c.r, g = c.g, b = c.b, a = c.a } }
-            if not StackBarOn() then
-                t.max = ns.StackGate.Threshold(frame.stackTicksNum:GetValue()) or ns.StackGate.DEFAULT_BAR_MAX
-            end
-            ns.DB.SetOverride(Pop.cur.id, "stackTicks", t)
-        else
-            ns.DB.SetOverride(Pop.cur.id, "stackTicks", nil)
-        end
-        Changed()
-    end)
-    tkcb:SetPoint("LEFT", tkr, "LEFT", CTRL_X, 0)
-    local tkbox = W.CreateEditBox(tkr, 110, 20)
-    tkbox:SetPoint("LEFT", tkcb, "RIGHT", 8, 0)
-    tkbox:SetMaxLetters(120)
-    local function CommitTicks(self)
-        if not Pop.cur then return end
-        local at = ns.StackGate.ParseTicks(self:GetText(), TickMax())
-        if at == nil then
-            -- 一個能用的都沒有：還原成存著的（沒勾就清空）
-            local t = StackTicksTable()
-            self:SetText(t and ns.StackGate.TicksText(t.at) or "")
-            self:SetCursorPosition(0)
-            return
-        end
-        self:SetText(ns.StackGate.TicksText(at))
-        self:SetCursorPosition(0)
-        local t = StackTicksTable()
-        local old = t and ns.StackGate.TicksText(t.at)
-        if t and old ~= ns.StackGate.TicksText(at) then
-            if SetTicksField("at", at) then Changed() end
-        end
-    end
-    tkbox:SetScript("OnEnterPressed", function(self) CommitTicks(self); self:ClearFocus() end)
-    tkbox:HookScript("OnEditFocusLost", CommitTicks)
-    local tksw = W.CreateColorPicker(tkr, nil, true, function(rr, g, b, a)
-        if not Pop.cur then return end
-        if SetTicksField("color", { r = rr, g = g, b = b, a = a or 1 }) then Changed() end
-    end)
-    tksw:SetPoint("LEFT", tkbox, "RIGHT", 10, 0)
-    ns.Specs.DemoMark(tkr, "stackTicks", L["Stack ticks"]):SetPoint("LEFT", tksw, "RIGHT", 10, 0)
-    frame.stackTicksCB, frame.stackTicksBox, frame.stackTicksSwatch = tkcb, tkbox, tksw
-    RightClickClears(tkr, tkh, "stackTicks")
-    -- 刻度自己的最大層數：只有沒勾層數當填充時才出現（勾了就跟它共用）
-    local tmr, tmh = NewRow(L["Max stacks"], function(kind, class)
-        return BlizzAuraBar(kind, class) and not StackBarOn()
-    end)
-    local tmnum = W.CreateNumberBox(tmr, 40, 1, function(v)
-        if not Pop.cur then return end
-        local n = ns.StackGate.Threshold(v) or 1
-        if frame.stackTicksNum:GetValue() ~= n then frame.stackTicksNum:SetValue(n) end
-        if SetTicksField("max", n) then Changed() end
-    end)
-    tmnum:SetPoint("LEFT", tmr, "LEFT", CTRL_X, 0)
-    frame.stackTicksNum = tmnum
-    RightClickClears(tmr, tmh, "stackTicks")
-    NoteRow(L["A thin line at each of these stack counts, for example 1,5,8. Leave it blank for a line at every stack."], BlizzAuraBar)
-
-    -- 音效：下拉＋試聽（右鍵整列清掉＝無）
-    Pop.buildTab = "sound"
-    for _, t in ipairs(SOUNDS) do
-        local cls = t.class
-        local function BaseWhen(kind, class)
-            if t.when then return t.when(kind, class) end
-            return class == cls
-        end
-        local SoundRowWhen = t.charge and ChargeWhen(BaseWhen) or BaseWhen
-        local sr, sh = NewRow(t.label, SoundRowWhen, t.help)
-        local listen = W.CreateButton(sr, L["Listen"], "normal", 44, 20)
-        W.FitButton(listen, 44, 20)
-        listen:SetPoint("RIGHT", sr, "RIGHT", 0, 0)
-        local ddW = ROW_W - CTRL_X - (listen:GetWidth() or 44) - 6
-        local sdd = W.CreateDropdown(sr, ddW, {}, function(value)
-            if not Pop.cur then return end
-            ns.DB.SetOverride(Pop.cur.id, t.field, (type(value) == "string" and value ~= "") and value or nil)
-            Changed()
-        end)
-        sdd:SetPoint("LEFT", sr, "LEFT", CTRL_X, 0)
-        listen:SetScript("OnClick", function()
-            local v = sdd:GetSelected()
-            if type(v) == "string" and ns.Sound then ns.Sound.Preview(v) end
-        end)
-        sounds[#sounds + 1] = { field = t.field, dd = sdd, listen = listen }
-        RightClickClears(sr, sh, t.field)
-
-        -- 同一個觸發的語音播報：勾選框＋輸入框（空白＝念法術名）＋試聽（沒有對應欄位的不出這一列）
-        local field = SPEAK_OF[t.field]
-        if field then
-            local kr, kh = NewRow(L["Speak"], function(kind, class)
-                return SoundRowWhen(kind, class) and kind ~= "aura" and ns.Sound.CanSpeak()
-            end, L["Reads the text aloud with the game's text-to-speech. Leave it empty to read the spell's name."])
-            local entry = { field = field }
-            local kcb = W.CreateCheckButton(kr, nil, function(on)
-                if not Pop.cur then return end
-                if on then
-                    local txt = strtrim(entry.box:GetText() or "")
-                    ns.DB.SetOverride(Pop.cur.id, field, txt ~= "" and txt or true)
-                else
-                    ns.DB.SetOverride(Pop.cur.id, field, nil)
-                end
-                Changed()
-            end)
-            kcb:SetPoint("LEFT", kr, "LEFT", CTRL_X, 0)
-            local klisten = W.CreateButton(kr, L["Listen"], "normal", 44, 20)
-            W.FitButton(klisten, 44, 20)
-            klisten:SetPoint("RIGHT", kr, "RIGHT", 0, 0)
-            local kbox = W.CreateEditBox(kr, 80, 20)
-            kbox:SetPoint("LEFT", kcb, "RIGHT", 6, 0)
-            kbox:SetPoint("RIGHT", klisten, "LEFT", -6, 0)
-            kbox:SetMaxLetters(100)
-            kbox:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
-            -- 勾著才寫（沒勾時只是記著字，勾下去那一刻一起存）
-            kbox:HookScript("OnEditFocusLost", function(self)
-                if not Pop.cur or not kcb:GetChecked() then return end
-                local txt = strtrim(self:GetText() or "")
-                local want = txt ~= "" and txt or true
-                if Override(field) == want then return end
-                ns.DB.SetOverride(Pop.cur.id, field, want)
-                Changed()
-            end)
-            klisten:SetScript("OnClick", function()
-                if not Pop.cur then return end
-                local txt = strtrim(kbox:GetText() or "")
-                local S = ns.Sound
-                S.PreviewSpeak(S.Logic.SpeakText(txt ~= "" and txt or true, S.SpellName(Pop.cur.id)))
-            end)
-            entry.cb, entry.box, entry.listen = kcb, kbox, klisten
-            speaks[#speaks + 1] = entry
-            RightClickClears(kr, kh, field)
-        end
-        -- 下一列灰字（就緒音效的只在有充能時：沒有充能時它的意思本來就清楚）
-        if t.note then
-            NoteRow(t.note, t.noteCharge and ChargeWhen(SoundRowWhen) or SoundRowWhen)
-        end
-    end
-    -- 施放後提醒的延遲／倒數、音效的天賦條件（H3）
-    Pop.BuildCastRows(NoteRow)
-    Pop.BuildSoundTalent(NoteRow)
-    -- 一個音效都沒有（保底：內建音效沒註冊成功時才會出現）
-    local nsRow = CreateFrame("Frame", nil, frame.body)
-    local nsTip = Note(nsRow)
-    nsTip:SetPoint("TOPLEFT", nsRow, "TOPLEFT", CTRL_X, -2)
-    nsTip:SetWidth(ROW_W - CTRL_X)
-    nsTip:SetWordWrap(true)
-    nsTip:SetText(L["No sounds available."])
-    local nsH = 2 + math.max(14, nsTip:GetStringHeight() or 0) + 6
-    nsRow:SetSize(ROW_W, nsH)
-    local nsEntry = { frame = nsRow, h = nsH, when = function() return NoSounds() end }
-    nsEntry.remeasure = function()
-        local sh2 = nsTip:GetStringHeight()
-        local nh = 2 + math.max(14, type(sh2) == "number" and sh2 or 0) + 6
-        nsRow:SetHeight(nh)
-        nsEntry.h = nh
-    end
-    AddRow(nsEntry)
+    Pop.BuildSoundRows(NoteRow)
 
     -- 沸點（事件視窗）分頁：建完把 buildTab 交回下面的 general
     Pop.BuildEchoTab(NoteRow)
@@ -1731,35 +1778,8 @@ local function Build()
         phEntry.remeasure()
     end
 
-    -- 強調說明（黃字）：「先倒增益持續時間」的適用範圍，各在自己的分頁、底部說明的正上方
-    -- 「增益持續時間」分頁拆掉之後（H），那幾列分在外觀（顯示與否、轉圈背景色）與文字（換色、兩個字色）：兩頁各一份
-    for _, tab in ipairs({ "text", "look" }) do
-        EmphasisRow(L["Buff duration only applies to spells that show their buff's time first after you cast them, like %s (%s): the icon counts down the buff, then switches to the cooldown."]:format(ExampleArgs()),
-            function(kind, class) return BlizzCooldown(kind, class) and CurSlot() == nil end, tab)
-        -- 飾品欄／代畫格解不出增益：增益持續時間那一段停用的原因
-        EmphasisRow(L["What's equipped in this slot has no buff to track."],
-            function(kind, class) return DurationRows(kind, class) and CurSlotNoBuff() end, tab)
-        -- 條層選了往前補 ⇒ 疊層關掉：增益持續時間那一段停用的原因（解不出增益時讓上一句講）
-        EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
-            function(kind, class) return DurationRows(kind, class) and not CurSlotNoBuff() and Pop.OverlaySuppressed(kind) end, tab)
-    end
-    -- 飾品欄的觸發發光解不出觸發增益：原因（發光分頁）
-    EmphasisRow(L["This trinket has no proc effect to track. You can track the buff with %s → %s and its spell ID instead."]
-        :format(L["Custom ID"], L["Aura"]), Pop.SlotNoProcWhen, "glow")
-    -- 條層選了往前補 ⇒ 觸發發光疊層也關掉：觸發發光那一列停用的原因
-    EmphasisRow(L["This bar is set to “Hide, others move over”, so no buff is overlaid here."],
-        function(kind, class) return Pop.ProcWhen(kind, class) and not Pop.SlotNoProcWhen(kind, class) and Pop.OverlaySuppressed(kind) end,
-        "glow")
-    -- 飾品欄增益解不出增益：問號格的原因（一般分頁）
-    EmphasisRow(L["This trinket has no buff to track."],
-        function(kind) return kind == "aura" and CurSlotBuffMissing() == "nobuff" end, "general")
-    EmphasisRow(L["Nothing is equipped in this slot."],
-        function(kind) return kind == "aura" and CurSlotBuffMissing() == "empty" end, "general")
-    EmphasisRow(L["Buff gained and lost only apply to spells that show their buff's time first after you cast them, like %s (%s): gained plays when the buff's countdown starts, lost when it ends and the icon switches to the cooldown."]:format(ExampleArgs()),
-        BlizzCooldownSound, "sound")
-    -- 沸點：沒點天賦（明文 false；讀不到不出）
-    EmphasisRow(L["You haven't learned %s, so nothing on this page has any effect."]:format(L["Boiling Point"]),
-        function() return Pop.EchoNoTalent() end, "echo")
+    -- 黃字強調說明（拆成 Pop.BuildEmphasisRows：Build 的 upvalue 上限）
+    Pop.BuildEmphasisRows(EmphasisRow, BlizzCooldown, DurationRows)
 
     -- 說明
     local tipRow = CreateFrame("Frame", nil, frame.body)
