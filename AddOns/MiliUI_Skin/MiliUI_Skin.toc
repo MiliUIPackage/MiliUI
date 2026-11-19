@@ -115,6 +115,7 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
 
 # （角色面板的自建功能——自建屬性清單、齒輪面板、稱號搜尋、畫面顯示屬性——2026-10-15 整組搬到
 #   MiliUI_QoL 的 Modules/，這包回到純換皮。）

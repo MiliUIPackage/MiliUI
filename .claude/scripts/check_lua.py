@@ -14,6 +14,12 @@ LUA_WARNING，很容易被忽略，而且踩到的那天多半跟當下改的東
 
 ⚠ 只掃自製插件（MiliUI 與 MiliUI_*）本體，不含 Libs/：vendor 進來的函式庫有自己的
    慣例（LibStub 就是刻意寫全域），拿同一把尺量只會製造雜訊。
+   例外是**本體的 `AddOns/MiliUI/Libs/`**：那是我們自己寫的共用層 source（MiliUIWidgets 與
+   單檔 vendor 的唯一來源），一定要掃 —— 只掃這一份，消費端的複製品是逐字同步的，不重掃。
+   第三方的東西若混進那個資料夾，靠 OWN_LIB_ENTRIES 擋掉（只認我們自己的名字）。
+
+第四項只是預警、不讓檢查失敗：單一函式 upvalue ≥ UPVALUE_WARN 時印出位置，
+讓人在撞上 60 之前就看到（踩到那天多半跟當下改的東西沒關係）。
 """
 
 import os
@@ -93,6 +99,16 @@ ALLOWED_GLOBAL_WRITES = {
 SLASH_RE = re.compile(r"^SLASH_[A-Z0-9_]+\d$")
 
 
+# 本體 Libs/ 底下哪些是我們自己寫的（共用層 source）。只認這些名字：
+# MiliUI 開頭的資料夾（MiliUIWidgets、MiliUIGlow…）與下面列的單檔。
+# 之後若有第三方函式庫放進本體 Libs/，它不會符合這條規則，自動不掃。
+OWN_LIB_FILES = {"Callbacks.lua"}
+
+
+def own_lib_entry(name):
+    return name.startswith("MiliUI") or name in OWN_LIB_FILES
+
+
 def lua_files():
     for addon in sorted(os.listdir(ADDONS)):
         if addon != "MiliUI" and not addon.startswith("MiliUI_"):
@@ -100,8 +116,16 @@ def lua_files():
         root = os.path.join(ADDONS, addon)
         if not os.path.isdir(root):
             continue
+        own_libs = os.path.join(ADDONS, "MiliUI", "Libs")
         for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d != "Libs"]
+            if dirpath == own_libs:
+                # 本體的共用層 source：只走我們自己的那幾項
+                dirnames[:] = [d for d in dirnames if own_lib_entry(d)]
+                filenames = [f for f in filenames if own_lib_entry(f)]
+            else:
+                # 其餘的 Libs/ 一律不掃；只有本體根目錄那個 Libs/ 要走進去（上一條接手）
+                keep_libs = addon == "MiliUI" and dirpath == root
+                dirnames[:] = [d for d in dirnames if d != "Libs" or keep_libs]
             for name in sorted(filenames):
                 if name.endswith(".lua"):
                     yield os.path.join(dirpath, name)
@@ -120,12 +144,15 @@ def global_writes(path):
 # 常見成因：檔案層一路加 local，而某支大函式（通常是 Init）把它們全捕捉進去。
 # 修法是把同一組的 local 收進一張表——一張表只吃一格。
 UPVALUE_LIMIT = 60
+# 預警線：到這裡就印出來，但不讓檢查失敗（離上限只剩幾格，下一個 local 就可能撞上）
+UPVALUE_WARN = 55
 
 FUNC_RE = re.compile(r"^function <([^:]+):(\d+),\d+>", re.M)
 UPVAL_RE = re.compile(r"(\d+) upvalues")
 
 
-def upvalue_overflows(path):
+def upvalue_counts(path, threshold):
+    """回傳 upvalue 數 ≥ threshold 的函式：[(行號, 個數)]"""
     out = subprocess.run(["luac", "-l", "-l", "-p", path],
                          capture_output=True, text=True).stdout
     hits = []
@@ -135,7 +162,7 @@ def upvalue_overflows(path):
         if not m or i + 1 >= len(lines):
             continue
         n = UPVAL_RE.search(lines[i + 1])
-        if n and int(n.group(1)) > UPVALUE_LIMIT:
+        if n and int(n.group(1)) >= threshold:
             hits.append((int(m.group(2)), int(n.group(1))))
     return hits
 
@@ -145,7 +172,7 @@ def main():
         print("找不到 luac —— 這台機器沒裝 Lua，跳過檢查")
         return 1
 
-    syntax, leaks, upvals = [], [], []
+    syntax, leaks, upvals, near = [], [], [], []
     count = 0
     for path in lua_files():
         count += 1
@@ -158,10 +185,10 @@ def main():
             if name in ALLOWED_GLOBAL_WRITES or SLASH_RE.match(name):
                 continue
             leaks.append((rel, name))
-        for line, n in upvalue_overflows(path):
-            upvals.append((rel, line, n))
+        for line, n in upvalue_counts(path, UPVALUE_WARN):
+            (upvals if n > UPVALUE_LIMIT else near).append((rel, line, n))
 
-    print(f"掃了 {count} 個 .lua（自製插件本體，不含 Libs/）")
+    print(f"掃了 {count} 個 .lua（自製插件本體，Libs/ 只含本體的共用層 source）")
 
     if syntax:
         print(f"\n語法錯誤 {len(syntax)}：")
@@ -185,6 +212,12 @@ def main():
         print("把同一組的 file-scope local 收進一張表，一張表只吃一格。")
     else:
         print(f"upvalue：沒有超過 {UPVALUE_LIMIT} 的函式")
+
+    # 預警：不算失敗，只是讓人早點看到
+    if near:
+        print(f"\n⚠ 預警（不算失敗）：upvalue ≥ {UPVALUE_WARN} 的函式 {len(near)}，離上限 {UPVALUE_LIMIT} 不遠：")
+        for rel, line, n in near:
+            print(f"  {rel}:{line}  →  {n} 個")
 
     # luac -l 會在工作目錄留下 luac.out（.gitignore 擋著，但不要留垃圾）
     for junk in (os.path.join(os.getcwd(), "luac.out"), os.path.join(REPO, "luac.out")):

@@ -38,6 +38,7 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
 
 Core\Schematic.lua
 Core\List.lua

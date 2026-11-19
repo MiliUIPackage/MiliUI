@@ -30,6 +30,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 | `Widgets.lua` | 逐字複製 | 元件庫：按鈕／分頁卡片／勾選框／滑桿／下拉／色票／輸入框／複製框／列表／遮罩／彈窗／標題列 |
 | `ContextMenu.lua` | 逐字複製 | 右鍵／情境選單（長在遊戲畫面上的那種，不是設定表單裡的下拉） |
 | `Controls.lua` | 逐字複製 | 表單引擎：吃一張 spec 清單，吐出對齊好的一整頁控制項 |
+| `Window.lua` | 逐字複製 | 設定視窗骨架（`W.CreateOptionsWindow`）：面板、位置存檔、ESC、標題列、關閉鈕、分頁鈕列、戰鬥遮罩、開關邏輯。見下方「設定視窗骨架」 |
 | `PixelPerfect.lua` | 可略 | 像素對齊。插件已經有自己的一份就別帶，把 `Env.P` 指過去即可 |
 | `Media/check-outline.tga` | 逐字複製 | 勾選框的勾：64×64「白勾＋1px 黑框」，`SetVertexColor` 染職業色（乘法 ⇒ 黑框不變）。跟 MiliUI_Skin 的勾同一張。`Widgets.lua` 照 `<插件>\Libs\MiliUIWidgets\Media\` 取用 —— **這包一定要放在 `Libs/MiliUIWidgets/`**，換地方勾會靜默變空白。同步腳本會自動補齊（貼圖不用排 TOC） |
 
@@ -38,7 +39,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 1. 整個 `MiliUIWidgets/` 資料夾複製到新插件的 `Libs/` 下。
 2. 只改 `Env.lua`：填下面六個欄位。
 3. `.toc` 依「載入順序」那節排好。
-4. 開始用 `ns.Controls.Build(...)` 描述設定頁。
+4. `Options/Panel.lua` 用 `W.CreateOptionsWindow(spec)` 建視窗，分頁用 `ns.Controls.Build(...)` 描述設定頁。
 
 ## Env 契約
 
@@ -75,6 +76,7 @@ python3 .claude/scripts/sync-widgets.py --check   # 只檢查漂移（提交前�
 ## 載入順序
 
 `ContextMenu.lua` 要在 `Widgets.lua` **之後**（它用 `W.Accent` / `W.CloseOnEscape`）。
+`Window.lua` 也要在 `Widgets.lua` 之後、`Options\Panel.lua` 之前（宿主在檔案層就呼叫 `W.CreateOptionsWindow`）。
 `Env.lua` 要在 `Widgets.lua` 之前，而且它讀宿主的語系／字型／職業色，所以整包要排在那些
 東西之後。`Widgets.lua` 在檔案層就會建字型物件，順序錯了會靜默拿到 nil 字型。
 
@@ -90,6 +92,8 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
+Options\Panel.lua
 ...(Options 各分頁)...
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
@@ -97,6 +101,50 @@ Options\Blizzard.lua
 
 `Secret` / `Errors` / `Metro` 三支**完全沒有相依**（不讀 Env、不讀語系），所以跟
 `PixelPerfect.lua` 一起排在最前面 —— 宿主的 `Core/*.lua` 在檔案層就會用到它們。
+
+### 設定視窗骨架（`Window.lua`）
+
+各插件的 `Options/Panel.lua` 以前是手抄的，二十份逐字重複，同一個 bug（關閉鈕單獨設 strata）修過又回來。
+現在骨架在這裡，宿主用一張 spec 描述差異、拿回一個 handle：
+
+```lua
+local win = W.CreateOptionsWindow({
+    name     = "MiliUIXxx_Options",              -- 全域框名（也是 UISpecialFrames 的登記名）
+    width    = 640, height = 440, formW = 580,   -- formW：BuildScrollBody 的預設寬（選用）
+    title    = function() return ns.PREFIX_COLOR .. L["..."] .. "|r  v" .. ns.VERSION end,  -- 字串或函式；nil＝只長把手
+    position = function() return ns.db.optionsWindow end,  -- 存 { x, y }；回 nil 就不存不套
+    escape   = "special",                        -- "special"＝tinsert(UISpecialFrames)（預設）；"panels"＝W.CloseOnEscape
+    tabs     = { { id = "general", label = L["General"] }, { id = "debug", label = "Debug", hidden = true } },
+    tabMinW  = 74,                               -- 分頁鈕最小寬（選用）
+    onSelectTab = function(id) ns.Fire("ShowOptionsTab", id) end,   -- 派送方式各插件自己決定
+    defaultTab  = "general",
+    resolveTab  = function(tabId, current) return tabId or current or "general" end,  -- 選用，取代 defaultTab
+    beforeOpen  = function() return ns.db ~= nil end,   -- 選用：回 false 就不開
+    onShow = function(panel) end,                -- 選用：戰鬥遮罩同步之後呼叫
+    lockAfterOnShow = true,                      -- 選用：改成 onShow 先、戰鬥遮罩同步後
+    onHide = function(panel) end,                -- 選用：收下拉之後呼叫
+    onBuilt = function(win, panel) end,          -- 選用：骨架建完，宿主加格線開關、預覽鈕、「關於」分頁…
+})
+Options.Open = function(tabId) win.Open(tabId) end
+```
+
+handle：`Open(tabId)`（已開且沒帶 tabId＝關）、`Build()`／`Present()`／`SelectTab(id)`（自己組 Open 的宿主用，
+例如冷卻管理器切的是「頁」）、`ShowTab(id)`（只派送）、`Highlight(id)`（只換高亮）、`CurrentTab()`、
+`SetTabShown(id, on)`（帶 `hidden` 的分頁鈕現身，建窗前叫也記得住）、`SavePosition()`、
+`panel`／`tabButtons`／`tabStripWidth`，以及分頁輔助 `NewTabFrame()`、`MakeFormTab(title)`、
+`BuildScrollBody(scroll, controls, ctx, width)`（回 `content, refreshers, rows`）、
+`MakeAboutTab(lines, opts)`（純文字分頁，回 `tab, text`）。版面跟這幾支不一樣的宿主（左欄有預覽的）
+自己寫 `MakeFormTab`，拿 `win.NewTabFrame()` 當底就好。
+
+- **面板是懶建立的**：第一次 `Open`（或 `Build`）才建。
+- ⚠ **順序是契約**：骨架的 `SetScript("OnShow"／"OnHide"／"OnEvent")` 排在 `onBuilt` 之前，
+  所以 `W.CreateGridToggle`／`W.MakeDragHandle` 這類走 `HookScript` 的放進 `onBuilt` 就不會被蓋掉。
+  反過來說，**宿主不要再對面板 `SetScript` 這三個腳本**，要做的事交給 `onShow`／`onHide`。
+- 層級三條規矩寫在檔頭並照做：關閉鈕只設相對層級（+200）、絕不單獨 `SetFrameStrata`；
+  戰鬥中的那顆建在遮罩裡；要浮到別的視窗上面的東西別掛在面板底下（標題列開了 toplevel）。
+- 標題、分頁文字由宿主傳入，骨架不查 `L`（語系契約仍只有四個 key）。
+- 位置存「中心點相對 UIParent 中心」的偏移；開窗時存到畫面外（超過半個螢幕）就拉回中央並寫回存檔。
+- `Options.panel` 由宿主自己在 `onBuilt` 第一行接（`Options.panel = panel`），分頁檔照舊讀它。
 
 ### 格線開關（`W.CreateGridToggle`，opt-in）
 
@@ -113,7 +161,7 @@ grid:Active()   -- 格線此刻畫在畫面上 ⇒ 間距（UIParent 單位、�
   宿主的拖曳吸附原點用 `UIParent:GetCenter()` 就對得上。
 - 畫線的框**全套組共用一張**（`_G.MiliUIWidgetsGridOverlay1`）：兩支插件的面板同時開格線
   不會疊兩套線，誰最後動就照誰的間距。暴雪編輯模式的格線看得到時整張讓位。
-- 要排在宿主 `panel:SetScript("OnShow"/"OnHide")` **之後**（共用層走 HookScript）。
+- 要排在宿主 `panel:SetScript("OnShow"/"OnHide")` **之後**（共用層走 HookScript）。用 `Window.lua` 的宿主放在 `onBuilt` 裡就對了。
 - 文案（「格線」「間距」）跟拖曳提示一樣是共用層自帶的十語系，不吃宿主的 L。
 
 ### 右鍵選單（`ContextMenu.lua`）
@@ -359,10 +407,10 @@ W.MakeDragHandle(handle, target, onMoved)           -- 把任何區域變成把�
 
 ## 這包目前不含什麼
 
-- **設定視窗本體**（`Options/Panel.lua`）：分頁清單、尺寸、開關時機都是宿主專屬的組裝，
-  沒有共用價值。要參考「分頁鈕掛上緣＋戰鬥遮罩」那套做法就去看各插件那支（拖曳把手
-  已經收進共用層，見上面的 `W.CreateTitleBar`）；
-  本體的版本另外多了頂部 banner 與開窗淡入。
+- **設定視窗的內容**：分頁清單、尺寸、派送方式、開關時要多做的事都是宿主專屬的，
+  寫在各插件的 `Options/Panel.lua`（只剩 spec ＋ 宿主專屬的部分，骨架在上面的 `Window.lua`）。
+  還沒接上骨架的有兩支：本體（頂部 banner、開窗淡入、外掛分頁的動態註冊與重排、唯讀分頁不蓋戰鬥遮罩）
+  與 MiliUI_UnitFrames（設定搜尋、遮擋監看 `ns.WatchOccluder` 要在骨架的 SetScript 之前掛、開窗的點擊記錄穿插在開關步驟之間）。
 - **設定搜尋**（`Options/Search.lua`，在 MiliUI_UnitFrames）：機制是通用的（靠
   `Controls.Build` 回傳的 `rows` 定位到某一列），但它另外還耦合了宿主的 `ReportError` /
   `OpenOptions` / callback 系統。等到真的有第二個插件需要搜尋，再連同那幾項一起併進

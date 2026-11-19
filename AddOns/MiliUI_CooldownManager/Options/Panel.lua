@@ -28,9 +28,7 @@ local PAGE_W = PANEL_W - SIDEBAR_W - PAGE_PAD * 2 - 12
 local PAGE_W_FULL = PANEL_W - PAGE_PAD * 2 - 12          -- 沒有左欄的頁（主題／設定檔／關於）
 Options.PAGE_PAD, Options.PAGE_W, Options.PAGE_W_FULL = PAGE_PAD, PAGE_W, PAGE_W_FULL
 
--- 分頁鈕（上緣外側）。74 是下限不是固定寬：標籤只錨 CENTER、不裁字，太長會往兩側溢出
--- 啃到隔壁，所以照實際文字寬撐開（單位框架同一套）。
-local TAB_MIN_W, TAB_H, TAB_GAP, TAB_PAD = 74, 22, 3, 20
+-- 分頁鈕（上緣外側，骨架在共用層 Libs/MiliUIWidgets/Window.lua）。74 是下限不是固定寬
 local TABS = {
     { id = "general", label = L["General"] },
     { id = "theme",   label = L["Theme"] },
@@ -42,8 +40,8 @@ local TABS = {
 local FULL_PAGES = { theme = true, profile = true, about = true, debug = true }
 Options.FULL_PAGES = FULL_PAGES
 
-local panel, closeBtn, content, fullContent
-local tabButtons, highlightTab = {}, nil
+local panel, content, fullContent
+local win       -- 設定視窗骨架（W.CreateOptionsWindow），在下面「位置」之後建
 local pages, pageDefs = {}, {}
 local currentPage, currentTab
 local debugTabOn = false
@@ -129,30 +127,54 @@ Options.PlaceholderBuild = PlaceholderBuild
 ------------------------------------------------------------
 -- 位置（存帳號層，換設定檔視窗不跳）
 ------------------------------------------------------------
+-- 存／套位置在骨架裡（回 nil ＝ 還沒有存檔，不存不套）
 local function WindowDB()
     return ns.sv and ns.sv.optionsWindow
 end
 
-local function SavePosition()
-    local w = WindowDB()
-    if not w then return end
-    local cx, cy = UIParent:GetCenter()
-    local fx, fy = panel:GetCenter()
-    w.x = math.floor(fx - cx + 0.5)
-    w.y = math.floor(fy - cy + 0.5)
-end
+------------------------------------------------------------
+-- 視窗骨架（共用層 Libs/MiliUIWidgets/Window.lua）：面板、標題列、關閉鈕、分頁鈕列、
+-- 戰鬥遮罩都在那裡。這裡只寫這支插件不一樣的地方；開關（Options.Open）自己組，
+-- 因為切的是「頁」不是分頁（高亮由 ShowPage → SetTab 補）
+------------------------------------------------------------
+win = W.CreateOptionsWindow({
+    name     = "MiliUICDM_Options",
+    width    = PANEL_W, height = PANEL_H,
+    title    = function() return ns.PREFIX_COLOR .. L["MiliUI Cooldown Manager"] .. "|r  v" .. ns.VERSION end,
+    position = WindowDB,
+    escape   = "panels",    -- ESC 關閉；開天賦／法術書不關（要從那裡 Shift 點法術填 ID）
+    tabMinW  = 74,
+    tabs     = TABS,
+    onSelectTab = function(id) Options.ShowTab(id) end,
+    onShow = function()
+        ns.Sidebar.Relayout()                    -- 顯示之後才量得到字高（換行的語系）
+        ns.Fire("OptionsShown")
+    end,
+    onHide = function()
+        if W.Menu and W.Menu.Hide then W.Menu.Hide() end
+        ns.Fire("OptionsHidden")
+    end,
+    onBuilt = function(_, p)
+        panel = p
+        Options.panel = p
 
-local function ApplyPosition()
-    local w = WindowDB()
-    if not w then return end
-    -- 存到畫面外時拉回中央：不然視窗「其實開著但看不到」，下一次開窗會變成關掉它
-    local maxX = (GetScreenWidth() or 1920) / 2
-    local maxY = (GetScreenHeight() or 1080) / 2
-    if type(w.x) ~= "number" or math.abs(w.x) > maxX then w.x = 0 end
-    if type(w.y) ~= "number" or math.abs(w.y) > maxY then w.y = 0 end
-    panel:ClearAllPoints()
-    panel:SetPoint("CENTER", UIParent, "CENTER", w.x, w.y)
-end
+        -- 「一般」分頁：左欄 ＋ 右側頁面區
+        content = CreateFrame("Frame", nil, panel)
+        content:SetPoint("TOPLEFT", SIDEBAR_W + 1, 0)
+        content:SetPoint("BOTTOMRIGHT", 0, 0)
+        ns.Sidebar.Build(panel, SIDEBAR_W)
+
+        -- 主題／設定檔／關於：佔滿整個視窗
+        fullContent = CreateFrame("Frame", nil, panel)
+        fullContent:SetAllPoints(panel)
+        fullContent:Hide()
+
+        -- 右上角「格線: ON／OFF」（共用層）：開著設定視窗就能拖條，給一張對齊用的格線，
+        -- 拖曳吸附也吸它（EditMode.lua 的 ActiveGridSpacing）。
+        -- 骨架的 SetScript 已經排在前面，共用層走 HookScript 不會被蓋掉
+        gridToggle = W.CreateGridToggle(panel, { db = WindowDB })
+    end,
+})
 
 ------------------------------------------------------------
 -- 切頁
@@ -164,9 +186,7 @@ local function SetTab(id)
     if content then content:SetShown(not full) end
     if fullContent then fullContent:SetShown(full) end
     currentTab = id
-    for _, b in ipairs(tabButtons) do
-        if b.id == id and highlightTab then highlightTab(b) end
-    end
+    win.Highlight(id)
 end
 
 function Options.ShowTab(id)
@@ -225,124 +245,6 @@ end
 
 function Options.CurrentPage()
     return currentPage
-end
-
-------------------------------------------------------------
--- 戰鬥保護：設定區整片蓋起來並講明原因（後端戰鬥中本來就會排隊，
--- 但玩家看到的是「調了沒反應」）
-------------------------------------------------------------
-local function SetCombatLocked(locked)
-    if not panel or not panel.combatMask then return end
-    if locked then
-        W.CloseDropdowns()
-        panel.combatMask:Show()
-    else
-        panel.combatMask:Hide()
-    end
-end
-
--- 關閉鈕：用貼圖不用「×」字元（中文字型可能沒這個字形）
---
--- ⚠ 關閉鈕**不能單獨設 strata**。子框一旦 SetFrameStrata 過，面板之後被抬層級時它就不跟著走：
---   面板 Raise（Open 裡）、拖曳的 StartMoving（會自動 Raise）都會把面板抬上去，關閉鈕留在原地
---   ⇒ 掉到面板背景後面，看起來暗掉、點不到。原本為了戰鬥中壓過遮罩而在 DIALOG／
---   FULLSCREEN_DIALOG 之間切換，每次開窗都把它設成「自訂 strata」，這個 bug 修了又回來。
---   現在一般狀態的關閉鈕只設相對層級；戰鬥中用的是**建在遮罩裡的另一顆**，跟著遮罩的 strata。
-local function CreateCloseButton(parent, level)
-    local b = W.CreateButton(parent, "", "red", 20, 20)
-    b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -3, -3)
-    b:SetFrameLevel(level)
-    local x = b:CreateTexture(nil, "OVERLAY")
-    x:SetTexture("Interface\\Buttons\\UI-StopButton")
-    x:SetSize(12, 12)
-    x:SetPoint("CENTER")
-    x:SetVertexColor(1, 0.85, 0.85)
-    b:SetScript("OnClick", function() panel:Hide() end)
-    return b
-end
-
-local function CreatePanel()
-    if panel then return end
-
-    panel = W.CreateFrame("MiliUICDM_Options", UIParent, PANEL_W, PANEL_H)
-    -- ⚠ 建出來預設是顯示的。不先關掉，第一次 Open 會看到 IsShown()==true 而把它關掉
-    panel:Hide()
-    panel:SetFrameStrata("DIALOG")
-    panel:SetFrameLevel(100)
-    panel:SetMovable(true)
-    panel:SetClampedToScreen(true)
-    panel:SetBackdropBorderColor(W.Accent(0.8))
-    Options.panel = panel
-    ApplyPosition()
-
-    W.CloseOnEscape(panel)      -- ESC 關閉；開天賦／法術書不關（要從那裡 Shift 點法術填 ID）
-
-    -- 看得見的拖曳把手 ＋ 標題；右鍵叫回畫面中央（共用層）
-    W.CreateTitleBar(panel, ns.PREFIX_COLOR .. L["MiliUI Cooldown Manager"] .. "|r  v" .. ns.VERSION,
-        SavePosition)
-
-    -- +200：頁面裡有比 +10 高的子框（表單遮罩 +40 起跳），關閉鈕要壓得過它們。
-    -- 相對層級在面板被抬高時會跟著平移，所以只要設這一次。
-    closeBtn = CreateCloseButton(panel, panel:GetFrameLevel() + 200)
-
-    -- 分頁鈕：上緣外側一路排開，本身也是拖曳把手（看得見的那個在標題列上），
-    -- 所以標題列與分頁列哪裡抓都能移動視窗
-    local prev
-    for i, tab in ipairs(TABS) do
-        local b = W.CreateButton(panel, tab.label, "accent-hover", TAB_MIN_W, TAB_H)
-        b.id = tab.id
-        local fs = b:GetFontString()
-        local w = TAB_MIN_W
-        if fs then w = math.max(TAB_MIN_W, math.ceil(fs:GetStringWidth()) + TAB_PAD) end
-        ns.P.Size(b, w, TAB_H)
-        if prev then
-            b:SetPoint("BOTTOMLEFT", prev, "BOTTOMRIGHT", TAB_GAP, 0)
-        else
-            b:SetPoint("BOTTOMLEFT", panel, "TOPLEFT", 0, 1)
-        end
-        W.MakeDragHandle(b, panel, SavePosition)
-        if tab.hidden then b:SetShown(debugTabOn) end
-        prev = b
-        tabButtons[i] = b
-    end
-    highlightTab = W.CreateButtonGroup(tabButtons, Options.ShowTab)
-
-    -- 「一般」分頁：左欄 ＋ 右側頁面區
-    content = CreateFrame("Frame", nil, panel)
-    content:SetPoint("TOPLEFT", SIDEBAR_W + 1, 0)
-    content:SetPoint("BOTTOMRIGHT", 0, 0)
-    ns.Sidebar.Build(panel, SIDEBAR_W)
-
-    -- 主題／設定檔／關於：佔滿整個視窗
-    fullContent = CreateFrame("Frame", nil, panel)
-    fullContent:SetAllPoints(panel)
-    fullContent:Hide()
-
-    panel:SetScript("OnShow", function()
-        SetCombatLocked(InCombatLockdown())      -- 戰鬥中開窗也要鎖
-        ns.Sidebar.Relayout()                    -- 顯示之後才量得到字高（換行的語系）
-        ns.Fire("OptionsShown")
-    end)
-    panel:SetScript("OnHide", function()
-        W.CloseDropdowns()
-        if W.Menu and W.Menu.Hide then W.Menu.Hide() end
-        ns.Fire("OptionsHidden")
-    end)
-
-    -- 右上角「格線: ON／OFF」（共用層）：開著設定視窗就能拖條，給一張對齊用的格線，
-    -- 拖曳吸附也吸它（EditMode.lua 的 ActiveGridSpacing）。
-    -- ⚠ 要排在上面兩行 SetScript 之後：共用層走 HookScript
-    gridToggle = W.CreateGridToggle(panel, { db = WindowDB })
-
-    -- 戰鬥遮罩：事件掛在 panel 自己身上（隱藏的框照樣收得到事件）
-    -- 遮罩自己是 FULLSCREEN_DIALOG，裡面再放一顆關閉鈕，否則戰鬥中視窗只剩 ESC 能關
-    local mask = W.CreateCombatMask(panel)
-    CreateCloseButton(mask, mask:GetFrameLevel() + 10)
-    panel:RegisterEvent("PLAYER_REGEN_DISABLED")
-    panel:RegisterEvent("PLAYER_REGEN_ENABLED")
-    panel:SetScript("OnEvent", function(_, event)
-        SetCombatLocked(event == "PLAYER_REGEN_DISABLED")
-    end)
 end
 
 ------------------------------------------------------------
@@ -438,9 +340,7 @@ end)
 -- /mcdm debug：分頁鈕現身（這次登入期間一直在）並切過去
 function Options.ShowDebugTab()
     debugTabOn = true
-    for _, b in ipairs(tabButtons) do
-        if b.id == "debug" then b:Show() end
-    end
+    win.SetTabShown("debug", true)
     Options.Open("debug")
 end
 
@@ -450,15 +350,13 @@ end
 -- pageId 省略 ＝ 開關切換（開著就關），開的時候回到上次那一頁
 function Options.Open(pageId)
     if not ns.ready then return end
-    CreatePanel()
+    win.Build()
     if panel:IsShown() and not pageId then
         panel:Hide()
         return
     end
     Options.SyncBarPages()
-    ApplyPosition()
-    panel:Show()
-    panel:Raise()        -- 已開但被別的對話框蓋住時拉到最前（關閉鈕跟著抬，見 CreateCloseButton）
+    win.Present()        -- 套位置、Show、Raise（已開但被別的對話框蓋住時拉到最前）
     local w = WindowDB()
     local last = w and w.lastBar
     -- 上次停在除錯分頁、但這次登入還沒打過 /mcdm debug（分頁鈕藏著）⇒ 回第一頁

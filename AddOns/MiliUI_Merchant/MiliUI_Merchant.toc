@@ -44,6 +44,7 @@ Modules\BulkBuy.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
 
 Options\Panel.lua
 Options\Tab_General.lua

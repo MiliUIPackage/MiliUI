@@ -52,6 +52,7 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
 
 # 右鍵選單的內容：檔案層只用 ns.L，但執行時要 ns.W.Menu，所以排在共用層之後
 Modules\Menu.lua

@@ -5,7 +5,8 @@
     python3 .claude/scripts/sync-widgets.py --check   只檢查有沒有漂移（有就回傳 1）
 
 MiliUIWidgets 是 **vendor 包，不是 LibStub 函式庫**：每個插件各帶一份、各跑各的，
-所以單獨發佈時玩家只會下載到一個資料夾。代價是同一份程式碼躺在 10 個地方 ——
+所以單獨發佈時玩家只會下載到一個資料夾。代價是同一份程式碼躺在每一支消費插件裡
+（有幾支以 `ls -d AddOns/*/Libs/MiliUIWidgets` 為準）——
 這支腳本就是用來讓那個代價變成零的：原始碼的唯一來源是
 `AddOns/MiliUI/Libs/MiliUIWidgets/`，改那裡再跑這支。
 
@@ -34,6 +35,7 @@ VERBATIM = [
     "Widgets.lua",
     "ContextMenu.lua",
     "Controls.lua",
+    "Window.lua",
     "BlizzOptions.lua",
     "README.md",
 ]

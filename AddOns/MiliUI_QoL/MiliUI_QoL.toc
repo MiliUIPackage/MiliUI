@@ -57,6 +57,7 @@ Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
 Libs\MiliUIWidgets\Controls.lua
+Libs\MiliUIWidgets\Window.lua
 # 角色面板的自建功能（2026-10-15 從 MiliUI_Skin 的 Extras 搬來）：自建屬性清單、齒輪＋右側設定面板、
 # 稱號搜尋、畫面上顯示屬性。檔案層就讀共用層的控件（ns.W）⇒ 排在 Widgets 之後；Common 一定第一個，
 # HUD 用 CharacterStats 匯出的 X.SectionColor ⇒ 排在它後面。

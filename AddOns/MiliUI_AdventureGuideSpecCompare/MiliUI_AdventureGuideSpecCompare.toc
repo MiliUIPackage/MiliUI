@@ -22,5 +22,6 @@ badges.lua
 Libs\MiliUIWidgets\Env.lua
 Libs\MiliUIWidgets\Widgets.lua
 Libs\MiliUIWidgets\ContextMenu.lua
+Libs\MiliUIWidgets\Window.lua
 
 diffpanel.lua
