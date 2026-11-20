@@ -1,7 +1,8 @@
 ------------------------------------------------------------
 -- 顯示條件與淡出：一律 SetAlpha，不 Hide
 --
---   ns.Visibility.Alpha(key, s)       這條現在該是多少透明度（0 ＝ 條件不成立）；s ＝ Snapshot()，可省
+--   ns.Visibility.Alpha(key, s)       這條現在該是多少透明度（0 ＝ 條件不成立，或畫面編輯正畫著它的假格）；s ＝ Snapshot()，可省
+--   ns.Visibility.BaseAlpha(key, s)   同上但不看畫面編輯（面板的「跟著核心技能淡出」讀這個）
 --   ns.Visibility.Refresh(key, s)     只套容器（寫 current、容器 SetAlpha、跟著游標的開關），不跑 item；回傳 alpha
 --   ns.Visibility.Apply(key, s)       統一出口：Refresh ＋ 這條認領中的每個 item
 --   ns.Visibility.ApplyAll(s)         全部條＋面板（Snapshot 只建一次）
@@ -56,6 +57,10 @@
 -- 每一條（Vis.Alpha）與天空騎術以外的每個面板（PanelAlpha）都是 0。加在既有的限制前面，不寫進每條的
 -- visibility 表、不改存檔；編輯模式中不套用（編輯模式的全亮在它前面判斷）。
 -- profile.skyriding.keepCastbar（預設開；Snapshot.skyridingKeepCast）時施法條不受它影響、照自己的條件。
+--
+-- 畫面編輯（Options/LiveEdit.lua 的 Suppresses）：設定視窗收合、條上畫著假格時那條 0。只壓條，不壓面板；
+-- 寫在 Alpha 最前面（Suppressed 的三道戰鬥閘見那裡）。容器與 item 套的是壓過的值（current），
+-- 面板的「跟著核心技能淡出」讀沒壓過的（base）——不然核心技能進畫面編輯，資源條也跟著不見。
 --
 -- 事件處理器只標髒、下一幀套（PLAYER_TARGET_CHANGED 會在按 Tab 的 secure 流程裡同步派送，
 -- 見 wow-121-addon-code-in-secure-stack）。脫戰多等 0.1 秒：戰鬥結束那一瞬間常常緊跟著
@@ -222,8 +227,34 @@ function Vis.DebugLine()
         tostring(s.housing), tostring(s.resting), tostring(s.vehicle), tostring(s.petBattle), tostring(s.instance), tostring(s.group))
 end
 
+-- 畫面編輯（Options/LiveEdit.lua）：設定視窗收合、條的位置上畫著一份完整的假格時，真實的條 alpha 0
+-- （兩份疊在一起看不出哪個是哪個）。⚠ 這是唯一能讓玩家的條在畫面上消失的「設定以外」的路徑，
+-- 戰鬥中絕對不能還成立 ⇒ 三道閘，任一道說「戰鬥」就不壓：
+--   1. 這裡自己的 inCombat（PLAYER_REGEN_DISABLED 當下同步設，鎖定還沒生效的那一刻就算）
+--   2. InCombatLockdown()
+--   3. LiveEdit.Suppresses 自己也查戰鬥（它的 PLAYER_REGEN_DISABLED 同步收假格、同步 ApplyAll）
+-- LiveEdit 出錯（pcall 失敗）一律當不壓：寧可兩份疊著，也不要條不見
+local function Suppressed(key)
+    if inCombat or InCombatLockdown() then return false end
+    local LE = ns.LiveEdit
+    if not (LE and LE.Suppresses) then return false end
+    local ok, v = pcall(LE.Suppresses, key)
+    return ok and v == true
+end
+Vis.Suppressed = Suppressed
+
+-- 每條「不算畫面編輯」的 alpha（上次套的）：資源條／自訂格子的「跟著核心技能淡出」讀這個，
+-- 核心技能被畫面編輯壓成 0 時面板不跟著消失（面板沒有假格，照常顯示）
+local base = {}
+
 -- s：Snapshot() 的形狀（同一輪排版／套用共用一份）；沒給才自己建
+-- 畫面編輯壓著的條回 0（見上面 Suppressed）；條件本身算出來的值是 Vis.BaseAlpha
 function Vis.Alpha(key, s)
+    if Suppressed(key) then return 0 end
+    return Vis.BaseAlpha(key, s)
+end
+
+function Vis.BaseAlpha(key, s)
     local bar = Bar(key)
     if not bar then return 0 end
     -- 編輯模式裡每條都全亮：玩家是來擺位置的，條件不成立（沒目標、騎乘中）的條也要看得到
@@ -295,8 +326,8 @@ function Vis.PanelAlpha(key, s, essAlpha)
        and not (key == "castbar" and s.skyridingKeepCast) then return 0 end
     local ess = 1
     if (key == "resources" or key == "pips" or key == "custombars" or key == "procdeck") and cfg.fadeWithEssential ~= false then
-        ess = essAlpha or current.essential
-        if ess == nil then ess = Vis.Alpha("essential", s) end
+        ess = essAlpha or base.essential or current.essential
+        if ess == nil then ess = Vis.BaseAlpha("essential", s) end
     end
     local casting = false
     if key == "focuscast" then
@@ -318,7 +349,9 @@ function Vis.Refresh(key, s)
         if c then c:SetAlpha(alpha) end
         return alpha
     end
-    local alpha = Vis.Alpha(key, s)
+    local raw = Vis.BaseAlpha(key, s)
+    base[key] = raw
+    local alpha = Suppressed(key) and 0 or raw
     current[key] = alpha
     local c = ns.Bars and ns.Bars.Get(key)
     if c then c:SetAlpha(alpha) end

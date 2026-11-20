@@ -1255,3 +1255,15 @@ L["Important spell: glow"] = "重要法術發光"
 L["Important spell: \"!\""] = "重要法術驚嘆號"
 -- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
 L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."] = "動畫材質的顏色畫在圖裡，在「可斷法、你的斷法冷卻中」時原樣顯示。斷法就緒或不可中斷時動畫照播，整條染上那個顏色。"
+
+-- 點擊層細到格、畫面編輯（Options/ClickLayer.lua、Options/LiveEdit.lua、Options/Panel.lua 的收合，2026-11-21）
+L["Click: settings for this icon"] = "點一下：設定這一格"
+L["Right-click: more options"] = "右鍵：更多"
+L["Open this bar's settings"] = "開啟這條的設定"
+L["Edit on screen"] = "畫面編輯"
+L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "把這個視窗收成一條，在每條畫面上的位置畫出它的每一格（包括現在沒顯示的），直接在畫面上改。"
+L["Expand settings"] = "展開設定"
+L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "點圖示設定、拖曳圖示排序、拖條名移動那一條"
+L["Drag: reorder, or drop on another bar"] = "拖曳：排序，或拖到別條上"
+-- 預覽格與點擊層格的右鍵選單「移到 ›」（Preview.CellMenuItems，2026-11-21）
+L["Move to"] = "移到"

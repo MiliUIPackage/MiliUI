@@ -1148,6 +1148,7 @@ local function Relayout(key, level, index, gen, s)
         ReleasePlaceholders(key, 1)
         if ns.Clickable then ns.Clickable.Release(key) end      -- 群組被刪：secure 鈕收起來、脫離錨點
         st.count = 0
+        if st.cells then st.cells.n = 0 end
         proxied[key], proxiedSig[key] = nil, nil                -- 代畫格由 Custom.EndFlush 收（條不在了）
         hideWatch[key] = nil
         -- 認領序列清空（之前有認領 ⇒ 法術索引要重建）
@@ -1360,9 +1361,21 @@ local function Relayout(key, level, index, gen, s)
     -- item 放進格子。容器的 alpha 在這裡套（Vis.Refresh），item 的在放格時各自套
     local alpha = VisRefresh(key, s)
     local phUsed, barUsed = 0, 0
+    -- 這一輪畫面上的格（B.Cells）：就地重用，n 是有效筆數
+    local cells = st.cells
+    if not cells then cells = { n = 0 }; st.cells = cells end
+    local nCells = 0
     for i, e in ipairs(entries) do
         local r = rects[i]
         local item, rec = e.item, e.rec
+        -- 留空格（blank）沒有東西可點；引擎補位的光環格實際位置由 AuraContainer 排，rect 不是它在畫面上的地方
+        if not e.blank and not (flowRecs and e.crec and e.crec.kind == "aura") then
+            nCells = nCells + 1
+            local cell = cells[nCells]
+            if not cell then cell = {}; cells[nCells] = cell end
+            -- 以增益取代：這一格屬於清單上的 A（點了設定的是 A），放的是 B 的 item
+            cell.id, cell.x, cell.y, cell.w, cell.h = e.replaces or e.id, r.x, r.y, r.w, r.h
+        end
         if e.blank then
             -- 收掉、留空格（固定格位）：什麼都不放。原本放在這裡的自訂框沒被 Place ⇒ 下面的 Custom.EndBar 收起來
         elseif e.crec and flowRecs and e.crec.kind == "aura" then
@@ -1445,6 +1458,7 @@ local function Relayout(key, level, index, gen, s)
         -- 可點擊：這一格上面蓋 secure 鈕（簽章去重、走 ns.Write；沒有動作的格收起來）
         if clickable then ns.Clickable.Place(key, c, i, r, e) end
     end
+    cells.n = nCells
     ReleasePlaceholders(key, phUsed + 1, barUsed + 1)
     if ns.Clickable then
         if clickable then ns.Clickable.EndBar(key, #entries) else ns.Clickable.Release(key) end
@@ -1884,6 +1898,16 @@ function B.PlaceInfo(key)
     local st = state[key]
     if not st then return nil end
     return st.place, st.placeFix, st.stackTo, st.anchorPoint, st.placeExt
+end
+
+-- 上一輪放格時畫面上的每一格（設定視窗的點擊層做命中測試用，Layout.HitCell）：
+--   { n = 有效筆數, [i] = { id, x, y, w, h } }，座標就是放格那句 SetPoint(TOPLEFT, 容器, x, -y) 的那一組
+--   （相對容器左上、y 往下為正）。暴雪 item、自訂框、代畫格、暗圖示占位、溢來的格都算；留空格與引擎補位的光環格不算。
+-- ⚠ 唯讀，而且是**就地重用的同一張表**（每輪放格改寫、n 之後是舊筆）：要留著用就複製值，別存裡面的表。
+-- 面板與還沒排過的條回 nil
+function B.Cells(key)
+    local st = state[key]
+    return st and st.cells or nil
 end
 
 -- 某條圖示條第一列的寬；還沒排過、長條類回 0

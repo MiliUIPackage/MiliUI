@@ -453,6 +453,27 @@ function Layout.IconTexCoord(z, w, h, crop)
     return l, r, t, b
 end
 
+-- 點擊層命中測試：(x, y) 落在哪一格。cells 是 Bars.Cells 的形狀（{ n = 有效筆數, [i] = { id, x, y, w, h } }，
+-- 座標同 Compute 的 rect：相對容器左上、y 往下為正）；沒有 n 就看 #cells。
+-- 邊界含左上、不含右下（相鄰兩格的共用邊只算給後面那格，不會兩格都中）。
+-- 包含這一點的格不只一個時（圓環條的同心正方形一層套一層）取**面積最小**的那一個 ＝ 游標底下最內圈。
+-- 表是就地重用的：n 之後的舊筆不看
+function Layout.HitCell(cells, x, y)
+    if type(cells) ~= "table" or type(x) ~= "number" or type(y) ~= "number" then return nil end
+    local n = tonumber(cells.n) or #cells
+    local best, bestA
+    for i = 1, n do
+        local c = cells[i]
+        local cx, cy, cw, ch = c and c.x, c and c.y, c and c.w, c and c.h
+        if type(cx) == "number" and type(cy) == "number" and type(cw) == "number" and type(ch) == "number"
+            and x >= cx and x < cx + cw and y >= cy and y < cy + ch then
+            local a = cw * ch
+            if not bestA or a < bestA then best, bestA = c, a end
+        end
+    end
+    return best
+end
+
 -- 長條格子的尺寸（F8c）：橫向 w ＝ 條長、h ＝ 粗細；直向反過來（w ＝ 粗細、h ＝ 條長）
 function Layout.BarCellSize(length, thickness, vertical)
     if vertical then return thickness, length end

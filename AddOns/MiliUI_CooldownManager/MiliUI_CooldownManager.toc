@@ -130,6 +130,7 @@ Options\SkyridingSettings.lua
 Options\Tab_Skyriding.lua
 Options\Tab_MountSpecial.lua
 Options\ClickLayer.lua
+Options\LiveEdit.lua
 Libs\MiliUIWidgets\BlizzOptions.lua
 Options\Blizzard.lua
 Options\Minimap.lua

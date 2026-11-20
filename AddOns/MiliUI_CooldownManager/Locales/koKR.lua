@@ -1195,3 +1195,15 @@ L["Important spell: glow"] = "중요 주문: 발광"
 L["Important spell: \"!\""] = "중요 주문: \"!\""
 -- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
 L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."] = "애니메이션 텍스처는 자체 색상을 가지고 있으며, 시전을 차단할 수 있고 내 차단기가 재사용 대기 중일 때 그대로 표시됩니다. 차단기가 준비되었거나 차단 불가 시전일 때는 애니메이션이 계속 재생되며 해당 색상으로 물듭니다."
+
+-- 點擊層細到格、畫面編輯（Options/ClickLayer.lua、Options/LiveEdit.lua、Options/Panel.lua 的收合，2026-11-21）
+L["Click: settings for this icon"] = "클릭: 이 칸의 설정"
+L["Right-click: more options"] = "오른쪽 클릭: 더 보기"
+L["Open this bar's settings"] = "이 바의 설정 열기"
+L["Edit on screen"] = "화면에서 편집"
+L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "이 창을 한 줄로 접고, 화면에 있는 각 바의 자리에 모든 칸(지금 표시되지 않는 칸 포함)을 그려 줍니다. 화면에서 바로 편집하세요."
+L["Expand settings"] = "설정 펼치기"
+L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "아이콘 클릭: 설정, 아이콘 끌기: 순서 변경, 바 이름 끌기: 바 이동"
+L["Drag: reorder, or drop on another bar"] = "끌기: 순서 변경 또는 다른 바에 놓기"
+-- 預覽格與點擊層格的右鍵選單「移到 ›」（Preview.CellMenuItems，2026-11-21）
+L["Move to"] = "이동"
