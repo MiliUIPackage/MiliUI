@@ -4,6 +4,10 @@
 --   local pv = ns.Preview.Create(parent, key, width)   條頁建一次
 --   pv:Refresh()                                       照目前設定重畫
 --   ns.Preview.Refresh(key)                            設定改了（任何地方）叫這支
+--   ns.Preview.Create(parent, key, nil, { bare = true, drop = 放置目標 })
+--                                                      畫面編輯（Options/LiveEdit.lua）的實例：同一套格子、同一份
+--                                                      Fill／Wire，只是沒有底框／捲動／效果列／內距、「＋」在框外，
+--                                                      放置目標換成畫面上別條的假格（見 CreateBare）
 --
 -- 畫的是**我們自己的假框**，不碰真實條：
 --   * 真實尺寸：版面照 ns.Layout.Compute 算（每列上限、間距、兩列尺寸、成長方向），
@@ -57,6 +61,7 @@ local PAD       = 10
 local MAX_H     = 170
 local MIN_H     = 56
 local DRAG_MIN  = 3
+local BARE_DROP_MARGIN = 12      -- 畫面編輯：游標離格子這麼近還算在這條上（插在頭尾）
 local CYCLE     = 15
 local AURA_SRC  = { buffs = true, buffbars = true }
 -- 不畫假冷卻、改用效果預覽列的條：核心／輔助技能與自訂圖示群組（使用者 2026-10-03）。
@@ -98,6 +103,8 @@ local STACK_BUTTONS = {
 }
 
 local instances = {}
+-- 畫面編輯（Options/LiveEdit.lua）的實例：一條一個，畫在畫面上那條的位置（bare）
+local live = {}
 
 ------------------------------------------------------------
 -- 小工具
@@ -582,8 +589,41 @@ end
 local Proto = {}
 Proto.__index = Proto
 
-function Preview.Create(parent, key, width)
-    local pv = setmetatable({ key = key, width = width, cells = { icons = {}, bars = {}, rings = {} }, used = {} }, Proto)
+-- 長條的十五秒循環、效果預覽的倒數（只在顯示中跑）。拖曳中換成 DragTick，放手由 RestoreTicker 換回這支
+local function StartTicker(pv)
+    local acc = 0
+    pv.frame:SetScript("OnUpdate", function(_, elapsed)
+        acc = acc + elapsed
+        if acc < 0.05 then return end
+        acc = 0
+        pv:Tick()
+        pv:FxTick()
+    end)
+end
+
+-- 畫面編輯的實例（opts.bare）：沒有底框、不捲動、沒有效果預覽列、沒有內距；框＝格子那一塊（不含「＋」），
+-- 格子座標就是 Layout.Compute 的 rect 原值 ⇒ 錨在真實容器的同一個錨點上，每格都疊在真實那格的位置。
+-- 「＋」不進 Compute（進了會讓置中成長的條整排偏半格）：放在整組外側（寬 ≥ 高放右邊、否則放下面），置中對齊。
+-- opts.drop：拖曳的放置目標（BeginDrop／DropTargetAtCursor／ButtonAtCursor／EndDrop 四支），預設左欄 ns.Sidebar
+local function CreateBare(parent, key, opts)
+    local pv = setmetatable({ key = key, cells = { icons = {}, bars = {}, rings = {} }, used = {},
+        bare = true, drop = opts.drop or ns.Sidebar }, Proto)
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetSize(1, 1)
+    pv.frame, pv.canvas = f, f
+    local line = f:CreateTexture(nil, "OVERLAY", nil, 7)
+    line:SetTexture(WHITE)
+    line:Hide()
+    pv.line = line
+    StartTicker(pv)
+    live[key] = pv
+    return pv
+end
+
+function Preview.Create(parent, key, width, opts)
+    if opts and opts.bare then return CreateBare(parent, key, opts) end
+    local pv = setmetatable({ key = key, width = width, cells = { icons = {}, bars = {}, rings = {} }, used = {},
+        drop = opts and opts.drop or ns.Sidebar }, Proto)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     W.Stylize(f, { 0.06, 0.06, 0.06, 1 }, { 0, 0, 0, 1 })
     P.Size(f, width, MIN_H)
@@ -633,15 +673,7 @@ function Preview.Create(parent, key, width)
     line:Hide()
     pv.line = line
 
-    -- 長條的十五秒循環、效果預覽的倒數（只在顯示中跑）
-    local acc = 0
-    f:SetScript("OnUpdate", function(_, elapsed)
-        acc = acc + elapsed
-        if acc < 0.05 then return end
-        acc = 0
-        pv:Tick()
-        pv:FxTick()
-    end)
+    StartTicker(pv)
 
     -- 效果預覽列：預覽框底下那一條（捲動區與橫向捲軸往上讓出 pv.fxH）。
     -- 按鈕照自然寬一顆接一顆排，放不下就換到下一列（各語系長短不同、視窗寬也不同），列高跟著長
@@ -709,15 +741,19 @@ function Preview.Create(parent, key, width)
     return pv
 end
 
+-- 設定頁的預覽與畫面編輯的假格兩張表都掃（看得到的才重畫）
+local TABLES = { instances, live }
 function Preview.Refresh(key)
-    local pv = instances[key]
-    if pv and pv.frame:IsVisible() then pv:Refresh() end
     -- 溢出的兩端互相牽動（來源條改順序／移除，接收條尾端跟著變；反之亦然）
     local pairsList = ns.Catalog.OverflowPairs and ns.Catalog.OverflowPairs()
-    for _, pr in ipairs(pairsList or {}) do
-        local other = (pr.src == key and pr.dst) or (pr.dst == key and pr.src) or nil
-        local opv = other and instances[other]
-        if opv and opv.frame:IsVisible() then opv:Refresh() end
+    for _, t in ipairs(TABLES) do
+        local pv = t[key]
+        if pv and pv.frame:IsVisible() then pv:Refresh() end
+        for _, pr in ipairs(pairsList or {}) do
+            local other = (pr.src == key and pr.dst) or (pr.dst == key and pr.src) or nil
+            local opv = other and t[other]
+            if opv and opv.frame:IsVisible() then opv:Refresh() end
+        end
     end
 end
 
@@ -725,8 +761,10 @@ end
 ns.RegisterCallback("MissingChanged", "preview", function(key) Preview.Refresh(key) end)
 
 function Preview.RefreshAll()
-    for _, pv in pairs(instances) do
-        if pv.frame:IsVisible() then pv:Refresh() end
+    for _, t in ipairs(TABLES) do
+        for _, pv in pairs(t) do
+            if pv.frame:IsVisible() then pv:Refresh() end
+        end
     end
 end
 
@@ -792,40 +830,63 @@ function Proto:Refresh()
     local rings = ns.Layout.IsRings(sizing, kind)
     self.ring = rings
     local rects, totalW, totalH
-    if rings then
-        -- 同心圓只排真的格子；「＋」放在整組右邊、垂直置中
+    local bare = self.bare
+    if rings or bare then
+        -- 圓環與畫面編輯：只排真的格子，「＋」另外放
         local n = #entries - 1
         local list = {}
         for k = 1, n do list[k] = entries[k] end
         rects, totalW, totalH = ns.Layout.Compute(list, sizing, kind)
-        local ps, gapX = 24, 8
-        local x = totalW > 0 and (totalW + gapX) or 0
-        totalW = x + ps
-        if totalH < ps then
-            for k = 1, n do rects[k].y = rects[k].y + math.floor((ps - totalH) / 2) end
-            totalH = ps
+        local ps, gap = 24, 8
+        if bare then
+            -- 畫面編輯：框＝格子那一塊（錨在真實容器同一個錨點上），「＋」掛在框外側；空條只有一顆「＋」
+            if n == 0 then
+                rects[#entries] = { x = 0, y = 0, w = ps, h = ps }
+                totalW, totalH = ps, ps
+            elseif totalW >= totalH then
+                rects[#entries] = { x = totalW + gap, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
+            else
+                rects[#entries] = { x = math.floor((totalW - ps) / 2), y = totalH + gap, w = ps, h = ps }
+            end
+        else
+            -- 圓環：「＋」放在整組右邊、垂直置中
+            local x = totalW > 0 and (totalW + gap) or 0
+            totalW = x + ps
+            if totalH < ps then
+                for k = 1, n do rects[k].y = rects[k].y + math.floor((ps - totalH) / 2) end
+                totalH = ps
+            end
+            rects[#entries] = { x = x, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
         end
-        rects[#entries] = { x = x, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
-        local thick, _, dir = ns.Layout.RingParams(bar.ring)
-        self.ringThick, self.ringDir = thick, dir
+        if rings then
+            local thick, _, dir = ns.Layout.RingParams(bar.ring)
+            self.ringThick, self.ringDir = thick, dir
+        end
     else
         rects, totalW, totalH = ns.Layout.Compute(entries, sizing, kind)
     end
 
-    -- 視窗：寬固定（頁面寬），高跟著內容、上限 MAX_H；內容比較窄時置中
-    local viewW = self.width
-    local contentW, contentH = totalW + PAD * 2, totalH + PAD * 2
-    local viewH = math.max(MIN_H, math.min(MAX_H, contentH + 2))
-    local ox = contentW < viewW and math.floor((viewW - totalW) / 2) or PAD
-    self.maxX = math.max(0, contentW - viewW + 2)
-    self.maxY = math.max(0, contentH - viewH + 2)
-    if self.maxX > 0 then viewH = math.min(MAX_H + 8, viewH + 8) end   -- 讓出捲軸那一條
-    P.Size(self.frame, viewW, viewH + (self.fxRow and (self.fxH or FX_H) or 0))
-    self.canvas:SetSize(math.max(viewW, contentW), math.max(viewH, contentH))
-    self.hbar:SetShown(self.maxX > 0)
-    self.hbar:SetMinMaxValues(0, self.maxX)
-    if self.maxX <= 0 then self.scroll:SetHorizontalScroll(0) end
-    if self.maxY <= 0 then self.scroll:SetVerticalScroll(0) end
+    local ox, oy
+    if bare then
+        -- 框跟真實容器同尺寸（容器也是 Compute 的 totalW × totalH，直接 SetSize、不另外對齊）
+        self.frame:SetSize(math.max(1, totalW), math.max(1, totalH))
+        ox, oy = 0, 0
+    else
+        -- 視窗：寬固定（頁面寬），高跟著內容、上限 MAX_H；內容比較窄時置中
+        local viewW = self.width
+        local contentW, contentH = totalW + PAD * 2, totalH + PAD * 2
+        local viewH = math.max(MIN_H, math.min(MAX_H, contentH + 2))
+        ox, oy = contentW < viewW and math.floor((viewW - totalW) / 2) or PAD, PAD
+        self.maxX = math.max(0, contentW - viewW + 2)
+        self.maxY = math.max(0, contentH - viewH + 2)
+        if self.maxX > 0 then viewH = math.min(MAX_H + 8, viewH + 8) end   -- 讓出捲軸那一條
+        P.Size(self.frame, viewW, viewH + (self.fxRow and (self.fxH or FX_H) or 0))
+        self.canvas:SetSize(math.max(viewW, contentW), math.max(viewH, contentH))
+        self.hbar:SetShown(self.maxX > 0)
+        self.hbar:SetMinMaxValues(0, self.maxX)
+        if self.maxX <= 0 then self.scroll:SetHorizontalScroll(0) end
+        if self.maxY <= 0 then self.scroll:SetVerticalScroll(0) end
+    end
 
     local now = GetTime()
     self.slots = {}
@@ -843,7 +904,7 @@ function Proto:Refresh()
             c = self:Acquire(rings and "rings" or kind)
         end
         c:ClearAllPoints()
-        c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(PAD + r.y))
+        c:SetPoint("TOPLEFT", self.canvas, "TOPLEFT", ox + r.x, -(oy + r.y))
         c:SetSize(r.w, r.h)
         if rings and not e.plus then
             c.ringRank, c.ringTex = r.ring, r.tex
@@ -1110,13 +1171,16 @@ local function ShowTip(c)
     GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
     GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
     if not c.incoming then
-        GameTooltip:AddLine(L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
+        -- 畫面編輯的假格：放置目標是畫面上別條的假格，不是左欄
+        GameTooltip:AddLine(c.liveCell and L["Drag: reorder, or drop on another bar"]
+            or L["Drag: reorder, or drop on a group on the left"], 0.8, 0.8, 0.8)
     end
     GameTooltip:Show()
 end
 
 function Proto:Wire(c)
     local pv = self
+    c.liveCell = pv.bare and true or false
     if not c.isPlus then
         c:SetScript("OnEnter", ShowTip)
         c:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1150,15 +1214,7 @@ function Proto:Wire(c)
 end
 
 function Proto:RestoreTicker()
-    local pv = self
-    local acc = 0
-    self.frame:SetScript("OnUpdate", function(_, elapsed)
-        acc = acc + elapsed
-        if acc < 0.05 then return end
-        acc = 0
-        pv:Tick()
-        pv:FxTick()
-    end)
+    StartTicker(self)
 end
 
 ------------------------------------------------------------
@@ -1307,7 +1363,8 @@ function Proto:BeginDrag()
     end
     c:SetAlpha(0.25)
     press.candidates = Preview.DropCandidates(self.key, c.id)
-    ns.Sidebar.BeginDrop(press.candidates)
+    -- 第二個參數：拖曳的來源條（畫面編輯的放置目標要排除自己；左欄不看）
+    self.drop.BeginDrop(press.candidates, self.key)
 end
 
 -- 游標底下的插入位置：離游標最近的格，決定插在它前面或後面。
@@ -1316,7 +1373,13 @@ end
 -- 只有一格時才退回預設（長條往下、圖示往右）。
 -- 回傳 pos, 格子, 插入線畫在格子的哪一邊（"TOP"／"BOTTOM"／"LEFT"／"RIGHT"）
 function Proto:InsertionAt()
-    if not self.frame:IsMouseOver() then return nil end
+    -- 畫面編輯的框剛好包住格子：往外留一圈（拖到最後一格後面一點點也算插在尾端）
+    if self.bare then
+        local m = BARE_DROP_MARGIN
+        if not self.frame:IsMouseOver(m, -m, -m, m) then return nil end
+    elseif not self.frame:IsMouseOver() then
+        return nil
+    end
     local cx, cy = Cursor(self.canvas)
     -- 圓環：每一格同一個圓心，照「游標離圓心多遠」挑環帶中線最近的那一圈；比它遠＝外側。
     -- 清單往後在由內往外是往外、由外往內是往內。插入線畫在那一格的頂邊
@@ -1404,7 +1467,7 @@ function Proto:DragTick()
     g:SetPoint("CENTER", UIParent, "BOTTOMLEFT", ux + 12, uy - 12)
 
     local line = self.line
-    if ns.Sidebar.DropTargetAtCursor() or ns.Sidebar.ButtonAtCursor() then
+    if self.drop.DropTargetAtCursor() or self.drop.ButtonAtCursor() then
         line:Hide()
         press.pos = nil
         return
@@ -1475,9 +1538,9 @@ function Proto:EndDrag(commit)
     self.dragEnded = GetTime()
     local c = press.cell
     c.dragging = false
-    local target = ns.Sidebar.DropTargetAtCursor()
-    local over = ns.Sidebar.ButtonAtCursor()
-    ns.Sidebar.EndDrop()
+    local target = self.drop.DropTargetAtCursor()
+    local over = self.drop.ButtonAtCursor()
+    self.drop.EndDrop()
     if not commit then self:Refresh() return end
     if target and press.candidates and press.candidates[target] then
         Preview.MoveTo(c.id, target, self.key)

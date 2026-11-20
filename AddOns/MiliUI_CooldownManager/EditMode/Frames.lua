@@ -308,6 +308,9 @@ function EM.KeyOfSelection(f)
     for key, l in pairs(CL and CL.layers or {}) do
         if l == f then return key end
     end
+    -- 畫面編輯（Options/LiveEdit.lua）的條名籤
+    local LE = ns.LiveEdit
+    if LE and LE.KeyOfTag then return LE.KeyOfTag(f) end
     return nil
 end
 
@@ -347,7 +350,9 @@ function EM.ApplyBarNow(key)
     local bar = BarCfg(key)
     local csel = EM.customSel[key]
     local bsel = EM.WireViewer(key)
-    if EM.Editing() and bar and not EM.Dormant(key) then
+    -- 畫面編輯正畫著假格的條：覆蓋層（條名＋職業色邊）收起來，假格自己有條名籤（兩份疊著讀不出哪個是哪個）
+    local live = ns.LiveEdit and ns.LiveEdit.Suppresses and ns.LiveEdit.Suppresses(key) or false
+    if EM.Editing() and bar and not EM.Dormant(key) and not live then
         EM.LayoutOverlay(key)
         UpdateTexts(key, bar)
         ov:Show()

@@ -851,5 +851,52 @@ do
     cfg.procdeck.enabled = true
 end
 
+------------------------------------------------------------
+-- HitCell：點擊層的命中測試（Bars.Cells 的形狀；邊界含左上不含右下；重疊取面積最小；n 之後的舊筆不看）
+------------------------------------------------------------
+do
+    local H = Lay.HitCell
+    eq("HitCell：nil 表", H(nil, 1, 1), nil)
+    eq("HitCell：座標不是數字", H({ n = 0 }, nil, 1), nil)
+    eq("HitCell：空表", H({ n = 0 }, 5, 5), nil)
+    local cells = { n = 3,
+        { id = "a", x = 0,  y = 0, w = 40, h = 40 },
+        { id = "b", x = 41, y = 0, w = 40, h = 40 },
+        { id = "c", x = 0,  y = 41, w = 30, h = 30 },
+        { id = "stale", x = 0, y = 0, w = 500, h = 500 },   -- n 之後：上一輪留下的舊筆
+    }
+    eq("HitCell：第一格", H(cells, 10, 10).id, "a")
+    eq("HitCell：第二格", H(cells, 50, 39).id, "b")
+    eq("HitCell：第二列", H(cells, 29, 70).id, "c")
+    eq("HitCell：格縫（間距）不中", H(cells, 40.5, 10), nil)
+    eq("HitCell：左上邊界算", H(cells, 41, 0).id, "b")
+    eq("HitCell：右下邊界不算", H(cells, 40, 40), nil)
+    eq("HitCell：n 之後的舊筆不看", H(cells, 200, 200), nil)
+    eq("HitCell：負座標不中", H(cells, -1, 5), nil)
+    -- 沒有 n：看 #cells
+    eq("HitCell：沒有 n 照長度", H({ { id = "x", x = 0, y = 0, w = 10, h = 10 } }, 5, 5).id, "x")
+    -- 圓環：同心正方形，取最內圈（面積最小）
+    local rings = { n = 3,
+        { id = "in",  x = 20, y = 20, w = 40,  h = 40 },
+        { id = "mid", x = 10, y = 10, w = 60,  h = 60 },
+        { id = "out", x = 0,  y = 0,  w = 80,  h = 80 },
+    }
+    eq("HitCell 圓環：中心點 → 最內圈", H(rings, 40, 40).id, "in")
+    eq("HitCell 圓環：中圈的帶上 → 中圈", H(rings, 15, 40).id, "mid")
+    eq("HitCell 圓環：最外圈的帶上 → 外圈", H(rings, 2, 2).id, "out")
+    -- 順序不影響（外圈排前面也一樣挑最小）
+    local rev = { n = 2, rings[3], rings[1] }
+    eq("HitCell 圓環：順序不影響", H(rev, 40, 40).id, "in")
+    -- 壞資料（缺欄位）跳過
+    eq("HitCell：缺欄位的筆跳過", H({ n = 2, { id = "bad", x = 0, y = 0 }, { id = "ok", x = 0, y = 0, w = 5, h = 5 } }, 1, 1).id, "ok")
+    -- 跟 Compute 接起來：真的排出來的格每一格的中心都打得中自己
+    local r = Lay.Compute(N(5), { maxPerRow = 3, spacing = 2, grow = "CENTER_DOWN", size = { w = 30, h = 30 } }, "icons")
+    local cs = { n = #r }
+    for i, rc in ipairs(r) do cs[i] = { id = i, x = rc.x, y = rc.y, w = rc.w, h = rc.h } end
+    for i, rc in ipairs(r) do
+        eq("HitCell×Compute：第 " .. i .. " 格中心", H(cs, rc.x + rc.w / 2, rc.y + rc.h / 2).id, i)
+    end
+end
+
 print(("Layout_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

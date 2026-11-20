@@ -8,12 +8,23 @@
 -- 建好的頁面留在快取裡，**不丟**（frame 刪不掉，丟了再建就是洩漏）：自訂群組刪掉
 -- 只是取消登記、把頁面藏起來，之後同一個 key 再出現就拿回來用。
 -- 頁面每次被切到都會叫 page:OnShowPage()（有的話），各頁在那裡照目前的設定檔重讀。
+--
+-- 收合（畫面編輯，Options/LiveEdit.lua；2026-11-21）：分頁列右側、格線開關左邊一顆「畫面編輯」，
+-- 按了視窗收成一條（COMPACT_W 寬、高照說明字數）：標題列照舊在外側，裡面一行灰字＋一顆 primary「展開設定」；
+-- 分頁鈕、左欄、頁面區收起來。**視窗本身不 Hide**（逐法術小窗、挑選器、彈窗都是它的子框，聽 OptionsHidden 就收）。
+--   * 收合與展開都以當下的左上角為準（標題列、分頁列在框外上方，左上角不動它們就不跳）。
+--   * 收合期間位置不存（position 回 nil）：存的是中心點，收合後的中心不是展開視窗的中心；展開後再存一次。
+--   * 夾在螢幕內的範圍上下各多留 COMPACT_CLAMP：確認／輸入彈窗是對視窗置中的（共用層），視窗只剩一條時
+--     比它高的彈窗會從上下凸出去，貼在螢幕邊上就被切掉。
+--   * Options.ShowPage 被外部叫到（點擊層、條名籤、Options.Open(pageId)）而視窗是收合的 ⇒ 先展開。
+--     換專精／換設定檔時的重讀不展開，等展開時 ShowPage 一起重讀。
+--   * 關視窗（含 ESC）先展開再廣播 OptionsHidden ⇒ 每次開都是展開的（狀態只存執行期）。
 ------------------------------------------------------------
 local _, ns = ...
 
 local L = ns.L
 
-local W = ns.W
+local W, P = ns.W, ns.P
 
 ns.Options = {}
 local Options = ns.Options
@@ -46,6 +57,9 @@ local pages, pageDefs = {}, {}
 local currentPage, currentTab
 local debugTabOn = false
 local gridToggle
+local compact = false           -- 收合中（畫面編輯）
+local compactRow, liveBtn, savedInsets
+local COMPACT_W, COMPACT_MIN_H, COMPACT_CLAMP = 420, 56, 110
 
 ------------------------------------------------------------
 -- 頁面登記
@@ -141,7 +155,11 @@ win = W.CreateOptionsWindow({
     name     = "MiliUICDM_Options",
     width    = PANEL_W, height = PANEL_H,
     title    = function() return ns.PREFIX_COLOR .. L["MiliUI Cooldown Manager"] .. "|r  v" .. ns.VERSION end,
-    position = WindowDB,
+    -- 收合中不存不套（見檔頭「收合」）
+    position = function()
+        if compact then return nil end
+        return WindowDB()
+    end,
     escape   = "panels",    -- ESC 關閉；開天賦／法術書不關（要從那裡 Shift 點法術填 ID）
     tabMinW  = 74,
     tabs     = TABS,
@@ -152,6 +170,8 @@ win = W.CreateOptionsWindow({
     end,
     onHide = function()
         if W.Menu and W.Menu.Hide then W.Menu.Hide() end
+        -- 收合著被關（關閉鈕、ESC）：先展開，下次開才是完整的視窗；位置照展開後的存
+        if compact then Options.SetCompact(false, true) end
         ns.Fire("OptionsHidden")
     end,
     onBuilt = function(_, p)
@@ -173,6 +193,46 @@ win = W.CreateOptionsWindow({
         -- 拖曳吸附也吸它（EditMode.lua 的 ActiveGridSpacing）。
         -- 骨架的 SetScript 已經排在前面，共用層走 HookScript 不會被蓋掉
         gridToggle = W.CreateGridToggle(panel, { db = WindowDB })
+
+        -- 「畫面編輯」：格線開關左邊（同一排、上緣外側）。不是主動作，用 normal
+        liveBtn = W.CreateButton(panel, L["Edit on screen"], "normal", 80, 22)
+        W.FitButton(liveBtn, 80, 22)
+        liveBtn:SetPoint("BOTTOMRIGHT", gridToggle.button, "BOTTOMLEFT", -3, 0)
+        liveBtn:SetScript("OnEnter", function(self)
+            W.PaintButton(self, true)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(L["Edit on screen"])
+            GameTooltip:AddLine(L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."], 0.8, 0.8, 0.8, true)
+            GameTooltip:Show()
+        end)
+        liveBtn:SetScript("OnLeave", function(self)
+            W.PaintButton(self, false)
+            GameTooltip:Hide()
+        end)
+        liveBtn:SetScript("OnClick", function()
+            GameTooltip:Hide()
+            Options.SetCompact(true)
+        end)
+
+        -- 收合時的那一條：一行灰字＋「展開設定」（右邊讓出關閉鈕）
+        compactRow = CreateFrame("Frame", nil, panel)
+        compactRow:SetAllPoints(panel)
+        compactRow:Hide()
+        local expand = W.CreateButton(compactRow, L["Expand settings"], "primary", 90, 22)
+        local expandW = W.FitButton(expand, 90, 22)
+        expand:SetPoint("RIGHT", compactRow, "RIGHT", -30, 0)
+        expand:SetScript("OnClick", function() Options.SetCompact(false) end)
+        local note = compactRow:CreateFontString(nil, "OVERLAY")
+        note:SetFontObject(W.fontSmall)
+        note:SetTextColor(0.65, 0.65, 0.65)
+        note:SetJustifyH("LEFT")
+        note:SetJustifyV("MIDDLE")
+        note:SetWordWrap(true)
+        -- 寬度寫死（不靠兩個錨點撐）：收合當下就要量換行後的高，錨點撐出來的寬那一刻還沒解析
+        note:SetPoint("LEFT", compactRow, "LEFT", 12, 0)
+        note:SetWidth(COMPACT_W - 12 - 10 - 30 - expandW)
+        note:SetText(L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."])
+        compactRow.note = note
     end,
 })
 
@@ -200,6 +260,8 @@ function Options.ShowTab(id)
 end
 
 function Options.ShowPage(id)
+    -- 收合著（畫面編輯）被叫到切頁：先展開（不在這裡重叫 ShowPage，下面就是）
+    if compact then Options.SetCompact(false, true) end
     local asked = id
     id = Options.HostPage(id)
     if not pageDefs[id] then id = "essential" end
@@ -351,6 +413,8 @@ end
 function Options.Open(pageId)
     if not ns.ready then return end
     win.Build()
+    -- 收合著、要開某一頁：先展開（Present 才會照存檔套位置）
+    if compact and pageId then Options.SetCompact(false, true) end
     if panel:IsShown() and not pageId then
         panel:Hide()
         return
@@ -437,14 +501,77 @@ end
 ns.RegisterCallback("ProfileChanged", "options", function()
     Options.SyncBarPages()
     if ns.Sidebar and ns.Sidebar.Rebuild then ns.Sidebar.Rebuild() end
-    if panel and panel:IsShown() then
+    -- 收合中不切頁（切頁會展開）：展開時 ShowPage 會照新的設定檔重讀
+    if panel and panel:IsShown() and not compact then
         Options.ShowPage(pageDefs[currentPage] and currentPage or "essential")
     end
 end)
 ns.RegisterCallback("SpecChanged", "options", function()
-    if panel and panel:IsShown() and currentPage then Options.ShowPage(currentPage) end
+    if panel and panel:IsShown() and currentPage and not compact then Options.ShowPage(currentPage) end
 end)
 
 function Options.Close()
     if panel then panel:Hide() end
+end
+
+------------------------------------------------------------
+-- 收合（畫面編輯）
+------------------------------------------------------------
+function Options.IsCompact()
+    return compact
+end
+
+-- 收合列的高：說明字換行後的高度＋上下內距，至少 COMPACT_MIN_H（字型要在顯示中才量得準）
+local function CompactHeight()
+    local note = compactRow and compactRow.note
+    local h = note and note:GetStringHeight() or 0
+    if type(h) ~= "number" then h = 0 end
+    return math.max(COMPACT_MIN_H, math.ceil(h) + 24)
+end
+
+-- 以 (l, t) 為左上角重新貼（UIParent 座標）；夾在螢幕內交給 SetClampedToScreen
+local function PlaceTopLeft(l, t)
+    if not (l and t) then return end
+    panel:ClearAllPoints()
+    panel:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", l, t)
+end
+
+-- on：收合／展開。noReshow：展開後不重叫 ShowPage（呼叫端自己會叫，例如 ShowPage 本身、關視窗）
+function Options.SetCompact(on, noReshow)
+    on = on and true or false
+    if not panel or on == compact then return end
+    local l, t = panel:GetLeft(), panel:GetTop()
+    if on then
+        -- 綁著頁面預覽格的東西先收（錨點要藏起來了）；錨定視窗貼著視窗右緣，留著
+        W.CloseDropdowns()
+        if W.Menu and W.Menu.Hide then W.Menu.Hide() end
+        if ns.Picker and ns.Picker.IsShown() then ns.Picker.Close() end
+        if ns.SpellPopover and ns.SpellPopover.IsShown() then ns.SpellPopover.Close() end
+        compact = true
+        if ns.Sidebar and ns.Sidebar.SetShown then ns.Sidebar.SetShown(false) end
+        if content then content:Hide() end
+        if fullContent then fullContent:Hide() end
+        for _, b in ipairs(win.tabButtons) do b:Hide() end
+        if liveBtn then liveBtn:Hide() end
+        compactRow:Show()
+        savedInsets = { panel:GetClampRectInsets() }
+        local il, ir, it, ib = unpack(savedInsets)
+        panel:SetClampRectInsets(il or 0, ir or 0, math.max(it or 0, COMPACT_CLAMP), math.min(ib or 0, -COMPACT_CLAMP))
+        P.Size(panel, COMPACT_W, CompactHeight())
+        PlaceTopLeft(l, t)
+    else
+        compact = false
+        compactRow:Hide()
+        for _, b in ipairs(win.tabButtons) do b:SetShown(b.id ~= "debug" or debugTabOn) end
+        if liveBtn then liveBtn:Show() end
+        if savedInsets then panel:SetClampRectInsets(unpack(savedInsets)) end
+        P.Size(panel, PANEL_W, PANEL_H)
+        PlaceTopLeft(l, t)
+        SetTab(currentTab or "general")
+        win.SavePosition()
+    end
+    ns.Fire("OptionsCompactChanged", compact)
+    if not on and not noReshow and panel:IsShown() then
+        Options.ShowPage(pageDefs[currentPage] and currentPage or "essential")
+    end
 end

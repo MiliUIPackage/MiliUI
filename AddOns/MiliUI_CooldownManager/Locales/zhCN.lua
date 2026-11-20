@@ -1255,3 +1255,14 @@ L["Important spell: glow"] = "重要法术发光"
 L["Important spell: \"!\""] = "重要法术惊叹号"
 -- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
 L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."] = "动画材质的颜色画在图里，在“可打断、你的打断冷却中”时原样显示。打断就绪或不可打断时动画照常播放，整条染上那个颜色。"
+
+-- 點擊層細到格、畫面編輯（Options/ClickLayer.lua、Options/LiveEdit.lua、Options/Panel.lua 的收合，2026-11-21）
+L["Click: settings for this icon"] = "点一下：设置这一格"
+L["Right-click: more options"] = "右键：更多"
+L["Settings for this icon"] = "设置这一格"
+L["Open this bar's settings"] = "打开这条的设置"
+L["Edit on screen"] = "画面编辑"
+L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "把这个窗口收成一条，在每条画面上的位置画出它的每一格（包括现在没显示的），直接在画面上改。"
+L["Expand settings"] = "展开设置"
+L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "点图标设置、拖拽图标排序、拖条名移动那一条"
+L["Drag: reorder, or drop on another bar"] = "拖拽：排序，或拖到别的条上"

@@ -468,5 +468,47 @@ do
     check("註冊 PET_BATTLE_CLOSE", registered["PET_BATTLE_CLOSE"] == true)
 end
 
+------------------------------------------------------------
+-- 7. 畫面編輯壓條（ns.LiveEdit.Suppresses；完整的狀態機在 LiveEdit_test）
+--    Alpha 最前面判：壓 ⇒ 0；BaseAlpha 不看；Refresh 容器套 0、current 0；面板的「跟著核心技能淡出」讀沒壓過的值；
+--    ⚠ 戰鬥閘：InCombatLockdown 或 Vis 自己的 inCombat 成立就不壓；LE 拋錯不壓；沒有 LE 照舊
+------------------------------------------------------------
+do
+    local conts = {}
+    local function Container(key) local c = { SetAlpha = function(_, a) conts[key] = a end }; return c end
+    local cs = { essential = Container("essential"), resources = Container("resources") }
+    local panelCfg = { resources = { enabled = true, fadeWithEssential = true, loadConditions = {} } }
+    ns.profile = { bars = { essential = { visibility = {} } } }
+    ns.Setting = function() return nil end
+    ns.DB = {
+        PANEL_ORDER = { "resources" },
+        IsPanel = function(k) return panelCfg[k] ~= nil end,
+        ConfigTable = function(k) return panelCfg[k] or ns.profile.bars[k] end,
+    }
+    ns.Bars = { Get = function(k) return cs[k] end, ForEachClaimed = function() end }
+    eq("沒有 LiveEdit：照舊", Vis.Alpha("essential", S()), 1)
+    local sup = { essential = true }
+    ns.LiveEdit = { Suppresses = function(k) return sup[k] == true end }
+    eq("壓：Alpha 0", Vis.Alpha("essential", S()), 0)
+    eq("壓：BaseAlpha 照條件", Vis.BaseAlpha("essential", S()), 1)
+    eq("壓：Suppressed 對外", Vis.Suppressed("essential"), true)
+    Vis.ApplyAll(S())
+    eq("壓：容器套 0", conts.essential, 0)
+    eq("壓：current 0（item 跟著讀這個）", Vis.Current("essential"), 0)
+    eq("壓：資源條讀沒壓過的核心技能（不跟著消失）", conts.resources, 1)
+    eq("壓：PanelAlpha 自己算也一樣", Vis.PanelAlpha("resources", S()), 1)
+    -- 戰鬥閘
+    env.InCombatLockdown = function() return true end
+    eq("InCombatLockdown：不壓", Vis.Alpha("essential", S()), 1)
+    Vis.Refresh("essential", S())
+    eq("InCombatLockdown：Refresh 容器還原", conts.essential, 1)
+    env.InCombatLockdown = function() return false end
+    ns.LiveEdit = { Suppresses = function() error("boom") end }
+    eq("LE 拋錯：不壓", Vis.Alpha("essential", S()), 1)
+    ns.LiveEdit = { Suppresses = function() return "yes" end }
+    eq("LE 回非 true：不壓", Vis.Alpha("essential", S()), 1)
+    ns.LiveEdit = nil
+end
+
 print(("Visibility_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -1195,3 +1195,14 @@ L["Important spell: glow"] = "Sort important : lueur"
 L["Important spell: \"!\""] = "Sort important : « ! »"
 -- 專注目標施法條的動畫材質說明（Options/Tab_FocusCast.lua 的 FxRows，2026-11-06）
 L["Animated textures carry their own colors, which show while the cast can be interrupted and your interrupt is on cooldown. While your interrupt is ready or the cast is non-interruptible, the animation keeps playing, tinted with that color."] = "Les textures animées portent leurs propres couleurs, visibles telles quelles tant que le sort est interruptible et que votre interruption est en recharge. Quand votre interruption est prête ou que le sort est non interruptible, l'animation continue, teintée de cette couleur."
+
+-- 點擊層細到格、畫面編輯（Options/ClickLayer.lua、Options/LiveEdit.lua、Options/Panel.lua 的收合，2026-11-21）
+L["Click: settings for this icon"] = "Clic : réglages de cette icône"
+L["Right-click: more options"] = "Clic droit : plus d'options"
+L["Settings for this icon"] = "Réglages de cette icône"
+L["Open this bar's settings"] = "Ouvrir les réglages de cette barre"
+L["Edit on screen"] = "Modifier à l'écran"
+L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "Réduit cette fenêtre à une ligne et affiche chaque icône de chaque barre à l'emplacement de la barre à l'écran, y compris celles qui ne s'affichent pas en ce moment. Modifiez-les directement là."
+L["Expand settings"] = "Déplier les réglages"
+L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "Cliquez sur une icône pour la régler, glissez les icônes pour les réordonner, glissez le nom d'une barre pour la déplacer."
+L["Drag: reorder, or drop on another bar"] = "Glisser : réordonner, ou déposer sur une autre barre"
