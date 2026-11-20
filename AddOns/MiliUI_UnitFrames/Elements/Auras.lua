@@ -136,9 +136,12 @@ end
 -- ⚠ 名單是空的 ⇒ **不送這個欄位**（等於沒開白名單），不是送一張空表 ——
 -- 空的 includeSpellIDs 引擎怎麼解讀沒驗過，而「清空名單就恢復原狀」也是設定頁寫給玩家的行為。
 -- ⚠ 兩張名單同時有東西時一起送：白名單決定範圍，黑名單在那個範圍裡再扣。
--- ⚠ 友方隊友離線／不在可見世界時引擎會整包跳過 ID 過濾（fail-open，見 .claude/notes 的
--- wow-121-identity-gate-failopen）⇒ 那個當下白名單會變成全部顯示。這裡沒有補身分閘：
--- 白名單的主要用途是敵方單位（首領、目標）身上的減益，那邊沒有這個問題。
+-- 秘密值：名單是玩家自己填的明文法術 ID，比對在暴雪安全端做
+-- （AuraContainerUtil.DoesAuraPassCandidateFilters），我們的 Lua 從頭到尾不碰光環的 spellId。
+-- 引擎准不准比對看 CanApplyIdentityCandidateFilters（2026-11-20 對過 live 原始碼）：
+--   * 敵方單位的減益（首領、敵對目標）、友方的增益 ⇒ 准，白名單完整生效
+--   * 友方單位的減益 ⇒ 只准 NeverSecret；**不准比對的光環在有白名單時一律被拒**
+--     （fail-closed，不會變成全部顯示）——跟黑名單「不准就照樣顯示」方向相反
 local function WithLists(cand, edb)
     local ex, inc = IDSet(edb.blacklist), IDSet(edb.whitelist)
     if not (ex or inc) then return cand end
