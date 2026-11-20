@@ -19,6 +19,7 @@
 --
 -- 互動
 --   左鍵點格         → 逐法術面板（Options/SpellPopover.lua）
+--   右鍵點格         → 選單：設定／移到 ›（放得進去的條，同拖曳）／從這條移除（Preview.CellMenuItems，點擊層共用）
 --   中鍵點格         → 移除（從這條拿掉、不再顯示）。移除的不留在預覽上，要加回來按「＋」
 --                      （暴雪清單上的法術記在 spells[spec].hidden、挑選器第一區列得到；自己加的項目整筆刪掉）
 --   拖曳（門檻 3px） → 排序（spells[spec].order[key] 寫完整清單，跟舊的用 Catalog.MergeOrder 合併：
@@ -581,6 +582,88 @@ function Preview.DropRefusal(key, id, target)
         return L["Spells from a bar list can only go into bar groups."]
     end
     return L["Spells from an icon list can only go into icon groups."]
+end
+
+------------------------------------------------------------
+-- 右鍵選單「這一格」那一段：預覽格（設定頁與畫面編輯的假格，Proto:Wire）與設定視窗的點擊層
+-- （Options/ClickLayer.lua 的 CL.ShowMenu）共用這一支產生器，規則見 miliui-menu-design：
+--   標題（格名，灰）→「設定」→「移到 ›」（右側灰字是現在所在的條；子選單照左欄順序列出放得進去的條，
+--   現在這條打勾、點了不動）→ 分隔線 →「從這條移除」（破壞性：有分隔線、不放第一個）
+--   * 「移到」的候選與動作跟拖曳放手同一條路：Preview.DropCandidates／Preview.MoveTo；一個候選都沒有就不列
+--   * 溢來的格（順序與歸屬屬於來源條，拖了會跳說明）不列「移到」；移除照舊對來源條生效（同中鍵）
+--   * hiddenItem（已移除、只列著的格；Wire 對它不接拖曳）不列「移到」與「移除」
+--
+--   Preview.CellMenuItems(key, id, opts) → items（W.Menu.Show 的形狀）
+--     opts.settings    「設定」要做的事；nil ＝ 不列（預覽格開小窗貼格子、點擊層要先切頁再貼畫面上的格，由呼叫端給）
+--     opts.incoming    溢來的格（給 false／來源條 key 就照給的；nil ＝ 自己查溢出表）
+--     opts.hiddenItem
+--     opts.candidates  蓋掉 DropCandidates（離線測試用）
+------------------------------------------------------------
+function Preview.CellName(id)
+    local info = id ~= nil and ns.Catalog.Info(id)
+    return (info and info.name) or ("#" .. tostring(id))
+end
+
+local function BarName(k)
+    return ns.Options.PageTitle(k) or ns.Options.BarTitle(k) or tostring(k)
+end
+
+-- 這一格是不是從別條溢過來的（回來源條 key）：畫面上的格看實際的溢出、預覽看設定算出來的
+function Preview.IncomingFrom(key, id)
+    local C = ns.Catalog
+    for _, fn in ipairs({ C.Overflow, C.OverflowStatic }) do
+        local res = fn and fn()
+        local from = res and res.from and res.from[key]
+        if from and from[id] then return from[id] end
+    end
+    return nil
+end
+
+-- 一組條 key 照左欄順序排（barOrder；沒列到的照字母接在後面）
+function Preview.OrderedBars(set)
+    local p = ns.profile
+    local out, seen = {}, {}
+    for _, k in ipairs(p and type(p.barOrder) == "table" and p.barOrder or {}) do
+        if set[k] and not seen[k] then seen[k] = true; out[#out + 1] = k end
+    end
+    local extra = {}
+    for k in pairs(set) do
+        if not seen[k] then extra[#extra + 1] = k end
+    end
+    table.sort(extra, function(a, b) return tostring(a) < tostring(b) end)
+    for _, k in ipairs(extra) do out[#out + 1] = k end
+    return out
+end
+
+function Preview.CellMenuItems(key, id, opts)
+    opts = opts or {}
+    local items = { { text = Preview.CellName(id), isTitle = true } }
+    if opts.settings then
+        items[#items + 1] = { text = L["Settings"], onClick = opts.settings }
+    end
+    local incoming = opts.incoming
+    if incoming == nil then incoming = Preview.IncomingFrom(key, id) or false end
+    if not incoming and not opts.hiddenItem then
+        local cands = opts.candidates or Preview.DropCandidates(key, id)
+        if next(cands) then
+            local set = { [key] = true }
+            for k in pairs(cands) do set[k] = true end
+            local sub = {}
+            for _, k in ipairs(Preview.OrderedBars(set)) do
+                if k == key then
+                    sub[#sub + 1] = { text = BarName(k), isActive = true }
+                else
+                    sub[#sub + 1] = { text = BarName(k), onClick = function() Preview.MoveTo(id, k, key) end }
+                end
+            end
+            items[#items + 1] = { text = L["Move to"], value = BarName(key), submenu = sub }
+        end
+    end
+    if not opts.hiddenItem then
+        items[#items + 1] = { isSeparator = true }
+        items[#items + 1] = { text = L["Remove from this bar"], onClick = function() Preview.Remove(key, id) end }
+    end
+    return items
 end
 
 ------------------------------------------------------------
@@ -1170,6 +1253,7 @@ local function ShowTip(c)
     end
     GameTooltip:AddLine(L["Left-click: settings for this spell"], 0.8, 0.8, 0.8)
     GameTooltip:AddLine(L["Middle-click: remove"], 0.8, 0.8, 0.8)
+    GameTooltip:AddLine(L["Right-click: more options"], 0.8, 0.8, 0.8)
     if not c.incoming then
         -- 畫面編輯的假格：放置目標是畫面上別條的假格，不是左欄
         GameTooltip:AddLine(c.liveCell and L["Drag: reorder, or drop on another bar"]
@@ -1192,6 +1276,8 @@ function Proto:Wire(c)
         pv.frame:SetScript("OnUpdate", function(_, elapsed) pv:DragTick(elapsed) end)
     end)
     c:SetScript("OnMouseUp", function(self, button)
+        -- 右鍵不碰拖曳：按著左鍵拖的途中放開右鍵，什麼都不做（press 留給左鍵放手收尾）
+        if button == "RightButton" and pv.press then return end
         local press = pv.press
         if press and press.dragging then pv:EndDrag(true) return end
         pv.press = nil
@@ -1209,8 +1295,22 @@ function Proto:Wire(c)
             Preview.Remove(pv.key, self.id)
         elseif button == "LeftButton" then
             if ns.SpellPopover then ns.SpellPopover.Open(pv.key, self.id, self) end
+        elseif button == "RightButton" then
+            pv:CellMenu(self)
         end
     end)
+end
+
+-- 預覽格的右鍵選單（「＋」格沒有：Wire 的放手那段先接走了）
+function Proto:CellMenu(c)
+    if not (W.Menu and W.Menu.Show) or c.isPlus or c.id == nil then return end
+    GameTooltip:Hide()
+    local pv = self
+    W.Menu.Show(Preview.CellMenuItems(pv.key, c.id, {
+        settings = function() if ns.SpellPopover then ns.SpellPopover.Open(pv.key, c.id, c) end end,
+        incoming = c.incoming or false,
+        hiddenItem = c.hiddenItem,
+    }))
 end
 
 function Proto:RestoreTicker()

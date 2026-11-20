@@ -9,7 +9,8 @@
 --     游標不在任何一格上 ⇒ 提示跟以前一字不差。
 --   * 左鍵點在格上 ⇒ 切到那條的頁，接著開那一格的逐法術小窗、貼在畫面上那一格旁邊；點在格外 ⇒ 照舊只切頁。
 --     小窗錨的是另一個不會動的定位框（pin），不是職業色框：職業色框會跟著游標換格，錨在它身上小窗會跟著跑。
---   * 右鍵 ⇒ 選單（CL.ShowMenu；畫面編輯的條名籤右鍵也是這一支）：在格上時先一段「這一格」（設定／從這條移除），
+--   * 右鍵 ⇒ 選單（CL.ShowMenu；畫面編輯的條名籤右鍵也是這一支）：在格上時先一段「這一格」
+--     （設定／移到／從這條移除，跟預覽格的右鍵選單同一支 Preview.CellMenuItems），
 --     再一段「這條」（開啟設定／加入法術／錨定）；面板沒有格，只有「這條」那段、也沒有加入法術。
 --   * 命中測試是純函式 Layout.HitCell；游標換算成容器座標前，容器的 GetLeft／GetTop 先過 ns.IsSecret
 --     （錨在外部單位框上的條，秘密錨點沿錨定鏈傳染）：秘密或 nil ⇒ 當作沒有命中，退回條層行為。
@@ -109,9 +110,9 @@ function CL.CellAtCursor(key)
     return ns.Layout.HitCell(cells, cx / s - l, t - cy / s)
 end
 
+-- 格名（跟預覽格的選單標題同一支）
 function CL.CellName(id)
-    local info = id ~= nil and ns.Catalog.Info(id)
-    return (info and info.name) or ("#" .. tostring(id))
+    return ns.Preview.CellName(id)
 end
 
 -- 格框／定位框貼到某一格（座標相對容器左上、y 往下為正，同放格那句 SetPoint）
@@ -195,14 +196,13 @@ function CL.ShowMenu(key, cell, anchor)
     local live = ns.LiveEdit and ns.LiveEdit.Active and ns.LiveEdit.Active() or false
     local items = {}
     if snap then
+        -- 「這一格」那一段跟預覽格的右鍵選單同一支產生器（Preview.CellMenuItems：設定／移到／移除，判準都在那裡）；
+        -- 只有「設定」的動作不同：先切到這條的頁、小窗貼在畫面上那一格。溢來的格由產生器自己查實際的溢出
         local l = layers[key]
-        items[#items + 1] = { text = CL.CellName(snap.id), isTitle = true }
-        if l then
-            items[#items + 1] = { text = L["Settings for this icon"], onClick = function() OpenCell(l, key, snap) end }
-        end
-        items[#items + 1] = { isSeparator = true }
-        -- 判準跟預覽的中鍵、小窗的「移除」鈕同一支：暴雪清單上的記 hidden、自訂項目整筆刪（寬層先問）
-        items[#items + 1] = { text = L["Remove from this bar"], onClick = function() ns.Preview.Remove(key, snap.id) end }
+        local cellItems = ns.Preview.CellMenuItems(key, snap.id, {
+            settings = l and function() OpenCell(l, key, snap) end or nil,
+        })
+        for _, it in ipairs(cellItems) do items[#items + 1] = it end
     end
     items[#items + 1] = { text = ns.Options.PageTitle(key) or ns.Options.BarTitle(key), isTitle = true }
     items[#items + 1] = { text = L["Open this bar's settings"], onClick = function() ns.Options.ShowPage(key) end }

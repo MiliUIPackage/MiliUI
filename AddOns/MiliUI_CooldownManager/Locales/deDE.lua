@@ -1199,10 +1199,11 @@ L["Animated textures carry their own colors, which show while the cast can be in
 -- 點擊層細到格、畫面編輯（Options/ClickLayer.lua、Options/LiveEdit.lua、Options/Panel.lua 的收合，2026-11-21）
 L["Click: settings for this icon"] = "Klicken: Einstellungen für dieses Symbol"
 L["Right-click: more options"] = "Rechtsklick: weitere Optionen"
-L["Settings for this icon"] = "Einstellungen für dieses Symbol"
 L["Open this bar's settings"] = "Einstellungen dieser Leiste öffnen"
 L["Edit on screen"] = "Auf dem Bildschirm bearbeiten"
 L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "Klappt dieses Fenster zu einer Zeile zusammen und zeigt jedes Symbol jeder Leiste genau dort, wo die Leiste auf dem Bildschirm ist – auch die, die gerade nicht angezeigt werden. Dort direkt bearbeiten."
 L["Expand settings"] = "Einstellungen ausklappen"
 L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "Symbol anklicken: einrichten, Symbole ziehen: umsortieren, Leistennamen ziehen: Leiste verschieben"
 L["Drag: reorder, or drop on another bar"] = "Ziehen: umsortieren oder auf eine andere Leiste ablegen"
+-- 預覽格與點擊層格的右鍵選單「移到 ›」（Preview.CellMenuItems，2026-11-21）
+L["Move to"] = "Verschieben nach"
