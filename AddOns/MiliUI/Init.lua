@@ -56,8 +56,13 @@ end
 --                   下游 handler 包 pcall）；原本這裡自己寫的那份是裸的 tostring(err)，
 --                   呼叫堆疊上有秘密值時處理器自己會炸。
 --   封鎖動作攔截    ADDON_ACTION_FORBIDDEN／BLOCKED 不是 Lua error、pcall 攔不住，
---                   但事件會點名是哪個函式；同一個函式只印一次，一律記進 ns.errors。
+--                   但事件會點名是哪個函式；一律記進 ns.errors（/miliui debug 看得到）。
+--                   ⚠ 聊天框只在除錯模式（/miliui debug on）才印：本體掛勾的暴雪與第三方框
+--                   比其他自製插件多，平常印出來對玩家只是雜訊。同一個函式名只有一次
+--                   印的機會 —— 平常被擋過的，開除錯模式後（那會重載）才會再印。
 ns.Errors.Install(function(line)
+    local dm = ns.DebugMode   -- Enhance/DebugMode.lua，載入順序在後面，事件進來時才查
+    if not (dm and dm.IsActive()) then return end
     ns.Print("|cffff5555" .. line .. "|r")
 end)
 
