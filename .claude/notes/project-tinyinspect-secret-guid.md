@@ -29,6 +29,9 @@ metadata:
 （右鍵觀察某個人）照舊運作，只有「背景掃團隊成員時剛好 GUID 受限」才會漏一次更新。
 
 **How to apply:** 同一個 pattern 在 `InspectMouse.lua:105` 是上游自己用 `pcall` 包的，能跑就沒動它。
-`MiliUI/Fix/InspectTaintFix.lua` 仍在外面包 `GetInspecting`／`GetInspectInfo`，是後備不是主修。
+本體原本的後備 `MiliUI/Fix/InspectTaintFix.lua`（外面包 `GetInspecting`／`GetInspectInfo`，並把暴雪觀察視窗的
+OnEvent／OnShow 換成包 pcall 的函式）**2026-11-21 刪掉了**：當初的成因（舊單位框插件的 tooltip 路徑）已不在套組，
+而替換暴雪框的腳本等於讓暴雪的程式永遠在插件的執行環境下跑。先在檔頭 `return` 停用、使用者實機測過觀察視窗沒報錯才刪。
+日後觀察視窗又出秘密值錯誤，先查是誰污染了那條路，不要再把處理器包回去。
 相關：[[wow-121-unit-api-secrets]]、[[wow-secret-key-table-lookup]]、[[project-local-addon-forks]]、
 [[project-tinyinspect-track-colors]]

@@ -70,8 +70,8 @@
 ------------------------------------------------------------
 -- ## 秘密值
 --
--- 12.1 觀察的 `InspectFrame.unit`／GUID 可能是秘密值（`MiliUI/Fix/InspectTaintFix.lua` 就是
--- 在處理 `UnitGUID(InspectFrame.unit) == unit` 比對炸掉的情況）。
+-- 12.1 觀察的 `InspectFrame.unit`／GUID 可能是秘密值（被污染的執行流程拿
+-- `UnitGUID(InspectFrame.unit) == unit` 去比對會炸）。
 -- ⇒ **這份配方不讀任何單位資料**：不讀 `InspectFrame.unit`、不呼叫 `UnitGUID`／`UnitClass`／
 --   `GetInventoryItem*`、不讀 `INSPECTED_UNIT`。兩支後置勾都只用參數裡的**框參照**。
 -- ⚠ 觀察天賦的「複製」鈕：`MiliUI_UnitFrames/Elements/Inspect.lua` 的註解記錄過 ——
@@ -128,8 +128,8 @@
 -- * 公會徽章（Banner／BannerBorder／TabardLeftIcon／TabardRightIcon）與成就點數 `Points` —— 身分與值。
 -- * 套組裡掛在同一個視窗上的插件：`TinyInspect-Remake`（裝等、直角邊框 —— 它的直角邊預設關閉，
 --   兩邊都開會有兩圈邊，同角色面板的已知衝突）、`KeystoneLoot`（最愛圖示）、`MplusAdventureGuide`
---   （裝等字）都掛在全域 `InspectPaperDollItemSlotButton_Update` 或自己建的字上，跟我們各畫各的；
---   `MiliUI/Fix/InspectTaintFix.lua` 包的是 OnEvent／OnShow 腳本，我們不碰腳本。
+--   （裝等字）都掛在全域 `InspectPaperDollItemSlotButton_Update` 或自己建的字上，跟我們各畫各的。
+--   觀察視窗的 OnEvent／OnShow 腳本沒有任何人替換（本體以前有一支包 pcall 的修補，2026-11-21 拿掉），我們也不碰。
 ------------------------------------------------------------
 local _, ns = ...
 
