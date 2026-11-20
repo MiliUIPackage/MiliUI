@@ -193,13 +193,95 @@ local function SoundEnded(handle)
     return ok and Readable(playing) and playing == false
 end
 
+----------------------------------------------------------------------
+-- 播放期間改動的音效 CVar（靜音音樂／環境音、加大聲道數與快取）
+--
+-- CVar 會寫進 Config.wtf：播放中 /reload、登出、斷線或當機，沒走到還原就會永久留在我們的值。
+-- 所以「要還原成什麼」在改動的當下就寫進存檔 db.pendingSoundRestore（整張表只有帳號層，
+-- 沒有設定檔切換／重設），還原完清掉；登入時還留著＝上次沒還原，補還原一次。
+--
+-- 兩個 session（正式播放與設定頁試聽）可能重疊：改動只做一次，第一個開始時記原值、
+-- 最後一個結束時還原。後來的 session 不重記，存檔裡永遠是玩家真正的原值。
+--
+-- 只還原「目前仍是我們設下的值」的欄位：玩家中途或兩次登入之間自己改了，就尊重玩家的值。
+-- 欄位缺席＝原本就是 0（只有非 0 才記，避免把先前靜音的狀態鎖存），不動。
+----------------------------------------------------------------------
+local SOUND_CVARS = {
+    { key = "music",    cvar = "Sound_MusicVolume",         ours = 0 },
+    { key = "ambience", cvar = "Sound_AmbienceVolume",      ours = 0 },
+    { key = "channels", cvar = "Sound_NumChannels",         ours = BOOST_NUM_CHANNELS },
+    { key = "cache",    cvar = "Sound_MaxCacheSizeInBytes", ours = BOOST_CACHE_SIZE },
+}
+
+local overrideHolders = 0     -- 目前握著改動的 session 數
+local overrideSaved   = nil   -- 本次改動前的原值（存檔的記憶體副本，db 不在時也還原得了）
+
+-- 照 saved 還原：只動有記、而且目前仍是我們的值的欄位
+local function RestoreSoundCVars(saved)
+    if type(saved) ~= "table" then return end
+    for _, c in ipairs(SOUND_CVARS) do
+        local orig = tonumber(saved[c.key])
+        if orig and tonumber(GetCVar(c.cvar)) == c.ours then
+            SetCVar(c.cvar, orig)
+        end
+    end
+end
+
+-- 上次沒走到還原（reload／登出／斷線／當機）留下的待還原值：補還原並清掉。
+-- 只在沒有 session 握著改動時做；登入時與每次開始改動前都會叫
+local function RecoverPendingSound()
+    if overrideHolders > 0 or not db then return end
+    local pending = db.pendingSoundRestore
+    if pending == nil then return end
+    db.pendingSoundRestore = nil
+    RestoreSoundCVars(pending)
+end
+
+local function AcquireSoundOverride()
+    if overrideHolders > 0 then          -- 已經改過了：只多算一個，不重記原值
+        overrideHolders = overrideHolders + 1
+        return
+    end
+
+    -- 登入時已補還原過；這裡再叫一次是保險：遺留值還在就先還原，
+    -- 才不會把上次留下的 0／BOOST 當成原值記下
+    RecoverPendingSound()
+    overrideHolders = 1
+
+    local saved = {}
+    local curMusic    = tonumber(GetCVar("Sound_MusicVolume")) or 0
+    local curAmbience = tonumber(GetCVar("Sound_AmbienceVolume")) or 0
+    if curMusic    > 0 then saved.music    = curMusic    end
+    if curAmbience > 0 then saved.ambience = curAmbience end
+    saved.channels = tonumber(GetCVar("Sound_NumChannels")) or 64
+    saved.cache    = tonumber(GetCVar("Sound_MaxCacheSizeInBytes")) or 0
+
+    overrideSaved = saved
+    if db then
+        local copy = {}
+        for k, v in pairs(saved) do copy[k] = v end
+        db.pendingSoundRestore = copy   -- 先寫存檔再改 CVar
+    end
+
+    SetCVar("Sound_MusicVolume",    0)
+    SetCVar("Sound_AmbienceVolume", 0)
+    SetCVar("Sound_NumChannels",       BOOST_NUM_CHANNELS)
+    SetCVar("Sound_MaxCacheSizeInBytes", BOOST_CACHE_SIZE)
+end
+
+local function ReleaseSoundOverride()
+    if overrideHolders <= 0 then return end
+    overrideHolders = overrideHolders - 1
+    if overrideHolders > 0 then return end
+    RestoreSoundCVars(overrideSaved)
+    overrideSaved = nil
+    if db then db.pendingSoundRestore = nil end
+end
+
 local function NewSoundSession()
     local self = {
         handle           = nil,
-        savedMusicVol    = nil,
-        savedAmbienceVol = nil,
-        savedNumChannels = nil,
-        savedCacheSize   = nil,
+        holdsOverride    = false,   -- 這個 session 有沒有握著音效 CVar 的改動
         restoreTimer     = nil,
         endWatcher       = nil,
     }
@@ -209,21 +291,9 @@ local function NewSoundSession()
             StopSound(self.handle)
             self.handle = nil
         end
-        if self.savedMusicVol then
-            SetCVar("Sound_MusicVolume", self.savedMusicVol)
-            self.savedMusicVol = nil
-        end
-        if self.savedAmbienceVol then
-            SetCVar("Sound_AmbienceVolume", self.savedAmbienceVol)
-            self.savedAmbienceVol = nil
-        end
-        if self.savedNumChannels then
-            SetCVar("Sound_NumChannels", self.savedNumChannels)
-            self.savedNumChannels = nil
-        end
-        if self.savedCacheSize then
-            SetCVar("Sound_MaxCacheSizeInBytes", self.savedCacheSize)
-            self.savedCacheSize = nil
+        if self.holdsOverride then
+            self.holdsOverride = false
+            ReleaseSoundOverride()
         end
         if self.restoreTimer then
             self.restoreTimer:Cancel()
@@ -241,18 +311,8 @@ local function NewSoundSession()
     function self:Play(path, channel, duration, watchEnd, onEnded)
         self:Stop()
 
-        local curMusic    = tonumber(GetCVar("Sound_MusicVolume")) or 0
-        local curAmbience = tonumber(GetCVar("Sound_AmbienceVolume")) or 0
-        -- Only save if non-zero, so we don't latch a previously muted state
-        if curMusic    > 0 then self.savedMusicVol    = curMusic    end
-        if curAmbience > 0 then self.savedAmbienceVol = curAmbience end
-        SetCVar("Sound_MusicVolume",    0)
-        SetCVar("Sound_AmbienceVolume", 0)
-
-        self.savedNumChannels = tonumber(GetCVar("Sound_NumChannels")) or 64
-        self.savedCacheSize   = tonumber(GetCVar("Sound_MaxCacheSizeInBytes")) or 0
-        SetCVar("Sound_NumChannels",       BOOST_NUM_CHANNELS)
-        SetCVar("Sound_MaxCacheSizeInBytes", BOOST_CACHE_SIZE)
+        AcquireSoundOverride()
+        self.holdsOverride = true
 
         local ok, handle = PlaySoundFile(path, channel)
         if not ok then
@@ -817,12 +877,14 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("PLAYER_LOGOUT")
 -- 只看自己：引擎在 C 層先濾掉隊友與名條的光環事件，不讓它們進 Lua
 eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     if event == "PLAYER_LOGIN" then
         InitDB()
+        RecoverPendingSound()   -- 上次播放中斷（斷線／當機）留下的音效 CVar：靜靜還原
 
         SLASH_MILIUI_BLM1 = "/blm"
         SLASH_MILIUI_BLM2 = "/bloodlustmusic"
@@ -888,6 +950,14 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "UNIT_AURA" then
         if db then OnUnitAura(...) end
+
+    elseif event == "PLAYER_LOGOUT" then
+        -- /reload 與登出：還在播的先停，把音效 CVar 還原。這時 SetCVar 有沒有寫進 Config.wtf
+        -- 無法保證，所以待還原值留在存檔不清：下次登入若 CVar 已是原值，補還原只會清掉它
+        local pending = db and db.pendingSoundRestore
+        mainSession:Stop()
+        previewSession:Stop()
+        if db then db.pendingSoundRestore = pending end
     end
 end)
 

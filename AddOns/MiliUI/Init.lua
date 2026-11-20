@@ -48,15 +48,18 @@ function ns.IsCommRestricted()
     return false
 end
 
--- 錯誤收集：Callbacks 的 xpcall 隔離不能變成黑洞——記下最近的錯誤，
--- 同時照常轉給全域 errorhandler（BugSack 有裝就進 BugSack）
-ns.errors = {}
-function ns.ReportError(err)
-    tinsert(ns.errors, tostring(err))
-    if #ns.errors > 10 then tremove(ns.errors, 1) end
-    local handler = geterrorhandler()
-    if handler then handler(err) end
-end
+-- 錯誤收集與封鎖動作攔截 —— 共用層 Libs/MiliUIWidgets/Errors.lua（TOC 排在本檔之前）
+--
+--   ns.ReportError  xpcall 的訊息處理器：Callbacks 與設定視窗的逐項隔離不能變成黑洞——
+--                   記進 ns.errors 供 /miliui debug 印出，同時照常轉給全域 errorhandler
+--                   （BugSack 有裝就進 BugSack）。三道守衛（防遞迴、err 本身可能是秘密字串、
+--                   下游 handler 包 pcall）；原本這裡自己寫的那份是裸的 tostring(err)，
+--                   呼叫堆疊上有秘密值時處理器自己會炸。
+--   封鎖動作攔截    ADDON_ACTION_FORBIDDEN／BLOCKED 不是 Lua error、pcall 攔不住，
+--                   但事件會點名是哪個函式；同一個函式只印一次，一律記進 ns.errors。
+ns.Errors.Install(function(line)
+    ns.Print("|cffff5555" .. line .. "|r")
+end)
 
 -- 設定視窗位置。舊 DB 沒有這一格，所以每次都自己補、不假設結構存在
 function ns.WindowPos()
