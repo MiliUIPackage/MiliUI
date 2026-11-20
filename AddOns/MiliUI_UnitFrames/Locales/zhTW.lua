@@ -535,6 +535,10 @@ L["Add by spell ID"] = "以法術 ID 新增"
 L["Spell ID"] = "法術 ID"
 L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "輸入法術 ID，或貼上法術連結。戰鬥中光環內容是隱藏的，只在戰鬥裡看得到的東西只能從這裡加。"
 L["No spell with that ID."] = "找不到這個法術 ID。"
+L["Whitelist"] = "白名單"
+L["Whitelisted"] = "已加入"
+L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] = "白名單裡有東西時，只顯示名單裡的光環，其餘全部隱藏——適合只想盯幾顆要補的持續傷害。清空名單就恢復原狀。黑名單仍然會在這之上再扣。"
+L["The game doesn't allow picking this debuff by spell ID on friendly units."] = "遊戲不允許在友方單位上以法術 ID 挑選這個減益。"
 
 -- 血量顏色（Options/HealthColorPoints.lua）
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "「純綠」與「純紅」兩種上色方式用這兩個顏色；灰色用於死亡／離線／超出距離的文字。"

@@ -759,19 +759,28 @@ local function CastbarSpecs()
     return list
 end
 
--- 黑名單那一列：按鈕寫著目前筆數，點開是挑選視窗（Options/AuraBlacklist.lua）
+-- 黑名單／白名單那一列：兩顆按鈕各寫著目前筆數，點開是同一個挑選視窗（Options/AuraBlacklist.lua）
 local function BlacklistRow(unitKey, name)
     return function(parent, x, y)
-        local btn = W.CreateButton(parent, L["Blacklist"], "normal", 180, 22)
-        btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
-        local function UpdateText()
-            local edb = ns.GetUnitDB(unitKey).elements[name]
-            btn:SetText(L["Blacklist"] .. "  (" .. ns.AuraBlacklist.Count(edb) .. ")")
+        local function Make(listKey, label, anchor)
+            local btn = W.CreateButton(parent, label, "normal", 150, 22)
+            if anchor then
+                btn:SetPoint("LEFT", anchor, "RIGHT", 8, 0)
+            else
+                btn:SetPoint("LEFT", parent, "TOPLEFT", x, y - 15)
+            end
+            local function UpdateText()
+                local edb = ns.GetUnitDB(unitKey).elements[name]
+                btn:SetText(label .. "  (" .. ns.AuraBlacklist.Count(edb, listKey) .. ")")
+            end
+            btn:SetScript("OnClick", function()
+                ns.AuraBlacklist.Open(unitKey, name, UpdateText, listKey)
+            end)
+            return btn, UpdateText
         end
-        btn:SetScript("OnClick", function()
-            ns.AuraBlacklist.Open(unitKey, name, UpdateText)
-        end)
-        return 30, UpdateText
+        local black, UpdateBlack = Make("blacklist", L["Blacklist"])
+        local _, UpdateWhite = Make("whitelist", L["Whitelist"], black)
+        return 30, function() UpdateBlack() UpdateWhite() end
     end
 end
 
@@ -818,6 +827,7 @@ local function AuraSpecs(name, unitKey)
     for i = #list, 1, -1 do
         if list[i] == BLACKLIST_MARKER then
             local rows = { { type = "custom", label = "", build = BlacklistRow(unitKey, name) } }
+            rows[#rows + 1] = { type = "text", label = L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] }
             if name == "debuffs" then
                 rows[#rows + 1] = { type = "text", label = FRIENDLY_ONLY_UNITS[unitKey]
                     and L["On friendly units the game only lets you hide debuffs that are never kept secret, like Bloodlust exhaustion. The rest are greyed out in the list."]

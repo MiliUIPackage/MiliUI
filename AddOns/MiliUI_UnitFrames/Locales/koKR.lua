@@ -537,6 +537,10 @@ L["Add by spell ID"] = "주문 ID로 추가"
 L["Spell ID"] = "주문 ID"
 L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "주문 ID를 입력하거나 주문 링크를 붙여넣으세요. 전투 중에는 효과 정보가 숨겨지므로, 전투 중에만 보이는 효과는 이 방법으로만 추가할 수 있습니다."
 L["No spell with that ID."] = "해당 ID의 주문을 찾을 수 없습니다."
+L["Whitelist"] = "허용 목록"
+L["Whitelisted"] = "허용됨"
+L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] = "허용 목록에 항목이 있으면 그 오라만 표시하고 나머지는 모두 숨깁니다. 유지해야 하는 지속 피해 몇 개만 지켜볼 때 유용합니다. 목록을 비우면 원래대로 돌아갑니다. 차단 목록은 그 위에 계속 적용됩니다."
+L["The game doesn't allow picking this debuff by spell ID on friendly units."] = "게임에서 아군에게 걸린 이 해로운 효과를 주문 ID로 고르는 것을 허용하지 않습니다."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "「초록」과 「빨강」 색상 방식이 이 두 색을 사용합니다. 회색은 사망/오프라인/거리 밖 텍스트에 쓰입니다."

@@ -537,6 +537,10 @@ L["Add by spell ID"] = "Добавить по ID заклинания"
 L["Spell ID"] = "ID заклинания"
 L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Введите ID заклинания или вставьте ссылку на заклинание. В бою данные аур скрыты, поэтому это единственный способ добавить то, что видно только в бою."
 L["No spell with that ID."] = "Заклинание с таким ID не найдено."
+L["Whitelist"] = "Белый список"
+L["Whitelisted"] = "В белом списке"
+L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] = "Если в белом списке что-то есть, показываются только эти ауры, а все остальные скрываются — удобно, чтобы следить лишь за несколькими DoT, которые нужно поддерживать. Очистите список, чтобы вернуть всё как было. Чёрный список по-прежнему применяется поверх."
+L["The game doesn't allow picking this debuff by spell ID on friendly units."] = "Игра не позволяет выбирать этот отрицательный эффект по ID заклинания на дружественных единицах."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Способы «Зелёный» и «Красный» используют эти два цвета; серый — для мёртвых/офлайн/вне досягаемости."

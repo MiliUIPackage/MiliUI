@@ -537,6 +537,10 @@ L["Add by spell ID"] = "Adicionar por ID de magia"
 L["Spell ID"] = "ID de magia"
 L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Digite uma ID de magia ou cole um link de magia. Em combate os dados das auras ficam ocultos, então esta é a única forma de adicionar algo que você só vê no meio da luta."
 L["No spell with that ID."] = "Nenhuma magia com essa ID."
+L["Whitelist"] = "Lista branca"
+L["Whitelisted"] = "Na lista branca"
+L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] = "Com algo na lista branca, só essas auras são exibidas e todo o resto fica oculto — útil para acompanhar apenas os poucos DoTs que você precisa manter. Esvazie-a para voltar ao normal. A lista negra continua valendo por cima."
+L["The game doesn't allow picking this debuff by spell ID on friendly units."] = "O jogo não permite selecionar esta penalidade por ID de feitiço em unidades aliadas."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "Os métodos “Verde” e “Vermelho” usam estas duas cores; o cinza é usado para morto/offline/fora de alcance."

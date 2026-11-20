@@ -6,6 +6,9 @@
 -- 由 Elements/Auras.lua 交給引擎的 candidateFilters.excludeSpellIDs 過濾。
 -- 玩家／寵物的減益頁只收 NeverSecret 的法術（見下面的 Filterable）。
 --
+-- 同一個視窗也拿來挑**白名單**（`.whitelist` → includeSpellIDs，名單有東西就只顯示
+-- 名單裡的）：差別只有存進哪一格與標題文字，由 BL.Open 的第四個參數決定。
+--
 -- ⚠ 12.1 之後插件讀不到光環內容：在戰鬥／首領戰／M+／評分 PvP 裡，
 -- 光環資料是秘密值，這裡會一顆都掃不到（不是壞掉，是規則）。所以掃描一律
 -- 包 pcall，而且只取 spellId —— 名字與圖示改用 C_Spell.GetSpellInfo 查，
@@ -26,6 +29,8 @@ local MAX_SCAN         = 40      -- 遠比任何單位身上的光環數多，�
 
 local popup, leftList, rightList, hintText, idPopup
 local ctxUnitKey, ctxElement
+local ctxList = "blacklist"   -- 這次開的是哪一張："blacklist"／"whitelist"（edb 上的鍵名）
+local titleText, rightLabel
 local ctxChanged        -- 表單那一列的「筆數變了」回呼（見 BL.Open）
 
 ------------------------------------------------------------
@@ -77,8 +82,8 @@ end
 local function CurrentBlacklist()
     local edb = CurrentEDB()
     if not edb then return nil end
-    edb.blacklist = edb.blacklist or {}      -- 預設沒有這一格，第一次用才長出來
-    return edb.blacklist
+    edb[ctxList] = edb[ctxList] or {}        -- 預設沒有這一格，第一次用才長出來
+    return edb[ctxList]
 end
 
 -- 這個單位在遊戲裡的 token（設定用的 key 跟 token 只有首領不一樣）
@@ -100,6 +105,13 @@ local function Filterable(id)
     local ok, level = pcall(C_Secrets.GetSpellAuraSecrecy, id)
     if not ok or level == nil then return true end
     return level == NEVER_SECRET
+end
+
+-- 灰掉的那幾顆的說明：黑名單講「隱藏」，白名單講「挑選」
+local function BlockedText()
+    return ctxList == "whitelist"
+        and L["The game doesn't allow picking this debuff by spell ID on friendly units."]
+        or L["The game doesn't allow hiding this debuff on friendly units."]
 end
 
 local function Apply()
@@ -140,7 +152,7 @@ local function MakeRow(row, actionText, onAction, isAdd)
         GameTooltip:SetSpellByID(row.spellID)
         if row.blocked then
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(L["The game doesn't allow hiding this debuff on friendly units."], 1, 0.3, 0.3, true)
+            GameTooltip:AddLine(BlockedText(), 1, 0.3, 0.3, true)
         end
         GameTooltip:Show()
     end)
@@ -174,8 +186,9 @@ local function RemoveFromBlacklist(id)
     local bl = CurrentBlacklist()
     if not bl then return end
     -- ⚠ 記成 false 不是 nil：減益名單有預設條目（疲勞），刪成 nil 的話
-    -- MergeDefaults 下次載入又會補回來 —— 玩家會覺得「刪不掉」
-    bl[id] = false
+    -- MergeDefaults 下次載入又會補回來 —— 玩家會覺得「刪不掉」。
+    -- 白名單沒有預設條目，直接清掉就好。
+    if ctxList == "blacklist" then bl[id] = false else bl[id] = nil end
     Apply()
     Refresh()
 end
@@ -233,7 +246,7 @@ local function OpenIDEntry()
             return false          -- 不關窗，讓玩家直接改
         end
         if not Filterable(id) then
-            print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " .. L["The game doesn't allow hiding this debuff on friendly units."])
+            print("|cff4DD2FF" .. L["[MiliUI UF]"] .. "|r " .. BlockedText())
             return false
         end
         AddToBlacklist(id)
@@ -272,11 +285,11 @@ local function CreatePopup()
     local title = popup:CreateFontString(nil, "OVERLAY")
     title:SetFontObject(W.fontTitle)
     title:SetPoint("TOP", 0, -12)
-    title:SetText(L["Blacklist"])
+    titleText = title
 
     local leftLabel = W.CreateGroupLabel(popup, L["Auras on this unit"])
     leftLabel:SetPoint("TOPLEFT", 16, -38)
-    local rightLabel = W.CreateGroupLabel(popup, L["Blacklisted"])
+    rightLabel = W.CreateGroupLabel(popup, L["Blacklisted"])
     rightLabel:SetPoint("TOPLEFT", 16 + LIST_W + 12, -38)
 
     leftList  = W.CreateRowList(popup, LIST_W, LIST_H, ROW_H, function(row)
@@ -313,17 +326,21 @@ local function CreatePopup()
     close:SetScript("OnClick", function() popup:Hide() end)
 end
 
-function BL.Open(unitKey, elementName, onChanged)
+function BL.Open(unitKey, elementName, onChanged, listKey)
     ctxUnitKey, ctxElement, ctxChanged = unitKey, elementName, onChanged
+    ctxList = listKey == "whitelist" and "whitelist" or "blacklist"
     CreatePopup()
     if not popup then return end
+    local white = ctxList == "whitelist"
+    titleText:SetText(white and L["Whitelist"] or L["Blacklist"])
+    rightLabel:SetText(white and L["Whitelisted"] or L["Blacklisted"])
     popup:Show()
     Refresh()
 end
 
 -- 表單那一列要顯示筆數
-function BL.Count(edb)
-    local bl = edb and edb.blacklist
+function BL.Count(edb, listKey)
+    local bl = edb and edb[listKey or "blacklist"]
     if type(bl) ~= "table" then return 0 end
     local n = 0
     for _, on in pairs(bl) do

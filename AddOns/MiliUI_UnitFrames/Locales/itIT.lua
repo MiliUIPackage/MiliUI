@@ -537,6 +537,10 @@ L["Add by spell ID"] = "Aggiungi per ID incantesimo"
 L["Spell ID"] = "ID incantesimo"
 L["Type a spell ID, or paste a spell link. Aura details are hidden in combat, so this is the only way to add something you only ever see mid-fight."] = "Inserisci un ID incantesimo o incolla un collegamento a un incantesimo. In combattimento i dati delle aure sono nascosti, quindi questo è l'unico modo per aggiungere qualcosa che vedi solo durante lo scontro."
 L["No spell with that ID."] = "Nessun incantesimo con quell'ID."
+L["Whitelist"] = "Lista bianca"
+L["Whitelisted"] = "In lista bianca"
+L["With anything on the whitelist, only those auras are shown and everything else is hidden — handy for watching just the few DoTs you need to keep up. Empty it to go back to normal. The blacklist still applies on top."] = "Se la lista bianca contiene qualcosa, vengono mostrate solo quelle aure e tutto il resto è nascosto: utile per tenere d'occhio solo i pochi DoT da mantenere. Svuotala per tornare alla normalità. La lista nera continua ad applicarsi in aggiunta."
+L["The game doesn't allow picking this debuff by spell ID on friendly units."] = "Il gioco non permette di selezionare questo maleficio tramite ID incantesimo sulle unità alleate."
 
 -- 血量顏色（Options/HealthColorPoints.lua）
 L["The \"Green\" and \"Red\" coloring methods use these two; gray is used for dead / offline / out-of-range text."] = "I metodi «Verde» e «Rosso» usano questi due colori; il grigio è per morto/offline/fuori portata."
