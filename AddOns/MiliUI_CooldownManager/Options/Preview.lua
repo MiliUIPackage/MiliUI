@@ -43,6 +43,9 @@
 --          拖了跳彈窗，附「前往那條」）；中鍵移除對來源條生效（移除本來就不分條：hidden／整筆刪掉）
 -- 不顯示（只給其他插件讀取；逐法術 hidden，Catalog.HiddenOnly）：畫面上不放，預覽照樣列（點得到才取消得了），
 --   畫暗（同其他暗格 0.35）＋**左上角**一顆 10×10 的「眼睛劃一撇」（Media/hidden.png，同範圍記號的框；右上角是範圍記號）＋提示說明
+-- 戰隊層項目對這隻角色被排除（DB_Custom.lua「戰隊層的排除」；Catalog.Bar(key, true) 照 order 列進來、Catalog.ExcludedKind）：
+--   同「不顯示」的畫法（暗 0.35＋左上角眼睛記號）＋提示寫哪一種排除；點、右鍵、移除、拖曳照常（是戰隊層那一筆本身）。
+--   畫面編輯的假格（bare）同一支 Fill，也是暗格
 -- 圓環條（layout.style ＝ "rings"）：圓環格（NewRingCell：軌道貼圖＋環形 swipe 的 Cooldown＋圖示框）照 Layout.Compute 的同心幾何排，
 --   每一圈都跑假的十五秒循環；圓環條只收增益，技能冷卻與自訂法術／物品標暗＋提示寫原因（光環格照畫成一圈）；「＋」放在整組圓環右邊。格子是一層套一層的正方形 ⇒ 內圈的框層級高（滑鼠內圈優先）；
 --   拖曳的插入位置照「游標離圓心多遠」挑最近的那一圈（InsertionAt）。效果預覽列與發光樣本不畫（圓環條不畫發光）。
@@ -485,6 +488,39 @@ function Preview.Confirm(text, onAccept)
     confirmPopup:Show()
 end
 
+-- 戰隊層的移除確認：三顆鈕＝移除（整筆刪掉）／只排除這個角色／取消（共用一顆；動作每次換）。
+-- 移除是破壞性的、不當 primary；只排除這個角色是比較輕的那一個 ⇒ primary（同 Picker 的多選項彈窗配色）
+local sharedPopup, sharedRemove, sharedExclude
+function Preview.ConfirmShared(text, onRemove, onExclude)
+    if not sharedPopup then
+        sharedPopup = W.CreateChoicePopup(ns.Options.panel, 380, "", {
+            { text = L["Remove"], color = "normal", onClick = function()
+                local fn = sharedRemove
+                sharedRemove, sharedExclude = nil, nil
+                if fn then fn() end
+            end },
+            { text = L["Exclude this character only"], color = "primary", onClick = function()
+                local fn = sharedExclude
+                sharedRemove, sharedExclude = nil, nil
+                if fn then fn() end
+            end },
+            { text = L["Cancel"], color = "normal" },
+        })
+        ns.RegisterCallback("OptionsHidden", "preview_confirm_shared", function() sharedPopup:Hide() end)
+    end
+    sharedRemove, sharedExclude = onRemove, onExclude
+    sharedPopup.text:SetText(text)
+    sharedPopup:Hide()          -- 重開才會跑 OnShow 依字數重算高度
+    sharedPopup:Show()
+end
+
+-- 排除／取消排除之後的收尾（跟 SpellPopover 的 Pop.SetScope 同一套：目錄重算、預覽全部重畫、引擎重排）
+function Preview.AfterExclude(key)
+    ns.Catalog.MarkDirty()
+    Preview.RefreshAll()
+    Changed("membership", key)
+end
+
 -- 移除自訂項目（玩家自己用「＋」加的）：整筆刪掉，它的逐法術設定一起走。
 -- 寬層（戰隊／職業／角色）的一筆：刪掉＝看得到它的每個專精（戰隊層：每個角色）都沒了 ⇒ 先問（專精層照舊不問）
 function Preview.RemoveCustom(key, id)
@@ -499,6 +535,13 @@ function Preview.RemoveCustom(key, id)
         return true
     end
     local scope = ns.DB.ParseCustomID(id)
+    -- 戰隊層：多一顆「只排除這個角色」（這個角色已經是角色除外、或讀不到角色 key ⇒ 退回兩顆鈕的確認窗）
+    if scope == "shared" and ns.DB.CustomExcludedKind(id) ~= "char" and ns.DB.ExcludeKeys().char ~= nil then
+        Preview.ConfirmShared(L["Remove it for every character and specialization using this profile?"], Do, function()
+            if ns.DB.SetCustomExclude(id, "char") then Preview.AfterExclude(key) end
+        end)
+        return true
+    end
     if ns.DB.IsWideScope(scope) then
         Preview.Confirm(scope == "shared"
             and L["Remove it for every character and specialization using this profile?"]
@@ -1019,9 +1062,12 @@ function Proto:Refresh()
         c.ringSkip = (rings and not e.plus and not ns.Catalog.RingAccepts(e.id)) and true or false
         -- 不顯示（只給其他插件讀取）：畫面上停放著，預覽照樣列、標暗、左上角記號（格子是池化的，一定要明確收）
         c.hideOnly = (not e.plus and not e.hidden and ns.Catalog.HiddenOnly(key, e.id)) and true or false
-        if c.hiddenMark then c.hiddenMark:SetShown(c.hideOnly) end
+        -- 戰隊層項目對這隻角色被排除（這個角色／職業／專精除外）：畫面上沒有，預覽照樣列、標暗、同一顆眼睛記號
+        c.excluded = (not e.plus and ns.Catalog.ExcludedKind(e.id)) or false
+        if c.hiddenMark then c.hiddenMark:SetShown(c.hideOnly or c.excluded ~= false) end
         -- 冷卻狀態效果：Decorate.ApplyPreview 照設定算好的 alpha（變暗＝設定值、兩種隱藏＝0.25）
-        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip or c.hideOnly) and 0.35
+        c:SetAlpha((e.hidden or c.missing or c.talentBlocked or c.itemHidden or e.overflowTo or c.ringSkip or c.hideOnly
+            or c.excluded) and 0.35
             or (not e.plus and c.stateAlpha) or 1)
         c:Show()
     end
@@ -1195,6 +1241,13 @@ local function Ghost()
     return ghost
 end
 
+-- 被排除的戰隊層項目（Catalog.ExcludedKind）：提示寫是哪一種排除
+local EXCLUDED_TIP = {
+    char  = L["Excluded for this character"],
+    class = L["Excluded for this class"],
+    spec  = L["Excluded for this specialization"],
+}
+
 local function ShowTip(c)
     if c.isPlus or c.dragging then return end
     GameTooltip:SetOwner(c, "ANCHOR_TOP")
@@ -1222,6 +1275,9 @@ local function ShowTip(c)
     end
     if c.hideOnly then
         GameTooltip:AddLine(L["Not shown: kept in Blizzard's tracking list only for other addons to read."], 1, 0.82, 0, true)
+    end
+    if c.excluded then
+        GameTooltip:AddLine(EXCLUDED_TIP[c.excluded] or EXCLUDED_TIP.char, 1, 0.82, 0, true)
     end
     if c.ringSkip then
         GameTooltip:AddLine(L["Ring bars only take buffs: skill cooldowns, custom spells and items can't go here."], 1, 0.3, 0.3, true)

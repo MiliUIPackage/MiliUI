@@ -133,17 +133,25 @@ Picker.SpellLearnable = SpellLearnable
 ------------------------------------------------------------
 local SCOPE_LABEL = {
     shared = function() return L["Warband (all characters)"] end,
-    class  = function() return L["This class"] end,
-    char   = function() return L["This character"] end,
-    spec   = function() return L["This specialization"] end,
+    class  = function() return L["Only this class"] end,
+    char   = function() return L["Only this character"] end,
+    spec   = function() return L["Only this specialization"] end,
+    -- 逐法術面板的下拉才有：戰隊層＋這隻角色的排除（DB_Custom.lua「戰隊層的排除」）
+    ["shared-class"] = function() return L["Warband, except this class"] end,
+    ["shared-char"]  = function() return L["Warband, except this character"] end,
+    ["shared-spec"]  = function() return L["Warband, except this specialization"] end,
 }
 local SCOPE_DESC = {
     shared = function() return L["Every character and specialization using this profile sees it. Its settings exist only once."] end,
     class  = function() return L["Every specialization of this class sees it."] end,
     char   = function() return L["Every specialization of this character sees it. Other characters don't."] end,
     spec   = function() return L["Only this specialization."] end,
+    ["shared-class"] = function() return L["Every character using this profile sees it, except characters of this class."] end,
+    ["shared-char"]  = function() return L["Every character using this profile sees it, except this character."] end,
+    ["shared-spec"]  = function() return L["Every character using this profile sees it, except in this specialization, whichever character is playing it."] end,
 }
 
+-- 範圍（或下拉的值，"shared-char" 之類）的顯示文字
 function Picker.ScopeText(scope)
     local fn = SCOPE_LABEL[scope]
     return fn and fn() or tostring(scope)
@@ -154,11 +162,39 @@ function Picker.ScopeDesc(scope)
     return fn and fn() or ""
 end
 
--- 下拉的選項（寬 → 窄）
+-- 下拉的選項（寬 → 窄）：挑選器新增項目用，四項（沒有「除外」）
 function Picker.ScopeItems()
     local items = {}
     for _, s in ipairs(ns.DB.SCOPE_ORDER) do items[#items + 1] = { text = Picker.ScopeText(s), value = s } end
     return items
+end
+
+-- 逐法術面板的下拉：七項（戰隊／戰隊，X 除外 ×3／只有這個職業／角色／專精），值見 DB.SCOPE_CHOICES。
+-- 共用層的下拉沒有分隔線，就不放
+function Picker.ScopeChoiceItems()
+    local items = {}
+    for _, v in ipairs(ns.DB.SCOPE_CHOICES) do items[#items + 1] = { text = Picker.ScopeText(v), value = v } end
+    return items
+end
+
+-- 一筆的排除清單（DB.CustomExcludeList）→ 顯示用的名字：職業用本地化職業名、角色用 charKey、專精用專精名（讀不到給數字）
+function Picker.ExcludeNames(list)
+    local out = {}
+    for _, x in ipairs(list or {}) do
+        local text
+        if x.kind == "class" then
+            local names = _G.LOCALIZED_CLASS_NAMES_MALE
+            text = type(names) == "table" and names[x.key] or nil
+        elseif x.kind == "spec" then
+            local fn = _G.GetSpecializationInfoByID
+            if type(fn) == "function" and type(x.key) == "number" then
+                local ok, _, name = pcall(fn, x.key)
+                if ok and type(name) == "string" and name ~= "" then text = name end
+            end
+        end
+        out[#out + 1] = text or tostring(x.key)
+    end
+    return out
 end
 
 -- 彈窗用的一列：「適用範圍」標籤＋下拉，下一列灰字說明。row:SetScope(s)／row:GetScope()／row:Measure() → 高度
@@ -267,8 +303,10 @@ function Picker.MovableInto(key)
             local shown, gone = ns.Catalog.Bar(other, true)
             for _, id in ipairs(shown) do
                 local origin = ns.Catalog.SourceOf(id)
-                -- 天賦沒點的（那條預覽上的灰格）不列：「已在暴雪冷卻管理器」這一區是現在用得到的
-                if not seen[id] and Fits(id, origin) and not ns.Catalog.Unlearned(id) then
+                -- 天賦沒點的（那條預覽上的灰格）不列：「已在暴雪冷卻管理器」這一區是現在用得到的。
+                -- 對這隻角色被排除的戰隊層項目（預覽上的暗格）同理不列
+                if not seen[id] and Fits(id, origin) and not ns.Catalog.Unlearned(id)
+                    and not ns.Catalog.ExcludedKind(id) then
                     seen[id] = true
                     out[#out + 1] = { id = id, from = other }
                 end

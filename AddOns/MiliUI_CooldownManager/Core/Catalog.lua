@@ -1470,27 +1470,48 @@ C.ValidCustom = ValidCustom
 local function AuraShaped(kind) return kind == "aura" or kind == "slotbuff" end
 C.AuraShaped = AuraShaped
 
+-- 這隻角色排除掉的戰隊層項目（DB.ExcludedCustom；設定頁畫暗格用）
+local function Excluded()
+    local DB = ns.DB
+    if DB and DB.ExcludedCustom then return DB.ExcludedCustom() end
+    return EMPTY
+end
+
 -- 生效清單的 id → 那一項（同一個 id 只留第一個，跟原本「線性掃到第一個就回」同語意）。
 -- 跟著 EffectiveCustom 的 memo 走：它回同一張表 ⇒ 這張也不重建（換幀、customGen 變了它回新表，這裡跟著重建）
-local byIDList, byID = nil, {}
+-- 排除掉的戰隊層項目（Excluded）接在後面當「依 id 查」的後備：設定頁的暗格要解得出名稱、圖示、設定。
+-- ⚠ 這只讓「拿著 id 來問」答得出來；**列舉**（C.BarBase 不帶 withHidden、BarHasAuraSlot、溢出、簽章、Custom.Sync）
+-- 一律只走 Effective()，看不到被排除的 ⇒ 執行期手上不會有它的 id
+local byIDList, byIDEx, byID = nil, nil, {}
 local function EffectiveByID()
-    local list = Effective()
-    if list ~= byIDList then
+    local list, ex = Effective(), Excluded()
+    if list ~= byIDList or ex ~= byIDEx then
         byID = {}
         for _, it in ipairs(list) do
             if byID[it.id] == nil then byID[it.id] = it end
         end
-        byIDList = list
+        for _, it in ipairs(ex) do
+            if byID[it.id] == nil then byID[it.id] = it end
+        end
+        byIDList, byIDEx = list, ex
     end
     return byID
 end
 
--- 生效的那一筆（種族技能是解析後的視圖）、編號（陣列位置／uid）、範圍；被窄層蓋掉、用不到、壞資料 ⇒ nil
+-- 生效的那一筆（種族技能是解析後的視圖）、編號（陣列位置／uid）、範圍；被窄層蓋掉、用不到、壞資料 ⇒ nil。
+-- 對這隻角色被排除的戰隊層項目照樣解得出來（設定頁要點得到），第四個回傳值是排除的種類（"char"｜"spec"｜"class"）
 function C.CustomEntry(id)
     if not Parse(id) then return nil end
     local it = EffectiveByID()[id]
-    if it and ValidCustom(it.entry) then return it.entry, it.key, it.scope end
+    if it and ValidCustom(it.entry) then return it.entry, it.key, it.scope, it.excluded end
     return nil
+end
+
+-- 這一格是不是對這隻角色被排除的戰隊層項目 → "char"｜"spec"｜"class"｜nil（設定頁的預覽／逐法術面板用）
+function C.ExcludedKind(id)
+    if not Parse(id) then return nil end
+    local it = EffectiveByID()[id]
+    return it and it.excluded or nil
 end
 
 function C.IsAuraSlot(id)
@@ -1723,13 +1744,15 @@ local function CustomInfo(id)
 end
 
 BuildCustomInfo = function(id)
-    local e, i, scope = C.CustomEntry(id)
+    local e, i, scope, excluded = C.CustomEntry(id)
     if not e then return nil end
     local info = {
         cooldownID = id, custom = true, index = i, kind = e.kind, bar = e.bar,
         spellID = e.spellID, itemID = e.itemID, filter = e.filter, slot = e.slot, isKnown = true,
         -- 範圍（"shared"｜"class"｜"char"｜"spec"）；種族技能那一筆（解析成這個角色的那一個）多 racial
         scope = scope, racial = e.racial and true or nil,
+        -- 對這隻角色被排除的戰隊層項目（只有設定頁拿得到它的 id）："char"｜"spec"｜"class"
+        excluded = excluded,
     }
     if e.kind == "timer" then
         -- 內建冷卻（Modules/Timers.lua）：圖示與名字問定義的 icon 法術；天賦沒點 ⇒ isKnown false、問號格。
@@ -2326,6 +2349,14 @@ function C.BarBase(barKey, withHidden)
         local e = it.entry
         if ValidCustom(e) and e.bar == barKey then
             if Allowed(it.id) then out[#out + 1] = it.id end
+        end
+    end
+    -- 設定頁（withHidden）：對這隻角色被排除的戰隊層項目照樣列進第一張（預覽畫暗＋眼睛記號，點得到才改得回來）。
+    -- 正式清單不收（Excluded 只在這裡、而且只在 withHidden 時讀）
+    if withHidden then
+        for _, it in ipairs(Excluded()) do
+            local e = it.entry
+            if ValidCustom(e) and e.bar == barKey then out[#out + 1] = it.id end
         end
     end
 
