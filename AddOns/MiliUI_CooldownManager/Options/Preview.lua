@@ -686,7 +686,7 @@ end
 
 -- 畫面編輯的實例（opts.bare）：沒有底框、不捲動、沒有效果預覽列、沒有內距；框＝格子那一塊（不含「＋」），
 -- 格子座標就是 Layout.Compute 的 rect 原值 ⇒ 錨在真實容器的同一個錨點上，每格都疊在真實那格的位置。
--- 「＋」不進 Compute（進了會讓置中成長的條整排偏半格）：放在整組外側（寬 ≥ 高放右邊、否則放下面），置中對齊。
+-- 沒有「＋」格（進 Compute 會讓置中成長的條整排偏半格、掛在框外又每條位置不一樣）：加入法術那顆由 LiveEdit 併在條名籤旁。
 -- opts.drop：拖曳的放置目標（BeginDrop／DropTargetAtCursor／ButtonAtCursor／EndDrop 四支），預設左欄 ns.Sidebar
 local function CreateBare(parent, key, opts)
     local pv = setmetatable({ key = key, cells = { icons = {}, bars = {}, rings = {} }, used = {},
@@ -906,7 +906,8 @@ function Proto:Refresh()
             if from[id] then entries[#entries + 1] = { id = id, incoming = from[id] } end
         end
     end
-    entries[#entries + 1] = { plus = true }
+    -- 畫面編輯沒有「＋」格：加入法術那顆跟條名籤併成一組（Options/LiveEdit.lua），不散在每條的右邊／下面
+    if not self.bare then entries[#entries + 1] = { plus = true } end
     self.count, self.hiddenCount = #visible, #hidden
 
     local sizing = Sizing(key, bar)
@@ -914,34 +915,33 @@ function Proto:Refresh()
     self.ring = rings
     local rects, totalW, totalH
     local bare = self.bare
-    if rings or bare then
-        -- 圓環與畫面編輯：只排真的格子，「＋」另外放
+    if bare then
+        -- 畫面編輯：框＝格子那一塊（錨在真實容器同一個錨點上）。空條給一格大的框當拖曳的放置區
+        rects, totalW, totalH = ns.Layout.Compute(entries, sizing, kind)
+        if #entries == 0 then
+            local w, h = 24, 24
+            if ns.EditMode and ns.EditMode.MinSize then w, h = ns.EditMode.MinSize(key, bar) end
+            totalW, totalH = w or 24, h or 24
+        end
+        if rings then
+            local thick, _, dir = ns.Layout.RingParams(bar.ring)
+            self.ringThick, self.ringDir = thick, dir
+        end
+    elseif rings then
+        -- 圓環：只排真的格子，「＋」放在整組右邊、垂直置中
         local n = #entries - 1
         local list = {}
         for k = 1, n do list[k] = entries[k] end
         rects, totalW, totalH = ns.Layout.Compute(list, sizing, kind)
         local ps, gap = 24, 8
-        if bare then
-            -- 畫面編輯：框＝格子那一塊（錨在真實容器同一個錨點上），「＋」掛在框外側；空條只有一顆「＋」
-            if n == 0 then
-                rects[#entries] = { x = 0, y = 0, w = ps, h = ps }
-                totalW, totalH = ps, ps
-            elseif totalW >= totalH then
-                rects[#entries] = { x = totalW + gap, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
-            else
-                rects[#entries] = { x = math.floor((totalW - ps) / 2), y = totalH + gap, w = ps, h = ps }
-            end
-        else
-            -- 圓環：「＋」放在整組右邊、垂直置中
-            local x = totalW > 0 and (totalW + gap) or 0
-            totalW = x + ps
-            if totalH < ps then
-                for k = 1, n do rects[k].y = rects[k].y + math.floor((ps - totalH) / 2) end
-                totalH = ps
-            end
-            rects[#entries] = { x = x, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
+        local x = totalW > 0 and (totalW + gap) or 0
+        totalW = x + ps
+        if totalH < ps then
+            for k = 1, n do rects[k].y = rects[k].y + math.floor((ps - totalH) / 2) end
+            totalH = ps
         end
-        if rings then
+        rects[#entries] = { x = x, y = math.floor((totalH - ps) / 2), w = ps, h = ps }
+        do
             local thick, _, dir = ns.Layout.RingParams(bar.ring)
             self.ringThick, self.ringDir = thick, dir
         end

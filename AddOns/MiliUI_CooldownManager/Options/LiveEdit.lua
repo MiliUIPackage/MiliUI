@@ -15,7 +15,8 @@
 -- ButtonAtCursor／EndDrop，跟左欄 ns.Sidebar 同名同語意）：拖到**另一條的假格區**上＝搬到那一條，
 -- 放不進去的照舊跳原因（Preview.DropRefusal）。
 --
--- 條名籤（每條假格**左邊**一顆，HUD 皮：黑透明底、1px 職業色邊、白字、直角）：
+-- 條名籤（每條假格**左邊**一組「［條名］［＋］」，HUD 皮：黑透明底、1px 職業色邊、白字、直角；「＋」＝加入法術，
+-- 預覽在畫面編輯模式不畫自己的「＋」格。2026-11-22 使用者實機：「＋」原本掛在每條右邊／下面，位置每條不同、空條那顆又跟籤不等高，很亂）：
 --   拖＝移動那一條（EM.BeginDrag／EndDrag，同點擊層）、左鍵＝展開設定視窗並切到那一條、右鍵＝點擊層那份條選單（CL.ShowMenu）、
 --   方向鍵微調（EM.KeyOfSelection 認得它）。
 --   放左邊不放上方：條預設是一條疊一條（核心 → 輔助 …），放上方的話下一條的籤會壓在上一條的最後一列上。
@@ -168,6 +169,35 @@ local function NewTag(holder, key)
     return tag
 end
 
+-- 「＋」（加入法術）：跟條名籤同一張皮、同高，緊貼在籤的右邊併成一組（共用中間那條邊）。
+-- 每條只有這一組控件、位置都一樣（假格左邊、上緣對齊）；空條也就是「條名＋」一組，不另外冒一顆大小不同的「＋」
+local function NewPlus(holder, key)
+    local b = CreateFrame("Button", nil, holder, "BackdropTemplate")
+    b:SetFrameLevel(holder:GetFrameLevel() + 60)
+    b:EnableMouse(true)
+    b:RegisterForClicks("LeftButtonUp")
+    local fs = b:CreateFontString(nil, "OVERLAY")
+    fs:SetFontObject(W.fontSmall)
+    fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+    fs:SetText("+")
+    b.text = fs
+    b:SetScript("OnClick", function(self)
+        GameTooltip:Hide()
+        if ns.Picker then ns.Picker.Open(key, self) end
+    end)
+    b:SetScript("OnEnter", function(self)
+        PaintTag(self, true)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(L["Add spells to this bar"])
+        GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function(self)
+        PaintTag(self, false)
+        GameTooltip:Hide()
+    end)
+    return b
+end
+
 -- 方向鍵微調：游標停在哪一條的條名籤上（EM.KeyOfSelection 問；不是籤回 nil）
 function LE.KeyOfTag(f)
     if not f then return nil end
@@ -197,7 +227,7 @@ local function Ensure(key)
     edge:SetFrameLevel(pv.frame:GetFrameLevel() + 50)
     edge:EnableMouse(false)
     edge:Hide()
-    h = { holder = holder, pv = pv, tag = NewTag(holder, key), edge = edge }
+    h = { holder = holder, pv = pv, tag = NewTag(holder, key), plus = NewPlus(holder, key), edge = edge }
     hosts[key] = h
     -- 預覽每次重畫完（設定變了、增刪格）：照新的大小與錨點重貼
     pv.onRefresh = function() LE.Place(key) end
@@ -225,9 +255,15 @@ function LE.Place(key)
     tag.text:SetText(ns.Options.PageTitle(key) or ns.Options.BarTitle(key))
     local w = math.ceil(tag.text:GetStringWidth() or 0) + TAG_PAD * 2
     P.Size(tag, math.max(TAG_H, w), TAG_H)
+    -- 一組：［條名］［＋］，「＋」靠假格那一側；兩顆疊 1px，中間只有一條邊
+    local plus = h.plus
+    P.Size(plus, TAG_H, TAG_H)
+    plus:ClearAllPoints()
+    plus:SetPoint("TOPRIGHT", f, "TOPLEFT", -TAG_GAP, 0)
     tag:ClearAllPoints()
-    tag:SetPoint("TOPRIGHT", f, "TOPLEFT", -TAG_GAP, 0)
+    tag:SetPoint("TOPRIGHT", plus, "TOPLEFT", P.Pixel(1), 0)
     PaintTag(tag, tag:IsMouseOver())
+    PaintTag(plus, plus:IsMouseOver())
 end
 
 local function PaintEdge(h, a, fill)
@@ -300,8 +336,10 @@ local dropCands, dropFrom, dropHover
 local function HostAtCursor()
     local src = dropFrom and hosts[dropFrom]
     if src and drawn[dropFrom] and src.pv.frame:IsMouseOver() then return nil end
+    -- 條名籤那一組也算那一條（空條的假格區只有一格大，放在名字上比較好瞄）
     for key, h in pairs(hosts) do
-        if drawn[key] and key ~= dropFrom and h.pv.frame:IsMouseOver() then return key end
+        if drawn[key] and key ~= dropFrom
+            and (h.pv.frame:IsMouseOver() or h.tag:IsMouseOver() or h.plus:IsMouseOver()) then return key end
     end
     return nil
 end

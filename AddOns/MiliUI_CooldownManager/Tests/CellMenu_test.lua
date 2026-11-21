@@ -265,11 +265,8 @@ do
     c.scripts.OnMouseUp(c, "RightButton")
     eq("suppressClick：不開", shownMenu, nil)
     -- 「＋」格：右鍵不開
-    local plus = pv.plus
-    check("有「＋」格", plus ~= nil)
-    shownMenu = nil
-    plus.scripts.OnMouseUp(plus, "RightButton")
-    eq("「＋」格：右鍵不開", shownMenu, nil)
+    -- 畫面編輯的實例沒有「＋」格（併在條名籤旁，Options/LiveEdit.lua）
+    eq("bare 沒有「＋」格", pv.plus, nil)
     -- 溢來的格（預覽格上記著 incoming）：選單沒有移到
     c.incoming = "utility"
     c.scripts.OnMouseUp(c, "RightButton")
