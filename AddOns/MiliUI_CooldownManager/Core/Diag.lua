@@ -148,6 +148,7 @@ end
 
 function ns.Diag.UnderCursor()
     local out, found = {}, {}
+    local skipped = 0
     local rx, ry = GetCursorPosition()
     local ghost = {}
     for key, h in pairs(ns.LiveEdit and ns.LiveEdit.hosts or {}) do ghost[h.holder] = key end
@@ -164,15 +165,18 @@ function ns.Diag.UnderCursor()
         return #parts > 0 and table.concat(parts, " < ") or "（整條都沒名字）"
     end
     local function Walk(f)
+        -- 受限框的 IsVisible 讀回來是秘密布林（連 if 都不能判）：先過 IsSecret，秘密的整棵跳過
         local okv, vis = pcall(f.IsVisible, f)
-        if not okv or not vis then return end
+        if not okv or (ns.IsSecret and ns.IsSecret(vis)) or not vis then return end
         local oks, scale = pcall(f.GetEffectiveScale, f)
         local oka, ea = pcall(f.GetEffectiveAlpha, f)
         scale, ea = oks and Plain(scale), oka and Plain(ea)
         if scale and scale > 0 and ea and ea > 0 then
             local cx, cy = rx / scale, ry / scale
             for _, r in ipairs({ f:GetRegions() }) do
-                if r.GetObjectType and r:GetObjectType() == "Texture" and r:IsVisible() then
+                local rv = r.IsVisible and r:IsVisible()
+                if ns.IsSecret and ns.IsSecret(rv) then rv = false end
+                if rv and r.GetObjectType and r:GetObjectType() == "Texture" then
                     local ok, l, b, w, h = pcall(r.GetRect, r)
                     l, b, w, h = ok and Plain(l), ok and Plain(b), ok and Plain(w), ok and Plain(h)
                     local a = Plain(r:GetAlpha())
@@ -184,7 +188,10 @@ function ns.Diag.UnderCursor()
                 end
             end
         end
-        for _, c in ipairs({ f:GetChildren() }) do Walk(c) end
+        -- 一棵子樹出錯（別的秘密值讀法）不要中斷整趟
+        for _, c in ipairs({ f:GetChildren() }) do
+            if not pcall(Walk, c) then skipped = skipped + 1 end
+        end
     end
     local ok, err = pcall(Walk, UIParent)
     table.sort(found, function(x, y) return x.area < y.area end)
@@ -193,5 +200,6 @@ function ns.Diag.UnderCursor()
         if ns.Diag.Note then ns.Diag.Note("under", found[i].line) end
     end
     if not ok then out[#out + 1] = "走訪中斷：" .. tostring(err) end
+    if skipped > 0 then out[#out + 1] = ("（%d 棵子樹讀不了，跳過）"):format(skipped) end
     return out
 end
