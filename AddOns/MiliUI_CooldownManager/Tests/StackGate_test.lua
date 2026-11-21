@@ -954,6 +954,27 @@ do
     G.PreviewActive(host2, "buffs", "c:2")
     eq("自訂光環格的預覽不吃層數發光", #painted, n)
     overrides[50], overrides["c:2"] = nil, nil
+
+    -- 宿主尺寸還沒解析（靠錨點撐大小的預覽框，GetSize 回 0）：不畫，等 OnSizeChanged 再畫
+    -- （照 0 算的話「快捷列」樣式的螞蟻線會變成圖檔原始的 256×256）
+    overrides[50] = { stackGlow = 2 }
+    local host3 = NewFrame("Frame")
+    local hw, hh, onSize = 0, 0, nil
+    host3.GetSize = function() return hw, hh end
+    host3.SetScript = function(_, name, fn) if name == "OnSizeChanged" then onSize = fn end end
+    n = #painted
+    eq("尺寸 0：HostSized 為假", G.HostSized(host3), false)
+    G.PreviewActive(host3, "buffs", 50)
+    eq("尺寸 0：不畫", #painted, n)
+    check("尺寸 0：掛了 OnSizeChanged 等", onSize ~= nil)
+    onSize(host3)
+    eq("OnSizeChanged 來了但還是 0：照樣不畫", #painted, n)
+    hw, hh = 40, 36
+    onSize(host3)
+    eq("尺寸解析出來：畫了", #painted, n + 1)
+    check("畫在那個宿主上", painted[#painted].h == host3)
+    eq("畫完卸掉 OnSizeChanged", onSize, nil)
+    overrides[50] = nil
 end
 
 ------------------------------------------------------------

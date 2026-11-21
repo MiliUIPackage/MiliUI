@@ -1365,6 +1365,7 @@ function Proto:FxGlow(c, which)
         G.StopOn(c.fxHost, cur.t, "pvfx")
         c.fxGlow = nil
     end
+    c.fxWant = which or nil
     if not which then return end
     if not c.fxHost then
         c.fxHost = CreateFrame("Frame", nil, c)
@@ -1374,7 +1375,14 @@ function Proto:FxGlow(c, which)
     c.fxHost:SetAllPoints(c.kind == "bars" and c.Icon or c)
     local cfg = ns.Setting(self.key, "glow." .. which)
     local t = G.PaintOn(c.fxHost, type(cfg) == "table" and cfg or {}, which, "pvfx", true, shape)
-    if t then c.fxGlow = { which = which, t = t, shape = shape } end
+    if t then
+        c.fxGlow = { which = which, t = t, shape = shape }
+    elseif G.HostSized and not G.HostSized(c.fxHost) then
+        -- 宿主剛建、尺寸還沒解析（Core/Glow.lua 的 HostSized）：解析出來再畫；那時效果已經結束就不畫了
+        local pv = self
+        c.fxWant = which
+        G.WhenSized(c.fxHost, function() if c.fxWant == which then pv:FxGlow(c, which) end end)
+    end
 end
 
 -- 頁面關著時效果到期：發光直接收掉（下次 Refresh 也會收，這裡只是不讓它在背景一直轉）

@@ -1336,6 +1336,8 @@ function GlowSampleRow(which, path)
             if shown then G.StopOn(host, shown, which) end
             shown = G.PaintOn(host, c, which, which, false)
             sig = now
+            -- 表單還沒顯示、宿主尺寸還沒解析（Core/Glow.lua 的 HostSized）：解析出來再畫
+            if not shown and G.HostSized and not G.HostSized(host) then G.WhenSized(host, Refresh) end
         end
         local apply = ctx.apply
         ctx.apply = function(...)
@@ -1844,9 +1846,20 @@ do
     end
     local function GlowOn(c, style, which)
         if c.glowOn then return end
-        c.glowOn = ns.Glow.PaintOn(c.glowHost, style, which, "demo", which == "proc") or nil
+        local G = ns.Glow
+        c.glowOn = G.PaintOn(c.glowHost, style, which, "demo", which == "proc") or nil
+        -- 示意格剛建、宿主尺寸還沒解析（Core/Glow.lua 的 HostSized）：解析出來再畫；那時示意已經關掉就不畫
+        c.glowWant = which
+        if not c.glowOn and G.HostSized and not G.HostSized(c.glowHost) then
+            G.WhenSized(c.glowHost, function()
+                if c.glowWant == which and not c.glowOn then
+                    c.glowOn = G.PaintOn(c.glowHost, style, which, "demo", which == "proc") or nil
+                end
+            end)
+        end
     end
     local function GlowOff(c, which)
+        c.glowWant = nil
         if not c.glowOn then return end
         ns.Glow.StopOn(c.glowHost, c.glowOn, "demo")
         c.glowOn = nil

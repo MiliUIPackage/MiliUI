@@ -485,9 +485,60 @@ function G.SkinAttached(f, art)
     end
 end
 
+-- ── 宿主的尺寸要先解析出來才能畫 ─────────────────────────────────────
+-- 函式庫的每一種 Start 都是「當場讀宿主的 GetSize，照它算發光框的外擴與貼圖尺寸」。宿主若是靠錨點撐大小的
+-- （SetAllPoints，設定頁的預覽格、單一法術小窗的圖示、發光樣本、示意格都是），剛建好或祖先還藏著的那一刻
+-- GetSize 回 0 ⇒ 外擴 0（光圈貼著圖示、沒往外放）、貼圖 SetSize(0,0) ＝ 用圖檔原始尺寸：
+-- 「快捷列」樣式的螞蟻線變成 256×256 的一大圈蓋在圖示外面（2026-11-22 使用者實機，/mcdm under 查到
+-- 457294 IconAlertAnts 256x256）。在預覽框裡會被捲動框裁掉所以一直沒被看到，畫面上的假格沒有裁切才露出來。
+-- 真實格的宿主（Host、StackGate）是明確 SetSize 的，不受影響。
+-- 規矩：尺寸是 0 就**不畫**（PaintOn 回 nil），呼叫端用 G.WhenSized 等它解析出來再畫一次。
+local function HostSized(h)
+    if not (h and h.GetSize) then return true end
+    local w, hh = h:GetSize()
+    if ns.IsSecret and (ns.IsSecret(w) or ns.IsSecret(hh)) then return true end
+    if type(w) ~= "number" or type(hh) ~= "number" then return true end   -- 測試替身沒有尺寸：照舊畫
+    return w > 0.5 and hh > 0.5
+end
+G.HostSized = HostSized
+
+-- 宿主的尺寸解析出來那一刻叫 fn 一次（已經有尺寸就當場叫）。宿主是我們自己的空框，OnSizeChanged 沒有別人用；
+-- 重複登記以最後一次為準（fn 給 nil ＝ 取消）
+local sizedWait = setmetatable({}, { __mode = "k" })
+function G.WhenSized(h, fn)
+    if not (h and h.SetScript) then return end
+    if not fn then
+        if sizedWait[h] then sizedWait[h] = nil; h:SetScript("OnSizeChanged", nil) end
+        return
+    end
+    if HostSized(h) then fn() return end
+    if not sizedWait[h] then
+        h:SetScript("OnSizeChanged", function(self)
+            local f = sizedWait[self]
+            if not (f and HostSized(self)) then return end
+            sizedWait[self] = nil
+            self:SetScript("OnSizeChanged", nil)
+            f()
+        end)
+    end
+    sizedWait[h] = fn
+    -- 保險：下一幀再看一次（還沒顯示就先畫、同一輪才顯示的小窗：這一幀結束尺寸就解析好了；
+    -- OnSizeChanged 萬一沒來也不會從此沒有發光）。還是 0 就繼續等 OnSizeChanged
+    if ns.Defer then
+        ns.Defer(function()
+            local f = sizedWait[h]
+            if not (f and HostSized(h)) then return end
+            sizedWait[h] = nil
+            h:SetScript("OnSizeChanged", nil)
+            f()
+        end)
+    end
+end
+
 -- 回傳實際畫上去的樣式（失敗回 nil）。shape：GlowShape 的結果（nil ＝ 方形、現狀）
 local function PaintOn(h, c, which, key, startAnim, shape)
     if not (h and LCG) then return nil end
+    if not HostSized(h) then return nil end      -- 尺寸還沒解析：不畫（見上）
     local t = c.type
     if not STOP[t] then t = "pixel" end
     local art
@@ -551,8 +602,15 @@ function G.PreviewActive(host, barKey, id, shape)
     end
     if want then
         local t = PaintOn(host, c, "active", "active", false, shape)
-        if t then previewOn[host] = { t = t, sig = sig } end
+        if t then
+            previewOn[host] = { t = t, sig = sig }
+        elseif not HostSized(host) then
+            -- 宿主尺寸還沒解析（剛建的預覽格、還沒顯示的小窗）：解析出來再畫，用那時的設定重判
+            G.WhenSized(host, function() G.PreviewActive(host, barKey, id, shape) end)
+            return
+        end
     end
+    G.WhenSized(host, nil)
 end
 
 local function Stop(rec, which)
