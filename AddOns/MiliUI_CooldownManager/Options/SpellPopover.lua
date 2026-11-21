@@ -13,6 +13,9 @@
 --     （連覆寫一起搬、配新 id），往窄搬先問（其他專精／角色會看不到；角色 → 專精的字另外寫）。寬層（戰隊／職業／角色）的法術多一列
 --     「未學會時不顯示」（hideUnknown，存在那一筆上）。寬層（戰隊／職業／角色）的覆寫存在那一筆身上（DB.OverrideTable），
 --     底部說明照範圍換字。
+--     下拉是七項（Picker.ScopeChoiceItems；值 DB.SCOPE_CHOICES）：多三個「戰隊，這個職業／角色／專精除外」＝戰隊層那一筆
+--     對這隻角色的排除（DB.SetCustomExclude，不問）；選中值照這隻角色的狀態推（DB.ScopeChoice）。灰字多一行「已排除：…」
+--     列出這一筆全部的排除。被排除的格在預覽上是暗格（Options/Preview.lua），點它照樣開這個面板。
 --   * 「所在條」改的是它自己的 bar（任何一條，圖示類、長條類都收）。
 --   * 放在長條類的條上的冷卻類（法術／物品／裝備欄）：觸發／就緒發光與冷卻狀態那幾列藏起來（長條不畫發光、
 --     冷卻狀態不套長條；判準跟 Decorate 的 isBar 同一個：這一條的 kind ＝ bars）。
@@ -1173,11 +1176,12 @@ local function Build()
         if Pop.cur then Layout(frame.kind, frame.soundClass) end
     end)
 
-    -- 適用範圍（自訂項目才有；一般分頁最上面）：戰隊／這個職業／這個專精。切換走 Pop.SetScope（往窄搬先問）
+    -- 適用範圍（自訂項目才有；一般分頁最上面）：戰隊／戰隊，X 除外（×3）／只有這個職業／角色／專精。
+    -- 切換走 Pop.SetScope（往窄搬先問；戰隊層裡換排除不問）
     Pop.buildTab = "general"
     Pop.BuildHideRow()
     local scr = NewRow(L["Scope"], IsCustom)
-    local scdd = W.CreateDropdown(scr, ROW_W - CTRL_X, ns.Picker.ScopeItems(), function(value) Pop.SetScope(value) end)
+    local scdd = W.CreateDropdown(scr, ROW_W - CTRL_X, ns.Picker.ScopeChoiceItems(), function(value) Pop.SetScope(value) end)
     scdd:SetMaxWidth(ROW_W - CTRL_X)
     scdd:SetPoint("LEFT", scr, "LEFT", CTRL_X, 0)
     frame.scopeDD = scdd
@@ -2034,8 +2038,16 @@ function Pop.Refresh()
     -- 適用範圍：下拉、灰字說明、底部說明照範圍換字（換字之後重量高度，Layout 才排得對）
     local scope = kind and ns.DB.ParseCustomID(id) or nil
     if scope then
-        frame.scopeDD:SetSelectedValue(scope)
-        frame.scopeTip:SetText(ns.Picker.ScopeDesc(scope))
+        -- 選中值是「對這隻角色」的狀態：戰隊層而且被排除 ⇒ 對應的除外項
+        local choice = ns.DB.ScopeChoice(scope, ns.DB.CustomExcludedKind(id)) or scope
+        frame.scopeDD:SetSelectedValue(choice)
+        local tip = ns.Picker.ScopeDesc(choice)
+        -- 這一筆有任何排除（含別隻角色／別的職業／別的專精設的）⇒ 多一行列出全部
+        local names = ns.Picker.ExcludeNames(ns.DB.CustomExcludeList(id))
+        if #names > 0 then
+            tip = tip .. "\n" .. L["Excluded: %s"]:format(table.concat(names, L[", "]))
+        end
+        frame.scopeTip:SetText(tip)
         frame.scopeTipEntry.remeasure()
         local raw = ns.DB.CustomEntry(id)
         frame.hideUnknownCB:SetChecked(not (type(raw) == "table" and raw.hideUnknown == false))
@@ -2367,12 +2379,32 @@ function Pop.NarrowScopeText(old, newScope)
     return L["Only this class will keep it. Characters of other classes stop showing it."]
 end
 
-function Pop.SetScope(newScope)
+-- value 是下拉的值（DB.SCOPE_CHOICES）：範圍＋這隻角色的排除。
+--   * 戰隊層 → "shared"／"shared-X"：只改這隻角色對得上的排除（DB.SetCustomExclude），不問（格子還在預覽裡，隨時改得回來）
+--   * 不是戰隊層 → "shared-X"：先照往寬搬的流程搬到戰隊層（含 "exists" 提示），成功後對新 id 設排除
+--   * 戰隊層 → 職業／角色／專精：照往窄搬的確認流程（排除資料隨之丟掉，DB.MoveCustomScope）
+function Pop.SetScope(value)
     if not Pop.cur then return end
     local id = Pop.cur.id
     local old = ns.DB.ParseCustomID(id)
-    if not old or old == newScope then return end
+    local newScope, exKind = ns.DB.ParseScopeChoice(value)
+    if not old or not newScope then return end
     local RANK = ns.DB.SCOPE_RANK
+    -- 收尾：生效清單變了（窄蓋寬、沒學就不列、排除的對象換了）：目錄簽章重算、每一條的預覽都重畫
+    local function Finish()
+        if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
+        if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
+        Changed("membership")
+    end
+    if old == "shared" and newScope == "shared" then
+        if ns.DB.SetCustomExclude(id, exKind) then
+            Finish()
+        else
+            Pop.Refresh()                              -- 設不了（例如名字還讀不到時排除角色）：下拉退回原狀
+        end
+        return
+    end
+    if old == newScope then return end
     local function Do()
         if not Pop.cur or Pop.cur.id ~= id then return end
         local nid, why = ns.DB.MoveCustomScope(id, newScope)
@@ -2382,13 +2414,12 @@ function Pop.SetScope(newScope)
             return
         end
         Pop.cur.id = nid
-        -- 生效清單變了（窄蓋寬、沒學就不列的對象換了）：目錄簽章重算、每一條的預覽都重畫
-        if ns.Catalog.MarkDirty then ns.Catalog.MarkDirty() end
-        if ns.Preview and ns.Preview.RefreshAll then ns.Preview.RefreshAll() end
-        Changed("membership")
+        if exKind then ns.DB.SetCustomExclude(nid, exKind) end
+        Finish()
     end
     if (RANK[newScope] or 0) > (RANK[old] or 0) then
-        frame.scopeDD:SetSelectedValue(old)          -- 確定之前不改顯示（取消就維持原狀）
+        -- 確定之前不改顯示（取消就維持原狀）
+        frame.scopeDD:SetSelectedValue(ns.DB.ScopeChoice(old, ns.DB.CustomExcludedKind(id)) or old)
         ns.Preview.Confirm(Pop.NarrowScopeText(old, newScope), Do)
     else
         Do()

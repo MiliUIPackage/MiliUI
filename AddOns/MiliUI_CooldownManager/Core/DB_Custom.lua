@@ -45,6 +45,15 @@ local DeepCopy, CharKey = DB.DeepCopy, DB.CharKey
 --   **窄的蓋寬的**：同一個身分（同種類＋同主 ID，光環還要同 filter）在多層都有時只有最窄的那層生效，
 --   寬的那筆對這個專精當不存在（DB.ResolveScopes，純函式）。
 --   舊存檔沒有這幾張表 ＝ 只有專精層，行為跟以前一樣（不遷移、DB_VERSION 不動）。
+--
+-- ── 戰隊層的排除（2026-11-21）──────────────────────────────────────────────────────────────
+--   戰隊層那一筆自己身上：exclude = { class = { [classFile] = true }, char = { [charKey] = true }, spec = { [specID] = true } }
+--   對得上「這隻角色」（它的職業／角色 key／目前專精）任何一格 ＝ 這隻角色當它不存在：DB.EffectiveCustom 不含它
+--   （Bars、Custom.Sync、Catalog.Bar、簽章全部看不到）；設定頁另外從 DB.ExcludedCustom 拿來畫暗格，點得到才改得回來。
+--   * 只有戰隊層有；職業／角色／專精層不支援（MoveCustomScope 搬離戰隊層時丟掉）
+--   * 「排除這個專精」＝ 同設定檔所有該專精的角色（專精表本來就共用）
+--   * 舊存檔沒有 ＝ 沒有排除；形狀不對（不是表、子表不是表、值不是 true）一律當沒有。不遷移、DB_VERSION 不動
+--   * 寫入只走 DB.SetCustomExclude（單選、只管這隻角色對得上的三格，空的子表／空的 exclude 清成 nil）
 ------------------------------------------------------------
 DB.CUSTOM_KINDS = { aura = true, spell = true, item = true, slot = true, slotbuff = true, racial = true, timer = true }
 
@@ -277,6 +286,114 @@ function DB.ResolveScopes(sharedList, classList, charList, specList, resolve)
     return out
 end
 
+------------------------------------------------------------
+-- 戰隊層的排除（檔頭「戰隊層的排除」）
+------------------------------------------------------------
+DB.EXCLUDE_KINDS = { "char", "spec", "class" }          -- 同時對得上多種時取第一個（正常經 UI 只會有一種）
+local EXCLUDE_KIND = { class = true, char = true, spec = true }
+
+-- 這隻角色的三把 key：職業（ns.playerClass）、角色（CharScopeKey，讀不到名字 nil）、目前專精（ns.specID）
+local function ExcludeKeys(specID)
+    local cls = ns.playerClass
+    if type(cls) ~= "string" or cls == "" then cls = nil end
+    local spec = specID or ns.specID
+    if type(spec) ~= "number" then spec = nil end
+    return { class = cls, char = CharScopeKey(), spec = spec }
+end
+DB.ExcludeKeys = ExcludeKeys
+
+-- 純函式：這一筆對 keys（{ class, char, spec }）是不是被排除 → "char"｜"spec"｜"class"｜nil（照 EXCLUDE_KINDS 的順序）
+-- 形狀不對一律當沒有
+function DB.ExcludeKindOf(raw, keys)
+    if type(raw) ~= "table" or type(keys) ~= "table" then return nil end
+    local ex = raw.exclude
+    if type(ex) ~= "table" then return nil end
+    for _, kind in ipairs(DB.EXCLUDE_KINDS) do
+        local t, k = ex[kind], keys[kind]
+        if type(t) == "table" and k ~= nil and t[k] == true then return kind end
+    end
+    return nil
+end
+
+-- 這一筆（id）對現在這隻角色是不是被排除 → kind 或 nil（不是戰隊層的 id 一律 nil）
+function DB.CustomExcludedKind(id, specID)
+    if DB.ParseCustomID(id) ~= "shared" then return nil end
+    return DB.ExcludeKindOf(DB.CustomEntry(id), ExcludeKeys(specID))
+end
+
+-- 這一筆全部的排除（含別隻角色／別的職業／別的專精設的）：{ { kind, key }, … }，照 class → char → spec、key 照字串排
+function DB.CustomExcludeList(id)
+    local out = {}
+    if DB.ParseCustomID(id) ~= "shared" then return out end
+    local raw = DB.CustomEntry(id)
+    local ex = type(raw) == "table" and raw.exclude
+    if type(ex) ~= "table" then return out end
+    for _, kind in ipairs({ "class", "char", "spec" }) do
+        local t = ex[kind]
+        if type(t) == "table" then
+            local keys = {}
+            for k, v in pairs(t) do
+                if v == true then keys[#keys + 1] = k end
+            end
+            table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+            for _, k in ipairs(keys) do out[#out + 1] = { kind = kind, key = k } end
+        end
+    end
+    return out
+end
+
+-- 設定排除（單選）：先清掉這隻角色對得上的三格（它的職業、它的角色 key、目前專精），再設 kind 那一種；nil ＝ 全清。
+-- 別隻角色／別的職業／別的專精的排除不動。空的子表、空的 exclude 清成 nil。
+-- 失敗回 false：不是戰隊層、找不到那一筆、kind 不認得、kind 要的 key 讀不到（例如名字還讀不到時排除角色）
+function DB.SetCustomExclude(id, kind)
+    if DB.ParseCustomID(id) ~= "shared" then return false end
+    if kind ~= nil and not EXCLUDE_KIND[kind] then return false end
+    local raw = DB.CustomEntry(id)
+    if type(raw) ~= "table" then return false end
+    local keys = ExcludeKeys()
+    if kind ~= nil and keys[kind] == nil then return false end
+    local ex = raw.exclude
+    if type(ex) ~= "table" then ex = {} end
+    for k in pairs(EXCLUDE_KIND) do
+        local t = ex[k]
+        if type(t) ~= "table" then
+            t = nil
+        elseif keys[k] ~= nil then
+            t[keys[k]] = nil
+        end
+        ex[k] = t
+    end
+    if kind ~= nil then
+        ex[kind] = ex[kind] or {}
+        ex[kind][keys[kind]] = true
+    end
+    for k in pairs(EXCLUDE_KIND) do
+        local t = ex[k]
+        if t ~= nil and next(t) == nil then ex[k] = nil end
+    end
+    raw.exclude = next(ex) ~= nil and ex or nil
+    DB.TouchCustom()                      -- 生效清單變了（EffectiveCustom 的 memo、Catalog 的簽章）
+    return true
+end
+
+-- 逐法術面板「適用範圍」下拉的值（純函式）：範圍＋這隻角色的排除 → "shared"｜"shared-class"｜"shared-char"｜"shared-spec"
+-- ｜"class"｜"char"｜"spec"。排除只有戰隊層算；不認得的範圍回 nil
+DB.SCOPE_CHOICES = { "shared", "shared-class", "shared-char", "shared-spec", "class", "char", "spec" }
+function DB.ScopeChoice(scope, excludedKind)
+    if not DB.SCOPE_RANK[scope] then return nil end
+    if scope == "shared" and EXCLUDE_KIND[excludedKind] then return "shared-" .. excludedKind end
+    return scope
+end
+
+-- 反過來：下拉的值 → 範圍, 排除種類（nil ＝ 沒有）；不認得的值回 nil
+function DB.ParseScopeChoice(value)
+    if type(value) ~= "string" then return nil end
+    if DB.SCOPE_RANK[value] then return value, nil end
+    local kind = value:match("^shared%-(%a+)$")
+    if kind and EXCLUDE_KIND[kind] then return "shared", kind end
+    return nil
+end
+
 -- 遊戲裡的 opts：學了沒（Catalog.SpellKnown，讀不到當學了）、種族（UnitRace 的英文 token，明文才收）。
 -- 同一幀裡重複問的結果共用（Catalog.Bar／Info 一輪排版會問很多次），換幀就作廢
 local runtimeCache, runtimeAt = {}, nil
@@ -350,20 +467,47 @@ local function RuntimeView(raw, scope) return DB.CustomView(raw, scope, RUNTIME_
 --   * 每幀戳記是第二道保險，也讓「學了沒」「種族技能解成哪一個」（RuntimeFresh，本來就是每幀）跟著換幀重算
 --   * 讀不到 GetTime（離線測試）⇒ 不 memo
 -- ⚠ 回傳的表（連同裡面每一項）**呼叫端不准改**：同一幀的其他呼叫拿到的是同一張
+--
+-- 戰隊層的排除：合併（含窄蓋寬）照常算完，再把「對這隻角色被排除」的戰隊層那幾項挑出來，另放 m.excluded
+-- （DB.ExcludedCustom，只給設定頁畫暗格）。先合併再挑 ＝ 先拿掉再合併：戰隊層是最寬的一層，它在不在都不會讓別層的
+-- 項目被蓋掉（窄蓋寬只拿掉比最窄那層寬的），所以生效清單一模一樣；差別只在被排除的那筆**本來就被窄層蓋掉**時
+-- 不會出現在 excluded（畫面上有窄層那一格了，再列一個暗格是重複）。
 local effMemo = { gen = -1 }
-function DB.EffectiveCustom(specID)
+local function ResolveEffective(specID)
     local p = ns.profile
-    if not p then return {} end
+    if not p then return {}, {} end
     local spec = specID or ns.specID
     local now = _G.GetTime and _G.GetTime() or nil
     local m = effMemo
     if now ~= nil and m.at == now and m.gen == DB.customGen and m.spec == spec and m.profile == p then
-        return m.list
+        return m.list, m.excluded
     end
-    local list = DB.ResolveScopes(DB.ScopeList("shared", false), DB.ScopeList("class", false),
+    local all = DB.ResolveScopes(DB.ScopeList("shared", false), DB.ScopeList("class", false),
         DB.ScopeList("char", false), DB.CustomList(false, specID), RuntimeView)
-    m.gen, m.at, m.spec, m.profile, m.list = DB.customGen, now, spec, p, list
-    return list
+    local keys = ExcludeKeys(spec)
+    local list, excluded = {}, {}
+    for _, it in ipairs(all) do
+        local kind = it.scope == "shared" and DB.ExcludeKindOf(it.raw, keys) or nil
+        if kind then
+            it.excluded = kind
+            excluded[#excluded + 1] = it
+        else
+            list[#list + 1] = it
+        end
+    end
+    m.gen, m.at, m.spec, m.profile, m.list, m.excluded = DB.customGen, now, spec, p, list, excluded
+    return list, excluded
+end
+
+function DB.EffectiveCustom(specID)
+    return (ResolveEffective(specID))
+end
+
+-- 設定頁專用：對這隻角色被排除的戰隊層項目（形狀同 EffectiveCustom 的每一項，多 excluded ＝ "char"｜"spec"｜"class"）。
+-- ⚠ 執行期（Bars、Custom.Sync、Catalog 的清單與簽章）一律只走 EffectiveCustom，不准吃這張
+function DB.ExcludedCustom(specID)
+    local _, excluded = ResolveEffective(specID)
+    return excluded
 end
 
 -- 生效清單裡的那一項（不在 ＝ nil）
@@ -622,6 +766,7 @@ function DB.MoveCustomScope(id, newScope)
     end
     local copy = DeepCopy(raw)
     copy.uid, copy.overrides = nil, nil
+    if newScope ~= "shared" then copy.exclude = nil end      -- 排除只有戰隊層有：搬去別層就丟掉
     local hasOv = type(ov) == "table" and next(ov) ~= nil
 
     local newID
