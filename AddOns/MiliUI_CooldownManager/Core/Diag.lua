@@ -132,3 +132,66 @@ function D.Attach(sv)
     saved.log = log
     sv.diag = saved
 end
+
+------------------------------------------------------------
+-- /mcdm under：游標底下每一張看得到的貼圖
+--
+-- 畫面上有來路不明的東西（卡住的發光、放錯大小的圖）時用：從 UIParent 往下走遍所有框，列出矩形蓋到游標、
+-- 而且真的看得到（IsVisible、整條鏈的 alpha > 0）的貼圖，由小到大。每行：尺寸、圖（圖集或檔名）、混合模式、
+-- alpha、往上幾層有名字的祖先（我們的容器叫 MiliUICDM_Bar_<key>；畫面編輯的假格標「假格:<key>」）。
+-- 只讀不寫；讀回來是秘密值的（錨在受限框上的）整張跳過。一次性的走訪，不常駐。
+------------------------------------------------------------
+local function Plain(v)
+    if ns.IsSecret and ns.IsSecret(v) then return nil end
+    return type(v) == "number" and v or nil
+end
+
+function ns.Diag.UnderCursor()
+    local out, found = {}, {}
+    local rx, ry = GetCursorPosition()
+    local ghost = {}
+    for key, h in pairs(ns.LiveEdit and ns.LiveEdit.hosts or {}) do ghost[h.holder] = key end
+    local function Owner(f)
+        local parts, depth = {}, 0
+        while f and depth < 12 do
+            if ghost[f] then parts[#parts + 1] = "假格:" .. tostring(ghost[f]) end
+            local ok, name = pcall(f.GetName, f)
+            if ok and type(name) == "string" and not (ns.IsSecret and ns.IsSecret(name)) then parts[#parts + 1] = name end
+            local okp, parent = pcall(f.GetParent, f)
+            f = okp and parent or nil
+            depth = depth + 1
+        end
+        return #parts > 0 and table.concat(parts, " < ") or "（整條都沒名字）"
+    end
+    local function Walk(f)
+        local okv, vis = pcall(f.IsVisible, f)
+        if not okv or not vis then return end
+        local oks, scale = pcall(f.GetEffectiveScale, f)
+        local oka, ea = pcall(f.GetEffectiveAlpha, f)
+        scale, ea = oks and Plain(scale), oka and Plain(ea)
+        if scale and scale > 0 and ea and ea > 0 then
+            local cx, cy = rx / scale, ry / scale
+            for _, r in ipairs({ f:GetRegions() }) do
+                if r.GetObjectType and r:GetObjectType() == "Texture" and r:IsVisible() then
+                    local ok, l, b, w, h = pcall(r.GetRect, r)
+                    l, b, w, h = ok and Plain(l), ok and Plain(b), ok and Plain(w), ok and Plain(h)
+                    local a = Plain(r:GetAlpha())
+                    if l and b and w and h and a and a > 0 and cx >= l and cx <= l + w and cy >= b and cy <= b + h then
+                        local tex = r:GetAtlas() or r:GetTexture()
+                        found[#found + 1] = { area = w * h, line = ("%.0fx%.0f  %s  %s  alpha %.2f×%.2f  %s  ｜ %s"):format(
+                            w, h, tostring(tex), tostring(r:GetBlendMode()), a, ea, tostring(r:GetDrawLayer()), Owner(f)) }
+                    end
+                end
+            end
+        end
+        for _, c in ipairs({ f:GetChildren() }) do Walk(c) end
+    end
+    local ok, err = pcall(Walk, UIParent)
+    table.sort(found, function(x, y) return x.area < y.area end)
+    for i = 1, math.min(#found, 40) do
+        out[i] = found[i].line
+        if ns.Diag.Note then ns.Diag.Note("under", found[i].line) end
+    end
+    if not ok then out[#out + 1] = "走訪中斷：" .. tostring(err) end
+    return out
+end

@@ -1083,6 +1083,12 @@ SlashCmdList.MILIUICDM = function(msg)
         end
     elseif msg == "perf" or msg:match("^perf%s") then
         Perf(msg:match("^perf%s+(%S+)"))
+    elseif msg == "under" then
+        -- 除錯用：游標底下每一張看得到的貼圖（誰畫的、多大、哪張圖）。畫面上出現來路不明的東西時，
+        -- 游標停在它上面打這個指令（Core/Diag.lua 的 Diag.UnderCursor）；結果也進診斷記錄（/mcdm debug 的分頁可複製）
+        local lines = ns.Diag and ns.Diag.UnderCursor and ns.Diag.UnderCursor() or {}
+        print(ns.PREFIX_COLOR .. "[米利冷卻 debug]|r 游標底下的貼圖 " .. #lines .. " 張（小到大）")
+        for _, line in ipairs(lines) do print("  " .. line) end
     elseif msg:match("^alertscale") then
         -- 除錯用：暴雪觸發發光框相對格子的倍率（Core/Decorate.lua 的 D.ALERT_SCALE），現場改、全部重套；定案改回程式預設
         local D = ns.Decorate
