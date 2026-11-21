@@ -1200,9 +1200,9 @@ L["Animated textures carry their own colors, which show while the cast can be in
 L["Click: settings for this icon"] = "Clique: configurações deste ícone"
 L["Right-click: more options"] = "Clique direito: mais opções"
 L["Open this bar's settings"] = "Abrir as configurações desta barra"
-L["Edit on screen"] = "Editar na tela"
-L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "Recolhe esta janela em uma linha e mostra cada ícone de cada barra exatamente onde a barra está na tela, incluindo os que não aparecem agora. Edite-os ali mesmo."
-L["Expand settings"] = "Expandir configurações"
+L["Hide settings window"] = "Ocultar opções"
+L["Shrinks this window to a strip so it stops covering the screen. The bars on screen stay editable."] = "Reduz esta janela a uma linha para não cobrir a tela. As barras na tela continuam editáveis diretamente."
+L["Show settings window"] = "Mostrar opções"
 L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "Clique num ícone para configurá-lo, arraste ícones para reordenar e arraste o nome de uma barra para movê-la."
 L["Drag: reorder, or drop on another bar"] = "Arrastar: reordenar ou soltar em outra barra"
 -- 預覽格與點擊層格的右鍵選單「移到 ›」（Preview.CellMenuItems，2026-11-21）

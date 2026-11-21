@@ -9,8 +9,9 @@
 -- 只是取消登記、把頁面藏起來，之後同一個 key 再出現就拿回來用。
 -- 頁面每次被切到都會叫 page:OnShowPage()（有的話），各頁在那裡照目前的設定檔重讀。
 --
--- 收合（畫面編輯，Options/LiveEdit.lua；2026-11-21）：分頁列右側、格線開關左邊一顆「畫面編輯」，
--- 按了視窗收成一條（COMPACT_W 寬、高照說明字數）：標題列照舊在外側，裡面一行灰字＋一顆 primary「展開設定」；
+-- 收合（2026-11-21；11-22 起畫面上的假格一開視窗就有（Options/LiveEdit.lua），這顆鈕只管讓出畫面）：
+-- 分頁列右側、格線開關左邊一顆「隱藏設定介面」，
+-- 按了視窗收成一條（COMPACT_W 寬、高照說明字數）：標題列照舊在外側，裡面一行灰字＋一顆 primary「顯示設定介面」；
 -- 分頁鈕、左欄、頁面區收起來。**視窗本身不 Hide**（逐法術小窗、挑選器、彈窗都是它的子框，聽 OptionsHidden 就收）。
 --   * 收合與展開都以當下的左上角為準（標題列、分頁列在框外上方，左上角不動它們就不跳）。
 --   * 收合期間位置不存（position 回 nil）：存的是中心點，收合後的中心不是展開視窗的中心；展開後再存一次。
@@ -194,15 +195,15 @@ win = W.CreateOptionsWindow({
         -- 骨架的 SetScript 已經排在前面，共用層走 HookScript 不會被蓋掉
         gridToggle = W.CreateGridToggle(panel, { db = WindowDB })
 
-        -- 「畫面編輯」：格線開關左邊（同一排、上緣外側）。不是主動作，用 normal
-        liveBtn = W.CreateButton(panel, L["Edit on screen"], "normal", 80, 22)
+        -- 「隱藏設定介面」：格線開關左邊（同一排、上緣外側）。不是主動作，用 normal
+        liveBtn = W.CreateButton(panel, L["Hide settings window"], "normal", 80, 22)
         W.FitButton(liveBtn, 80, 22)
         liveBtn:SetPoint("BOTTOMRIGHT", gridToggle.button, "BOTTOMLEFT", -3, 0)
         liveBtn:SetScript("OnEnter", function(self)
             W.PaintButton(self, true)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(L["Edit on screen"])
-            GameTooltip:AddLine(L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."], 0.8, 0.8, 0.8, true)
+            GameTooltip:SetText(L["Hide settings window"])
+            GameTooltip:AddLine(L["Shrinks this window to a strip so it stops covering the screen. The bars on screen stay editable."], 0.8, 0.8, 0.8, true)
             GameTooltip:Show()
         end)
         liveBtn:SetScript("OnLeave", function(self)
@@ -214,11 +215,11 @@ win = W.CreateOptionsWindow({
             Options.SetCompact(true)
         end)
 
-        -- 收合時的那一條：一行灰字＋「展開設定」（右邊讓出關閉鈕）
+        -- 收合時的那一條：一行灰字＋「顯示設定介面」（右邊讓出關閉鈕）
         compactRow = CreateFrame("Frame", nil, panel)
         compactRow:SetAllPoints(panel)
         compactRow:Hide()
-        local expand = W.CreateButton(compactRow, L["Expand settings"], "primary", 90, 22)
+        local expand = W.CreateButton(compactRow, L["Show settings window"], "primary", 90, 22)
         local expandW = W.FitButton(expand, 90, 22)
         expand:SetPoint("RIGHT", compactRow, "RIGHT", -30, 0)
         expand:SetScript("OnClick", function() Options.SetCompact(false) end)

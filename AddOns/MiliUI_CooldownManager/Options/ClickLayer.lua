@@ -192,8 +192,8 @@ function CL.ShowMenu(key, cell, anchor)
     local snap = Snap(cell)
     local B = ns.Bars
     local isPanel = B and B.IsPanel and B.IsPanel(key) or false
-    -- 畫面編輯中：視窗收合著，「加入法術」不切頁（切頁會把視窗展開）
-    local live = ns.LiveEdit and ns.LiveEdit.Active and ns.LiveEdit.Active() or false
+    -- 視窗收合著（隱藏設定介面）：「加入法術」不切頁（切頁會把視窗展開）
+    local live = ns.Options.IsCompact and ns.Options.IsCompact() or false
     local items = {}
     if snap then
         -- 「這一格」那一段跟預覽格的右鍵選單同一支產生器（Preview.CellMenuItems：設定／移到／移除，判準都在那裡）；

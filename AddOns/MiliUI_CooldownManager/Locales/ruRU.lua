@@ -1200,9 +1200,9 @@ L["Animated textures carry their own colors, which show while the cast can be in
 L["Click: settings for this icon"] = "Щелчок: настройки этого значка"
 L["Right-click: more options"] = "ПКМ: другие действия"
 L["Open this bar's settings"] = "Открыть настройки этой панели"
-L["Edit on screen"] = "Правка на экране"
-L["Collapses this window and shows every icon of each bar right where the bar is on screen, including ones not showing right now. Edit them there."] = "Сворачивает это окно в одну строку и показывает все значки каждой панели прямо там, где панель находится на экране, включая те, что сейчас не видны. Правьте их прямо там."
-L["Expand settings"] = "Развернуть настройки"
+L["Hide settings window"] = "Скрыть настройки"
+L["Shrinks this window to a strip so it stops covering the screen. The bars on screen stay editable."] = "Сворачивает это окно в одну строку, чтобы оно не закрывало экран. Панели на экране по-прежнему можно править напрямую."
+L["Show settings window"] = "Показать настройки"
 L["Click an icon to set it up, drag icons to reorder, drag a bar's name to move the bar."] = "Щелчок по значку — настройки, перетаскивание значков — порядок, перетаскивание названия панели — перемещение панели."
 L["Drag: reorder, or drop on another bar"] = "Перетаскивание: порядок или перенос на другую панель"
 -- 預覽格與點擊層格的右鍵選單「移到 ›」（Preview.CellMenuItems，2026-11-21）

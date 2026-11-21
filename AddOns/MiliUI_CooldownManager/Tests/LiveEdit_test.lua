@@ -185,7 +185,7 @@ end
 ------------------------------------------------------------
 eq("收合＋顯示＋不在戰鬥 → Active", LE.Active(), true)
 compact = false
-eq("沒收合 → 不 Active", LE.Active(), false)
+eq("沒收合（視窗展開著）→ 照樣 Active", LE.Active(), true)
 compact = true
 panelShown = false
 eq("視窗沒開 → 不 Active", LE.Active(), false)
@@ -220,7 +220,7 @@ do
 end
 eq("Wants ＝ Active 且 Eligible", LE.Wants("essential"), true)
 compact = false
-eq("Wants：沒收合 → false", LE.Wants("essential"), false)
+eq("Wants：沒收合 → 照樣 true", LE.Wants("essential"), true)
 compact = true
 
 ------------------------------------------------------------

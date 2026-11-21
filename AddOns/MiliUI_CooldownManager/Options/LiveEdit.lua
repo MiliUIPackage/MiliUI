@@ -1,8 +1,9 @@
 ------------------------------------------------------------
--- 畫面編輯（2026-11-21）：設定視窗收合成一條（Options.SetCompact），每一條「條」在它畫面上的實際位置
--- 畫一份完整的假格，玩家看著畫面直接改
+-- 畫面編輯（2026-11-21）：設定視窗開著時，每一條「條」在它畫面上的實際位置畫一份完整的假格，玩家看著畫面直接改。
+-- 2026-11-22 使用者實機後改：**一開設定視窗就是這個樣子**，不必另外按一顆鈕；那顆鈕改叫「隱藏設定介面」，
+-- 只管把視窗收成一條（Options.SetCompact）讓出畫面，跟假格畫不畫無關。
 --
---   LE.Active()          唯一的判準：收合中 且 設定視窗顯示中 且 不在暴雪編輯模式 且 不在戰鬥
+--   LE.Active()          唯一的判準：設定視窗顯示中（收合不收合都算）且 不在暴雪編輯模式 且 不在戰鬥
 --                        （InCombatLockdown()，加上自己在 PLAYER_REGEN_DISABLED 當下同步設的旗標）。
 --                        假格要不要畫、真實條要不要壓、點擊層要不要讓位，全部問它
 --   LE.Wants(key)        Active() 而且這條能畫假格（點擊層問這支決定讓不讓位：跟 Refresh 的先後無關）
@@ -15,18 +16,19 @@
 -- ButtonAtCursor／EndDrop，跟左欄 ns.Sidebar 同名同語意）：拖到**另一條的假格區**上＝搬到那一條，
 -- 放不進去的照舊跳原因（Preview.DropRefusal）。
 --
--- 條名籤（每條假格**左邊**一組「［條名］［＋］」，HUD 皮：黑透明底、1px 職業色邊、白字、直角；「＋」＝加入法術，
--- 預覽在畫面編輯模式不畫自己的「＋」格。2026-11-22 使用者實機：「＋」原本掛在每條右邊／下面，位置每條不同、空條那顆又跟籤不等高，很亂）：
+-- 條名籤（每條假格**左上角外側**一組「［條名］［＋］」，左緣對齊假格左緣、貼在上緣上面；HUD 皮：黑透明底、1px 職業色邊、
+-- 白字、直角；「＋」＝加入法術，預覽在畫面編輯模式不畫自己的「＋」格。2026-11-22 使用者實機兩次調整：「＋」原本掛在每條
+-- 右邊／下面，位置每條不同、空條那顆又跟籤不等高，很亂 ⇒ 併成一組；整組原本放左邊，會壓到左邊的單位框 ⇒ 改左上）：
 --   拖＝移動那一條（EM.BeginDrag／EndDrag，同點擊層）、左鍵＝展開設定視窗並切到那一條、右鍵＝點擊層那份條選單（CL.ShowMenu）、
 --   方向鍵微調（EM.KeyOfSelection 認得它）。
---   放左邊不放上方：條預設是一條疊一條（核心 → 輔助 …），放上方的話下一條的籤會壓在上一條的最後一列上。
+--   放上方的代價：條一條疊一條時，下一條的籤會壓在上一條最後一列的左下角（籤只有 18 高，使用者看過後選這個）。
 --
 -- 宿主：每條一個自己的框（parent UIParent、strata HIGH），裡面是 bare 預覽；預覽框錨在真實容器的
 -- Bars.AnchorPoint(key) 同一點（格子座標＝Layout.Compute 的 rect 原值 ⇒ 每一格疊在真實那一格的位置）。
 -- 容器被拖著走時假格跟著走。框池化、不丟（frame 刪不掉）；只在戰鬥外建、戰鬥外顯示。
 -- 面板（資源條、施法條…）不畫假格，照舊蓋點擊層（點了＝展開並切頁：Options.ShowPage 收合時會先展開）。
 --
--- 離開：「展開設定」、點條名籤、關視窗（含 ESC）、進戰鬥、進暴雪編輯模式（視窗跟著展開）。
+-- 離開：關視窗（含 ESC）、進戰鬥、進暴雪編輯模式（收合著的視窗跟著展開）。
 -- ⚠ 進戰鬥那一刻（PLAYER_REGEN_DISABLED，鎖定還沒生效）**同步**把真實條的 alpha 還回去：先設 combat 旗標
 --   （Suppresses 從這一刻起回 false），當場 Visibility.ApplyAll，再收假格。Visibility 自己還有兩道戰鬥閘
 --   （它的 inCombat 與 InCombatLockdown()），任何一條路讓這裡在戰鬥中還說「壓」都壓不下去。
@@ -72,8 +74,7 @@ function LE.Active()
     if combat or InCombatLockdown() then return false end
     if ns.released then return false end
     local O = ns.Options
-    if not (O and O.IsCompact and O.IsCompact()) then return false end
-    local panel = O.panel
+    local panel = O and O.panel
     if not (panel and panel:IsShown()) then return false end
     if ns.EditMode and ns.EditMode.active then return false end
     return true
@@ -242,7 +243,7 @@ local function Ensure(key)
     return h
 end
 
--- 預覽框錨到真實容器的同一個錨點；條名籤貼在框的左邊、上緣對齊
+-- 預覽框錨到真實容器的同一個錨點；條名籤那一組貼在框的左上角外側（左緣對齊、在上緣上面）
 function LE.Place(key)
     local h = hosts[key]
     local c = ns.Bars and ns.Bars.Get(key)
@@ -255,13 +256,13 @@ function LE.Place(key)
     tag.text:SetText(ns.Options.PageTitle(key) or ns.Options.BarTitle(key))
     local w = math.ceil(tag.text:GetStringWidth() or 0) + TAG_PAD * 2
     P.Size(tag, math.max(TAG_H, w), TAG_H)
-    -- 一組：［條名］［＋］，「＋」靠假格那一側；兩顆疊 1px，中間只有一條邊
+    -- 一組：［條名］［＋］，左緣對齊假格左緣、貼在上緣上面；兩顆疊 1px，中間只有一條邊
     local plus = h.plus
     P.Size(plus, TAG_H, TAG_H)
-    plus:ClearAllPoints()
-    plus:SetPoint("TOPRIGHT", f, "TOPLEFT", -TAG_GAP, 0)
     tag:ClearAllPoints()
-    tag:SetPoint("TOPRIGHT", plus, "TOPLEFT", P.Pixel(1), 0)
+    tag:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, TAG_GAP)
+    plus:ClearAllPoints()
+    plus:SetPoint("TOPLEFT", tag, "TOPRIGHT", -P.Pixel(1), 0)
     PaintTag(tag, tag:IsMouseOver())
     PaintTag(plus, plus:IsMouseOver())
 end
