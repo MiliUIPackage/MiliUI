@@ -495,13 +495,29 @@ local function SkinSendMail()
     --   加上 SmallMoneyFrameTemplate 的銅幣自己再內縮 13，幣的右緣離視窗右緣約 17，
     --   右邊空一塊。
     -- 做法：`Engine.ShiftRoot` 同名錨點改掛 **MailFrame** 的 TOPRIGHT（兩版同一個數字），
-    --   x=+8 ⇒ 幣的右緣離視窗右緣約 5，對齊下面內文框的右緣。y 照 XML 原值 -34。
+    --   x=+8 ⇒ 幣的右緣離視窗右緣約 5，對齊下面內文框的右緣。y 見下面「垂直對齊」。
     --   * 暴雪 Lua 零處 SetPoint 這個框（MailFrame.lua 只有 `MoneyFrame_Update`／
     --     `SetMoneyFrameColor`，前者只改寬度，錨在 TOPRIGHT 不受影響）；不是保護框。
     --   * 「郵資：」那條字錨在它的 LEFT，跟著走。
-    if _G.MailFrame then
-        E.ShiftRoot(_G.SendMailCostMoneyFrame, "TOPRIGHT", _G.MailFrame, "TOPRIGHT", 8, -34,
-            "SendMailCostMoneyFrame")
+    --
+    -- 垂直對齊（同日第二輪，實機擷圖：「郵資：」比「收件人：」高、「30」與幣又比「郵資：」高）
+    --   * 收件人標籤置中在 EditBox 的框上：-30 − 25/2 = **-42.5**。
+    --     金額框高 13（SmallMoneyFrameTemplate）、XML y=-34 ⇒ 中線 -40.5，整列高 2。
+    --   * 「郵資：」置中在金額框上，但數字是小字型、中文標籤是大字型，兩條字的墨水中線
+    --     差約 1（數字偏高）。
+    --   ⇒ 金額框 y=-37（中線 -43.5，數字與幣的視覺中線落在 -42.5 附近），
+    --     「郵資：」那條字同名錨點 `RIGHT → 框的 LEFT -3` 的 y 改成 +1（回到 -42.5，
+    --     跟「收件人：」同一條線）。那條字無名 ⇒ 用字型物件認（同上面的 LABEL_FONT）。
+    local cost = _G.SendMailCostMoneyFrame
+    if _G.MailFrame and E.ShiftRoot(cost, "TOPRIGHT", _G.MailFrame, "TOPRIGHT", 8, -37,
+            "SendMailCostMoneyFrame") then
+        pcall(function()
+            for _, region in ipairs({ cost:GetRegions() }) do
+                if region:GetObjectType() == "FontString" and region:GetFontObject() == GameFontNormal then
+                    E.ShiftRoot(region, "RIGHT", cost, "LEFT", -3, 1, "SendMailCostMoneyFrame.label")
+                end
+            end
+        end)
     end
 
     -- 附件區上下那兩條雕花分隔線：每條都是「一張具名左半 ＋ 一張**無名無 parentKey**
