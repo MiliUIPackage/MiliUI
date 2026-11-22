@@ -36,6 +36,14 @@
 -- 細節在下面「開唱震動」那一節。
 --
 -- 專注目標換了（PLAYER_FOCUS_CHANGED）：新的專注目標正在唱就直接接上，沒在唱就收條。
+--
+-- 沒有專注目標時補位顯示當前目標（targetFallback，預設開；使用者 2026-11-22：不要目標、專注目標各一條，戰鬥中分不出哪條是誰）：
+--   * 這條一次只看一個單位（UNIT）：專注目標存在且活著 → "focus"；否則當前目標可攻擊 → "target"；都不是 → "focus"（等於閒置）
+--   * 施法事件只登記在 UNIT 上，換單位時整批重登記——不同時聽兩個單位再比對（事件帶的 unit token 在受限內容是秘密字串，比不了）
+--   * 重挑的時機：PLAYER_FOCUS_CHANGED、PLAYER_TARGET_CHANGED、專注目標的 UNIT_HEALTH（死了／活了；屍體消失前專注目標還「存在」）、設定套用
+--   * 只補位可攻擊的目標（選到隊友不跳條）；專注目標本身照舊不過濾
+--   * UnitExists／UnitIsDeadOrGhost／UnitCanAttack 受限內容也是明文（.claude/notes/wow-121-unit-api-secrets.md）；保險起見秘密值當「否」
+--   * 音效在專注目標助手那邊、只對專注目標響：補位不響（每換一個目標都叫太吵）
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
 --
 -- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定，不靠顏色也認得出這不是自己的條）：
@@ -59,7 +67,7 @@ local Eval = C_CurveUtil and C_CurveUtil.EvaluateColorValueFromBoolean
 local LCG = ns.MiliUIGlow
 
 local KEY = "focuscast"
-local UNIT = "focus"
+local UNIT = "focus"                 -- 這條現在看誰："focus"，或補位時的 "target"（PickUnit／SyncUnit）
 local SOLID = "Interface\\BUTTONS\\WHITE8X8"
 local FADE_TIME = 0.3
 local INTERRUPT_HOLD = 1.0           -- 打斷停留：要讀得到斷法者的名字（玩家施法條是 0.4）
@@ -1178,15 +1186,80 @@ local function ResyncTiming()
     end
 end
 
--- 專注目標換了／重新整理：正在唱就接上，沒在唱就收條（預覽中不蓋掉）
-local function RefreshFromFocus()
+------------------------------------------------------------
+-- 這條看誰（專注目標，或沒有專注目標時補位的當前目標；見檔頭）
+------------------------------------------------------------
+local CAST_EVENTS = {
+    "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_EMPOWER_START",
+    "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_EMPOWER_STOP",
+    "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED",
+    "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_CHANNEL_UPDATE", "UNIT_SPELLCAST_EMPOWER_UPDATE",
+    "UNIT_SPELLCAST_INTERRUPTIBLE", "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
+}
+
+-- 明文的真才算真（這三支受限內容實測是明文；真的變秘密就當「否」，退回只看專注目標）
+local function Yes(v) return (not IsSecret(v)) and v == true end
+
+local function PickUnit(cfg)
+    if not cfg or cfg.targetFallback == false then return "focus" end
+    if Yes(UnitExists("focus")) and not Yes(UnitIsDeadOrGhost("focus")) then return "focus" end
+    if Yes(UnitExists("target")) and Yes(UnitCanAttack("player", "target")) then return "target" end
+    return "focus"
+end
+FC.PickUnit = PickUnit
+
+-- 重挑單位；換了就把施法事件整批改登記到新單位上，回 true
+local function SyncUnit()
+    local u = PickUnit(Cfg())
+    if u == UNIT then return false end
+    UNIT = u
+    if ev then
+        for _, event in ipairs(CAST_EVENTS) do
+            ev:UnregisterEvent(event)
+            ev:RegisterUnitEvent(event, u)
+        end
+    end
+    return true
+end
+
+function FC.Unit() return UNIT end
+
+-- 專注目標的血量事件只在用得到時聽（條開著、補位開著）：它只為了抓專注目標死了／活了
+local function SyncHealthEvent()
+    if not ev then return end
+    local cfg = Cfg()
+    local want = (cfg ~= nil and cfg.enabled ~= false and cfg.targetFallback ~= false)
+    if want == (S.healthOn or false) then return end
+    S.healthOn = want
+    if want then ev:RegisterUnitEvent("UNIT_HEALTH", "focus") else ev:UnregisterEvent("UNIT_HEALTH") end
+end
+
+-- 正在唱就接上，沒在唱就收條（預覽中不蓋掉）
+local function Refresh()
     if not f then return end
     local cfg = Cfg()
     if not cfg or cfg.enabled == false then HideBar() return end
     if S.preview then return end
     StartDisplay()
 end
+
+-- 專注目標換了／重新整理：先重挑單位
+local function RefreshFromFocus()
+    SyncUnit()
+    Refresh()
+end
 FC.Refresh = RefreshFromFocus
+
+-- 當前目標換了：只有補位中（換之前或換之後看的是目標）才有事；看著專注目標時換目標不動這條
+local function OnTargetChanged()
+    if SyncUnit() or UNIT == "target" then Refresh() end
+end
+
+-- 專注目標的血量動了：只為了抓「死了／活了」（單位換了才重畫）
+local function OnFocusHealth()
+    S.healthQueued = nil
+    if SyncUnit() then Refresh() end
+end
 
 ------------------------------------------------------------
 -- 預覽（設定頁的按鈕）：十秒的假施法，當重要法術（看得到「!」與發光），走明文路徑
@@ -1362,18 +1435,10 @@ function FC.IsActive()
 end
 
 ------------------------------------------------------------
--- 事件（全部 focus 單位；處理器只轉手 ns.Defer）
+-- 事件（施法事件全部登記在 UNIT 上；處理器只轉手 ns.Defer）
 ------------------------------------------------------------
-local CAST_EVENTS = {
-    "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_EMPOWER_START",
-    "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_EMPOWER_STOP",
-    "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED",
-    "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_CHANNEL_UPDATE", "UNIT_SPELLCAST_EMPOWER_UPDATE",
-    "UNIT_SPELLCAST_INTERRUPTIBLE", "UNIT_SPELLCAST_NOT_INTERRUPTIBLE",
-}
-
 -- payload：(unit, castGUID, spellID[, interrupterGUID])；EMPOWER_STOP 多一個 complete，interrupterGUID 在第 5 位。
--- unit 不比對（RegisterUnitEvent 已經只收 focus；unit token 本身在受限內容可能是秘密字串）
+-- unit 不比對（RegisterUnitEvent 已經只收 UNIT；unit token 本身在受限內容可能是秘密字串）
 local function OnCastEvent(event, _, _, _, arg4, arg5)
     local cfg = Cfg()
     if not (f and cfg and cfg.enabled ~= false) then return end
@@ -1410,11 +1475,24 @@ local function RegisterEvents()
     ev = CreateFrame("Frame")
     for _, event in ipairs(CAST_EVENTS) do ev:RegisterUnitEvent(event, UNIT) end
     ev:RegisterEvent("PLAYER_FOCUS_CHANGED")
+    ev:RegisterEvent("PLAYER_TARGET_CHANGED")
+    SyncHealthEvent()                                 -- 專注目標的 UNIT_HEALTH：只抓死了／活了；一幀最多排一次
     -- 斷法圖示的轉圈：自己的冷卻變了就重餵（戰鬥中每個 GCD 都派，只在條顯示著時做事）
     ev:RegisterEvent("SPELL_UPDATE_COOLDOWN")
     ev:SetScript("OnEvent", function(_, event, ...)
         if event == "PLAYER_FOCUS_CHANGED" then
             ns.Defer(RefreshFromFocus)
+            return
+        end
+        if event == "PLAYER_TARGET_CHANGED" then
+            ns.Defer(OnTargetChanged)
+            return
+        end
+        if event == "UNIT_HEALTH" then
+            if not S.healthQueued then
+                S.healthQueued = true
+                ns.Defer(OnFocusHealth)
+            end
             return
         end
         if event == "SPELL_UPDATE_COOLDOWN" then
@@ -1460,9 +1538,11 @@ function FC.Apply()
     if not f then return end
     FC.Layout()
     local cfg = Cfg() or {}
+    SyncHealthEvent()
+    local switched = SyncUnit() and not S.preview     -- 「補位顯示目標」切換：看的單位換了，畫面上那條是舊單位的
     if cfg.enabled == false then
         HideBar()
-    elseif not FC.IsActive() then
+    elseif switched or not FC.IsActive() then
         HideBar()                  -- 「沒在施法時隱藏」切換：空條出現／消失
         RefreshFromFocus()         -- 剛打開：專注目標正在唱就接上
     else
@@ -1494,8 +1574,9 @@ function FC.DebugLines()
         return out
     end
     local cfg = Cfg() or {}
-    out[#out + 1] = ("  專注目標施法條：%s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  可斷法發光 %s  斷法圖示 %s  alpha %s  開唱震動 %s%s")
-        :format(cfg.enabled ~= false and "開" or "關", STATE_NAME[S.castState] or "閒置",
+    out[#out + 1] = ("  專注目標施法條：%s  單位 %s  狀態 %s%s  秘密模式 %s  明文時間軸 %s（總長 %.2f）  發光 %s  可斷法發光 %s  斷法圖示 %s  alpha %s  開唱震動 %s%s")
+        :format(cfg.enabled ~= false and "開" or "關",
+                UNIT .. (cfg.targetFallback == false and "（補位關）" or ""), STATE_NAME[S.castState] or "閒置",
                 S.preview and "（預覽）" or "", S.castSecret and "是" or "否",
                 S.tStart and "有" or "無", S.total or 0, tostring(f and f.glowShown or "無"),
                 f.kickGlowOn and KickGlowStyle() or (cfg.glowKick == false and "關" or "無"),

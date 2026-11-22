@@ -1192,6 +1192,8 @@ L["When on, this row leaves the resource bar and is placed by the anchoring belo
 L["Focus Cast Bar"] = "專注目標施法"
 L["Show the focus cast bar"] = "顯示專注目標施法條"
 L["Shows what your focus target is casting and colors the bar by whether you can interrupt it."] = "顯示專注目標正在施放的法術，並依你能不能斷法變色。"
+L["Show the target's casts when you have no focus"] = "沒有專注目標時顯示目標的施法"
+L["With no focus target, or a dead one, the bar follows your current target instead. Only targets you can attack."] = "沒有專注目標（或它已經死亡）時，這條改顯示當前目標的施法。只對可攻擊的目標。"
 L["Interruptible (kick ready)"] = "可斷法（斷法就緒）"
 L["Interruptible (kick on CD)"] = "可斷法（斷法冷卻中）"
 L["Not interruptible"] = "不可中斷"

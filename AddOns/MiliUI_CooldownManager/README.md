@@ -2732,7 +2732,12 @@ TraitNodeEntry → TraitDefinition 對過——暴風雨 454009、末日之風 3
   **職業是秘密字串就白字**，秘密值不能當 table key、`SetTextColor` 不收秘密值），停留 1 秒再淡出（玩家施法條是 0.4 秒；這條要讀得到名字）。
   下一次開唱先把 `timeText` 的顏色還原成白。
 - **專注目標換了**（`PLAYER_FOCUS_CHANGED`）：新的正在唱就直接接上、沒在唱就收條；預覽中不蓋掉。重載時專注目標正在唱也接得上（Init 延一幀 Refresh）。
-- **事件**全部 `RegisterUnitEvent(…, "focus")`、處理器只轉手 `ns.Defer`；unit 參數不比對（受限內容 unit token 可能是秘密字串）。
+- **沒有專注目標時補位顯示當前目標**（`targetFallback`，預設開，2026-11-22；使用者不要目標、專注目標各一條——戰鬥中分不出哪條是誰）：
+  這條一次只看一個單位（檔內的 `UNIT`，`FC.Unit()`）。`PickUnit`：專注目標存在且活著 → `focus`；否則當前目標可攻擊 → `target`；都不是 → `focus`（閒置）。
+  `SyncUnit` 換單位時把施法事件**整批改登記**到新單位——不同時聽兩個再比對（unit token 受限內容是秘密字串）。重挑時機：`PLAYER_FOCUS_CHANGED`、
+  `PLAYER_TARGET_CHANGED`（看著專注目標時換目標不動這條）、專注目標的 `UNIT_HEALTH`（只抓死了／活了，一幀最多排一次；條關著或補位關著不登記）、`FC.Apply`。
+  只補可攻擊的目標；專注目標本身不過濾。音效在專注目標助手、只對專注目標響，補位不響。`/mcdm debug` 那一行印現在的單位。
+- **事件**施法事件全部 `RegisterUnitEvent(…, UNIT)`、處理器只轉手 `ns.Defer`；unit 參數不比對（受限內容 unit token 可能是秘密字串）。
   `FAILED`／`STOP` 不分「哪一條」（別人的 castGUID 沒有理由比對）。沒有延遲條、沒有刻度、沒有蓄力分階（`DELAYED`／`CHANNEL_UPDATE` 只重設計時）。
 - **音效留在專注目標助手**（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑），這裡不另做一份。
 - **跟專注目標助手（MiliUI_Focus）的分工**：公開 API `MiliUI_CooldownManager.FocusCastBarActive()`（這條開著就 true，不管專注目標在不在）＋
