@@ -82,6 +82,8 @@ local CONTROLS = {
     { type = "custom", label = L["Preview"], build = BuildPreviewRow },
     { type = "toggle", key = "announceOnMark", label = L["Announce on every focus"] },
     { type = "text",   label = L["Shift-click / the focus hotkey announces as it sets focus and marks a living enemy; needs auto-mark on. Uses a second macro, %s. Right-click the speaker on the bar to toggle quickly."]:format("|cffffd200" .. ns.AnnounceMacro.MARK_MACRO_NAME .. "|r") },
+    { type = "toggle", key = "announceMuteInRaid", label = L["Don't auto-announce in raids"] },
+    { type = "text",   label = L["In a raid group, setting focus no longer announces by itself — with that many players it only floods the chat. Clicking the speaker still announces."] },
     { type = "button", label = "", text = L["Restore default text"],
       onClick = function()
           ns.db.bar.announceText = L["My focus interrupt target is {icon}!"]

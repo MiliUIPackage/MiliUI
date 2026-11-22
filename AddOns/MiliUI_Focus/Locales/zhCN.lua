@@ -202,6 +202,9 @@ L["Right-click to toggle announcing on every focus"] = "右键：切换“每次
 L["Shift-click / the focus hotkey announces as it sets focus and marks a living enemy; needs auto-mark on. Uses a second macro, %s. Right-click the speaker on the bar to toggle quickly."] = "Shift+点击或快捷键设专注目标、上标记的同时一并宣告（对象要是活着的敌人，且要开自动标记）。会另外占一格宏 %s。标记条上的喇叭按右键可快速切换。"
 L["Created the %s macro in your macro book. It sets focus, marks and announces in one go when \"announce on every focus\" is on; deleting it just recreates it."] = "已在你的宏面板创建 %s 宏。开启“每次设专注目标都宣告”时，设专注目标、上标记、宣告都由它一次完成；删掉的话会自动补回来。"
 L["Focus+announce macro:"] = "专注＋宣告宏:"
+L["Don't auto-announce in raids"] = "团队中不自动宣告"
+L["In a raid group, setting focus no longer announces by itself — with that many players it only floods the chat. Clicking the speaker still announces."] = "在团队里设专注目标时不会自动宣告，人多各喊各的只会刷屏。点喇叭的手动宣告不受影响。"
+L["In a raid: not announcing automatically (click the speaker to announce)."] = "团队中：不自动宣告（点喇叭才宣告）。"
 
 -- 冷却管理器接手焦点目标施法条（2026-10-15）
 L["MiliUI Cooldown Manager's focus cast bar is on, so this bar steps aside. Turn that one off to use this one."] = "米利的冷却管理器的焦点目标施法条开着，这条先让位；要用这条请把那边的关掉。"

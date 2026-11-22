@@ -63,6 +63,7 @@ local state    = "off"
 local pending  = false   -- 戰鬥中有變動還沒寫進巨集
 local lastBody = nil     -- 最後一次確認寫進巨集的內容
 -- 「每次設專注目標都宣告」那顆的狀態，跟上面同一套代碼，另加 noautomark（自動標記沒開）
+-- 與 raid（人在團隊裡，db.bar.announceMuteInRaid 把自動宣告關掉）
 local markState    = "off"
 local markLastBody = nil
 local writing  = false   -- EditMacro 會派 UPDATE_MACROS，擋掉重入
@@ -214,7 +215,10 @@ function AM.Refresh()
         if msg then desired = slash .. " " .. msg end
     end
     local autoMarkOn = ns.Focuser.GetEffectiveMarkIndex() >= 1
-    if slash and ShouldExistMark() and autoMarkOn then
+    -- 團隊中不自動宣告：不建／不掛第二顆巨集，Shift+點擊退回只設專注、上標記的
+    -- macrotext。隊伍↔團隊轉換有 GROUP_ROSTER_UPDATE 會重算
+    local raidMuted = ns.db.bar.announceMuteInRaid and IsInRaid()
+    if slash and ShouldExistMark() and autoMarkOn and not raidMuted then
         desiredMark = BuildMarkBody(slash)
     end
 
@@ -253,6 +257,8 @@ function AM.Refresh()
         markState = "noautomark"
     elseif not slash then
         markState = "nogroup"
+    elseif raidMuted then
+        markState = "raid"
     elseif not desiredMark or #desiredMark > MACRO_BYTES then
         markState = "toolong"   -- 主句加上專注那幾行就超過 255
     else
