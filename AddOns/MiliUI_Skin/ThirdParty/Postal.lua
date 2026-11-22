@@ -130,6 +130,21 @@ local function Apply()
         if open then E.ShiftRoot(open, "RIGHT", mail, "TOP", -3, -42, "PostalSelectOpenButton") end
         if ret then E.ShiftRoot(ret, "LEFT", mail, "TOP", 3, -42, "PostalSelectReturnButton") end
     end
+
+    -- 收件人欄的 ▼ 貼回輸入框右邊（2026-11-22 使用者要求，實機擷圖它飄到「郵資」的銅幣上）
+    --
+    -- 原因：Postal 錨的是 `LEFT → SendMailNameEditBox 的 RIGHT -2,+2`（Modules/BlackBook.lua:42），
+    --   也就是跟著 EditBox 的**框**走；但輸入框的視覺寬度是 XML 寫死的三張切片
+    --   （x ∈ [-8, 108]，見 `Skins/Mail.lua` 的 `NAME_BOX_POINTS`），框比美術寬的時候
+    --   ▼ 就離開輸入框、撞上右邊的郵資。
+    -- 做法：`Engine.ShiftRoot` 同名錨點改掛輸入框的 **TOPLEFT**，照美術矩形算：
+    --   x = 108（美術右緣）＋ 2（間距）− 4（`IconButton` 的 inset）＝ 106；
+    --   y = -12（美術 y ∈ [-2, -22] 的中線）。
+    --   * Postal 只在建立時錨一次、之後零處重設或讀回（grep 過）；是 Postal 建的框。
+    local book, nameBox = _G.Postal_BlackBookButton, _G.SendMailNameEditBox
+    if book and nameBox then
+        E.ShiftRoot(book, "LEFT", nameBox, "TOPLEFT", 106, -12, "Postal_BlackBookButton")
+    end
 end
 
 E.AddCompanion("mail", {

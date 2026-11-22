@@ -487,6 +487,23 @@ local function SkinSendMail()
     E.RecolorRegions(_G.SendMailSubjectEditBox, T.textDim, "SendMailSubjectEditBox", LABEL_FONT)
     E.RecolorRegions(_G.SendMailCostMoneyFrame, T.textDim, "SendMailCostMoneyFrame", LABEL_FONT)
 
+    -- 郵資靠右（2026-11-22 使用者要求）
+    --
+    -- XML：`SendMailCostMoneyFrame` 錨 `TOPRIGHT → SendMailFrame`，12.1.5 是 x=-50
+    --   （SendMailFrame 寬 384，比可見的 MailFrame 338 寬 46）、12.1.7 改成 x=-4
+    --   （SendMailFrame 改成貼滿 MailFrame）⇒ 兩版換算到 MailFrame 都是 -4，
+    --   加上 SmallMoneyFrameTemplate 的銅幣自己再內縮 13，幣的右緣離視窗右緣約 17，
+    --   右邊空一塊。
+    -- 做法：`Engine.ShiftRoot` 同名錨點改掛 **MailFrame** 的 TOPRIGHT（兩版同一個數字），
+    --   x=+8 ⇒ 幣的右緣離視窗右緣約 5，對齊下面內文框的右緣。y 照 XML 原值 -34。
+    --   * 暴雪 Lua 零處 SetPoint 這個框（MailFrame.lua 只有 `MoneyFrame_Update`／
+    --     `SetMoneyFrameColor`，前者只改寬度，錨在 TOPRIGHT 不受影響）；不是保護框。
+    --   * 「郵資：」那條字錨在它的 LEFT，跟著走。
+    if _G.MailFrame then
+        E.ShiftRoot(_G.SendMailCostMoneyFrame, "TOPRIGHT", _G.MailFrame, "TOPRIGHT", 8, -34,
+            "SendMailCostMoneyFrame")
+    end
+
     -- 附件區上下那兩條雕花分隔線：每條都是「一張具名左半 ＋ 一張**無名無 parentKey**
     -- 的右半」（:463/:470 與 :477/:484）。第二輪因為右半指名不到而整組放棄，
     -- 這一輪改走 `GetRegions()` 掃 `SendMailFrame` 自己那一層 ——
