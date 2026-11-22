@@ -1163,6 +1163,8 @@ L["When on, this row leaves the resource bar and is placed by the anchoring belo
 L["Focus Cast Bar"] = "Barra di lancio del focus"
 L["Show the focus cast bar"] = "Mostra la barra di lancio del focus"
 L["Shows what your focus target is casting and colors the bar by whether you can interrupt it."] = "Mostra cosa sta lanciando il tuo focus e colora la barra in base alla possibilità di interromperlo."
+L["Show the target's casts when you have no focus"] = "Mostra i lanci del bersaglio se non hai un focus"
+L["With no focus target, or a dead one, the bar follows your current target instead. Only targets you can attack."] = "Senza focus (o se è morto), la barra segue il tuo bersaglio attuale. Solo bersagli che puoi attaccare."
 L["Interruptible (kick ready)"] = "Interrompibile (interruzione pronta)"
 L["Interruptible (kick on CD)"] = "Interrompibile (interruzione in ricarica)"
 L["Not interruptible"] = "Non interrompibile"

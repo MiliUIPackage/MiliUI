@@ -1163,6 +1163,8 @@ L["When on, this row leaves the resource bar and is placed by the anchoring belo
 L["Focus Cast Bar"] = "Полоса заклинаний фокуса"
 L["Show the focus cast bar"] = "Показывать полосу заклинаний фокуса"
 L["Shows what your focus target is casting and colors the bar by whether you can interrupt it."] = "Показывает, что читает цель фокуса, и окрашивает полосу в зависимости от того, можете ли вы прервать заклинание."
+L["Show the target's casts when you have no focus"] = "Показывать заклинания цели, если нет фокуса"
+L["With no focus target, or a dead one, the bar follows your current target instead. Only targets you can attack."] = "Если фокуса нет (или он мёртв), полоса следит за текущей целью. Только для целей, которые можно атаковать."
 L["Interruptible (kick ready)"] = "Прерываемое (прерывание готово)"
 L["Interruptible (kick on CD)"] = "Прерываемое (прерывание восстанавливается)"
 L["Not interruptible"] = "Непрерываемое"

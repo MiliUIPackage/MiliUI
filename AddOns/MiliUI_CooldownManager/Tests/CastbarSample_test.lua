@@ -491,5 +491,29 @@ do
     focusCfg.shakeMode = nil
 end
 
+------------------------------------------------------------
+-- 專注目標施法條看誰：沒有專注目標（或它死了）補位當前目標，只補可攻擊的
+------------------------------------------------------------
+do
+    local u = { focus = false, focusDead = false, target = false, canAttack = false }
+    env.UnitExists = function(unit) if unit == "focus" then return u.focus end return unit == "target" and u.target end
+    env.UnitIsDeadOrGhost = function(unit) return unit == "focus" and u.focusDead end
+    env.UnitCanAttack = function() return u.canAttack end
+    local on, off = {}, { targetFallback = false }
+    eq("看誰：什麼都沒有 → focus", FC.PickUnit(on), "focus")
+    u.target, u.canAttack = true, true
+    eq("看誰：沒有專注目標、目標可攻擊 → target", FC.PickUnit(on), "target")
+    eq("看誰：補位關著 → focus", FC.PickUnit(off), "focus")
+    u.canAttack = false
+    eq("看誰：目標是友方 → focus", FC.PickUnit(on), "focus")
+    u.canAttack, u.focus = true, true
+    eq("看誰：有專注目標 → focus", FC.PickUnit(on), "focus")
+    u.focusDead = true
+    eq("看誰：專注目標死了 → target", FC.PickUnit(on), "target")
+    u.target = false
+    eq("看誰：專注目標死了、沒目標 → focus", FC.PickUnit(on), "focus")
+    eq("看誰：沒有設定表 → focus", FC.PickUnit(nil), "focus")
+end
+
 print(("CastbarSample_test: %d passed, %d failed"):format(passed, failed))
 if failed > 0 then os.exit(1) end

@@ -1163,6 +1163,8 @@ L["When on, this row leaves the resource bar and is placed by the anchoring belo
 L["Focus Cast Bar"] = "주시 대상 시전 바"
 L["Show the focus cast bar"] = "주시 대상 시전 바 표시"
 L["Shows what your focus target is casting and colors the bar by whether you can interrupt it."] = "주시 대상이 시전 중인 주문을 표시하고, 차단할 수 있는지에 따라 바 색상이 바뀝니다."
+L["Show the target's casts when you have no focus"] = "주시 대상이 없으면 대상의 시전 표시"
+L["With no focus target, or a dead one, the bar follows your current target instead. Only targets you can attack."] = "주시 대상이 없거나 죽었으면 현재 대상의 시전을 대신 표시합니다. 공격할 수 있는 대상만 해당합니다."
 L["Interruptible (kick ready)"] = "차단 가능 (차단기 준비됨)"
 L["Interruptible (kick on CD)"] = "차단 가능 (차단기 재사용 대기 중)"
 L["Not interruptible"] = "차단 불가"

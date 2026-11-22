@@ -190,6 +190,8 @@ local function Controls()
     local list = {
         BS("toggle", "enabled", L["Show the focus cast bar"]),
         Note(L["Shows what your focus target is casting and colors the bar by whether you can interrupt it."]),
+        BS("toggle", "targetFallback", L["Show the target's casts when you have no focus"]),
+        Note(L["With no focus target, or a dead one, the bar follows your current target instead. Only targets you can attack."]),
         { type = "header", label = L["Layout"] },
         BS("slider", "width", L["Width"], { min = 0, max = 600, step = 1 }),
         Note(L["0 matches the first row of the icon group it follows; otherwise Essential Cooldowns (icon included)."]),
