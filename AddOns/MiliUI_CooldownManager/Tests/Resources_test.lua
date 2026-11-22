@@ -2129,6 +2129,22 @@ do
     check("out 重複用、清乾淨、壞 key 略過", w2 == out and Set(out) == 0)
     eq("keys 是 nil 不報錯", Set(R.WantedEvents(nil, "MONK")), 0)
 end
+-- 能量事件照能量種類過濾（R.PowerTokens／R.WantsPowerToken 純函式）
+do
+    local set = R.PowerTokens({ "HolyPower", "CrusadingStrikes", "Health" })
+    eq("聖能列 ⇒ 聽 HOLY_POWER", R.WantsPowerToken("HOLY_POWER", set), true)
+    eq("沒有法力列 ⇒ 法力事件不重畫", R.WantsPowerToken("MANA", set), false)
+    eq("有法力列 ⇒ 重畫", R.WantsPowerToken("MANA", R.PowerTokens({ "ArcaneCharges", "Mana" })), true)
+    eq("不認得的 token ⇒ 保守重畫", R.WantsPowerToken("SOMETHING_NEW", set), true)
+    eq("token 不是字串 ⇒ 保守重畫", R.WantsPowerToken(nil, set), true)
+    eq("一列都沒有 ⇒ 認得的 token 都不重畫", R.WantsPowerToken("ENERGY", R.PowerTokens({})), false)
+    local out = { STALE = true }
+    check("out 重複用、清乾淨", R.PowerTokens({ "Runes" }, out) == out and out.STALE == nil and out.RUNES == true)
+    -- 名冊跟資源定義對得上：有 power 的列都要有 token，沒有 power 的不能有
+    for key, def in pairs(R.RESOURCES) do
+        eq("POWER_TOKEN 名冊：" .. key, R.POWER_TOKEN[key] ~= nil, def.power ~= nil)
+    end
+end
 -- 秘密值時的整條換色：規則展開成 Step 曲線的點（RC.CurvePoints）
 do
     local base = { r = 0, g = 0.5, b = 1 }

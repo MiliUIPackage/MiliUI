@@ -1926,6 +1926,44 @@ function R.WantedEvents(keys, class, out)
     return out
 end
 
+------------------------------------------------------------
+-- 能量事件照能量種類過濾（玩家回報 2026-11-18：資源條沒放法力，放耗魔技能卻有佔用）
+--
+--   UNIT_POWER_FREQUENT／UNIT_POWER_UPDATE 的第二個參數是能量 token（"MANA"、"HOLY_POWER"…）。以前不看它，
+--   任何一種能量動了就把畫面上所有列重畫一次——法力最吃虧：花掉之後回魔的每一跳都是一個事件，等於回滿之前
+--   每一幀都在重畫聖能／秘法充能那幾列，而它們根本沒變。
+--   R.PowerTokens(keys [, out])        純函式：畫面上的列 → 它們讀的能量 token 集合
+--   R.WantsPowerToken(token, set)      純函式：這個事件要不要重畫。token 讀不懂（不是字串、秘密值、不在名冊裡）
+--                                      一律當要（保守：寧可多畫）
+--   不讀能量的列（光環層數、充能、血量、醉仙緩勁、引擎寫的）都有自己的事件，不靠能量事件順便更新。
+------------------------------------------------------------
+R.POWER_TOKEN = {
+    Mana = "MANA", Rage = "RAGE", Energy = "ENERGY", Focus = "FOCUS", RunicPower = "RUNIC_POWER",
+    LunarPower = "LUNAR_POWER", Maelstrom = "MAELSTROM", Insanity = "INSANITY", Fury = "FURY",
+    HolyPower = "HOLY_POWER", ComboPoints = "COMBO_POINTS", Chi = "CHI", SoulShards = "SOUL_SHARDS",
+    ArcaneCharges = "ARCANE_CHARGES", Essence = "ESSENCE", Runes = "RUNES",
+}
+R.KNOWN_TOKENS = {}
+for _, token in pairs(R.POWER_TOKEN) do R.KNOWN_TOKENS[token] = true end
+
+function R.PowerTokens(keys, out)
+    out = out or {}
+    for k in pairs(out) do out[k] = nil end
+    for _, key in ipairs(keys or {}) do
+        local token = R.POWER_TOKEN[key]
+        if token then out[token] = true end
+    end
+    return out
+end
+
+function R.WantsPowerToken(token, set)
+    if type(token) ~= "string" or (ns.IsSecret and ns.IsSecret(token)) then return true end
+    if not R.KNOWN_TOKENS[token] then return true end
+    return set[token] == true
+end
+
+R.shownTokens = {}                    -- 畫面上的列讀的能量 token（SyncUnitEvents 重算）
+
 local unitEvOn = {}                  -- 事件 → true（現在註冊著）
 local shownKeys, wantScratch = {}, {}
 R.unitEvOn = unitEvOn                 -- /mcdm debug、測試用
@@ -1937,6 +1975,7 @@ SyncUnitEvents = function()
         local row = rows[i]
         if row and row.key then shownKeys[#shownKeys + 1] = row.key end
     end
+    R.PowerTokens(shownKeys, R.shownTokens)
     local want = R.WantedEvents(shownKeys, CLASS, wantScratch)
     for _, ev in ipairs(UNIT_EVENTS) do
         if want[ev] and not unitEvOn[ev] then
@@ -2019,6 +2058,14 @@ local function OnEvent(_, event, ...)
     if event == "UNIT_AURA" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
         Mark(false)
         return
+    end
+    if event == "UNIT_POWER_FREQUENT" or event == "UNIT_POWER_UPDATE" then
+        -- 畫面上沒有列讀這種能量 ⇒ 不重畫（還沒排過版時照舊放行：那一次 Update 會順便排版）
+        local _, token = ...
+        if laidOut and not R.WantsPowerToken(token, R.shownTokens) then
+            R.powerSkips = R.powerSkips + 1
+            return
+        end
     end
     Mark(REEVAL_EVENTS[event] == true)
 end

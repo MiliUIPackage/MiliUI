@@ -793,6 +793,7 @@ local PERF = {
     { "Cursor",     "ticks",               "跟著游標 OnUpdate" },
     { "Resources",  "mirrorTicks",         "征戰聖擊鏡射 OnUpdate" },
     { "Resources",  "valueFlushes",        "資源條只重畫值" },
+    { "Resources",  "powerSkips",          "資源條略過的能量事件（畫面上沒有那種能量的列）" },
 }
 for _, def in ipairs(PERF) do def.key = def[1] .. "." .. def[2] end
 

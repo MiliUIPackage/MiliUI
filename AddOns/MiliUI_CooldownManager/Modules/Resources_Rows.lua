@@ -727,6 +727,7 @@ function R.HidesTrackedBar(id)
     return mirrorHides and MirrorMatches(id) or false
 end
 R.mirrorTicks, R.valueFlushes = 0, 0   -- /mcdm perf：征戰聖擊鏡射的 OnUpdate 跑幾幀／只重畫值的 Flush 幾次
+R.powerSkips = 0                      -- /mcdm perf：能量事件因為畫面上沒有那種能量的列而略過幾次
 -- 來源不可見時不每幀跑（效能修整 E3 #11）：以前來源（增益長條的征戰聖擊 item）沒亮時照樣每幀寫
 -- SetMinMaxValues(0,1)＋SetValue。現在 MirrorTick 一看到來源不可見：每列寫一次閒置狀態（row.mirrorIdle 守衛）、
 -- 卸掉 OnUpdate、起一顆 0.25 秒的探針（C_Timer.NewTicker）；探針看到來源 IsVisible() ⇒ 停探針、掛回 OnUpdate。
