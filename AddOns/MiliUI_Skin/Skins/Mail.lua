@@ -750,15 +750,19 @@ end
 local function InstallHooks()
     -- ⚠ 這一段**不過戰鬥閘**（Engine 的 RunUnit 在戰鬥閘之前跑它）。
     --   `hooksecurefunc` 不寫任何暴雪欄位，戰鬥中完全安全；被戰鬥閘擋的是「畫」。
-    local function Hook(name, fn)
-        if type(_G[name]) == "function" then
+    -- 12.1.7 把 InboxFrame_Update／OpenMail_Update 收成框架方法（InboxFrame:Update／
+    -- OpenMailFrame:Update），全域沒了；12.1.5 以前只有全域。兩邊都認。
+    local function Hook(name, fn, frame, method)
+        if frame and type(frame[method]) == "function" then
+            hooksecurefunc(frame, method, fn)
+        elseif type(_G[name]) == "function" then
             hooksecurefunc(name, fn)
         else
             E.Missing(name)
         end
     end
-    Hook("InboxFrame_Update", ReapplyInbox)
-    Hook("OpenMail_Update", ReapplyOpenMail)
+    Hook("InboxFrame_Update", ReapplyInbox, InboxFrame, "Update")
+    Hook("OpenMail_Update", ReapplyOpenMail, OpenMailFrame, "Update")
     Hook("SendMailFrame_Update", ReapplySendMail)
 end
 
