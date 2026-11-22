@@ -143,7 +143,12 @@ local function Apply()
     --   * Postal 只在建立時錨一次、之後零處重設或讀回（grep 過）；是 Postal 建的框。
     local book, nameBox = _G.Postal_BlackBookButton, _G.SendMailNameEditBox
     if book and nameBox then
-        E.ShiftRoot(book, "LEFT", nameBox, "TOPLEFT", 106, -12, "Postal_BlackBookButton")
+        -- ⚠ 搬過來之後它落在 EditBox 的**框**裡（框比美術寬，上面那段的同一件事），
+        --   兩個是 `SendMailFrame` 底下同層級的兄弟、EditBox 吃滑鼠 ⇒ 實機點不到（2026-11-22）。
+        --   搬成功才墊高到 EditBox 之上。
+        if E.ShiftRoot(book, "LEFT", nameBox, "TOPLEFT", 106, -12, "Postal_BlackBookButton") then
+            E.RaiseAbove(book, nameBox, "Postal_BlackBookButton")
+        end
     end
 end
 

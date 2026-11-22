@@ -544,6 +544,27 @@ function Engine.Resize(frame, w, h, label)
     return ok and true or false
 end
 
+-- 把一顆小按鈕墊到另一個框上面（2026-11-22，`ShiftRoot` 的同級例外）
+--
+-- 用在「`ShiftRoot` 把按鈕搬到一個吃滑鼠的兄弟框的矩形裡」之後：兩個兄弟同層級時
+-- 滑鼠落在誰身上不保證，按鈕會點不到。條件同 `ShiftRoot`（脫戰、`relayout = false`
+-- 整批關），只准用在**伴隨插件自己建的小按鈕**上（不是暴雪框、不在 secure 路徑上）。
+-- 子框（我們的 overlay）的層級會跟著位移，不用另外處理。
+function Engine.RaiseAbove(frame, above, label)
+    if ns.db and ns.db.relayout == false then return false end
+    if not Usable(frame, label) or not above then return false end
+    if type(frame.SetFrameLevel) ~= "function" then return false end
+    if InCombatLockdown() then
+        Note(Bucket("deferred"), (label or "?") .. " (relayout)")
+        return false
+    end
+    local ok = pcall(function()
+        local want = above:GetFrameLevel() + 2
+        if frame:GetFrameLevel() < want then frame:SetFrameLevel(want) end
+    end)
+    return ok
+end
+
 -- 拿掉圖示上的遮罩（圓形圖示 → 方形圖示）
 --
 -- ⚠ 契約例外（STYLE.md ③）：`RemoveMaskTexture` 是對暴雪區域的**結構性修改**，
