@@ -44,6 +44,7 @@ SmartNavigation／SoftCursor）。API 文件新增 219 函式／37 事件，但�
 套組 457 個 `hooksecurefunc` 目標全掃，**只斷兩個**：`MiliUI_Skin/Skins/Mail.lua:760-761`（`Hook()` 找不到就 `E.Missing` 靜默，信箱皮不再重套）、
 `MiliUI_Skin/Skins/ProfessionsBook.lua:507`（同樣靜默）。**Postal 硬斷**：Select／DoNotWant／CarbonCopy 用 AceHook `RawHook("InboxFrame_Update")`
 →「Attempting to hook a non existing target」，`OpenAll.lua:401` 直呼也 nil。
+**2026-11-22 已修**（未實機）：`MiliUI/Fix/Postal_MailMixinGlobals.lua` 把全域接回來，且把 `InboxFrame.Update`／`OpenMailFrame.Update` 換成「經過該全域再進原實作」的轉呼叫——只補全域不夠，暴雪呼叫的是框架方法，勾子永遠不會被叫到；只在 Postal 載入時才接。`MiliUI_Skin/Skins/Mail.lua` 的 Hook 改成先認框架方法。同類全域改 mixin 的第三方硬斷照這個橋接法修。
 全域 API 改名 8 個：`AbandonSkill`→`C_SkillInfo.AbandonSkill`、`BNSetBlocked`→`C_BattleNet.SetBlocked`、`GetPetFoodTypes`→`C_PetInfo`、
 `SetBarSlotFromIntro`→`C_SpellBook`、`C_PaperDollInfo.CanCursorCanGoInSlot`→`CursorCanGoInSlot`（Plumber `LegionRemix_Core.lua:1324` 裸呼叫）、
 `C_TransmogOutfitInfo.GetWeaponOptionsForSlot/SetViewedWeaponOptionForSlot`→`GetOptionsForSlot/SetViewedOptionForSlot`（Plumber 有退路）、
