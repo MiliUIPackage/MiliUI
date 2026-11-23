@@ -207,9 +207,35 @@ local function ScheduleStopTicker(delay)
 end
 
 ------------------------------------------------------------
+-- 重置後的第一場：開打時再歸零一次
+--
+-- 症狀（NGA 回報，團本常見、鑰石幾乎沒有）：重置後第一場的秒傷只有該有的幾分之一，
+-- 脫戰一次之後「目前」恢復正常，「總計」一直偏低。秒傷是暴雪的 amountPerSecond 原樣
+-- 顯示，推測是暴雪的時長從重置那一刻就開始走——進本自動重置到第一波開打之間的
+-- 集合／走路時間全算進了第一段（鑰石從重置到開打只有十幾秒，所以看不出來）。
+--
+-- 做法：脫戰時做的重置都記一個旗標，下一次開打（自己或隊友）再重置一次把時鐘歸零。
+-- 那一刻統計裡本來就是空的，多清一次不損失東西。
+--
+--   * 旗標只在「重置當下全隊都沒在打」才記：打到一半重置的話中間沒有空白，
+--     而且開打時再清一次會把那場的資料洗掉。
+--   * 存在帳號存檔裡（進本後 /reload 不能掉），登入時清掉——隔了一次登出的旗標沒有意義。
+--   * 一次用完就算數，不管觸發的是不是「真正的」第一波：最壞情況是退回沒修之前的行為。
+--
+-- ⚠ 未實機驗證：「在已經起算的分段中途重置，時鐘會歸零」是推論。
+------------------------------------------------------------
+local function Rezero()
+    local acc = ns.DB.Account()
+    if not acc or not acc.rezeroPending then return end
+    acc.rezeroPending = nil
+    D.ResetAll()
+end
+
+------------------------------------------------------------
 -- 新分段開始
 ------------------------------------------------------------
 local function BeginSegment()
+    Rezero()   -- 排最前面：後面的對帳與刷新都要看到清過的資料
     _combatGen = _combatGen + 1
     C.ScanDeaths()   -- 脫戰時沒有 ticker，開打前先對一次帳（期間被復活的獵人要扣掉）
     _inCombat = true
@@ -454,6 +480,7 @@ local function OnEvent(_, event, ...)
         if IsGroupInCombat() then
             -- 隊友先開怪了。預熱刷新，但**不設 _inCombat**——玩家可能整場都沒進戰鬥，
             -- 設了就沒有任何路徑會把它清掉。SharedRefreshTick 會自己在全隊脫離時收尾。
+            Rezero()   -- 小怪波多半是隊友先開：在這裡清，才不會等自己進戰鬥時洗掉頭幾秒
             _combatEndTime = 0
             _curViewFrozenDur = 0
             _needsFinalRefresh = true
@@ -500,6 +527,11 @@ local function OnEvent(_, event, ...)
     end
 
     if event == "PLAYER_ENTERING_WORLD" then
+        -- 「開打時再歸零」的旗標不跨登入（只跨 /reload），見 Rezero
+        if (...) then
+            local acc = ns.DB.Account()
+            if acc then acc.rezeroPending = nil end
+        end
         -- 保險：換區／重載之後隊伍組成可能跟上次算的不一樣，而 GROUP_ROSTER_UPDATE
         -- 不保證一定會跟著來（單人時本來就不會發）
         SyncHunters()
@@ -601,6 +633,11 @@ end
 ------------------------------------------------------------
 function C.ResetData()
     D.ResetAll()
+    -- 脫戰時的重置：下一次開打再歸零一次（理由見 Rezero）。全隊有人在打就不記
+    local acc = ns.DB.Account()
+    if acc then
+        acc.rezeroPending = (not _inCombat and not _needsFinalRefresh and not IsGroupInCombat()) or nil
+    end
     _combatEndTime = 0
     _curViewFrozenDur = 0
     if ns.Windows then
