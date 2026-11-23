@@ -798,6 +798,7 @@ L["Couldn't read your specializations."] = "Не удалось прочитат
 L["Stack glow"] = "Свечение по стакам"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Светится, пока число стаков баффа проходит сравнение. «≤» и «<» не светятся без баффа. Пока включено, «Свечение во время эффекта» не используется."
 L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Светится, пока у баффа не меньше этого числа стаков. Пока включено, «Свечение во время эффекта» не используется."
+L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."] = "Светится, пока число на значке (заряды или счётчик применений, например дикие бесы у «Имплозии») удовлетворяет сравнению. «≤» и «<» не горят, пока числа нет. Пока включено, свечение во время эффекта не используется."
 L["Fewer than 1 stack is never true."] = "Меньше 1 стака не бывает никогда."
 L["Stack colors (%d)"] = "Цвета по стакам (%d)"
 L["Stack colors"] = "Цвета по стакам"

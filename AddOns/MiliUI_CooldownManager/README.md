@@ -1257,8 +1257,14 @@ overlay 上面一層自己的框，頂端 3px 白色倒數條（黑底）＋條�
 
 | 功能 | 欄位（`overrides[id]`） | 適用 |
 |---|---|---|
-| 層數到 N 才發光 | `stackGlow = N`（1～99；沒設／`false`＝關）、`stackGlowOp`（F4，比較子，沒設＝`>=`）、`stackGlowType`、`stackGlowColor`（沒設＝`glow.active` 的樣式與色） | 增益圖示、增益長條、自訂光環格（只做 ≥，見下） |
+| 層數到 N 才發光 | `stackGlow = N`（1～99；沒設／`false`＝關）、`stackGlowOp`（F4，比較子，沒設＝`>=`）、`stackGlowType`、`stackGlowColor`（沒設＝`glow.active` 的樣式與色） | 增益圖示、增益長條、自訂光環格（只做 ≥，見下）、暴雪的冷卻格（2026-11-24，比的是圖示上的數字，見下） |
 | 層數到 N 換色 | `stackColors = { { at = N, color = rgba }, … }` 最多 5 筆（2026-10-04 F3 由 3 改 5，資料形狀不變）；層數 ≥ N 時條身換那個顏色，高的門檻贏 | 增益長條 |
+
+**暴雪的冷卻格（核心／輔助，2026-11-24；玩家要「內爆的小鬼數 > 6 才發光」）**：同一組欄位、同一套閘，只有層數發光。
+層數來源（`rec.stackSrc = "count"`，`SG.Source`）是圖示右下角那個數字＝暴雪快取的 `item.cooldownChargesCount`
+（`CacheChargeValues`：有充能是目前充能數，否則是 `C_Spell.GetSpellCastCount`），後掛勾 `RefreshSpellChargeInfo` 餵
+（`SPELL_UPDATE_USES` 等）；不看生效狀態。放在長條類的條上不做。跟就緒／觸發發光各畫各的宿主、可以同時亮；跟生效發光照舊互斥。
+`/mcdm glow` 對開了層數發光的格多印一行（來源、比較、最近一次餵的是明文幾／秘密）。**未實機**：內爆的數字是否走這個欄位、戰鬥中是不是秘密。
 
 欄位登記在 `SPELL_CONST`（`stackGlow = false`、`stackColors = false`）、`OVERRIDE_GROUP` 新組 `"stack"`（條頁「清除發光覆寫」不清它）。
 舊存檔沒有這幾欄＝關，不遷移、`DB_VERSION` 不動。

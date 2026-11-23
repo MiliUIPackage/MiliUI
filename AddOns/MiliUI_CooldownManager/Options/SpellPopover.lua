@@ -93,7 +93,7 @@
 --   （空白＝念法術名）＋「試聽」。勾著才寫進覆寫（readySpeak／gainSpeak／loseSpeak：字串或 true），
 --   沒勾時輸入框只是記著字。說明放標籤後面的「?」（滑過顯示）。
 --
--- 層數門檻（暴雪的增益；層數發光那三列光環格也有，引擎在 Core/StackGate.lua、光環格的閘在 Modules/Custom.lua）：
+-- 層數門檻（暴雪的增益；層數發光那三列光環格與暴雪的冷卻格也有——冷卻格比的是圖示上的數字，Pop.StackCount；引擎在 Core/StackGate.lua、光環格的閘在 Modules/Custom.lua）：
 --   * 「層數發光」一列：勾選框＋比較子下拉＋數字框（門檻）＋色票；下一列樣式下拉（跟生效發光同一張選項表）；
 --     再下一列灰字說明。勾了它時「生效發光」那兩列變暗（兩者互斥，層數的為準）。右鍵整列清。
 --     光環格只做「≥」：下拉換成固定的「≥」字（frame.stackGE）、比較子不寫、灰字換成光環格的那句（Pop.StackGlowWhen）。
@@ -523,7 +523,13 @@ local function BlizzAura(kind, class) return class == "aura" and kind == nil end
 Pop.BlizzAura = BlizzAura
 -- 層數發光那三列：暴雪的增益＋自訂光環格（光環格只做 ≥，引擎閘在 Modules/Custom.lua）。
 -- 掛在 Pop 上不當 local：Build 的 upvalue 貼著 Lua 5.1 的 60 上限
-function Pop.StackGlowWhen(kind, class) return BlizzAura(kind, class) or kind == "aura" end
+-- 暴雪的冷卻格（2026-11-24）：吃圖示上的數字（充能／施放計數），放在長條類的條上不做（同 StackGate.Source）
+function Pop.StackCount(kind, class)
+    return kind == nil and class == "cooldown" and not (Pop.cur ~= nil and ns.Setting(Pop.cur.key, "kind") == "bars")
+end
+function Pop.StackGlowWhen(kind, class)
+    return BlizzAura(kind, class) or kind == "aura" or Pop.StackCount(kind, class)
+end
 -- 換色只有長條（條的種類＝ bars，跟 Decorate 的 isBar 同一個判準）
 local function BlizzAuraBar(kind, class)
     return BlizzAura(kind, class) and Pop.cur ~= nil and ns.Setting(Pop.cur.key, "kind") == "bars"
@@ -565,7 +571,7 @@ local function StackNumNow()
 end
 -- 「< 1」永遠不成立：數字框標紅＋下一列灰字
 local function StackNever(kind, class)
-    return BlizzAura(kind, class) and ns.StackGate.Never(StackOpNow(), StackNumNow())
+    return (BlizzAura(kind, class) or Pop.StackCount(kind, class)) and ns.StackGate.Never(StackOpNow(), StackNumNow())
 end
 
 -- 層數當填充／層數刻度（增益長條）：目前存的表（沒有＝nil）
@@ -2236,6 +2242,8 @@ function Pop.Refresh()
         frame.stackGE:SetShown(slot)
         frame.stackNoteFS:SetText(slot
             and L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."]
+            or Pop.StackCount(kind, class)
+            and L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."]
             or L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."])
         frame.stackNoteEntry.remeasure()
         local n = ns.StackGate.Threshold(ns.SpellSetting(key, id, "stackGlow"))

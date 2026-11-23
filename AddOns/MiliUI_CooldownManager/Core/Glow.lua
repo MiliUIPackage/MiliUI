@@ -1595,6 +1595,9 @@ local function GlowLine(item, rec)
         Show(rec.probeArmed), tostring(rec.probeArmInfo or "—"), Show(rec.readyWhile), Show(rec.readyPending), cdInfo)
     lines[5] = ("     生效：設定=%s 光環時間旗標=%s（待配對=%s）"):format(
         barKey and tostring(Wanted(rec, barKey, "active")) or "—", Show(rec.auraFlag), Show(rec.auraFlagPending))
+    -- 層數發光（Core/StackGate.lua；冷卻格吃的是圖示上的數字）：開著才多一行
+    local note = ns.StackGate and ns.StackGate.CellNote and ns.StackGate.CellNote(rec)
+    if note then lines[#lines + 1] = "     " .. note end
     return lines
 end
 
@@ -1607,7 +1610,8 @@ function G.DebugLines(all)
     local function Visit(item, rec)
         n = n + 1
         local on = rec.glowOn and next(rec.glowOn)
-        if not (all or on or rec.procActive or rec.procEventID or rec.readyWhile or rec.readyPending) then return end
+        if not (all or on or rec.procActive or rec.procEventID or rec.readyWhile or rec.readyPending
+            or (rec.stackCfg and rec.stackCfg.glow)) then return end
         shown = shown + 1
         for _, line in ipairs(GlowLine(item, rec)) do out[#out + 1] = line end
     end

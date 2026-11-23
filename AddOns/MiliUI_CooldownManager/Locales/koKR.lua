@@ -798,6 +798,7 @@ L["Couldn't read your specializations."] = "전문화 정보를 읽을 수 없�
 L["Stack glow"] = "중첩 발광"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "강화 효과의 중첩이 이 비교를 만족하는 동안 빛납니다. '≤'와 '<'는 강화 효과가 없으면 빛나지 않습니다. 켜져 있으면 '강화 효과 동안 빛'은 쓰지 않습니다."
 L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "강화 효과의 중첩이 이 수 이상인 동안 빛납니다. 켜져 있으면 '강화 효과 동안 빛'은 쓰지 않습니다."
+L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."] = "아이콘의 숫자(충전 횟수 또는 시전 횟수, 예: 내파의 야생 임프 수)가 이 비교를 만족하는 동안 빛납니다. 숫자가 없을 때 “≤”와 “<”는 꺼져 있습니다. 켜져 있는 동안에는 강화 효과 중 반짝임을 사용하지 않습니다."
 L["Fewer than 1 stack is never true."] = "1 중첩 미만은 절대 성립하지 않습니다."
 L["Stack colors (%d)"] = "중첩별 색상 (%d)"
 L["Stack colors"] = "중첩별 색상"

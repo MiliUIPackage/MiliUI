@@ -310,6 +310,19 @@ end
 ------------------------------------------------------------
 do
     eq("不是增益 ⇒ nil", SG.Config("essential", 10, false, false), nil)
+    -- 層數從哪來（冷卻格吃圖示上的數字，2026-11-24）
+    eq("增益 item ⇒ aura", SG.Source(nil, true, false, false), "aura")
+    eq("增益長條 ⇒ aura", SG.Source(nil, true, true, false), "aura")
+    eq("冷卻格 ⇒ count", SG.Source(nil, nil, false, true), "count")
+    eq("冷卻格放在長條上 ⇒ 不做", SG.Source(nil, nil, true, true), nil)
+    eq("自訂項目 ⇒ 不做", SG.Source(true, true, false, true), nil)
+    eq("沒有計數刷新的格 ⇒ 不做", SG.Source(nil, nil, false, false), nil)
+    do
+        local v, kind = SG.ReadCount({ cooldownChargesCount = 7 })
+        eq("圖示數字：明文", v, 7); eq("圖示數字：種類", kind, "plain")
+        v, kind = SG.ReadCount({})
+        eq("圖示數字：沒有 ⇒ 0", v, 0); eq("圖示數字：沒有的種類", kind, "none")
+    end
     eq("自訂項目 id ⇒ nil", SG.Config("buffs", "c:1", true, false), nil)
     eq("沒設 ⇒ nil", SG.Config("buffs", 10, true, false), nil)
     overrides[10] = { stackGlow = 4, stackGlowType = "autocast" }

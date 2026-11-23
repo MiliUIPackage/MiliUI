@@ -798,6 +798,7 @@ L["Couldn't read your specializations."] = "Impossible de lire vos spécialisati
 L["Stack glow"] = "Lueur de cumuls"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Brille tant que le nombre de cumuls de l'amélioration respecte la comparaison. « ≤ » et « < » restent éteints sans l'amélioration. Tant que c'est activé, « Lueur pendant l'amélioration » n'est pas utilisé."
 L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Brille tant que l'amélioration a au moins ce nombre de cumuls. Tant que c'est activé, « Lueur pendant l'amélioration » n'est pas utilisé."
+L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."] = "Brille tant que le nombre sur l’icône (charges ou compteur d’incantations, comme les diablotins sauvages d’Implosion) satisfait la comparaison. « ≤ » et « < » restent éteints tant qu’il n’y a pas de nombre. Tant que c’est activé, la brillance pendant l’amélioration n’est pas utilisée."
 L["Fewer than 1 stack is never true."] = "Moins de 1 cumul n'est jamais vrai."
 L["Stack colors (%d)"] = "Couleurs de cumuls (%d)"
 L["Stack colors"] = "Couleurs de cumuls"

@@ -798,6 +798,7 @@ L["Couldn't read your specializations."] = "Deine Spezialisierungen konnten nich
 L["Stack glow"] = "Stapel-Leuchten"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Leuchtet, solange die Stapelzahl des Buffs den Vergleich erfüllt. „≤“ und „<“ bleiben aus, wenn der Buff fehlt. Solange es an ist, wird „Leuchten während des Buffs“ nicht verwendet."
 L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Leuchtet, solange der Buff mindestens so viele Stapel hat. Solange es an ist, wird „Leuchten während des Buffs“ nicht verwendet."
+L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."] = "Leuchtet, solange die Zahl auf dem Symbol (Aufladungen oder Zauberzähler, z. B. Wildwichtel bei Implosion) den Vergleich erfüllt. „≤“ und „<“ bleiben aus, solange keine Zahl angezeigt wird. Solange es an ist, wird „Leuchten während des Buffs“ nicht verwendet."
 L["Fewer than 1 stack is never true."] = "Weniger als 1 Stapel ist nie erfüllt."
 L["Stack colors (%d)"] = "Stapelfarben (%d)"
 L["Stack colors"] = "Stapelfarben"

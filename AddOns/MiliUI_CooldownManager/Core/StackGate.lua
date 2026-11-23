@@ -23,6 +23,16 @@
 -- 發光宿主放在最後一段。換色／層數當填充／刻度光環格沒有。
 -- 跟生效發光互斥：這格開了層數發光，生效發光不畫（Core/Glow.lua 的 SyncActive 看 rec.stackCfg）。
 --
+-- 暴雪的冷卻格（核心／輔助，2026-11-24；玩家要「內爆的小鬼數 > 6 才發光」）：同一組欄位，只有層數發光
+-- （換色／層數當填充／刻度是長條的東西，冷卻格放在長條類的條上時整組不做）。來源是 rec.stackSrc：
+--   "aura"   增益 item 的光環層數（下面「層數從哪來」）
+--   "count"  冷卻格圖示右下角那個數字 ＝ item.cooldownChargesCount。暴雪的 CacheChargeValues：
+--            有充能（maxCharges > 1）是目前充能數，否則是 C_Spell.GetSpellCastCount(spellID)（「施放計數」：
+--            內爆的小鬼數、靈魂碎片…）。我們不自己問 API，讀暴雪快取的那個值 ⇒ 跟圖示上的字永遠一致。
+--            時機：後掛勾 RefreshSpellChargeInfo（暴雪在 SPELL_UPDATE_USES／充能事件／RefreshData 叫）。
+--            不看生效狀態（那是增益的概念）；數字是 0／沒有 ⇒ 餵 0（「≤」「<」不亮，同增益不在）。
+--            對過 Gethe/wow-ui-source live 的 CooldownViewer.lua（CooldownViewerCooldownItemMixin）。
+--
 -- ── 原理（秘密層數也成立）─────────────────────────────────────────────
 -- 層數在副本戰鬥中是秘密值，Lua 不能比較。跟自訂格子的充能列（Modules/Pips.lua）同一招：
 --   閘     一顆自己的透明 StatusBar，SetMinMaxValues(N-1, N)＋SetValue(層數)（秘密值原樣餵）。
@@ -117,6 +127,7 @@ local BAR_LEVEL = 511          -- 暴雪增益長條的條身（CooldownViewer.x
 
 -- debug
 SG.hooked  = 0                 -- 掛了 RefreshApplications 的 item 數
+SG.hookedCount = 0             -- 掛了 RefreshSpellChargeInfo 的冷卻格數
 SG.feeds   = 0                 -- 餵過幾次
 SG.last    = nil               -- 最近一次餵的是什麼："plain" | "secret" | "none" | "inactive"
 
@@ -317,7 +328,8 @@ function SG.GlowStyle(barKey, id)
 end
 
 -- 這一格的層數設定（快取在 rec.stackCfg）；沒有任何層數設定回 nil。
---   aura：暴雪的增益 item（不是自訂項目）；isBar：增益長條（才有換色）
+--   aura：這一格收不收層數設定——暴雪的增益 item，或暴雪的冷卻格（來源是圖示上的數字，SG.Source）；
+--         自訂項目一律 false。isBar：增益長條（才有換色）
 --   回傳 { glow, op, gates, style, colors, stackBar = N, ticks = { at, n, color } }
 --   op ＝ 層數發光的比較子（SG.Op）；gates ＝ SG.GateSpec(op, glow)（永不成立時 nil，發光不畫）
 function SG.Config(barKey, id, aura, isBar)
@@ -436,6 +448,25 @@ local function ReadStacks(item)
     return 0, "none"
 end
 SG.ReadStacks = ReadStacks
+
+-- 冷卻格圖示上的數字（充能數／施放計數）：暴雪快取在 item 上的欄位，原樣轉手
+local function ReadCount(item)
+    local ok, v = pcall(rawget, item, "cooldownChargesCount")
+    if not ok then return 0, "none" end
+    if ns.IsSecret(v) then return v, "secret" end
+    if type(v) == "number" then return v, "plain" end
+    return 0, "none"
+end
+SG.ReadCount = ReadCount
+
+-- 這一格的層數從哪來："aura" | "count" | nil（不收層數設定）。純函式
+--   auraKind：來源檢視器是增益類；hasCount：item 有 RefreshSpellChargeInfo（暴雪的冷卻格）
+function SG.Source(custom, auraKind, isBar, hasCount)
+    if custom then return nil end
+    if auraKind then return "aura" end
+    if hasCount and not isBar then return "count" end
+    return nil
+end
 
 -- 暴雪的生效狀態：明文 false 才算「沒生效」；秘密／讀不到 ＝ 不知道
 local function PlainInactive(item)
@@ -866,7 +897,10 @@ end
 -- RefreshApplications 那一刻 RefreshActive 還沒跑，只看光環資料
 local function FeedNow(item, rec, checkActive)
     local v, kind
-    if checkActive and PlainInactive(item) then
+    if rec.stackSrc == "count" then
+        v, kind = ReadCount(item)
+        if kind == "plain" then rec.stackLastV = v else rec.stackLastV = nil end
+    elseif checkActive and PlainInactive(item) then
         v, kind = 0, "inactive"
     else
         v, kind = ReadStacks(item)
@@ -874,6 +908,7 @@ local function FeedNow(item, rec, checkActive)
     SetAll(rec, v)
     SG.feeds = SG.feeds + 1
     SG.last = kind
+    rec.stackLast = kind
 end
 
 -- 停放之後重新放格：框亮回來、暴雪條調回透明、發光重畫
@@ -920,10 +955,24 @@ local function OnActiveStateChanged(item)
     FeedNow(item, rec, true)
 end
 
+local function OnRefreshCount(item)
+    local rec = ns.Viewers.frames[item]
+    if not (rec and rec.stackCfg) then return end
+    if rec.stackSrc ~= "count" or rec.stackOff or ns.released or rec.stackID ~= rec.cooldownID then return end
+    FeedNow(item, rec, false)
+end
+
 function SG.HookItem(item, rec)
     if rec.stackHooked or rec.custom then return end
     rec.stackHooked = true
-    if not (ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]) then return end
+    if not (ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey]) then
+        -- 暴雪的冷卻格：圖示上的數字（充能／施放計數）每次重算之後餵一次
+        if type(item.RefreshSpellChargeInfo) == "function" then
+            hooksecurefunc(item, "RefreshSpellChargeInfo", ns.Guard(OnRefreshCount))
+            SG.hookedCount = SG.hookedCount + 1
+        end
+        return
+    end
     if type(item.RefreshApplications) == "function" then
         hooksecurefunc(item, "RefreshApplications", ns.Guard(OnRefreshApplications))
         SG.hooked = SG.hooked + 1
@@ -938,9 +987,10 @@ end
 ------------------------------------------------------------
 function SG.Apply(item, rec, barKey, w, h, isBar)
     if not (item and rec) then return end
-    local aura = not rec.custom and ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey] or false
+    local src = SG.Source(rec.custom, ns.Viewers.AURA_KIND and ns.Viewers.AURA_KIND[rec.barKey],
+        isBar, type(item.RefreshSpellChargeInfo) == "function")
     -- 圓環條（rec.ring，Core/Decorate.lua）：層數發光是方形的，第一版不畫 ⇒ 當作沒設定（已經建好的收掉）
-    local cfg = (not ns.released and not rec.ring) and SG.Config(barKey, rec.cooldownID, aura, isBar) or nil
+    local cfg = (not ns.released and not rec.ring) and SG.Config(barKey, rec.cooldownID, src ~= nil, isBar) or nil
     if not cfg then
         if rec.stackCfg or rec.stackUI then Release(item, rec) end
         return
@@ -950,9 +1000,10 @@ function SG.Apply(item, rec, barKey, w, h, isBar)
     local sig = SG.Signature(cfg, w, h, bar)
     -- 發光的形狀進簽章（換形狀、換皮 ⇒ 重畫）
     if sig and ns.Glow and ns.Glow.GlowShape then sig = sig .. "|shape=" .. tostring(ns.Glow.GlowShape(rec, barKey)) end
-    rec.stackCfg, rec.stackID = cfg, rec.cooldownID
+    local srcChanged = rec.stackSrc ~= src
+    rec.stackCfg, rec.stackID, rec.stackSrc = cfg, rec.cooldownID, src
     itemOf[rec] = item
-    if rec.stackSig == sig and not rec.stackOff then
+    if rec.stackSig == sig and not rec.stackOff and not srcChanged then
         -- 樣式重套過（ApplyBarLook 把暴雪條的填充／底色寫回不透明）：調回透明
         if SG.HasLayers(cfg) then Conceal(item, rec) end
         return
@@ -1029,8 +1080,18 @@ end
 
 local LAST_TEXT = { plain = "明文", secret = "秘密", none = "沒有光環資料（0）", inactive = "沒生效（0）" }
 
+-- /mcdm glow 的逐格附註：這一格開了層數發光 ⇒ 來源、比較、最近一次餵的是什麼（明文才印值）
+function SG.CellNote(rec)
+    local cfg = rec and rec.stackCfg
+    if not (cfg and cfg.glow) then return nil end
+    local last = rec.stackLast and (LAST_TEXT[rec.stackLast] or rec.stackLast) or "還沒餵"
+    if rec.stackLast == "plain" and rec.stackLastV ~= nil then last = last .. " " .. tostring(rec.stackLastV) end
+    return ("層數發光[%s %s %d 最近=%s%s]"):format(rec.stackSrc == "count" and "圖示數字" or "增益層數",
+        tostring(cfg.op), cfg.glow, last, rec.stackOff and " 停放" or "")
+end
+
 function SG.DebugLine()
     local glow, colors, lit, bars, ticks, ops = SG.Counts()
-    return ("  層數門檻：發光 %d 格（宿主在畫 %d、比較子不是 ≥ 的 %d）  換色 %d 格  層數當填充 %d 格  刻度 %d 格  掛了 RefreshApplications %d 格  餵了 %d 次  最近一次 %s")
-        :format(glow, lit, ops, colors, bars, ticks, SG.hooked, SG.feeds, SG.last and (LAST_TEXT[SG.last] or SG.last) or "—")
+    return ("  層數門檻：發光 %d 格（宿主在畫 %d、比較子不是 ≥ 的 %d）  換色 %d 格  層數當填充 %d 格  刻度 %d 格  掛了 RefreshApplications %d 格、RefreshSpellChargeInfo %d 格  餵了 %d 次  最近一次 %s")
+        :format(glow, lit, ops, colors, bars, ticks, SG.hooked, SG.hookedCount, SG.feeds, SG.last and (LAST_TEXT[SG.last] or SG.last) or "—")
 end

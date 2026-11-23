@@ -798,6 +798,7 @@ L["Couldn't read your specializations."] = "Impossibile leggere le tue specializ
 L["Stack glow"] = "Bagliore per accumuli"
 L["Glows while the buff's stack count passes the comparison. “≤” and “<” stay off while the buff is missing. While it's on, glow during buff isn't used."] = "Si illumina finché gli accumuli del beneficio soddisfano il confronto. \"≤\" e \"<\" restano spenti se il beneficio manca. Finché è attivo, \"Bagliore durante il potenziamento\" non viene usato."
 L["Glows while the buff has at least this many stacks. While it's on, glow during buff isn't used."] = "Si illumina finché il beneficio ha almeno questo numero di accumuli. Finché è attivo, \"Bagliore durante il potenziamento\" non viene usato."
+L["Glows while the number on the icon (charges or cast count, such as Wild Imps on Implosion) passes the comparison. “≤” and “<” stay off while there is no number. While it's on, glow during buff isn't used."] = "Brilla finché il numero sull’icona (cariche o conteggio dei lanci, come i Folletti Selvaggi di Implosione) soddisfa il confronto. «≤» e «<» restano spenti finché non c’è alcun numero. Finché è attivo, il bagliore durante il beneficio non viene usato."
 L["Fewer than 1 stack is never true."] = "Meno di 1 accumulo non è mai vero."
 L["Stack colors (%d)"] = "Colori per accumuli (%d)"
 L["Stack colors"] = "Colori per accumuli"
