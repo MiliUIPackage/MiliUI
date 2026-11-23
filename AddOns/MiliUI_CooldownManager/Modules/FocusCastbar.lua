@@ -44,8 +44,8 @@
 --   * 只補位可攻擊的目標（選到隊友不跳條）；專注目標本身照舊不過濾
 --   * UnitExists／UnitIsDeadOrGhost／UnitCanAttack 受限內容也是明文（.claude/notes/wow-121-unit-api-secrets.md）；保險起見秘密值當「否」
 --   * 音效在專注目標助手那邊、只對專注目標響：補位不響（每換一個目標都叫太吵）
---   * 開唱震動也只給專注目標：補位不震（f.noShake；2026-11-23 玩家回報補位的條「非常卡頓」——不設專注的人每隻怪開唱
---     都看到整條抖 2 秒。震動是「你設的那隻開唱了、可以斷」的提示，對每一個當前目標都震就只剩干擾）
+--   * 開唱震動補位時**照震**（使用者 2026-11-24 指定：震動是「可以斷」的提示，可斷法的施法都要震；要關就用 shakeMode 統一關，
+--     不分專注目標／補位。11-23 做過「補位不震」當天撤回，別再加回來）
 -- 音效留在專注目標助手（那邊獨立於施法條開關；12.1 起音效不能依斷法狀態挑，這裡不另做一份）。
 --
 -- 跟玩家施法條分得開的兩樣（使用者 2026-10-16 指定，不靠顏色也認得出這不是自己的條）：
@@ -676,7 +676,6 @@ local function ArmShakeOn(h, ni)
     if not (h and h.twin) then return end
     EndShakeOn(h)                                         -- 上一次的還沒震完就又開唱
     h.shake:Stop()
-    if h.noShake then return end                          -- 補位顯示目標中：不震（StartDisplay 設的）
     if ShakeMode() ~= "kick" then return end              -- always 不用分身（GoShakeOn 直接震本尊）
     if not IsSecret(ni) and ni then return end            -- 明文的不可中斷：不震
     h.twinOn = true
@@ -686,7 +685,7 @@ FC.ArmShakeOn = ArmShakeOn
 local function GoShakeOn(h, ni)
     if not h then return end
     if not h.twinOn then
-        if h.shake and not h.noShake and ShakeMode() == "always" then PlayShake(h.shake) end      -- 每次開唱都震：本尊自己震
+        if h.shake and ShakeMode() == "always" then PlayShake(h.shake) end      -- 每次開唱都震：本尊自己震
         return
     end
     local g = h.twin
@@ -711,7 +710,7 @@ end
 
 -- 施法中途變成可以斷（UNIT_SPELLCAST_INTERRUPTIBLE，事件名稱是明文）：直接震本尊。分身還在震就不疊
 local function JoltOn(h)
-    if h.twinOn or h.noShake or ShakeMode() == "off" then return end
+    if h.twinOn or ShakeMode() == "off" then return end
     PlayShake(h.shake)
 end
 FC.JoltOn = JoltOn
@@ -1082,7 +1081,6 @@ local function StartDisplay()
     S.castNotInterruptible = notInt
     S.lastTime = nil
     f:SetScript("OnUpdate", nil)
-    f.noShake = (UNIT == "target")             -- 補位顯示目標：不震（見檔頭）
     ArmShakeOn(f, notInt)                      -- 從這裡到 GoShakeOn：畫到 f 的東西都經 Each，分身跟著畫
     f:SetAlpha(1)
     Each(f, PaintIconOn, texture)
@@ -1281,7 +1279,6 @@ function FC.StartPreview()
     S.castState = 1
     S.tStart, S.tEnd, S.total = now, now + PREVIEW_TIME, PREVIEW_TIME
     S.lastTime = nil
-    f.noShake = false
     ArmShakeOn(f, false)                       -- 預覽是可以斷的法術：照樣震，走的是實際那條路
     f:SetAlpha(1)
     Each(f, PaintIconOn, PREVIEW_ICON)
