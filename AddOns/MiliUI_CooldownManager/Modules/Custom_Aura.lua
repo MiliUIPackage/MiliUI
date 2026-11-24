@@ -362,11 +362,14 @@ local function AuraStyle(rec, barKey, w, h, shape, ring)
     if ringOn then st.tc = { ns.Layout.IconTexCoord(st.zoom, st.ring.iconSize, st.ring.iconSize, true) } end
     -- 認哪些法術也進簽章（多法術的光環格：整組排序後串進去；單一法術時就是那個 ID）
     st.ids = CU.AuraIDsOf(rec)
+    -- 滑鼠提示：光環按鈕的提示是暴雪自己畫的（按鈕收滑鼠移動就有），開關只能在 initializeFrame 裡定 ⇒ 進簽章，
+    -- 改了換一顆容器。玩家 2026-11-24 回報「群組關了提示，光環格照樣冒提示」：以前寫死 true
+    st.tips = S(barKey, "icon.tooltips") and true or false
     st.sig = table.concat({
         ovSig, msqSig, rec.filter, CU.AuraIDSig(st.ids), st.zoom, string.format("%.4f,%.4f,%.4f,%.4f", st.tc[1], st.tc[2], st.tc[3], st.tc[4]), st.bsize, C(st.bcolor), C(st.swipe), st.cdFont, st.stFont, st.outline,
         string.format("%.4f", st.scale), tostring(st.hideCD), st.cdSize, C(st.cdColor), st.cdPoint, st.cdX, st.cdY,
         st.decimals, st.lowBelow, C(st.lowColor), st.timeFormat, tostring(st.hideStack), st.stSize, C(st.stColor),
-        st.stPoint, st.stX, st.stY, glowSig, labelSig, shapeSig,
+        st.stPoint, st.stX, st.stY, tostring(st.tips), glowSig, labelSig, shapeSig,
     }, "|")
     if barSig then st.sig = st.sig .. "|" .. barSig end
     if ringOn then st.sig = st.sig .. "|" .. ringSig end
@@ -550,7 +553,7 @@ end
 -- ⚠ 只能從 initializeFrame 呼叫（外面包 xpcall）。不 CreateColor、不掛 script、顏色純數字
 local function InitAuraButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
-    pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
+    pcall(btn.SetMouseMotionEnabled, btn, st.tips)       -- 暴雪自己的光環提示：照條的「滑鼠移到圖示上顯示提示」
     Seat(btn, c, st)
 
     -- Masque：圖示放 BACKGROUND（皮外框在它上面；Masque 的 Icon 也是這一層）
@@ -686,7 +689,7 @@ end
 -- 尺寸全部來自 st（不從按鈕讀）
 local function InitAuraBarButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
-    pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
+    pcall(btn.SetMouseMotionEnabled, btn, st.tips)       -- 暴雪自己的光環提示：照條的「滑鼠移到圖示上顯示提示」
     Seat(btn, c, st)
     local H, gap, side, s = st.isz or st.bh, st.bgap, st.side, st.scale
     local vert = st.vert
@@ -853,7 +856,7 @@ CU.InitAuraBarButton = InitAuraBarButton      -- 測試用
 -- 顏色純數字、尺寸全部來自 st（不從按鈕讀）。邊框、發光、Masque、自訂文字一律不畫
 local function InitAuraRingButton(btn, c, st, rec)
     pcall(btn.SetMouseClickEnabled, btn, false)
-    pcall(btn.SetMouseMotionEnabled, btn, true)          -- 讓暴雪自己的光環提示照常出現
+    pcall(btn.SetMouseMotionEnabled, btn, st.tips)       -- 暴雪自己的光環提示：照條的「滑鼠移到圖示上顯示提示」
     pcall(function()
         btn:ClearAllPoints()
         btn:SetAllPoints(c)                              -- slot 的按鈕不參與 flow layout

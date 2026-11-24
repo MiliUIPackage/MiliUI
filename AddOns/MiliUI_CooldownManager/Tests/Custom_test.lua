@@ -660,9 +660,33 @@ do
     function btn:SetDurationBar(bar, opts) got.bar, got.barOpts = bar, opts end
     function btn:SetDurationText(fs, opts) got.text, got.textOpts = fs, opts end
     function btn:SetApplicationCount(...) got.countArgs = { n = select("#", ...), ... } end
+    function btn:SetMouseClickEnabled(v) got.click = v end
+    function btn:SetMouseMotionEnabled(v) got.motion = v end
     arec.lastError = nil
     c.slot.opts.initializeFrame(btn)
     eq("initializeFrame 沒有錯誤", arec.lastError, nil)
+    check("光環按鈕：提示開著 ⇒ 收滑鼠移動（暴雪畫光環提示）、不收點擊", got.click == false and got.motion == true)
+    -- 條的「滑鼠移到圖示上顯示提示」關掉 ⇒ 換一顆容器、按鈕不收滑鼠移動（暴雪的光環提示也不冒）
+    do
+        local ti = ns.profile.theme.icon          -- 這條跟隨主題 ⇒ 改主題那一格
+        local savedTips = ti.tooltips
+        local sigOn = arec.sig
+        ti.tooltips = false
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+        check("提示關掉：簽章變了（換容器）", arec.sig ~= sigOn)
+        local tb, tgot = Obj("Frame"), {}
+        function tb:SetIcon() end
+        function tb:SetDurationBar() end
+        function tb:SetDurationText() end
+        function tb:SetApplicationCount() end
+        function tb:SetMouseClickEnabled(v) tgot.click = v end
+        function tb:SetMouseMotionEnabled(v) tgot.motion = v end
+        arec.container.slot.opts.initializeFrame(tb)
+        check("提示關掉：光環按鈕不收滑鼠移動", tgot.click == false and tgot.motion == false)
+        ti.tooltips = savedTips
+        CU.Place(arec, cont2, { x = 0, y = 0, w = 200, h = 20 }, "buffbars", 5)
+        eq("提示開回來：回到原本那顆容器", arec.sig, sigOn)
+    end
     check("長條：條交給 SetDurationBar", got.bar and got.bar.otype == "StatusBar")
     eq("長條：剩餘時間方向", got.barOpts and got.barOpts.direction, env.Enum.StatusBarTimerDirection.RemainingTime)
     check("長條：秒數交給 SetDurationText（整數 formatter）", got.text and got.textOpts and got.textOpts.textFormatter
