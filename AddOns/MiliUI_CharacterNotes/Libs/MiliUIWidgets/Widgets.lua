@@ -1300,6 +1300,12 @@ end
 ------------------------------------------------------------
 local ITEM_H = 18
 local MENU_MAX_ROWS = 14      -- 超過就裁切＋滾輪捲動（字型清單裝了幾個插件就會破百）
+-- 長清單（超過 MENU_MAX_ROWS）才有的兩樣：頂端一格搜尋框、右邊一條可以拖的卷軸。
+-- 音效／字型清單裝了幾個媒體包就是幾百項，只靠滾輪一次三列找不到東西。
+-- 短清單維持原樣（不佔那一列高度、也不搶鍵盤焦點）。
+local MENU_SEARCH_H = 20
+local MENU_BAR_W = 6
+local MENU_THUMB_MIN = 16
 
 -- 下拉的靜置框線：深灰、比控件底色亮一階（跟勾選框底色同值），
 -- 職業色只留給 hover 與「展開中」——常駐染色會讓整頁表單太吵
@@ -1330,6 +1336,29 @@ local function PaintMenuItem(b, hover)
 end
 
 local menuFrame
+
+-- 捲到 o（夾在 0～最大位移）並重排。滾輪、拖卷軸、搜尋後歸零都走這裡
+local function SetMenuOffset(menu, o)
+    local maxOffset = (menu.contentH or 0) - (menu.listH or 0)
+    if maxOffset < 0 then maxOffset = 0 end
+    if o < 0 then o = 0 elseif o > maxOffset then o = maxOffset end
+    menu.offset = o
+    menu:Reflow()
+end
+
+-- 拖卷軸：每幀把游標位置換算成位移。放開左鍵就停（OnMouseUp 在游標拖出框外時不一定來）
+local function MenuBarDrag(bar)
+    if not IsMouseButtonDown("LeftButton") then bar:SetScript("OnUpdate", nil) return end
+    local menu = menuFrame
+    local top = bar:GetTop()
+    local range = (bar.trackH or 0) - (bar.thumbH or 0)
+    if not top or range <= 0 then return end
+    local _, cy = GetCursorPosition()
+    cy = cy / bar:GetEffectiveScale()
+    local maxOffset = (menu.contentH or 0) - (menu.listH or 0)
+    SetMenuOffset(menu, (top - cy - bar.grab) / range * maxOffset)
+end
+
 local function EnsureMenu()
     if menuFrame then return menuFrame end
     menuFrame = CreateFrame("Frame", NS .. "_DropdownMenu", UIParent, "BackdropTemplate")
@@ -1340,21 +1369,117 @@ local function EnsureMenu()
     W.CloseOnEscape(menuFrame, true)
     menuFrame.items = {}
     menuFrame.offset = 0
+    menuFrame.count = 0
     -- 內容比視窗高時靠裁切＋位移捲動（不用 ScrollFrame：項目是共用池，
-    -- 換 scroll child 的父層會把池子搞複雜，位移錨點單純得多）
+    -- 換 scroll child 的父層會把池子搞複雜，位移錨點單純得多）。
+    -- 裁切的是 view（搜尋框底下那一塊），項目都掛在它身上，才不會捲到搜尋框上面
     menuFrame:SetClipsChildren(true)
+    local view = CreateFrame("Frame", nil, menuFrame)
+    view:SetClipsChildren(true)
+    menuFrame.view = view
+
+    -- 搜尋框（長清單才顯示）。提示字用暴雪的全域字串：共用層的語系契約不能加 key
+    local search = W.CreateEditBox(menuFrame, 100, MENU_SEARCH_H)
+    search:SetPoint("TOPLEFT", 2, -2)
+    search:SetPoint("TOPRIGHT", -2, -2)
+    search.hint = search:CreateFontString(nil, "OVERLAY")
+    search.hint:SetFontObject(fontNormal)
+    search.hint:SetPoint("LEFT", 5, 0)
+    search.hint:SetTextColor(0.5, 0.5, 0.5, 1)
+    search.hint:SetText(SEARCH or "Search")
+    search:SetScript("OnTextChanged", function(self)
+        local text = self:GetText() or ""
+        self.hint:SetShown(text == "")
+        if menuFrame:IsShown() and menuFrame.Fill then menuFrame.Fill(text) end
+    end)
+    search:SetScript("OnEscapePressed", function() menuFrame:Hide() end)
+    -- Enter ＝ 選篩出來的第一項（打幾個字就按 Enter，不用再去點）
+    search:SetScript("OnEnterPressed", function()
+        local b = menuFrame.items[1]
+        if menuFrame.count > 0 and b and b:IsShown() then b:Click() end
+    end)
+    search:Hide()
+    menuFrame.search = search
+
+    -- 卷軸（內容比視窗高才顯示）：貼在 view 右緣、壓在項目上面。點軌道跳過去，按住可拖
+    local bar = CreateFrame("Frame", nil, menuFrame)
+    bar:SetWidth(MENU_BAR_W)
+    bar:SetPoint("TOPRIGHT", view, "TOPRIGHT", -2, -2)
+    bar:SetPoint("BOTTOMRIGHT", view, "BOTTOMRIGHT", -2, 2)
+    bar:SetFrameLevel(view:GetFrameLevel() + 10)
+    bar:EnableMouse(true)
+    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.bg:SetAllPoints()
+    bar.bg:SetColorTexture(0, 0, 0, 0.5)
+    bar.thumb = bar:CreateTexture(nil, "ARTWORK")
+    bar.thumb:SetColorTexture(1, 1, 1, 1)
+    local function PaintThumb()
+        if bar:IsMouseOver() or bar:GetScript("OnUpdate") then
+            bar.thumb:SetVertexColor(W.Accent(1))
+        else
+            bar.thumb:SetVertexColor(0.4, 0.4, 0.4, 1)
+        end
+    end
+    bar:SetScript("OnEnter", PaintThumb)
+    bar:SetScript("OnLeave", PaintThumb)
+    bar:SetScript("OnMouseDown", function(self, button)
+        if button ~= "LeftButton" then return end
+        local top = self:GetTop()
+        if not top then return end
+        local _, cy = GetCursorPosition()
+        cy = cy / self:GetEffectiveScale()
+        local thumbTop = top - (self.thumbY or 0)
+        if cy <= thumbTop and cy >= thumbTop - (self.thumbH or 0) then
+            self.grab = thumbTop - cy                 -- 抓著滑塊：保持抓的那一點
+        else
+            self.grab = (self.thumbH or 0) / 2        -- 點軌道：滑塊中心跳到游標
+        end
+        self:SetScript("OnUpdate", MenuBarDrag)
+        MenuBarDrag(self)
+        PaintThumb()
+    end)
+    bar:SetScript("OnMouseUp", function(self)
+        self:SetScript("OnUpdate", nil)
+        PaintThumb()
+    end)
+    bar:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
+    bar:Hide()
+    menuFrame.bar = bar
+
+    -- 照 offset 重排項目、更新卷軸滑塊
+    function menuFrame:Reflow()
+        for i = 1, self.count do
+            local b = self.items[i]
+            if b then
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", view, "TOPLEFT", 2, -(2 + (i - 1) * ITEM_H) + self.offset)
+            end
+        end
+        local contentH, listH = self.contentH or 0, self.listH or 0
+        local maxOffset = contentH - listH
+        if maxOffset <= 0 then bar:Hide() return end
+        local trackH = listH - 4
+        local thumbH = math.max(MENU_THUMB_MIN, trackH * listH / contentH)
+        if thumbH > trackH then thumbH = trackH end
+        bar.trackH, bar.thumbH = trackH, thumbH
+        bar.thumbY = (trackH - thumbH) * self.offset / maxOffset
+        bar.thumb:ClearAllPoints()
+        bar.thumb:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, -bar.thumbY)
+        bar.thumb:SetPoint("TOPRIGHT", bar, "TOPRIGHT", 0, -bar.thumbY)
+        bar.thumb:SetHeight(thumbH)
+        bar:Show()
+        PaintThumb()
+    end
+
     menuFrame:EnableMouseWheel(true)
     menuFrame:SetScript("OnMouseWheel", function(self, delta)
-        local maxOffset = (self.contentH or 0) - (self.viewH or 0)
-        if maxOffset <= 0 then return end
-        local o = self.offset - delta * ITEM_H * 3
-        if o < 0 then o = 0 elseif o > maxOffset then o = maxOffset end
-        if o == self.offset then return end
-        self.offset = o
-        if self.Reflow then self:Reflow() end
+        SetMenuOffset(self, self.offset - delta * ITEM_H * 3)
     end)
     menuFrame:SetScript("OnHide", function(self)
         self:Hide()
+        -- 搜尋字不留到下一次（共用框，下一顆下拉不該帶著上一顆的篩選）；IsShown 已經是 false，不會觸發重填
+        search:SetText("")
+        search:ClearFocus()
         -- 選單收起：owner 的「展開中」職業色框退回深灰（還壓著滑鼠的話
         -- 讓 hover 狀態繼續，之後 OnLeave 會收尾）
         local owner = self.owner
@@ -1632,14 +1757,19 @@ function W.CreateDropdown(parent, width, items, onSelect)
         end
         menu.owner = self
         menu.offset = 0
-        -- 重建項目按鈕
-        for _, b in ipairs(menu.items) do b:Hide() end
-        local height, widest = 2, 0
-        local count = #self.items
-        for i, item in ipairs(self.items) do
+        local view = menu.view
+        -- 重建項目按鈕。query ＝ 搜尋字（不分大小寫、比對顯示文字的任何位置）；nil ＝ 全部。
+        -- 回傳目前選中那一項排在第幾列（沒在清單裡是 nil）與最寬的字寬
+        local function Fill(query)
+          for _, b in ipairs(menu.items) do b:Hide() end
+          local widest, selAt, i = 0, nil, 0
+          for _, item in ipairs(self.items) do
+           if not query or tostring(item.text or ""):lower():find(query, 1, true) then
+            i = i + 1
+            if item.value == self.selected then selAt = i end
             local b = menu.items[i]
             if not b then
-                b = CreateFrame("Button", nil, menu, "BackdropTemplate")
+                b = CreateFrame("Button", nil, view, "BackdropTemplate")
                 b.tex = b:CreateTexture(nil, "ARTWORK")          -- 材質預覽（見 DD_TEX_ALPHA 上面的說明）
                 if P.NoSnap then P.NoSnap(b.tex) end
                 b.tex:Hide()
@@ -1668,8 +1798,6 @@ function W.CreateDropdown(parent, width, items, onSelect)
                 b.tex:Hide()
             end
             PaintMenuItem(b, false)
-            b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", menu, "TOPLEFT", 2, -height)
             b.text:SetText(item.text)
             -- 量實際字寬：項目可能比下拉本身長（角色名＋伺服器＋註記），
             -- 不撐開的話字會溢出選單邊界
@@ -1682,44 +1810,67 @@ function W.CreateDropdown(parent, width, items, onSelect)
                 if item.onClick then item.onClick(item.value) end
             end)
             b:Show()
-            height = height + ITEM_H
+           end
+          end
+          menu.count = i
+          menu.contentH = i * ITEM_H + 4
+          return selAt, widest
         end
-        -- 選單至少跟下拉一樣寬，內容更長就跟著撐開（5 左內縮 ＋ 右邊留白）
-        local menuW = math.max(self:GetWidth() or 120, widest + 18)
-        for i = 1, count do
-            local b = menu.items[i]
-            if b then P.Size(b, menuW - 4, ITEM_H) end
-        end
-
-        -- 高度上限：超過就裁切，靠滾輪捲。沒超過的話 Reflow 是 no-op
-        menu.contentH = height + 2
-        menu.viewH = math.min(menu.contentH, MENU_MAX_ROWS * ITEM_H + 4)
-        function menu:Reflow()
-            for i = 1, count do
-                local b = self.items[i]
-                if b then
-                    b:ClearAllPoints()
-                    b:SetPoint("TOPLEFT", self, "TOPLEFT", 2, -(2 + (i - 1) * ITEM_H) + self.offset)
-                end
+        local function SizeRows()
+            for i = 1, menu.count do
+                local b = menu.items[i]
+                if b then P.Size(b, menu.itemW, ITEM_H) end
             end
         end
-        menu:Reflow()
+
+        local selAt, widest = Fill(nil)
+        -- 長清單：頂端多一格搜尋框、右邊讓出卷軸的位置
+        local long = #self.items > MENU_MAX_ROWS
+        local hdr = long and (MENU_SEARCH_H + 2) or 0
+        local barW = long and (MENU_BAR_W + 2) or 0
+        -- 選單至少跟下拉一樣寬，內容更長就跟著撐開（5 左內縮 ＋ 右邊留白）。
+        -- 寬高都照**完整清單**一次定好：打字篩選時選單不跟著縮放、搜尋框不會跳位置
+        local menuW = math.max(self:GetWidth() or 120, widest + 18 + barW)
+        menu.itemW = menuW - 4 - barW
+        SizeRows()
+
+        -- 高度上限：超過就裁切，靠滾輪／卷軸捲
+        menu.listH = math.min(menu.contentH, MENU_MAX_ROWS * ITEM_H + 4)
+        local menuH = hdr + menu.listH
+        view:ClearAllPoints()
+        view:SetPoint("TOPLEFT", menu, "TOPLEFT", 0, -hdr)
+        view:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", 0, 0)
+        menu.search:SetShown(long)
+        -- 搜尋框打字：重填、回到最上面（選單還沒 Show 時 OnTextChanged 不會進來）
+        menu.Fill = function(text)
+            Fill(text ~= "" and text:lower() or nil)
+            SizeRows()
+            SetMenuOffset(menu, 0)
+        end
+        -- 一打開就看得到目前選的那一項（在幾百項中間的話捲到視窗中段，對齊整列）
+        local start = 0
+        if selAt then
+            start = math.floor(((selAt - 1) * ITEM_H - (menu.listH - ITEM_H) / 2) / ITEM_H + 0.5) * ITEM_H
+        end
+        SetMenuOffset(menu, start)
 
         -- 下面塞不下就往上開。有了高度上限才算得出來要不要翻——沒有上限的話
         -- 長清單無論往哪開都會有一截在畫面外，而裁切之後那一截是**捲不到**的。
         -- （回讀的是設定面板自己的幾何，跟單位框那條「絕不回讀」的規則無關）
         local roomBelow = self:GetBottom()
         local pts
-        if roomBelow and roomBelow - menu.viewH - 2 < 0 then
+        if roomBelow and roomBelow - menuH - 2 < 0 then
             pts = { "BOTTOMLEFT", self, "TOPLEFT", 0, 2 }
         else
             pts = { "TOPLEFT", self, "BOTTOMLEFT", 0, -2 }
         end
         -- 先給尺寸再 Show 再定位：W.PlaceClamped 要量矩形，順序反了就量到舊的
-        P.Size(menu, menuW, menu.viewH)
+        P.Size(menu, menuW, menuH)
         menu:Show()
         -- 翻上去之後頂端還是可能出界（設定視窗貼著畫面上緣時），推回來
         W.PlaceClamped(menu, pts)
+        -- 長清單一打開游標就在搜尋框裡：直接打字就能篩。ESC 關選單、Enter 選第一項
+        if long then menu.search:SetFocus() end
     end)
     return dd
 end
