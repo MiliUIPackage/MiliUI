@@ -748,6 +748,12 @@ L["Time since the last swing (fills up)"] = "마지막 공격 후 경과 시간 
 L["Time until the next swing (empties)"] = "다음 공격까지 남은 시간 (비워짐)"
 L["Bar fills with"] = "바 채우기 기준"
 L["Hide Crusading Strikes on the buff bars"] = "강화 효과 바에서 성전사의 일격 숨기기"
+-- 揮擊列、五秒回魔游標（Modules/Resources_Swing.lua）
+L["Swing timer"] = "평타 타이머"
+L["Counts the time between your auto attacks, or between auto shots while you're shooting. Off-hand swings aren't shown. This row has its own height, shows no number, and condition rules don't apply."] = "자동 공격 사이의 시간을 셉니다. 원거리 무기로 쏠 때는 자동 사격을 셉니다. 보조 무기 공격은 표시하지 않습니다. 이 줄은 높이가 따로 있고 숫자를 표시하지 않으며 조건 규칙이 적용되지 않습니다."
+L["Five-second rule marker"] = "5초 규칙 표시선"
+L["Marker color"] = "표시선 색상"
+L["After you spend mana, spirit-based mana regeneration stops for five seconds. A line sweeps across the mana bar during that time; when it reaches the end, regeneration is back. A cast made free by an effect may still restart it."] = "마나를 쓰면 정신력에 의한 마나 재생이 5초 동안 멈춥니다. 그동안 마나 바 위로 선이 지나가고, 끝에 닿으면 재생이 다시 시작됩니다. 효과로 무료가 된 시전도 다시 시작시킬 수 있습니다."
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "이 줄은 블리자드의 성전사의 일격 바를 그대로 따라 그리므로, 성전사의 일격은 블리자드 재사용 대기시간 관리자의 추적 바 줄에 남아 있어야 합니다. 위 옵션을 켜면 이 줄이 표시되는 동안 강화 효과 바에서 그 바를 빼며, 보이지 않는 곳에서 계속 갱신됩니다. 이 줄은 높이를 따로 가지며, 숫자를 표시하지 않고 조건 규칙도 적용되지 않습니다."
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "성전사의 일격이 블리자드 재사용 대기시간 관리자의 추적 바 줄에 없어서, 자원 바의 성전사의 일격 줄이 계속 비어 있습니다. 그곳에 추가하세요 (편집 모드 → 재사용 대기시간 관리자 → 추적 바)."

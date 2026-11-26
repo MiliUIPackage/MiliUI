@@ -755,6 +755,12 @@ L["Time since the last swing (fills up)"] = "已挥的时间（由空到满）"
 L["Time until the next swing (empties)"] = "距下一刀的时间（由满到空）"
 L["Bar fills with"] = "填充方式"
 L["Hide Crusading Strikes on the buff bars"] = "隐藏增益长条上的征战圣击"
+-- 揮擊列、五秒回魔游標（Modules/Resources_Swing.lua）
+L["Swing timer"] = "挥击计时"
+L["Counts the time between your auto attacks, or between auto shots while you're shooting. Off-hand swings aren't shown. This row has its own height, shows no number, and condition rules don't apply."] = "计算两次普通攻击之间的时间；用远程武器射击时改算自动射击。副手的挥击不显示。这一行有自己的高度、不显示数字，条件规则不适用。"
+L["Five-second rule marker"] = "五秒回蓝游标"
+L["Marker color"] = "游标颜色"
+L["After you spend mana, spirit-based mana regeneration stops for five seconds. A line sweeps across the mana bar during that time; when it reaches the end, regeneration is back. A cast made free by an effect may still restart it."] = "消耗法力之后，精神带来的法力恢复会停五秒。这段时间法力条上有一条线扫过去，扫到底就恢复回蓝。被效果变成免费的那一次施法，仍可能让它重新计时。"
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "这一列镜像暴雪的征战圣击量条，所以征战圣击要留在暴雪冷却管理器的「追踪的状态栏」里。上面的选项开着时，这一列显示期间增益长条上那一条会自动拿掉，它在看不到的地方照样更新。这一列有自己的高度；不显示数字，条件规则不适用。"
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "征战圣击不在暴雪冷却管理器的「追踪的状态栏」里，资源条上的征战圣击列会一直是空的。请把它加进去（编辑模式 → 冷却管理器 → 追踪的状态栏）。"

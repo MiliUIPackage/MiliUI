@@ -748,6 +748,12 @@ L["Time since the last swing (fills up)"] = "Время с последнего 
 L["Time until the next swing (empties)"] = "Время до следующего удара (опустевает)"
 L["Bar fills with"] = "Полоса заполняется по"
 L["Hide Crusading Strikes on the buff bars"] = "Скрыть Удары крестоносца на полосах эффектов"
+-- 揮擊列、五秒回魔游標（Modules/Resources_Swing.lua）
+L["Swing timer"] = "Таймер удара"
+L["Counts the time between your auto attacks, or between auto shots while you're shooting. Off-hand swings aren't shown. This row has its own height, shows no number, and condition rules don't apply."] = "Отсчитывает время между автоатаками или между автоматическими выстрелами, пока вы стреляете. Удары левой рукой не показываются. У этой строки своя высота, число не показывается, условные правила не действуют."
+L["Five-second rule marker"] = "Метка правила пяти секунд"
+L["Marker color"] = "Цвет метки"
+L["After you spend mana, spirit-based mana regeneration stops for five seconds. A line sweeps across the mana bar during that time; when it reaches the end, regeneration is back. A cast made free by an effect may still restart it."] = "После траты маны восстановление маны от духа прекращается на пять секунд. В это время по полосе маны движется линия; когда она доходит до конца, восстановление возобновляется. Заклинание, ставшее бесплатным из-за эффекта, всё равно может запустить отсчёт заново."
 L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."] = "Эта строка повторяет полосу Ударов крестоносца от Blizzard, поэтому Удары крестоносца должны оставаться в ряду отслеживаемых полос менеджера восстановления Blizzard. Если опция выше включена, та полоса убирается с полос эффектов, пока видна эта строка; она продолжает обновляться вне поля зрения. У этой строки своя высота, число не выводится, правила условий не действуют."
 
 L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so the Crusading Strikes row on the resource bar stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] = "Удары крестоносца не добавлены в ряд отслеживаемых полос менеджера восстановления Blizzard, поэтому строка Ударов крестоносца на полосе ресурсов остаётся пустой. Добавьте их туда (Режим редактирования → Менеджер восстановления → Отслеживаемые полосы)."

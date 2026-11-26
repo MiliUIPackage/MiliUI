@@ -125,7 +125,8 @@ R.AuraStacks = AuraStacks
 local function GetValue(key)
     local def = R.RESOURCES[key]
     if not def then return 0, 0 end
-    if def.mode == "auraTimer" or def.mode == "mirror" then return 0, 0 end     -- 剩餘時間只在引擎／暴雪的條那邊，Lua 不讀
+    -- 剩餘時間只在引擎／暴雪的條那邊，Lua 不讀；揮擊是自己的計時（Modules/Resources_Swing.lua），不是資源量
+    if def.mode == "auraTimer" or def.mode == "mirror" or def.mode == "swing" then return 0, 0 end
     if def.get then return def.get() end
     if def.aura then return AuraStacks(def.aura), def.max end
     if def.auras then return AuraStacks(def.auras[1]), R.SegmentsFor(key) end
@@ -225,6 +226,10 @@ R.gateLog = gateLog
 local function Available(key)
     local def = R.RESOURCES[key]
     if not def then return false, "沒有定義" end
+    if def.swing then
+        if R.SwingAvailable() then return true, "客戶端有揮擊事件" end
+        return false, "客戶端沒有揮擊事件"
+    end
     if def.mode == "mirror" then
         if SpellKnown(def.passive) then return true, "被動已學" end
         return false, "被動未學（天賦沒點）"
@@ -331,6 +336,8 @@ function R.Candidates()
     local raw = R.RawList(CLASS, specID, DruidForm())
     -- 血量每個專精都有（預設關，見 R.DefaultOn）：RawList 不動，在這裡接到最後
     if specID then raw[#raw + 1] = "Health" end
+    -- 揮擊：客戶端有揮擊事件就是候選，預設排在職業資源上方（玩家可以重排；Available 再把一次關）
+    if specID and R.SwingAvailable() then table.insert(raw, 1, "Swing") end
     for k in pairs(gateLog) do gateLog[k] = nil end
     local list = {}
     for _, key in ipairs(raw) do
@@ -1077,6 +1084,7 @@ function R.KeyRowHeight(cfg, key)
     if def and def.crusading then
         return tonumber(type(cfg) == "table" and cfg.crusadingHeight) or 4
     end
+    if def and def.swing then return 4 end          -- 揮擊列：同征戰聖擊列的細條
     return RowHeight(cfg)
 end
 
@@ -1454,7 +1462,7 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
     row.text:SetShown(showText and mode ~= "engine" and mode ~= "timerIdle" and not def.noText)
 
     local isPip = mode == "pip" and numSeg and numSeg > 0
-    local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle" or mode == "mirror"
+    local isBar = mode == "bar" or mode == "absorbBar" or mode == "timerIdle" or mode == "mirror" or mode == "swing"
     row.barBG:SetShown(isBar)
     row.bar:SetShown(isBar)
     if isBar then PaintEdges(row.barEdges, R.BorderSize(cfg), R.BorderColor(cfg)) end
@@ -1482,6 +1490,10 @@ local function LayoutRow(row, key, cfg, numSeg, W, H)
         row.barBG:SetTexture(R.BgTexture(cfg))
         if mode == "mirror" then
             R.PaintMirror(row, key, cfg, reversed)
+            return
+        end
+        if mode == "swing" then
+            R.PaintSwing(row, key, cfg, reversed)
             return
         end
         if mode == "absorbBar" then
@@ -1723,6 +1735,7 @@ local function Relayout(cfg, list, W)
     end
     shownCount = #list
     R.SetMirrorDriver(rows, shownCount, cfg)
+    if R.SetSwingDriver then R.SetSwingDriver(rows, shownCount, cfg) end
     SyncUnitEvents()
     -- 一列都不剩（沒有列、或全部拆走）：高度 1（不能是 0，見 Core/Bars.lua 收合那段）
     ns.Bars.SetPanelSize("resources", ns.P.Scale(panelPx), #main > 0 and total or 1)
@@ -1768,6 +1781,7 @@ function R.Update(force)
         R.SyncDetached(R.det.none)       -- 拆出去的面板跟著收（閒置）
         if ns.DevourerMeta then ns.DevourerMeta.Reset() end
         R.SetMirrorDriver(rows, 0, cfg)
+        if R.SetSwingDriver then R.SetSwingDriver(rows, 0, cfg) end
         SyncUnitEvents()
         return
     end
@@ -2213,6 +2227,7 @@ function R.DebugLines()
         end
     end
     if CLASS == "DEMONHUNTER" and ns.DevourerMeta then out[#out + 1] = "  " .. ns.DevourerMeta.DebugLine() end
+    if R.Swing and R.Swing.DebugLines then R.Swing.DebugLines(function(s) out[#out + 1] = s end) end
     for key, why in pairs(gateLog) do
         local listed = false
         for i = 1, shownCount do if rows[i].key == key then listed = true end end

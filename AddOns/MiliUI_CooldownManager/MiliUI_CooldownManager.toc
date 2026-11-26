@@ -85,6 +85,7 @@ Modules\EchoWindow.lua
 Modules\Resources.lua
 Modules\Resources_Defs.lua
 Modules\Resources_Rows.lua
+Modules\Resources_Swing.lua
 Modules\Pips.lua
 Modules\CustomBars.lua
 Modules\ProcDeck.lua

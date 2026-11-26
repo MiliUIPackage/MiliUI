@@ -95,3 +95,15 @@ Forever 獨有：`Blizzard_SwingTimer`、`Blizzard_LegacySystem`、`Blizzard_Leg
 - **永恆版 `GameMenuFrame.Header` 的 frame level 是 506，不是 +1**：永恆多了手把用的 `FrameGlow`（XML 寫死 `frameLevel="505"`），`FrameGlowMixin:OnLoad` 會 `headerFrame:SetFrameLevel(self:GetFrameLevel() + 1)`（Blizzard_SharedXMLBase/FocusEffects.lua）。凡是 `layoutType = DialogFrameWithHeaderTemplate` 且帶 `FrameGlow` 的框都一樣。掛在這種框上、會蓋到標題的自製子框，層級要**讀 `Header:GetFrameLevel()` 再往上疊**，不要寫死「父框 +N」（`MiliUI/Enhance/GameMenu_MiliUIButton.lua` 的 `RaiseMenu`）。
 - **永恆不要在同一次點擊裡「先 `HideUIPanel(GameMenuFrame)` 再 `ReloadUI()`」**：`C_UI.Reload()` 會被擋（taint.log：`An action was blocked because of taint from MiliUI - Reload()`），介面不重載、跳暴雪的插件被阻擋彈窗；正式服同一段沒事。拿掉前面的 `HideUIPanel` 就好了（使用者實機確認）。確切機制沒查到，只知道永恆版 GameMenuFrame 收起來時多跑一段 `InputUtil.RegisterForInterfaceTransitions` 的手把／焦點轉場。
 - **這類錯誤 BugSack 看不到**：套組那份 BugGrabber 把 `ADDON_ACTION_FORBIDDEN`／`BLOCKED` 的 `grabError` 註解掉了。要查就 `/console taintLog 2` → `/reload` → 重現，讀 `_forever_/Logs/taint.log` grep `blocked`。
+
+
+## 實機回報（2026-11-26，揮擊事件與五秒回魔；1.60.1.71139，薩滿 1 級＋獵人 6 級，野外）
+
+探針查的，結果已用在 MCDM 的揮擊列與五秒回魔游標（`Modules/Resources_Swing.lua`）。
+
+- **`PLAYER_SWING(swingDuration, swingType)` 給插件的值戰鬥中是明文**，而且暴雪自己的揮擊條關掉（CVar `showSwingTimer = 0`）**照樣派** ⇒ 插件可以完全取代暴雪那條。類型 0 主手、1 副手、2 遠程；獵人的自動射擊（2）與近戰（0）交替出現。第一刀在 `InCombatLockdown` 變 true 之前就派。施法會拖延下一刀，**沒有事件通知**（1.86 秒的武器中間讀一發治療波，下一刀隔 5 秒才來）。
+- **正式服沒有這個事件**：12.1.5 live 沒有 `Blizzard_SwingTimer`；12.1.7 PTR（71087）帶著檔案但 TOC 標 `AllowLoadGameType: camelot`、API 文件只有 Edit Mode 的常數。正式服自己算不出來（戰鬥記錄全封）。判斷用 `C_EventUtils.IsEventValid("PLAYER_SWING")`，不要寫版本。
+- **`UNIT_SPELLCAST_SUCCEEDED` 的 spellID 對玩家自己在野外戰鬥中是明文**，`C_Spell.GetSpellPowerCost` 查得到耗魔（明文）；自動射擊 75、登入特效 836 回「沒有消耗」。「下一刀生效」的技能（猛禽一擊）施法成功事件跟那一刀同時到。副本／首領戰裡沒測。
+- **法力 `UnitPower` 永遠是秘密值（脫戰也是）**；`GetManaRegen()` 脫戰明文（基礎 6.251／施法中 0.001）、戰鬥中秘密，而且**施法後數字不變** ⇒ 五秒規則的結束沒有訊號可對時，只能從施法那一刻起算固定 5 秒。沒有任何五秒規則／回魔跳動的 API。
+- **獵人在永恆版用法力**（猛禽一擊耗魔 10）。
+- 同類插件（FiveSecondRule、LH MP5、Full Mana Forever）在永恆都是「施法事件＋法術耗魔」起算；永恆有沒有兩秒一跳的回魔，各家說法矛盾，沒查證。

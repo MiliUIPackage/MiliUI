@@ -210,6 +210,10 @@ local RESOURCES = {
     --   預設值照德莫的征戰聖擊助手：高 4、已揮的時間左→右長出、黑底 60%），不印秒數（1.5 秒一刀，數字讀不完）
     CrusadingStrikes = { name = SpellName(404542, "Crusading Strikes"), nameSpell = 404542, mode = "mirror",
                         passive = 404542, crusading = true, noText = true },
+    -- 揮擊（下一次普攻／自動射擊的計時條，Modules/Resources_Swing.lua）：客戶端有 PLAYER_SWING 才是候選
+    -- （R.SwingAvailable：永恆版有、正式服還沒有）；不在 RawList 裡，R.Candidates 插在最前面。
+    --   跟征戰聖擊列同一套規格：自己的高度（預設 4）、填充模式（swingFill）與底色（colors.Swing.backColor），不印秒數
+    Swing           = { name = L["Swing timer"], mode = "swing", swing = true, noText = true },
     -- 血量：每個專精都是候選、預設關（R.DefaultOn）；不在 RawList 裡，R.Candidates 附加在最後
     Health          = { name = PowerName("HEALTH", "Health"), mode = "bar", get = HealthValue, health = true },
 }
@@ -250,7 +254,8 @@ end
 
 -- 引擎寫值的列（auraBar 層數、auraTimer 剩餘時間、auraPct 百分比）：Lua 這邊沒有值
 -- mirror（征戰聖擊）也算：值是從暴雪的條原封轉手的秘密值，Lua 一樣沒得比
-local ENGINE_MODES = { auraBar = true, auraTimer = true, auraPct = true, mirror = true }
+-- swing（揮擊）也算：值是我們自己的計時，不是資源量，條件規則沒有東西可比
+local ENGINE_MODES = { auraBar = true, auraTimer = true, auraPct = true, mirror = true, swing = true }
 function R.EngineDriven(key)
     local def = RESOURCES[key]
     return def ~= nil and ENGINE_MODES[def.mode] == true
@@ -260,6 +265,19 @@ end
 function R.SupportsConditions(key)
     local def = RESOURCES[key]
     return def ~= nil and not ENGINE_MODES[def.mode] and not def.health
+end
+
+-- 揮擊列有沒有訊號來源：客戶端認不認得 PLAYER_SWING（**看能力不看版本**：正式服哪天開放，這一列自己出現）。
+-- 問一次就記住（事件名冊在一次遊戲裡不會變）
+local swingAvailable
+function R.SwingAvailable()
+    if swingAvailable == nil then
+        local fn = C_EventUtils and C_EventUtils.IsEventValid
+        local ok, v = false, false
+        if fn then ok, v = pcall(fn, "PLAYER_SWING") end
+        swingAvailable = (ok and v == true) or false
+    end
+    return swingAvailable
 end
 
 -- 純函式：一列實際的畫法。容器就緒 ⇒ engine；沒好時 auraBar 退回明文點數、auraTimer 退回空條、
@@ -326,9 +344,19 @@ local DEFAULT_OFF = {
 }
 -- 每個專精都預設不顯示的：血量（單位框架本來就有血條，這裡是給想看的人勾起來的）
 local ALWAYS_OFF = { Health = true }
+-- 揮擊列預設不顯示的：平常不靠普攻的（法系、治療）。永恆版的 key 是負的 classID（牧師 5、法師 8、術士 9）；
+-- 正式服的專精先列好，等客戶端有揮擊事件那天直接生效
+local SWING_OFF = {
+    [-5] = true, [-8] = true, [-9] = true,
+    [62] = true, [63] = true, [64] = true, [256] = true, [257] = true, [258] = true,
+    [265] = true, [266] = true, [267] = true, [102] = true, [105] = true, [262] = true, [264] = true,
+    [65] = true, [270] = true, [1467] = true, [1468] = true, [1473] = true,
+}
+R.SWING_OFF = SWING_OFF
 -- 純函式：這個專精的這一列預設是不是顯示
 function R.DefaultOn(specID, key)
     if ALWAYS_OFF[key] then return false end
+    if key == "Swing" then return not (specID and SWING_OFF[specID]) end
     local t = specID and DEFAULT_OFF[specID]
     return not (t and t[key])
 end
@@ -386,7 +414,7 @@ local DRUID_BEAR, DRUID_CAT = 5, 1
 -- 永恆版（ns.IS_FOREVER）：ns.specID 是職業層的固定 key（負的 classID，Core/Init.lua 的 ns.RefreshSpec），不在上面
 -- 任何一張專精表裡。Vanilla 的職業資源只有法力／怒氣／能量／連擊點 ⇒ 照職業給，沒列的職業（聖騎、獵人、牧師、
 -- 薩滿、法師、術士）都是法力；德魯伊照型態，法力每個型態都列（變形要花法力）。天賦閘照舊（上限 0 的列不顯示）。
--- 連擊點讀目標身上的（RESOURCES.ComboPoints.targetBound，見上面）。永恆版待實機確認：獵人是不是用法力
+-- 連擊點讀目標身上的（RESOURCES.ComboPoints.targetBound，見上面）。獵人用法力（2026-11-26 實機：猛禽一擊耗魔 10）
 local FOREVER_RESOURCES = { WARRIOR = { "Rage" }, ROGUE = { "Energy", "ComboPoints" } }
 
 -- 純函式（離線測試用）：職業、專精、德魯伊型態 → 這個專精該有的資源 key（還沒套天賦閘）

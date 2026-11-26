@@ -1133,6 +1133,12 @@ local function UpdateRow(row, cfg)
         ClearRowOverrides(row)
         return
     end
+    if row.mode == "swing" then
+        R.SwingRow(row)
+        row.text:SetText("")
+        ClearRowOverrides(row)
+        return
+    end
     if row.mode == "timerIdle" then
         -- 剩餘時間條的容器還沒好（戰鬥中、建失敗）：空條，底色同連續條
         local d = R.TimerBg(cfg, key, ResolveColor(cfg, key, "color"), timerDimScratch)

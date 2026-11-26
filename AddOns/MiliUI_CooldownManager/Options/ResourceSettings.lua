@@ -356,6 +356,16 @@ local function AppendColors(add, key, info)
             add(Note("|cffff5555" .. L["Crusading Strikes isn't in the Tracked Bars row of Blizzard's Cooldown Manager, so this row stays empty. Add it there (Edit Mode → Cooldown Manager → Tracked Bars)."] .. "|r"))
         end
         add(Note(L["This row copies Blizzard's Crusading Strikes bar, so Crusading Strikes must stay in the Tracked Bars row of Blizzard's Cooldown Manager. With the option above on, that bar is taken off the buff bars while this row shows; it keeps updating out of sight. This row has its own height, shows no number, and condition rules don't apply."]))
+    elseif key == "Swing" then
+        -- 揮擊列：同征戰聖擊列的兩樣（底色、填充模式）；底色的不透明度照外觀的「背景不透明度」
+        add(BS("color", "colors.Swing.backColor", L["Background color"], { hasAlpha = false }))
+        add(BS("dropdown", "swingFill", L["Bar fills with"], { items = CRUSADING_FILL_ITEMS }))
+        add(Note(L["Counts the time between your auto attacks, or between auto shots while you're shooting. Off-hand swings aren't shown. This row has its own height, shows no number, and condition rules don't apply."]))
+    elseif key == "Mana" and ns.IS_FOREVER then
+        -- 五秒回魔游標（永恆版才有這個機制，Modules/Resources_Swing.lua）
+        add(BS("toggle", "fsrCursor", L["Five-second rule marker"]))
+        add(BS("color", "colors.Mana.fsrColor", L["Marker color"], { hasAlpha = false }))
+        add(Note(L["After you spend mana, spirit-based mana regeneration stops for five seconds. A line sweeps across the mana bar during that time; when it reaches the end, regeneration is back. A cast made free by an effect may still restart it."]))
     elseif key == "Ironfur" then
         add(Note(L["One segment per active application, each draining with its own remaining time."]))
     elseif key == "Health" then
@@ -365,8 +375,8 @@ local function AppendColors(add, key, info)
         add(Note(L["Once health drops below a threshold, the bar switches to that threshold's color. The game decides which side of the line you are on, so it also works in instanced combat."]))
         add(HealthThresholdRow())
     end
-    if info.crusading then
-        -- 征戰聖擊的說明在上面那段（鏡射暴雪的追蹤量條）
+    if info.crusading or info.swing then
+        -- 征戰聖擊的說明在上面那段（鏡射暴雪的追蹤量條）；揮擊列的也是
     elseif info.castTimers then
         -- 鐵鬃：條身與層數由引擎畫，刻度線依施放推算（說明在「文字」那一節）
         add(Note(L["%s: the game fills this row in itself, so it stays right in combat. Condition rules don't apply."]:format(R.Name(key))))
@@ -670,9 +680,8 @@ local function Controls(key)
     if Segmented(info) then
         add(LS("slider", key, "segmentSpacing", L["Segment spacing"], { min = 0, max = 8, step = 1 }))
     end
-    if not info.crusading then
-        add(LS("dropdown", key, "fillDirection", L["Fill direction"], { items = FILL_ITEMS }))
-    end
+    -- 征戰聖擊列也給（使用者 2026-11-26 指定；R.PaintMirror 本來就照這個方向畫，以前只是沒放控件）
+    add(LS("dropdown", key, "fillDirection", L["Fill direction"], { items = FILL_ITEMS }))
     -- 「顯示數字」是這一列獨立的設定（使用者 2026-10-03 指定，資源條頁沒有統一的開關）：存在 style.<key>.showText；
     -- 沒存過時沿用舊的全域欄位 resources.showText（舊存檔的值，預設開），所以不給右鍵重設；字型、字級仍在外觀那一節跟著「跟隨」走
     -- 鐵鬃（castTimers）的文字是「文字」一節的兩個勾選，不走這個開關

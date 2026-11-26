@@ -214,7 +214,8 @@ end
 --   預設值本身每次 BuildDefaults 都是全新深複製，不會被外面改到。
 ------------------------------------------------------------
 local RESOURCE_COLORS = {
-    Mana            = { color = { r = 0.2,   g = 0.5,   b = 1     } },
+    -- fsrColor：五秒回魔游標（永恆版，法力列上的那條線）：白色
+    Mana            = { color = { r = 0.2,   g = 0.5,   b = 1     }, fsrColor = { r = 1, g = 1, b = 1 } },
     Rage            = { color = { r = 0.78,  g = 0.25,  b = 0.25  } },
     Energy          = { color = { r = 1,     g = 0.96,  b = 0.41  } },
     Focus           = { color = { r = 1,     g = 0.5,   b = 0.25  } },
@@ -263,6 +264,9 @@ local RESOURCE_COLORS = {
     -- 征戰聖擊：照德莫的征戰聖擊助手的預設（聖騎職業色填充、黑底 60%）；底色帶 alpha
     CrusadingStrikes = { color     = { r = 0.9568, g = 0.5490, b = 0.7294 },
                          backColor = { r = 0, g = 0, b = 0, a = 0.6 } },
+    -- 揮擊列：白色填充、黑底 60%（使用者 2026-11-26 指定；白色不跟任何資源條撞色）
+    Swing           = { color     = { r = 1, g = 1, b = 1 },
+                        backColor = { r = 0, g = 0, b = 0, a = 0.6 } },
     -- 血量：預設走職業色（healthClassColor），這是關掉職業色時的顏色
     Health          = { color = { r = 0.2,  g = 0.8,  b = 0.2  } },
 }
@@ -364,6 +368,10 @@ ResourcesDefaults = function()
         crusadingHeight = 4,                   -- 沒有控件了：只當 heights.CrusadingStrikes 沒設時的起始值
         crusadingFill   = "elapsed",           -- elapsed | remaining
         crusadingHideBar = true,               -- 這一列顯示時，增益長條上的征戰聖擊自動藏起來
+        -- 揮擊列（Modules/Resources_Swing.lua；客戶端有 PLAYER_SWING 才有這一列）：填充模式同征戰聖擊列
+        swingFill       = "elapsed",           -- elapsed | remaining
+        -- 五秒回魔游標（永恆版）：花了法力之後，法力列上一條線掃五秒
+        fsrCursor       = true,
         -- [資源key] = { rule, … }：開放式鍵值表。預設只給新設定檔（Atomic：已有 conditions 的設定檔不合併，
         -- 規則刪光也不會被補回來）。聖能／氣旋武器的兩段換色是使用者 2026-10-01 調好的
         conditions    = Atomic({
