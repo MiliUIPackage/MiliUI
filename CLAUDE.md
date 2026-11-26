@@ -13,6 +13,11 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 **agent 在工作分支上做完的修改，要主動合進 master 並 push，不用先問** —— 使用者是拉 master
 進遊戲測試的，只推工作分支等於沒交件。合之前照常跑 `check-all.sh`。
 
+**合進 master 並 push 之後，跑一次 `bash .claude/scripts/prune-merged-branches.sh`** —— 它會刪掉
+已經合進 master、而且沒有 worktree 簽出中的 `claude/*` 本地分支（`git branch -d`，沒合併的刪不掉）。
+自己這個 worktree 的分支 git 不准刪，會留給下一個工作階段掃掉，這是正常的。worktree 本身不要自己刪
+（那是 app 在管的；堆在 `Interface/` 裡太多會拖垮 Battle.net 的權限檢查，2026-11 曾堆到 245 個）。
+
 （`ptr-12.1` 在 2026-08-12 併回 master 之後就刪掉了；本機殘留的 `unitframes` 是
 單位框架還在獨立 repo 時期的舊分支，跟 master 不同 root，已無用途。
 下次改版要開工程分支再照 `ptr-<版本>` 的慣例開一條。）
@@ -25,7 +30,7 @@ repo 是**公開的**（github.com/MiliUIPackage/MiliUI），玩家會整包 clo
 |---|---|
 | [.claude/skills/](.claude/skills/) | 技能，會依情境自動觸發，附帶的腳本放各自的 `scripts/` |
 | [.claude/notes/](.claude/notes/) | API 規則與各插件現況，索引在 [notes/README.md](.claude/notes/README.md) |
-| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`／`check_forks.py`／`run_tests.sh`，以及 `third-party-manifest.py --check`、`notes-index.py --check`）、`sync-notes.sh`（把 memory 匯出成 notes，順手重寫索引）、`sync-widgets.py`（把共用層從本體同步到各插件）、`third-party-manifest.py`（產生根目錄的 `THIRD_PARTY.md`：第三方插件的上游／版本／最近同步，`update:` 之後要重跑）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
+| [.claude/scripts/](.claude/scripts/) | 不屬於任何單一技能的工具：`check-all.sh`（提交前檢查，底下是 `check_lua.py`／`check_cell.py`／`check_toc.py`／`check_locales.py`／`check_skin.py`／`check_forks.py`／`run_tests.sh`，以及 `third-party-manifest.py --check`、`notes-index.py --check`）、`sync-notes.sh`（把 memory 匯出成 notes，順手重寫索引）、`sync-widgets.py`（把共用層從本體同步到各插件）、`third-party-manifest.py`（產生根目錄的 `THIRD_PARTY.md`：第三方插件的上游／版本／最近同步，`update:` 之後要重跑）、`prune-merged-branches.sh`（合併後清掉已合進 master 的 `claude/*` 分支）、`release-notes.sh`（給 `miliui-release-notes` 技能用）、`cell-mouse-icons.py` |
 | [.claude/patches/](.claude/patches/) | 第三方插件本地修補的**重套腳本**（上游更新洗掉後跑一下就回來），慣例見裡面的 README |
 
 `.claude/*.local.json` 是個人設定，不進版控。
