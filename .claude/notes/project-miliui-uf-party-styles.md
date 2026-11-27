@@ -1,0 +1,24 @@
+---
+name: project-miliui-uf-party-styles
+description: MiliUI_UnitFrames 隊伍框架（party1-4，預設關）與樣式快速選擇（經典頭像／精簡條／頭像卡）的架構要點與待驗證
+metadata:
+  type: project
+---
+
+2026-11-27 加進 [[project-miliui-unit-frame]]：
+
+**隊伍框架**（`7b0cbbe50`，使用者實機測過 OK 並已發佈）
+- unitKey `party`、token party1-4、框名 `MiliUIUF_Party1..4`，不含自己、不做團隊（團隊交給 Cell）。`enabled = false`，新鍵靠 MergeDefaults 補，沒有遷移。
+- **`uf.stackIndex` 是版面用的疊排索引**（所有 `MULTI_UNIT_KEYS` 的框都有）；`uf.bossIndex` 只剩 bossN 本身有，語意是「第幾隻首領」（Portrait 拿它對地城手冊 displayID）。新的多格單位一律讀 stackIndex。
+- 顯示條件 `visGroup = "party"`：進團隊 party token 仍存在，靠閘框藏。被閘框藏住的框 IsShown 為真 ⇒ 距離與文字輪詢改看 `IsVisible`。
+- 換人只靠 `GROUP_ROSTER_UPDATE` 比 GUID（`Core/Events.lua` 的 `RefreshPartyMembers`），換了才推 unitchanged 並 `Fire("PartyUnitChanged")` 重戳光環。
+- 藏暴雪隊伍框：`PartyFrame` reparent、成員框與 `CompactPartyFrame` 只解事件；不 SetScript。
+- 職責圖示 `icons.role`（只有 party 預設值有這個鍵），`UnitGroupRolesAssigned` 先 Desecret。
+- 預覽：停用的單位不建孿生，勾起來時由 `Preview.Rebuild` 補建；party 四格固定假資料（`PARTY_SLOTS`）。
+
+**樣式快速選擇**（`c58d2c127`，合進本機 master，**版面數字未實機看過**）
+- 樣式＝一包設定值，不是活的底層。`Core/Styles.lua`：`Build`（classic 就是 BuildDefaults）、`PRESERVE` 保留清單（唯一一張表）、`Compose`、`ApplyMany`／`Undo`（快照一層、只在記憶體）。支援 player／target／focus／party。
+- 試穿：`Preview.SetOverride(unitKey, tbl, tag)` 讓孿生的 `uf.db` 指到臨時表；重指 uf.db 一律走 `TwinDB`。試穿中拖曳寫回存檔。
+- 套用後寫 `udb.style`（不進預設值）。`BuildElements` 多一條：設定表裡沒有、框上卻建過的元件要收掉（專注目標的頭像卡借了頭像元件）。
+- 使用者定案：樣式不改顏色方式；頭像卡在玩家與目標鏡像。我的決定（使用者未確認）：專注目標精簡條維持 120 寬、頭像卡 200×44；套用範圍只有「這個單位／四個支援的單位」。
+- 設定頁按鈕用自己的 key `Apply style`（共用層的 `Apply` 在 zhTW 是「執行」）。

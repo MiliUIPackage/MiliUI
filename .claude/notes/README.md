@@ -148,6 +148,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-release-version.md](project-miliui-release-version.md) | MiliUI 發佈版本號：TOC `## Version` 是 YYYYMMDD，發佈要改、版本廣播靠它；新 SendAddonMessage 一律過 `ns.IsCommRestricted`（Init.lua） |
 | [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | 單位框「換目標後名字停在上一個」的診斷：`/muf debug` 重畫時間線＋看門狗只記不修；根因至今未在實機抓到；全同步引擎不能抄 |
 | [project-miliui-unit-frame.md](project-miliui-unit-frame.md) | MiliUI_UnitFrames（v1.4.8）十個單位框；MergeDefaults 兩道閘（刪條目記 false、版本號不回收）；疊加層走全域 API、計算器 getter 先落地；模型永遠 Show、父框秘密 alpha 不繼承；ENCOUNTER_START 時 boss token 還不存在；只看自己單位的事件綁 token；提示走 GameTooltip_SetDefaultAnchor；符文數字二選一別再改 |
+| [project-miliui-uf-party-styles.md](project-miliui-uf-party-styles.md) | 隊伍框架 party1-4（預設關、stackIndex 與 bossIndex 分工、換人比 GUID）；樣式快速選擇＝一包設定值（PRESERVE 保留清單、試穿走 Preview.SetOverride、快照只留一層）；樣式版面數字未實機 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip：取代 TinyTooltip 的自製滑鼠提示；taint 接觸面清單、接管清單含 FriendsTooltip 與 `MiliUITip_API.Adopt`；戰鬥中秘密 token 與 Leatrix 殘留兩次破案的規則 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件用兩層閘框（DB v19 顯示時機 OR＋限制優先）：外層 `RegisterStateDriver` 戰鬥中照樣切、內層只剩副本；超出距離預設疊暗色不降 alpha；血量不滿不淡出走曲線、模型要 SetIgnoreParentAlpha |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 註解不點名第三方插件，判準是 repo 裡有沒有複製到那個檔案；PixelPerfect.lua 與四張貼圖、關於頁致謝是僅有的例外 |
@@ -255,7 +256,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-tinyinspect-secret-guid.md](project-tinyinspect-secret-guid.md) | TinyInspect 秘密 GUID —— 讀不到就退回比對 unit token |
 
 <!-- notes-index:start -->
-## 全部筆記（自動產生，共 183 篇）
+## 全部筆記（自動產生，共 184 篇）
 
 由 `python3 .claude/scripts/notes-index.py` 從各篇 frontmatter 的 `description` 產生；`sync-notes.sh` 匯出後會自動重寫。上面的分組索引是人手整理的，這裡保證不漏篇。
 
@@ -424,6 +425,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-snap-bars.md](project-miliui-snap-bars.md) | 套組各插件的框互相磁吸（MiliUISnap v4）——標記列／藥水列／傷害統計視窗貼附跟隨、其他框放手對齊、滑鼠淡出群組；vendor 複製（以 ls 為準）、接點、為什麼有些框不貼附 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip — 取代 TinyTooltip 的自製滑鼠提示重寫版（物品／法術／單位走重繪面板）：taint 接觸面清單、架構決策、接管名單（含 FriendsTooltip 與 MiliUITip_API.Adopt）、v1 刻意捨棄的功能、戰鬥中秘密值與 Leatrix 殘留兩次破案的規則 |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 自製插件的註解與 .claude/notes 都不點名第三方插件；只有「實際複製過來的檔案」與致謝區塊要留出處；判準是 repo 裡有沒有那個東西 |
+| [project-miliui-uf-party-styles.md](project-miliui-uf-party-styles.md) | MiliUI_UnitFrames 隊伍框架（party1-4，預設關）與樣式快速選擇（經典頭像／精簡條／頭像卡）的架構要點與待驗證 |
 | [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | MiliUI_UnitFrames「換目標後名字停在上一個單位」的診斷設計（/muf debug 的重畫時間線、看門狗只記不修）與另一支頭像引擎的對照；根因至今未在實機抓到 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | MiliUI_UnitFrames 的顯示條件走「兩層閘框」（外層 RegisterStateDriver 巨集條件、內層 Lua 只剩副本類型，DB v19 顯示時機 OR＋限制優先）；整框透明度單一出口與脫戰淡出的兩個例外（有目標／血量不滿走曲線，秘密 alpha 模型不繼承） |
 | [project-miliui-uf-visual-bounds.md](project-miliui-uf-visual-bounds.md) | MiliUI_UnitFrames 的「視覺框體」不等於框架矩形——魔力條露出去的那截才是對齊基準；露出框外的元件各自要有自己的 ping 接收器與暗色遮罩 |
