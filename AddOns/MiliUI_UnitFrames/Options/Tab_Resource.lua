@@ -104,7 +104,7 @@ local function BuildControls()
         { type = "dropdown", key = "follow", label = L["Align to"],
           items = { { text = L["Power bar"], value = "mpbar" }, { text = L["Health bar"], value = "hpbar" },
                     { text = L["Whole frame"], value = "frame" }, { text = L["Not aligned (my own numbers)"], value = "none" } } },
-        { type = "text", label = L["The left edge and width come from the bar picked here, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned."] },
+        { type = "text", label = L["The left edge and width come from the bar picked here, and Y is measured down from that bar's bottom edge, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned; Y is then measured from the bottom of the frame."] },
         { type = "numbers", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
         { type = "text",   label = L["Offset from the bottom-left corner of the player frame (negative goes down)."] },
         { type = "slider", key = "totalw",     label = L["Total width"],   min = 40, max = 400, step = 2 },

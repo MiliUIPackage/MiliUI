@@ -483,9 +483,10 @@ function DB.BuildDefaults()
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
-                    -- follow：左緣與寬度跟著哪條走（Core/UnitFrame.lua 的 ns.FollowSpan）。預設能量條：
-                    -- 經典樣式算出來就是 x = 8、寬 200；x／totalw 留著給「不對齊」時用
-                    classpower = { enabled = true, follow = "mpbar", x = 8, y = -14, totalw = 200, h = 6,
+                    -- follow：左緣、寬度與 Y 的起算點跟著哪條走（Core/UnitFrame.lua 的 ns.FollowSpan）。預設能量條：
+                    -- 經典樣式算出來就是 x = 8、寬 200；x／totalw 留著給「不對齊」時用。
+                    -- y 從對齊的那條的**底邊**往下算（v26）：經典的能量條凸出框底 8，所以 -6 ＝ 以前的框底 -14
+                    classpower = { enabled = true, follow = "mpbar", x = 8, y = -6, totalw = 200, h = 6,
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = true,
                                    runeText = "countdown",  -- 死騎符文列的數字：countdown／count，showText 開著才有（見 ClassPower.lua 的 RuneText）
@@ -507,8 +508,9 @@ function DB.BuildDefaults()
                                    colors = ResourceColors() },
                     -- 小魔力條：設定完全獨立，但錨點語意與外觀比照資源條
                     -- （TOPLEFT 對框架 BOTTOMLEFT、底色＋1px 黑邊）。
-                    -- 版面：框底 →6px→ 魔力條(6) →2px→ 資源條(y=-14, 6) 不重疊
-                    manabar = { enabled = true, follow = "mpbar", x = 8, y = -6, w = 200, h = 6, level = 6,
+                    -- 版面（y 從能量條底邊起算，v26）：魔力條 y = 2（壓著能量條最下面 2px，＝以前的框底 -6）
+                    -- →2px→ 資源條（y = -6，6 高）不重疊
+                    manabar = { enabled = true, follow = "mpbar", x = 8, y = 2, w = 200, h = 6, level = 6,
                                 color = { r = 0.2, g = 0.5, b = 1, a = 1 },   -- 法力藍
                                 barAlpha = 1, bgAlpha = 0.8, border = true },
                     -- 框層文字（名字／等級／狀態）。血量、能量數字在各自的條底下（hpbar.texts／mpbar.texts）
@@ -1453,8 +1455,9 @@ function DB.BuildDefaults()
                 -- 座標語意與資源條同一組：TOPLEFT 對玩家框 BOTTOMLEFT（往下是負的），
                 -- 玩家框搬家就自己跟著走。
                 -- 版面：框底 →6→ 魔力條(y=-6, 6 高) →2→ 資源條(y=-14, 6 高) →5→ 召喚物(y=-25)
-                -- follow：左緣跟著哪條走（同資源條；圖示大小不跟），上面沒顯示就往上遞補
-                frame = { follow = "mpbar", x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT", scale = 100 },
+                -- follow：左緣與 Y 的起算點跟著哪條走（同資源條；圖示大小不跟），資源條不在就往上遞補。
+                -- y = -17 從能量條底邊起算（v26），＝以前的框底 -25
+                frame = { follow = "mpbar", x = 8, y = -17, iconSize = 28, spacing = 4, growth = "RIGHT", scale = 100 },
                 colors = "accent",       -- "accent" | "element"
                 swapEarthFire = true,
                 showTimeText = true,     -- 圖示上的剩餘秒數
@@ -2145,6 +2148,64 @@ local PROFILE_MIGRATIONS = {
                 end
             end
         end
+    end,
+
+    -- v26（2026-11-30）：玩家框底下那一疊的 Y 改成從「對齊的那條的底邊」起算（以前一律從框底）。
+    -- 原因：經典樣式的能量條凸出框底 8，精簡條／頭像卡的能量條就在框底 ⇒ 同一個 y 在後兩款
+    -- 離能量條多出 8，資源條看起來飄在半空（實際回報）。見 Core/UnitFrame.lua 的 ns.FollowSpan。
+    --
+    -- 轉換只做在對齊中（follow 不是 "none"）的元件，不對齊的照舊從框底算、數字不動：
+    --   * y 還等於舊預設（魔力小條 -6、資源條 -14、召喚物 -25）→ 換成新預設（2／-6／-17）。
+    --     經典樣式看起來完全一樣（新值就是舊值扣掉那 8）；已經套了精簡條／頭像卡的會貼回該有的距離
+    --     ——那正是這次要修的。
+    --   * y 是玩家自己調的 → 扣掉他**現在**對齊的那條的底邊位移，畫面位置不變。
+    -- 換算用的框高與條的位置缺欄位時拿預設值補（同 v23）。
+    [26] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local d = DB.BuildDefaults()
+        local pdb = type(units.player) == "table" and units.player or d.units.player
+        -- 目標底邊相對框底的位移（同 ns.FollowSpan 的第三個回傳值；這裡不能叫它：Core/UnitFrame.lua 比 DB 晚載入）
+        local function Bottom(follow)
+            if not follow or follow == "none" then return nil end
+            local els = type(pdb.elements) == "table" and pdb.elements or {}
+            local dels = d.units.player.elements
+            local fh = tonumber(type(pdb.frame) == "table" and pdb.frame.h) or d.units.player.frame.h
+            local function Bar(name)
+                local e, de = els[name], dels[name]
+                if type(e) ~= "table" or e.enabled == false then return nil end
+                local w = tonumber(e.w) or (de and de.w) or 0
+                if w <= 0 then return nil end
+                return (tonumber(e.y) or (de and de.y) or 0) - (tonumber(e.h) or (de and de.h) or 0) + fh
+            end
+            if follow == "mpbar" then
+                local b = Bar("mpbar")
+                if b then return b end
+                follow = "hpbar"
+            end
+            if follow == "hpbar" then
+                local b = Bar("hpbar")
+                if b then return b end
+            end
+            return 0
+        end
+        local function Convert(t, oldDefault, newDefault)
+            if type(t) ~= "table" then return end
+            local b = Bottom(t.follow)
+            if not b then return end
+            local y = tonumber(t.y)
+            if y == nil or y == oldDefault then
+                t.y = newDefault
+            else
+                t.y = y - b
+            end
+        end
+        local els = type(units.player) == "table" and units.player.elements
+        if type(els) == "table" then
+            Convert(els.manabar, -6, 2)
+            Convert(els.classpower, -14, -6)
+        end
+        Convert(type(units.totem) == "table" and units.totem.frame, -25, -17)
     end,
 }
 

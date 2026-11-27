@@ -1813,10 +1813,11 @@ local function Build(uf, edb)
     --   * 外觀：底色 + 四邊 1px 黑邊
     -- 預設值排在資源條「上面一點」，兩條不重疊（見 Core/DB.lua）
     -- 左緣與寬度：跟隨目標（預設能量條）或自己的 x／w，見 Core/UnitFrame.lua 的 ns.FollowSpan
-    local fx, fw = ns.FollowSpan(uf.db, edb.follow)
+    -- y 從對齊的那條的底邊起算（fb；不對齊時是 nil ⇒ 從框底）
+    local fx, fw, fb = ns.FollowSpan(uf.db, edb.follow)
     f:SetSize(ns.P.Scale(fw or edb.w or 200), ns.P.Scale(edb.h or 6))
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(fx or edb.x or 0), ns.P.Scale(edb.y or 0))
+    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(fx or edb.x or 0), ns.P.Scale((edb.y or 0) + (fb or 0)))
     f:SetFrameLevel(edb.level or 6)
     f:SetAlpha(edb.alpha or 1)
 

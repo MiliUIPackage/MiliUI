@@ -437,9 +437,10 @@ local function ApplyPosition()
     local pdb = ns.GetUnitDB("player")
     if puf and pdb then
         local ps = ns.FrameScale(pdb.frame)
-        local fx = ns.FollowSpan(pdb, db.frame.follow)
+        -- fb：對齊的那條的底邊相對框底多遠，y 從那裡起算
+        local fx, _, fb = ns.FollowSpan(pdb, db.frame.follow)
         if fx then x = fx * ps end
-        y = (y or 0) + ns.StackShift(puf, "totem") * ps
+        y = (y or 0) + ((fb or 0) + ns.StackShift(puf, "totem")) * ps
     end
     AnchorTo(x, y)
     -- 層級跟著全域設定走（Init 只設一次，改了設定要在這裡重套，不然要 /reload 才生效）
