@@ -1136,10 +1136,10 @@ function DB.BuildDefaults()
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
-                    -- 框層文字：名字（左上，讓出左邊的職責圖示）、狀態（底部置中）。
+                    -- 框層文字：名字（靠左、**上下置中**，使用者指定；讓出左邊的職責圖示）、狀態（底部置中）。
                     -- 不放等級與種族職業：隊友等級一樣、職業看血條顏色就知道
                     texts = {
-                        textDef{ pattern = "[name]", x = 19, y = -3, w = 110, h = 16, size = 13 },
+                        textDef{ pattern = "[name]", x = 19, y = 0, w = 110, h = 36, size = 13, justifyV = "MIDDLE" },
                         -- 狀態（超出距離／離線／死亡／鬼魂…）：跟目標框同一條 key，九個語系早就有翻譯
                         textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
                                  x = 0, y = 2, w = 168, h = 36, size = 11,
@@ -1189,7 +1189,8 @@ function DB.BuildDefaults()
                     icons = { enabled = true,
                               raidtarget = { enabled = true, x = 76, y = 8,  w = 16, h = 16, level = ICON_LEVEL },
                               leader     = { enabled = true, x = 5,  y = 8,  w = 10, h = 10, level = ICON_LEVEL },
-                              role       = { enabled = true, x = 3,  y = -4, w = 14, h = 14, level = ICON_LEVEL } },
+                              -- 職責圖示跟名字同一條中線：(36 − 14) / 2 = 11
+                              role       = { enabled = true, x = 3,  y = -11, w = 14, h = 14, level = ICON_LEVEL } },
                 },
             },
 
