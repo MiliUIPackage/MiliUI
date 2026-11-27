@@ -2,16 +2,20 @@
 -- 「快速設定」分頁：主設定視窗的第一頁（預設頁），ESC 選單「米利UI設定」按鈕左鍵直達
 --
 -- 左：分組標籤（第一顆「全部」），右：三欄卡片（縮圖在上、標題＋兩行簡介在下），
--- 點卡片直接開那支插件的設定。取代原本「滑過按鈕往上展開一整排插件名」的選單。
+-- 點卡片直接開那支插件的設定（主設定視窗不關，退到後面讓路），標題列右邊那顆
+-- 「開／關」切換插件的啟用狀態。取代原本「滑過按鈕往上展開一整排插件名」的選單。
 --
 -- 資料全部是被動的，這裡沒有任何清單要維護：
---   · 收錄＝名冊（Options/Roster.lua）裡「有設定入口、已安裝、啟用中」的條目
+--   · 收錄＝名冊（Options/Roster.lua）裡「有設定入口、已安裝」的條目（停用中的也列，
+--     整張壓暗、點了不開設定——不列的話關掉之後就沒地方開回來）
 --   · 分組＝各插件 TOC 的 Category（-語系），跟插件總覽同一支函式
 --   · 縮圖＝Media\Shots\<key>.png，沒有就露出底下的佔位層（插件圖示放大）
 --   · 標題／簡介＝TOC 的 Title／Notes（名冊的 desc 優先）
 -- 開設定的路由也是插件總覽那一套（ns.AddonInfo.OpenSettings）。
 --
--- 啟用／停用插件不在這裡做——那是隔壁「插件總覽」分頁的事（按鈕右鍵直達）。
+-- 開關是批次的，而且跟隔壁「插件總覽」共用同一份待套用清單（Info.SetDesired／GetDesired）：
+-- 按「開／關」只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
+-- 沒有設定入口的插件、沒列名冊的插件、除錯模式、CPU 用量仍然只在插件總覽。
 -- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
 local _, ns = ...
@@ -32,11 +36,14 @@ local TEXT_PAD   = 8
 local DESC_LINES = 2
 local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8
 local SHOTS_PATH = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
+local BAR_H      = 34           -- 底部套用列（有待套用變更才出現），跟插件總覽同高
 local ALL        = "\001all"    -- 「全部」標籤的鍵；不會跟任何 TOC 分類撞名
 
 local CARD_BG, CARD_BG_HOVER = { 0.115, 0.115, 0.115, 1 }, { 0.17, 0.17, 0.17, 1 }
+local OFF_ALPHA  = 0.4          -- 停用卡片的圖與字
 
-local tab, tabList, grid
+local tab, tabList, grid, gridHolder
+local applyText, applyBtn, discardBtn
 local cards = {}
 local groups = {}               -- { { key =, label =, entries = {} }, ... }，第一筆是「全部」
 local selected = ALL
@@ -54,16 +61,50 @@ local function CardTitle(entry)
     return s
 end
 
--- 卡片上的簡介：壓成一段純文字再交給 SetMaxLines 截斷。
+-- 卡片上的簡介：壓成一段純文字再交給 SetMaxLines 截斷。只有兩行的位置，所以先把
+-- 跟卡片標題重複的開場白拿掉。套組 TOC 的 Notes 幾乎都長這樣（段落用 |n 隔開）：
+--     MiliUI QoL            ← 英文名（整段沒有中文字）
+--     米利的便利功能。      ← 把標題再講一次
+--     商人自動修裝與賣垃圾…  ← 真正的說明
+--     使用方法: …           ← 怎麼開設定（卡片本身就是入口）
+-- 前兩段與「使用方法」那段都丟掉；丟到沒東西了就退回用「使用方法」，再沒有就整段照舊。
 -- ⚠ 一定要先把跳脫序列全部拿掉：截斷點落在 |c／|n 中間，漏出來的半截會被當字面印出來
 --   （插件總覽的詳情區為此乾脆不截斷；這裡只有兩行的位置，只能截）。
-local function CardDesc(entry)
-    local s = entry.desc or Info.EntryMeta(entry, "Notes") or ""
-    s = s:gsub("|T.-|t", ""):gsub("|A.-|a", "")
-    s = Info.StripCodes(s)
-    s = s:gsub("|n", " "):gsub("\n", " "):gsub("|", "")
-    s = s:gsub("%s+", " "):gsub("^ ", "")
-    return s
+local function CardDesc(entry, title)
+    local raw = entry.desc or Info.EntryMeta(entry, "Notes") or ""
+    raw = raw:gsub("|T.-|t", ""):gsub("|A.-|a", "")
+    raw = Info.StripCodes(raw)
+    raw = raw:gsub("|n", "\n")
+
+    local parts, usage = {}, {}
+    for line in raw:gmatch("[^\n]+") do
+        local para = line:gsub("|", ""):gsub("%s+", " "):gsub("^ ", "")
+        para = para:gsub(" $", "")
+        if para ~= "" then
+            if para:find("使用方法", 1, true) then
+                usage[#usage + 1] = para
+            else
+                parts[#parts + 1] = para
+            end
+        end
+    end
+    local all = table.concat(parts, " ")
+
+    -- 英文名那一段：整段沒有任何非 ASCII 位元組
+    if #parts + #usage > 1 and parts[1] and not parts[1]:find("[\128-\255]") then
+        table.remove(parts, 1)
+    end
+    -- 把標題再講一次的那一段：剝掉句號與「米利的／MiliUI」前綴後就是卡片標題（或它的結尾）
+    if #parts + #usage > 1 and parts[1] then
+        local head = parts[1]:gsub("。$", "")
+        head = head:gsub("^MiliUI[%s_]*", ""):gsub("^米利UI%s*", ""):gsub("^米利的", "")
+        if head ~= "" and (head == title or title:sub(-#head) == head) then
+            table.remove(parts, 1)
+        end
+    end
+    if #parts == 0 then parts = usage end
+    if #parts == 0 then return all end
+    return table.concat(parts, " ")
 end
 
 ------------------------------------------------------------
@@ -80,7 +121,7 @@ local function Rebuild()
     local byCat, order = {}, {}
 
     for _, e in ipairs(ns.AddonRoster.entries) do
-        if HasEntry(e) and installed[e.folders[1]] and Info.EntryEnabled(e) then
+        if HasEntry(e) and installed[e.folders[1]] then
             local cat = Info.EntryCategory(e)
             local g = byCat[cat]
             if not g then
@@ -105,7 +146,7 @@ local function Rebuild()
         for _, e in ipairs(g.entries) do all.entries[#all.entries + 1] = e end
     end
 
-    -- 上次選的那一組不見了（插件被停用）就退回「全部」
+    -- 上次選的那一組不見了（插件被移除）就退回「全部」
     local found
     for _, g in ipairs(groups) do
         if g.key == selected then found = true break end
@@ -116,13 +157,44 @@ end
 ------------------------------------------------------------
 -- 卡片
 ------------------------------------------------------------
+local UpdateApplyBar
+
+-- card.on＝畫面上的開關狀態（有待套用的變更就看變更後的）；card.changed＝有待套用的變更。
+-- 停用的卡片點了不開設定，所以滑過也不反白；有變更的卡片邊框換橘色（跟「待套用」同色）。
 local function PaintCard(card, hover)
+    hover = hover and card.on
     card:SetBackdropColor(unpack(hover and CARD_BG_HOVER or CARD_BG))
-    if hover then
+    if card.changed then
+        card:SetBackdropBorderColor(1, 0.6, 0, 1)
+    elseif hover then
         card:SetBackdropBorderColor(W.Accent(1))
     else
         card:SetBackdropBorderColor(0, 0, 0, 1)
     end
+end
+
+-- 開關狀態 → 卡片外觀。開關鈕本身表達狀態：開＝primary、關＝normal。
+local function PaintState(card)
+    local entry = card.entry
+    local on = Info.EntryEnabled(entry)
+    local want = Info.GetDesired(entry)
+    -- 不能寫 want ~= nil and want or on：want 是 false 時會 fall through
+    if want ~= nil then on = want end
+    card.on, card.changed = on, (want ~= nil)
+
+    local a = on and 1 or OFF_ALPHA
+    card.shot:SetDesaturated(not on)
+    card.shot:SetAlpha(a)
+    card.phIcon:SetDesaturated(not on)
+    card.phIcon:SetAlpha(a)
+    card.icon:SetDesaturated(not on)
+    card.icon:SetAlpha(a)
+    card.title:SetAlpha(a)
+    card.desc:SetAlpha(a)
+
+    card.toggle:SetText(on and "開" or "關")
+    W.SetButtonVariant(card.toggle, on and "primary" or "normal")
+    PaintCard(card, card:IsMouseOver())
 end
 
 local function CreateCard(parent)
@@ -157,10 +229,26 @@ local function CreateCard(parent)
     card.icon:SetPoint("TOPLEFT", ph, "BOTTOMLEFT", TEXT_PAD - 1, -7)
     card.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
+    -- 開關鈕：標題列右邊，跟圖示同一條中線（圖示上緣 -7、高 14；鈕高 18 ⇒ 上緣 -5）
+    -- ⚠ 卡片會回收：一律讀 card.entry，不把資料抓進 closure
+    card.toggle = W.CreateButton(card, "開", "primary", 30, 18)
+    card.toggle:SetPoint("TOPRIGHT", ph, "BOTTOMRIGHT", -(TEXT_PAD - 2), -5)
+    card.toggle:SetScript("OnClick", function()
+        local entry = card.entry
+        if not entry then return end
+        Info.SetDesired(entry, not card.on)
+        PaintState(card)
+        UpdateApplyBar()
+    end)
+    -- 子框會搶走滑鼠焦點：滑進開關鈕的瞬間卡片收到 OnLeave，滑出來時卡片不一定收到 OnEnter。
+    -- 所以卡片的反白一律用 IsMouseOver（幾何判定，游標在鈕上也算在卡片上）重畫。
+    card.toggle:HookScript("OnEnter", function() PaintCard(card, card:IsMouseOver()) end)
+    card.toggle:HookScript("OnLeave", function() PaintCard(card, card:IsMouseOver()) end)
+
     card.title = card:CreateFontString(nil, "OVERLAY")
     card.title:SetFontObject(W.fontNormal)
     card.title:SetPoint("LEFT", card.icon, "RIGHT", 5, 0)
-    card.title:SetPoint("RIGHT", card, "RIGHT", -TEXT_PAD, 0)
+    card.title:SetPoint("RIGHT", card.toggle, "LEFT", -6, 0)
     card.title:SetJustifyH("LEFT")
     card.title:SetWordWrap(false)
 
@@ -176,16 +264,16 @@ local function CreateCard(parent)
     card.desc:SetMaxLines(DESC_LINES)
 
     card:SetScript("OnEnter", function(self) PaintCard(self, true) end)
-    card:SetScript("OnLeave", function(self) PaintCard(self, false) end)
-    -- ⚠ 卡片會回收：一律讀 self.entry，不把資料抓進 closure
+    card:SetScript("OnLeave", function(self) PaintCard(self, self:IsMouseOver()) end)
     card:SetScript("OnClick", function(self)
         local entry = self.entry
-        if not entry then return end
+        -- 停用的（含「待套用：停用」「待套用：啟用」還沒重載的）不開設定
+        if not entry or not self.on or not Info.EntryEnabled(entry) then return end
         if InCombatLockdown() then
             ns.Print("戰鬥中無法開啟。")
             return
         end
-        Info.OpenSettings(entry)    -- 會先收掉主設定視窗，讓路給別家的視窗
+        Info.OpenSettings(entry)    -- 主設定視窗不關，退到後面讓路給別家的視窗
     end)
     return card
 end
@@ -197,9 +285,25 @@ local function FillCard(card, entry)
     card.icon:SetTexture(icon)
     card.shot:SetTexture(nil)
     card.shot:SetTexture(SHOTS_PATH .. entry.key .. ".png")
-    card.title:SetText(CardTitle(entry))
-    card.desc:SetText(CardDesc(entry))
-    PaintCard(card, card:IsMouseOver())
+    local title = CardTitle(entry)
+    card.title:SetText(title)
+    card.desc:SetText(CardDesc(entry, title))
+    PaintState(card)
+end
+
+------------------------------------------------------------
+-- 套用列（底部，有待套用變更才出現；卡片區跟著讓出高度）
+------------------------------------------------------------
+function UpdateApplyBar()
+    local n = Info.PendingCount()
+    local show = n > 0
+    if show then
+        applyText:SetText(("|cffff9900%d 項變更待套用|r"):format(n))
+    end
+    applyText:SetShown(show)
+    applyBtn:SetShown(show)
+    discardBtn:SetShown(show)
+    gridHolder:SetPoint("BOTTOMRIGHT", -8, show and (BAR_H + 8) or 12)
 end
 
 local function CurrentGroup()
@@ -313,7 +417,7 @@ local function Init()
     hint:SetFontObject(W.fontSmall)
     hint:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 7)
     hint:SetJustifyH("RIGHT")
-    hint:SetText("|cff888888點一張卡片開啟該插件的設定|r")
+    hint:SetText("|cff888888點卡片開啟該插件的設定；卡片上的「開／關」切換啟用，套用並重載後生效|r")
 
     tabList = W.CreateRowList(tab, TAB_W, 1, TAB_H, BuildTab)
     tabList:SetPoint("TOPLEFT", TAB_X, TOP_Y)
@@ -325,16 +429,39 @@ local function Init()
     local holder = CreateFrame("Frame", nil, tab)
     holder:SetPoint("TOPLEFT", GRID_X, TOP_Y)
     holder:SetPoint("BOTTOMRIGHT", -8, 12)
+    gridHolder = holder
     grid = W.CreateScrollFrame(holder)
+
+    -- 套用列：位置、用字、配色都跟插件總覽那一列一樣（同一份待套用清單的兩個入口）
+    applyBtn = W.CreateButton(tab, "套用並重載介面", "green", 140, 24)
+    applyBtn:SetPoint("BOTTOMRIGHT", -16, 8)
+    applyBtn:SetScript("OnClick", Info.ApplyPending)
+    applyBtn:Hide()
+
+    discardBtn = W.CreateButton(tab, "放棄變更", "normal", 90, 24)
+    discardBtn:SetPoint("RIGHT", applyBtn, "LEFT", -8, 0)
+    discardBtn:SetScript("OnClick", function()
+        Info.DiscardPending()
+        UpdateApplyBar()
+        for _, card in ipairs(cards) do
+            if card.entry then PaintState(card) end
+        end
+    end)
+    discardBtn:Hide()
+
+    applyText = tab:CreateFontString(nil, "OVERLAY")
+    applyText:SetFontObject(W.fontNormal)
+    applyText:SetPoint("RIGHT", discardBtn, "LEFT", -12, 0)
+    applyText:Hide()
 
     grid.empty = holder:CreateFontString(nil, "OVERLAY")
     grid.empty:SetFontObject(W.fontSmall)
     grid.empty:SetPoint("TOP", 0, -40)
-    grid.empty:SetText("|cff888888這一組目前沒有啟用中的插件|r")
+    grid.empty:SetText("|cff888888這一組目前沒有插件|r")
     grid.empty:Hide()
 end
 
--- 每次切進來都重讀名冊：插件的啟用狀態可能剛在隔壁「插件總覽」改過
+-- 每次切進來都重讀名冊：待套用的開關可能剛在隔壁「插件總覽」改過
 ns.RegisterCallback("ShowOptionsTab", "quickTab", function(id)
     if id ~= "quick" then
         if tab then tab:Hide() end
@@ -344,5 +471,6 @@ ns.RegisterCallback("ShowOptionsTab", "quickTab", function(id)
     Rebuild()
     RefreshTabs()
     RefreshGrid()
+    UpdateApplyBar()
     tab:Show()
 end)

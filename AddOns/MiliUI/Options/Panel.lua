@@ -464,6 +464,7 @@ local function CreatePanel()
         HideExternal(currentTab)
         self:SetScript("OnUpdate", nil)
         self:SetAlpha(1)
+        self:SetFrameStrata("DIALOG")   -- Options.YieldFront 退過層的話在這裡復原
     end)
     -- 開窗淡入：OnUpdate lerp，結束就把 handler 拆掉，平時零成本
     panel:SetScript("OnShow", function(self)
@@ -553,12 +554,22 @@ local function CreatePanel()
     end)
 end
 
+-- 從這扇視窗開別的插件的設定時叫：視窗不關，退到 MEDIUM 讓路。
+-- 我們平常在 DIALOG、層級 100，別家的設定視窗多半在 MEDIUM／HIGH，不讓路會整扇被我們蓋住。
+-- ⚠ 只換 strata、不 Lower()：Lower 會掉到同 strata 所有框之下，快捷列就畫到我們上面了。
+--   層級留在 100，所以別家同在 MEDIUM 而且層級很低的視窗還是可能被蓋住——那種請玩家拖開。
+-- 關窗（OnHide）與下次 Open 都會復原成 DIALOG。
+function Options.YieldFront()
+    if panel and panel:IsShown() then panel:SetFrameStrata("MEDIUM") end
+end
+
 function Options.Open(tabId)
     CreatePanel()
     if panel:IsShown() and not tabId then
         panel:Hide()
         return
     end
+    panel:SetFrameStrata("DIALOG")
     ApplyPosition()
     panel:Show()
     panel:Raise()
