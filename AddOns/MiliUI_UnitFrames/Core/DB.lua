@@ -220,7 +220,7 @@ local function bigCastbar(own)
         -- 高度 = 血條的 50：施法條蓋的是血條／頭像那塊，再高就會在
         -- 魔力條沒墊到的那一側露出去（玩家的魔力條右移 8、目標左移 8）
         enabled = true, x = 0, y = 0, w = 200, h = 50, level = 12,
-        bg = black(0.8), timeFormat = "elapsedTotal",
+        bg = black(0.8), timeFormat = "remainTotal",    -- 剩餘 / 總長（使用者定案，v27）
         showInterruptState = not own,   -- 自己的施法不套「不可打斷灰」也不畫盾牌
         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
         showSpark = true,               -- 填充前緣的亮點：填充變淡之後靠它讀進度
@@ -821,7 +821,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "TOP" },
                     },
                     castbar = {
-                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 12, timeFormat = "elapsedTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
+                        enabled = true, x = -20, y = 20, w = 160, h = 10, level = 12, timeFormat = "remainTotal", showInterruptState = true, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
                         showCastTarget = false,
                         castTarget = { x = 0, y = 18, w = 160, h = 10, size = 9, flags = "OUTLINE",
                                       justifyH = "RIGHT", justifyV = "TOP",
@@ -2206,6 +2206,21 @@ local PROFILE_MIGRATIONS = {
             Convert(els.classpower, -14, -6)
         end
         Convert(type(units.totem) == "table" and units.totem.frame, -25, -17)
+    end,
+
+    -- v27（2026-11-30）：玩家／目標／專注目標的施法條時間格式預設「已過 / 總長」→「剩餘 / 總長」
+    -- （使用者定案：唱法時要看的是還剩多久）。值閘：只動還等於舊預設的。
+    -- 寵物、首領、隊伍的施法條不在這次範圍，維持原樣。
+    [27] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        for _, key in ipairs({ "player", "target", "focus" }) do
+            local els = type(units[key]) == "table" and units[key].elements
+            local cb = type(els) == "table" and els.castbar
+            if type(cb) == "table" and cb.timeFormat == "elapsedTotal" then
+                cb.timeFormat = "remainTotal"
+            end
+        end
     end,
 }
 
