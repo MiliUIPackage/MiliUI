@@ -476,30 +476,38 @@ end
 -- 目標那條停用時依序退回：能量條 → 血條 → 整個框。
 -- 召喚物是四顆圖示不是一條條：只對齊左緣，圖示大小照自己的設定。
 --
--- 遞補：三樣各有自己的 y（框底往下：魔力小條 -6、資源條 -14、召喚物 -25）。資源條不在時
+-- Y 也從目標起算：元件的 y 是「對齊的那條的底邊」往下的距離（不對齊時才是框底往下）。
+--
+-- 遞補：三樣各有自己的 y（對齊的那條底邊往下：魔力小條 +2、資源條 -6、召喚物 -17）。資源條不在時
 -- 召喚物往上補它的位置；魔力小條不在則**都不動**（見 ns.StackShift）。
 -- 只有 follow 不是 "none" 的召喚物才補，而且只往上補（資源條的位置要在它上面）——
 -- 玩家把它搬去別處（例如框的上方）的話，位置關係不是「一疊」，不該被拉走。
 ------------------------------------------------------------
+-- 回傳：左緣 x、寬度、目標底邊相對「框底」的位移（框內單位，往下為負）。不跟隨回 nil。
+-- 第三個值是 Y 的起算點：經典樣式的能量條凸出框底 8（回 -8），精簡條／頭像卡的能量條就在
+-- 框底（回 0）。元件的 y 從這裡起算，所以「離對齊的那條多遠」在每個樣式都一樣
+-- （以前一律從框底起算 ⇒ 同一個 y 在精簡條／頭像卡離能量條多出 8，實際回報）。
 function ns.FollowSpan(udb, follow)
     if not follow or follow == "none" or type(udb) ~= "table" then return nil end
     local els, fdb = udb.elements or {}, udb.frame or {}
+    local fh = tonumber(fdb.h) or 0
     local function Bar(name)
         local e = els[name]
         if type(e) == "table" and e.enabled ~= false and (tonumber(e.w) or 0) > 0 then
-            return tonumber(e.x) or 0, tonumber(e.w)
+            -- 條底在框內座標是 y − h（框頂為 0、往下為負），框底是 −fh ⇒ 相對框底 = y − h + fh
+            return tonumber(e.x) or 0, tonumber(e.w), (tonumber(e.y) or 0) - (tonumber(e.h) or 0) + fh
         end
     end
     if follow == "mpbar" then
-        local x, w = Bar("mpbar")
-        if x then return x, w end
+        local x, w, b = Bar("mpbar")
+        if x then return x, w, b end
         follow = "hpbar"
     end
     if follow == "hpbar" then
-        local x, w = Bar("hpbar")
-        if x then return x, w end
+        local x, w, b = Bar("hpbar")
+        if x then return x, w, b end
     end
-    return 0, tonumber(fdb.w) or 200
+    return 0, tonumber(fdb.w) or 200, 0
 end
 
 local function Following(edb)
@@ -515,15 +523,19 @@ function ns.StackShift(uf, which)
     if which ~= "totem" or not (uf and uf.db) then return 0 end
     local els = uf.db.elements or {}
     local cp = els.classpower
-    local cpY = type(cp) == "table" and tonumber(cp.y) or nil
     local cf = uf.elements.classpower
     local cpShown = cf ~= nil and cf:IsShown() and type(cp) == "table" and cp.enabled ~= false
         and (cf.rowCount or 0) > 0
     local tdb = ns.db.units.totem
     local tfdb = tdb and tdb.frame
-    local tY = tfdb and tonumber(tfdb.y)
-    if not (tY and Following(tfdb)) or cpShown then return 0 end
-    if cpY and cpY > tY then return cpY - tY end
+    if not (tfdb and tonumber(tfdb.y) and Following(tfdb)) or cpShown then return 0 end
+    if type(cp) ~= "table" or not tonumber(cp.y) then return 0 end
+    -- 兩邊的 y 各自從自己對齊的那條的底邊起算，換成同一個基準（框底）再比
+    local _, _, cb = ns.FollowSpan(uf.db, cp.follow)
+    local _, _, tb = ns.FollowSpan(uf.db, tfdb.follow)
+    local cpY = tonumber(cp.y) + (cb or 0)
+    local tY = tonumber(tfdb.y) + (tb or 0)
+    if cpY > tY then return cpY - tY end
     return 0
 end
 
@@ -532,8 +544,10 @@ function ns.PlaceClassPower(uf)
     local f = uf.elements.classpower
     local edb = uf.db.elements and uf.db.elements.classpower
     if not (f and type(edb) == "table") then return end
-    local x = ns.FollowSpan(uf.db, edb.follow) or edb.x or 0
-    local y = edb.y or 0
+    -- y 從對齊的那條的底邊起算（不對齊時從框底，fb 是 nil）
+    local fx, _, fb = ns.FollowSpan(uf.db, edb.follow)
+    local x = fx or edb.x or 0
+    local y = (edb.y or 0) + (fb or 0)
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(x), ns.P.Scale(y))
 end
