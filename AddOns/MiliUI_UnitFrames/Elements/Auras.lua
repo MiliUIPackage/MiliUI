@@ -690,7 +690,10 @@ ns.Events.Register("UNIT_TARGET", "auras_repoke_ut", function(unit)
         RepokeFrame(ns.frames.focustarget)
     elseif unit == "pet" then
         RepokeFrame(ns.frames.pettarget)
-    elseif unit and unit:match("^boss%d$") then
+    elseif unit and (unit:match("^boss%d$") or unit:match("^party%d$")) then
+        -- 隊友換目標：隊伍的目標框保持顯示、換了一個單位。不重戳的話光環容器（含驅散類型
+        -- 邊框）停在上一個目標的結果 —— 症狀是邊框顏色亂上（實際回報）。
+        -- 隊友的 UNIT_TARGET 只在隊伍的目標框生出來時才註冊（Core/Events.lua 的 WatchPartyTargets）
         RepokeFrame(ns.frames[unit .. "target"])
     end
 end)
@@ -710,7 +713,12 @@ end)
 -- 隊友遞補（partyN 換了一個人、框保持顯示）。「誰換了」由 Core/Events.lua 的
 -- RefreshPartyMembers 比 GUID 判斷，這裡只接它的通知 ⇒ 不另外掛 GROUP_ROSTER_UPDATE，
 -- 隊伍框沒啟用時這個回呼永遠不會被叫到。
-ns.RegisterCallback("PartyUnitChanged", "auras_repoke_p", RepokeFrame)
+ns.RegisterCallback("PartyUnitChanged", "auras_repoke_p", function(uf)
+    RepokeFrame(uf)
+    -- 那一格換了人，「他的目標」當然也換了（這種換法沒有 UNIT_TARGET）
+    local unit = uf and (uf.baseUnit or uf.unit)
+    if unit then RepokeFrame(ns.frames[unit .. "target"]) end
+end)
 
 -- 給同樣用 AuraContainer 的其他模組（Elements/DispelHighlight.lua）。
 -- 戰鬥閘與延後重播只有這一套，別在別處另寫一份 Hide/Show。
