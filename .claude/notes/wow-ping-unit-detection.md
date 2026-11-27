@@ -14,8 +14,9 @@ metadata:
 - 被 ping 的人在 pin 消失前換格，暴雪那顆收不到清除 ⇒ 鏡射要自己逾時（兩家都取 20 秒）。
 - 聊天那條 `CHAT_MSG_PING`：`|A:ping_chat_<種類>:…|a`＋「名字」或「前綴：名字」，沒有 GUID、聊天受限時是秘密值。試過拿文字對名字，使用者定案「沒有意義」，已移除，別再做。
 
-**我們的實作**（未實機驗證；使用者要求全面照 EUI 做法）：
+**我們的實作**（2026-11-29 使用者實機確認：五人隊伍、Cell 與單位框架都正常，**首領戰中照常顯示**；團隊尚未測）：
 - `MiliUI_UnitFrames/Core/PingMark.lua`：`global.pingFlash`（預設開）、`pingFlashSeconds`（預設 3，最多閃幾秒）。開著時 `Core/HideBlizzard.lua` 不解 `CompactPartyFrame` 的事件。診斷 `/dump MiliUIUF.PingMark.stats`。
 - `Cell/RaidFrames/PingMarker.lua`（直接寫進 Cell，本地分支修改）：`CellDB.general.pingMarker`（nil＝開），一般 → 可見性多一顆勾選框。開著時 `Cell/HideBlizzard.lua` 對 manager／`CompactPartyFrame` 只 Park（搬到隱藏父層＋SetParent 掛勾補搬），不解事件；關掉回到原本整組停掉。診斷 `/dump Cell.pingStats`。
 - 兩邊對暴雪框只讀不寫（弱鍵表記帳）、hook 裡只排程到下一幀。開關都要重載才生效（解事件是單向的）。
-- 待驗證：manager 活著時暴雪會不會把容器／管理員面板弄回畫面上；五人隊伍沒開「團隊風格隊伍框」時有沒有精簡框可鏡射；首領戰／傳奇鑰石中是否照常觸發；大團多跑一套暴雪框的效能。
+- Cell 的標記框層級要在 `indicatorFrame`（按鈕 +220）之上，現用 +240；放 +120 會被名字遮住。
+- 待驗證（團隊）：manager 活著時暴雪會不會把容器／管理員面板弄回畫面上；大團多跑一套暴雪框的效能；傳奇鑰石。
