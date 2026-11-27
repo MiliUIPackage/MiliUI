@@ -65,6 +65,76 @@ ns.AddonInfo = {
 }
 
 ------------------------------------------------------------
+-- 用量：近期 CPU 與記憶體（快速設定的卡片在用；效能監控分頁有自己更完整的一套）
+--
+-- CPU 走 C_AddOnProfiler：引擎本來就一直在量，讀值只是查表。
+--   回傳 ms/幀 與「佔整個遊戲一幀的幾 %」（這個插件 ÷ GetApplicationMetric，跟效能監控同一個算法）。
+-- 記憶體要先 UpdateAddOnMemoryUsage()——那一下是整個 Lua 堆的掃描，會卡一下，
+--   所以 MeasureMemory 有冷卻（MEM_COOLDOWN 秒內重複叫不重掃）、戰鬥中不掃，呼叫端只在開頁時叫。
+-- 全部經過 pcall＋值域檢查：分析器可能整組不存在或被關掉；GetAddOnMemoryUsage 對暴雪內部插件會報錯。
+------------------------------------------------------------
+local MEM_COOLDOWN = 30
+local memStamp
+
+local function Num(ok, v)
+    if not ok then return 0 end
+    v = tonumber(v)
+    if not v or v ~= v or v < 0 or v == math.huge then return 0 end   -- v ~= v 是 nan
+    return v
+end
+
+local function ProfilerMetric()
+    if type(C_AddOnProfiler) ~= "table" or type(C_AddOnProfiler.GetAddOnMetric) ~= "function"
+            or type(Enum) ~= "table" or type(Enum.AddOnProfilerMetric) ~= "table" then
+        return nil
+    end
+    if type(C_AddOnProfiler.IsEnabled) == "function" then
+        local ok, on = pcall(C_AddOnProfiler.IsEnabled)
+        if ok and on == false then return nil end
+    end
+    return Enum.AddOnProfilerMetric.RecentAverageTime
+end
+
+-- 回傳 ms, pct；量不到回 nil。pct 在拿不到整體數字時是 nil。
+function ns.AddonInfo.EntryCPU(entry)
+    local metric = ProfilerMetric()
+    if not metric then return nil end
+    local ms = 0
+    for _, f in ipairs(entry.folders) do
+        ms = ms + Num(pcall(C_AddOnProfiler.GetAddOnMetric, f, metric))
+    end
+    local app = type(C_AddOnProfiler.GetApplicationMetric) == "function"
+        and Num(pcall(C_AddOnProfiler.GetApplicationMetric, metric)) or 0
+    return ms, (app > 0) and (ms / app * 100) or nil
+end
+
+-- 回傳這次有沒有量過（任何一次）。force＝無視冷卻。
+function ns.AddonInfo.MeasureMemory(force)
+    if type(UpdateAddOnMemoryUsage) ~= "function" or type(GetAddOnMemoryUsage) ~= "function" then
+        return false
+    end
+    local now = GetTime()
+    if InCombatLockdown() then return memStamp ~= nil end
+    if force or not memStamp or now - memStamp >= MEM_COOLDOWN then
+        UpdateAddOnMemoryUsage()
+        memStamp = now
+    end
+    return true
+end
+
+-- 回傳 KB；還沒量過回 nil。
+function ns.AddonInfo.EntryMemKB(entry)
+    if not memStamp then return nil end
+    local kb = 0
+    for _, f in ipairs(entry.folders) do
+        if C_AddOns.IsAddOnLoaded(f) then
+            kb = kb + Num(pcall(GetAddOnMemoryUsage, f))
+        end
+    end
+    return kb
+end
+
+------------------------------------------------------------
 -- 開啟該插件設定的路由：自製走 MiliUI_MenuEntries、第三方走斜線指令、
 -- 再退到暴雪 Settings 分類（永遠會試）。解析不到就回 nil。
 ------------------------------------------------------------
