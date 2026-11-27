@@ -483,7 +483,9 @@ function DB.BuildDefaults()
                               colorMethod = "power", bgColorMethod = "powerdark",
                               barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
                               barAlpha = 1, bgAlpha = 1, border = true },
-                    classpower = { enabled = true, x = 8, y = -14, totalw = 200, h = 6,
+                    -- follow：左緣與寬度跟著哪條走（Core/UnitFrame.lua 的 ns.FollowSpan）。預設能量條：
+                    -- 經典樣式算出來就是 x = 8、寬 200；x／totalw 留著給「不對齊」時用
+                    classpower = { enabled = true, follow = "mpbar", x = 8, y = -14, totalw = 200, h = 6,
                                    spacing = 1, rowSpacing = 2, level = 5,
                                    barAlpha = 1, showText = true,
                                    runeText = "countdown",  -- 死騎符文列的數字：countdown／count，showText 開著才有（見 ClassPower.lua 的 RuneText）
@@ -506,7 +508,7 @@ function DB.BuildDefaults()
                     -- 小魔力條：設定完全獨立，但錨點語意與外觀比照資源條
                     -- （TOPLEFT 對框架 BOTTOMLEFT、底色＋1px 黑邊）。
                     -- 版面：框底 →6px→ 魔力條(6) →2px→ 資源條(y=-14, 6) 不重疊
-                    manabar = { enabled = true, x = 8, y = -6, w = 200, h = 6, level = 6,
+                    manabar = { enabled = true, follow = "mpbar", x = 8, y = -6, w = 200, h = 6, level = 6,
                                 color = { r = 0.2, g = 0.5, b = 1, a = 1 },   -- 法力藍
                                 barAlpha = 1, bgAlpha = 0.8, border = true },
                     -- 框層文字（名字／等級／狀態）。血量、能量數字在各自的條底下（hpbar.texts／mpbar.texts）
@@ -1451,7 +1453,8 @@ function DB.BuildDefaults()
                 -- 座標語意與資源條同一組：TOPLEFT 對玩家框 BOTTOMLEFT（往下是負的），
                 -- 玩家框搬家就自己跟著走。
                 -- 版面：框底 →6→ 魔力條(y=-6, 6 高) →2→ 資源條(y=-14, 6 高) →5→ 召喚物(y=-25)
-                frame = { x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT", scale = 100 },
+                -- follow：左緣跟著哪條走（同資源條；圖示大小不跟），上面沒顯示就往上遞補
+                frame = { follow = "mpbar", x = 8, y = -25, iconSize = 28, spacing = 4, growth = "RIGHT", scale = 100 },
                 colors = "accent",       -- "accent" | "element"
                 swapEarthFire = true,
                 showTimeText = true,     -- 圖示上的剩餘秒數
@@ -2097,6 +2100,33 @@ local PROFILE_MIGRATIONS = {
         for key in pairs(ns.INDIRECT_UNIT_KEYS or {}) do
             local f = type(units[key]) == "table" and units[key].frame
             if type(f) == "table" then f.dispelHighlight = false end
+        end
+    end,
+
+    -- v25（2026-11-29）：玩家框底下那一疊（魔力小條、資源條、召喚物）的左緣與寬度改成跟著目標走
+    -- （各自的 follow，見 Core/UnitFrame.lua 的 ns.FollowSpan）。預設值多了 follow = "mpbar"，
+    -- 光靠 MergeDefaults 補的話，自己調過位置或寬度的玩家會被改成跟隨、他的數字失效 ⇒ 這裡先寫明：
+    --   位置與寬度還等於舊預設（x = 8、寬 200；召喚物只看 x = 8）→ "mpbar"
+    --     能量條也還在預設位置的話算出來一模一樣；能量條被搬過／改過寬度的話會跟著對齊（這是要的）
+    --   改過的 → "none"，維持他自己的數字
+    -- 已經有 follow 的不動。x／寬度的數字一律不改（切到「不對齊」時用得到）。
+    [25] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local els = type(units.player) == "table" and units.player.elements
+        if type(els) == "table" then
+            local m = els.manabar
+            if type(m) == "table" and m.follow == nil then
+                m.follow = ((m.x == nil or m.x == 8) and (m.w == nil or m.w == 200)) and "mpbar" or "none"
+            end
+            local c = els.classpower
+            if type(c) == "table" and c.follow == nil then
+                c.follow = ((c.x == nil or c.x == 8) and (c.totalw == nil or c.totalw == 200)) and "mpbar" or "none"
+            end
+        end
+        local tf = type(units.totem) == "table" and units.totem.frame
+        if type(tf) == "table" and tf.follow == nil then
+            tf.follow = (tf.x == nil or tf.x == 8) and "mpbar" or "none"
         end
     end,
 }

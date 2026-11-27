@@ -735,6 +735,11 @@ local function ManaBarSpecs()
         { type = "toggle", sub = "manabar", key = "enabled", label = L["Show"] },
         { type = "text", label = L["A small mana bar that only appears when mana isn't the main resource (cat, bear, elemental, shadow priest)."] },
         { type = "header", label = L["Position and size"] },
+        -- 左緣與寬度跟著哪條走、沒顯示的往上遞補（Core/UnitFrame.lua 的 ns.FollowSpan／ns.StackShift）
+        { type = "dropdown", sub = "manabar", key = "follow", label = L["Align to"],
+          items = { { text = L["Power bar"], value = "mpbar" }, { text = L["Health bar"], value = "hpbar" },
+                    { text = L["Whole frame"], value = "frame" }, { text = L["Not aligned (my own numbers)"], value = "none" } } },
+        { type = "text", label = L["The left edge and width come from the bar picked here, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned. When the row above it is not showing, this one moves up into its place."] },
         PosSize("manabar"),
         { type = "dropdown", sub = "manabar", key = "fillDirection", label = L["Fill direction"], items = FILL_DIRECTION_ITEMS },
         { type = "text", label = L["Same coordinate meaning as the resource bars: Y starts at the bottom edge of the frame, negative goes down."] ..

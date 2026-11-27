@@ -430,7 +430,18 @@ local function ApplyPosition()
     local db = GetDB()
     -- 縮放要在錨定**之前**套：AnchorTo 讀 frame:GetScale() 把位移量除回去
     if frame then frame:SetScale(ns.FrameScale(db.frame)) end
-    AnchorTo(db.frame.x, db.frame.y)
+    -- 左緣跟隨與遞補（Core/UnitFrame.lua 的 ns.FollowSpan／ns.StackShift）：算出來的是玩家框
+    -- **框內**的單位，AnchorTo 收的是畫面單位 ⇒ 乘上玩家框的縮放。四顆圖示的大小不跟。
+    local x, y = db.frame.x, db.frame.y
+    local puf = ns.frames and ns.frames.player
+    local pdb = ns.GetUnitDB("player")
+    if puf and pdb then
+        local ps = ns.FrameScale(pdb.frame)
+        local fx = ns.FollowSpan(pdb, db.frame.follow)
+        if fx then x = fx * ps end
+        y = (y or 0) + ns.StackShift(puf, "totem") * ps
+    end
+    AnchorTo(x, y)
     -- 層級跟著全域設定走（Init 只設一次，改了設定要在這裡重套，不然要 /reload 才生效）
     if frame then frame:SetFrameStrata(ns.db.global.strata or "LOW") end
 end
@@ -471,6 +482,10 @@ function ns.TotemsSetPreview(on)
     previewOn = on
     if not frame then Init() end
     if frame then Poll() end
+end
+
+ns.TotemsApplyPosition = function()      -- 遞補用：只重新定位，不重建格子
+    if frame then ApplyPosition() end
 end
 
 ns.RegisterCallback("Loaded", "totems", Init)
