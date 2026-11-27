@@ -969,7 +969,7 @@ function DB.BuildDefaults()
                                  justifyH = "CENTER", justifyV = "BOTTOM" },
                     },
                     castbar = {
-                        enabled = true, x = 0, y = 0, w = 119, h = 40, level = 12, timeFormat = "elapsedTotal",
+                        enabled = true, x = 0, y = 0, w = 119, h = 40, level = 12, timeFormat = "remainTotal",
                         showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4, showSpark = false, barAlpha = 1, showInterruptReady = false, showImportantCast = false,
                         showCastTarget = false,
                         castTarget = { x = 0, y = -2, w = 116, h = 40, size = 9, flags = "OUTLINE",
@@ -1156,7 +1156,7 @@ function DB.BuildDefaults()
                     -- 隊友是友方：不畫「不可打斷」灰、不換斷法就緒色、不標重要法術（那些是給敵方看的）
                     castbar = {
                         enabled = false, x = 0, y = 0, w = 168, h = 36, level = 12,
-                        bg = black(0.8), timeFormat = "elapsedTotal",
+                        bg = black(0.8), timeFormat = "remainTotal",
                         showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
                         showSpark = true, barAlpha = 0.3,
                         showInterruptReady = false, showImportantCast = false, classColorBar = false,
@@ -1337,7 +1337,7 @@ function DB.BuildDefaults()
                     -- 施法條與圖示的上邊線那一列，唱法時看起來是白框劃過施法條（v21 遷移）。
                     castbar = {
                         enabled = true, x = 36, y = -24, w = 184, h = 14, level = 12,
-                        timeFormat = "elapsedTotal", showInterruptState = true,
+                        timeFormat = "remainTotal", showInterruptState = true,
                         showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
                         showSpark = false, barAlpha = 1, showInterruptReady = true, showImportantCast = true,
                         -- 首領對誰施法：條只有 14 高，字放在條**下方**才不會跟時間撞
@@ -2208,13 +2208,14 @@ local PROFILE_MIGRATIONS = {
         Convert(type(units.totem) == "table" and units.totem.frame, -25, -17)
     end,
 
-    -- v27（2026-11-30）：玩家／目標／專注目標的施法條時間格式預設「已過 / 總長」→「剩餘 / 總長」
-    -- （使用者定案：唱法時要看的是還剩多久）。值閘：只動還等於舊預設的。
-    -- 寵物、首領、隊伍的施法條不在這次範圍，維持原樣。
+    -- v27（2026-11-30）：**所有**有施法條的單位（玩家／目標／專注目標／寵物／首領／隊伍），時間格式預設
+    -- 「已過 / 總長」→「剩餘 / 總長」（使用者定案：唱法時要看的是還剩多久）。值閘：只動還等於舊預設的。
+    -- ⚠ 這條發佈過兩版：第一版（364e4d032）只有前三個單位，同一天使用者要求把後三個也併進 v27。
+    --   在那幾分鐘內更新並登入過的存檔，後三個單位不會被補到（版本閘已經過了）——使用者知情。
     [27] = function(profile)
         local units = profile.units
         if type(units) ~= "table" then return end
-        for _, key in ipairs({ "player", "target", "focus" }) do
+        for _, key in ipairs({ "player", "target", "focus", "pet", "boss", "party" }) do
             local els = type(units[key]) == "table" and units[key].elements
             local cb = type(els) == "table" and els.castbar
             if type(cb) == "table" and cb.timeFormat == "elapsedTotal" then
