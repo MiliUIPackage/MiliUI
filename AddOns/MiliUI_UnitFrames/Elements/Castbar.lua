@@ -95,6 +95,25 @@ local function RestoreCoveredTexts(f)
     end
 end
 
+-- 文字條目的字大約落在哪（上緣、下緣，條目自己的座標系）：照垂直對齊取一行字高。
+-- 「蓋到」看的是字實際落在哪，不是整個文字框：預設的文字框常常是 200×50 只為了對齊，
+-- 字只占其中一行，拿整個框去比會把施法條外面的字也藏掉（實際回報 2026-11-28：
+-- 能量條的「目前／最大」數字在施法條下緣外面，唱法時卻跟著消失）。
+-- 字高就抓字級（不加行距）：預設的能量數字貼著施法條下緣外側，多抓 2px 就會被算成蓋到。
+-- 會換行的長字串估不準，寧可少算不多算。
+local function TextRect(t)
+    local top = t.y or 0
+    local h = t.h or 12
+    local line = math.min(h, t.size or 12)
+    local jv = t.justifyV or "TOP"
+    if jv == "BOTTOM" then
+        top = top - (h - line)
+    elseif jv == "MIDDLE" then
+        top = top - (h - line) / 2
+    end
+    return top, top - line
+end
+
 local function ComputeCoveredTexts(f, uf, edb)
     local list
     local els = uf.db.elements
@@ -110,8 +129,9 @@ local function ComputeCoveredTexts(f, uf, edb)
             if bar then ox, oy = bar.x or 0, bar.y or 0 end
             for i, t in ipairs(texts) do
                 if type(t) == "table" and t.enabled ~= false then
-                    local bx1, by1 = ox + (t.x or 0), oy + (t.y or 0)
-                    local bx2, by2 = bx1 + (t.w or 100), by1 - (t.h or 12)
+                    local ty1, ty2 = TextRect(t)
+                    local bx1, by1 = ox + (t.x or 0), oy + ty1
+                    local bx2, by2 = bx1 + (t.w or 100), oy + ty2
                     if bx1 < ax2 and ax1 < bx2 and by2 < ay1 and ay2 < by1 then
                         list = list or {}
                         list[#list + 1] = { list = name, i = i }
