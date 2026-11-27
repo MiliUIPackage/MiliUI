@@ -475,7 +475,7 @@ function DB.BuildDefaults()
                               threatFlash = true, threatColor = { r = 1, g = 0.1, b = 0.1, a = 0.8 } },
                     mpbar = { enabled = true, x = 8, y = -8, w = 200, h = 50, level = 0,
                               texts = {   -- 座標相對能量條 TOPLEFT（能量條在 8,-8）
-                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -6, w = 200, h = 50,
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -3, w = 200, h = 50, size = 10,
                                            justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
                                   textDef{ pattern = "[percmp]%", x = 2, y = -43, w = 200, h = 10, size = 10,
                                            justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
@@ -592,7 +592,7 @@ function DB.BuildDefaults()
                               showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
                     mpbar = { enabled = true, x = -8, y = -8, w = 200, h = 50, level = 0,
                               texts = {   -- 座標相對能量條 TOPLEFT（能量條在 -8,-8）
-                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -6, w = 200, h = 50,
+                                  textDef{ pattern = "[curmp]/[maxmp]", x = 0, y = -3, w = 200, h = 50, size = 10,
                                            justifyH = "CENTER", justifyV = "BOTTOM", level = 11 },
                                   textDef{ pattern = "[percmp]%", x = 8, y = -43, w = 200, h = 10, size = 10,
                                            justifyH = "RIGHT", justifyV = "BOTTOM", level = 11 },
@@ -2127,6 +2127,23 @@ local PROFILE_MIGRATIONS = {
         local tf = type(units.totem) == "table" and units.totem.frame
         if type(tf) == "table" and tf.follow == nil then
             tf.follow = (tf.x == nil or tf.x == 8) and "mpbar" or "none"
+        end
+
+        -- 同一版順便改的預設值（使用者實地調定，2026-11-29）：玩家／目標能量條上的「目前／最大」數字
+        -- y -6 → -3、字級 12 → 10。值閘：只動還等於舊預設的那一格，兩個欄位各自判斷
+        -- （只改過字級的人，y 照樣跟新預設走）。認文字靠 pattern——改過 pattern 的就是自訂的，不動。
+        for _, key in ipairs({ "player", "target" }) do
+            local mp = type(units[key]) == "table" and type(units[key].elements) == "table"
+                and units[key].elements.mpbar
+            local texts = type(mp) == "table" and mp.texts
+            if type(texts) == "table" then
+                for _, t in ipairs(texts) do
+                    if type(t) == "table" and t.pattern == "[curmp]/[maxmp]" then
+                        if t.y == -6 then t.y = -3 end
+                        if t.size == 12 then t.size = 10 end
+                    end
+                end
+            end
         end
     end,
 }
