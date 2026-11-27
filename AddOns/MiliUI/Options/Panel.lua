@@ -431,6 +431,56 @@ function Options.RegisterTab(def)
     return true
 end
 
+-- 從這扇視窗開別的插件的設定時叫：視窗不關，退到後面讓路。
+--
+-- 我們平常在 DIALOG、層級 100。別家的設定視窗多半在 MEDIUM／HIGH，不讓路會整扇被我們蓋住。
+-- 退讓＝strata 換成 MEDIUM **而且層級降到 0**：
+--   · 暴雪設定頁實機是 MEDIUM／層級 1（XML 寫 HIGH，但 2026-11-28 /dump 出來是 MEDIUM）——
+--     只換 strata、層級留 100 的話，我們照樣蓋在它前面。
+--   · 我們跟暴雪設定頁都是 toplevel：同在 MEDIUM 之後，點哪一扇哪一扇就到前面（引擎自己做的），
+--     所以退讓只需要把「一開始誰在前」擺對。
+-- 退讓狀態（yielded）一路留到下次 Options.Open：中間視窗被暴雪面板收掉再叫回來（W.CloseOnEscape）、
+-- 被 ESC 關掉再叫回來（下面的 ESC 分段）都要維持在後面，所以 OnShow 會重新壓一次層級。
+local yielded = false
+
+local function ApplyYield()
+    panel:SetFrameStrata("MEDIUM")
+    panel:SetFrameLevel(0)
+end
+
+------------------------------------------------------------
+-- ESC 分段：暴雪設定頁跟我們同時開著時，按一次 ESC 只關暴雪設定頁
+--
+-- ESC 走 CloseAllWindows，一口氣把 UIPanel（暴雪設定頁）和 UISpecialFrames（我們）都收掉。
+-- 兩扇在同一幀被關 ⇒ 下一幀把我們叫回來；再按一次 ESC 才關我們。
+-- 暴雪設定頁那邊只掛一個 OnHide 記時間，不寫它任何東西。它是延遲載入的，用到時才掛。
+------------------------------------------------------------
+local settingsHooked, settingsHiddenAt, panelHiddenAt = false, nil, nil
+
+local function CheckEscPair()
+    local now = GetTime()
+    if settingsHiddenAt ~= now or panelHiddenAt ~= now then return end
+    settingsHiddenAt, panelHiddenAt = nil, nil
+    C_Timer.After(0, function()
+        if panel and not panel:IsShown() then panel:Show() end
+    end)
+end
+
+local function HookSettingsPanel()
+    if settingsHooked or not SettingsPanel then return end
+    settingsHooked = true
+    SettingsPanel:HookScript("OnHide", function()
+        settingsHiddenAt = GetTime()
+        CheckEscPair()
+    end)
+end
+
+function Options.YieldFront()
+    if not (panel and panel:IsShown()) then return end
+    yielded = true
+    ApplyYield()
+end
+
 local function CreatePanel()
     if panel then return end
 
@@ -468,8 +518,10 @@ local function CreatePanel()
         self:SetScript("OnUpdate", nil)
         self:SetAlpha(1)
         -- ⚠ 不在這裡把 strata 復原成 DIALOG：開暴雪設定頁時我們會被收掉再被叫回來
-        --   （W.CloseOnEscape），那時要維持退讓的 MEDIUM，不然整扇蓋在暴雪設定頁（HIGH）上面。
+        --   （W.CloseOnEscape），那時要維持退讓的狀態，不然整扇蓋在暴雪設定頁上面。
         --   復原只在 Options.Open。
+        panelHiddenAt = GetTime()
+        CheckEscPair()
     end)
     -- 開窗淡入：OnUpdate lerp，結束就把 handler 拆掉，平時零成本
     panel:SetScript("OnShow", function(self)
@@ -477,6 +529,8 @@ local function CreatePanel()
         -- 被這個 SetScript 整個蓋掉了，不補叫的話 UI／祖先縮放變了之後外框會不見或變 2px
         -- （.claude/notes/wow-1px-border-rules.md）
         W.RefreshEdge(self)
+        HookSettingsPanel()
+        if yielded then ApplyYield() end
         -- 被暴雪面板收掉又叫回來的那條路不經過 ShowTab：OnHide 收掉的外掛分頁要在這裡接回來
         local cur = currentTab and tabById[currentTab]
         if cur and cur.external then ShowExternal(cur) end
@@ -562,33 +616,15 @@ local function CreatePanel()
     end)
 end
 
--- 從這扇視窗開別的插件的設定時叫：視窗不關，退到 MEDIUM 讓路。
--- 我們平常在 DIALOG、層級 100，別家的設定視窗多半在 MEDIUM／HIGH，不讓路會整扇被我們蓋住。
--- ⚠ 只換 strata、不 Lower()：Lower 會掉到同 strata 所有框之下，快捷列就畫到我們上面了。
---   層級留在 100，所以別家同在 MEDIUM 而且層級很低的視窗還是可能被蓋住——那種請玩家拖開。
--- 下次 Open 才復原成 DIALOG（關窗不復原，理由見 OnHide）。
---
--- ⚠ 換 strata 前後要把 toplevel 關掉再開：面板是 toplevel（W.CreateTitleBar），整扇連子孫
---   併成一層畫。2026-11-28 實機：只 SetFrameStrata 的話，視窗被暴雪設定頁收掉再叫回來時
---   還是畫在暴雪設定頁（HIGH）前面——推測併層當下的層級沒跟著新 strata 重算（未證實，
---   所以用重開 toplevel 逼它重建；還是不行就要實機 /dump 兩邊的 strata 再查）。
-local function SetPanelStrata(strata)
-    panel:SetToplevel(false)
-    panel:SetFrameStrata(strata)
-    panel:SetToplevel(true)
-end
-
-function Options.YieldFront()
-    if panel and panel:IsShown() then SetPanelStrata("MEDIUM") end
-end
-
 function Options.Open(tabId)
     CreatePanel()
     if panel:IsShown() and not tabId then
         panel:Hide()
         return
     end
-    SetPanelStrata("DIALOG")
+    yielded = false
+    panel:SetFrameStrata("DIALOG")
+    panel:SetFrameLevel(100)
     ApplyPosition()
     panel:Show()
     panel:Raise()
