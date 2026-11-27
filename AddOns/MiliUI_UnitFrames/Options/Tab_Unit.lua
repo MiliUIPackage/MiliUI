@@ -162,14 +162,17 @@ local function FrameSpecs(unitKey)
         { type = "slider", root = "frame", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
         { type = "text", label = L["100 is the original size, multiplied by the global scale on the General tab. Everything on the frame scales with it, including the resource and mana bars anchored below; the frame grows around its center, so the position stays put."] },
     }
-    -- 隊伍框預設關，而且一開就會藏掉暴雪的隊伍框：最上面先講清楚它是什麼、什麼時候出現
+    -- ⚠ 「啟用此單位框」與它的說明永遠是表單的頭兩列（使用者指定）：其他東西一律插在它們後面。
+    --   放在樣式那一節底下的話，那個勾選看起來像是樣式的一部分。
+    local at = 3
+    -- 隊伍框預設關，而且一開就會藏掉暴雪的隊伍框：啟用開關底下接著講清楚它是什麼、什麼時候出現
     if unitKey == "party" then
-        tinsert(list, 1, { type = "text", label = L["Off by default. Shows the other four members of a 5-player party; hidden in raids. Turning it on hides the default party frames."] })
+        tinsert(list, at, { type = "text", label = L["Off by default. Shows the other four members of a 5-player party; hidden in raids. Turning it on hides the default party frames."] })
+        at = at + 1
     end
-    -- 樣式快速選擇（Options/StylePicker.lua）：最上面（隊伍那行說明之後），只有支援的單位有
+    -- 樣式快速選擇（Options/StylePicker.lua）：啟用開關（與隊伍那行說明）之後，只有支援的單位有
     local picker = ns.Options.StylePicker
     if picker and ns.Styles and ns.Styles.Supports(unitKey) then
-        local at = (unitKey == "party") and 2 or 1
         for i, spec in ipairs(picker.Specs(unitKey)) do
             tinsert(list, at + i - 1, spec)
         end
