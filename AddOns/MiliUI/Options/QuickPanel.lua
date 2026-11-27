@@ -17,6 +17,9 @@
 -- 開關是批次的（Info.SetDesired／GetDesired）：
 -- 按卡片底部那一列只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
 -- 原本另有一頁「插件總覽」（清單＋詳情），2026-11-28 併進這一頁後拿掉了。
+--
+-- 有沒有設定入口，看縮圖右上角：有＝齒輪角標，沒有＝灰字「無設定介面」（同一個位置二選一）。
+-- 卡片最底下一列是用量：CPU 佔整個遊戲一幀的幾 %（近期平均）與記憶體，資料層在 Tab_Addons.lua。
 -- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
 local _, ns = ...
@@ -37,7 +40,11 @@ local TEXT_PAD   = 8
 local DESC_LINES = 2
 local FOOT_H     = 22           -- 卡片底部的開關列
 local SW_W, SW_H = 28, 14       -- 滑動開關（直角：外框＋一塊會左右移的滑塊）
-local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8 + FOOT_H
+local USE_H      = 20           -- 卡片最底下的用量列（CPU 佔比、記憶體）
+local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8 + FOOT_H + USE_H
+local USE_TICK   = 2            -- 用量列 CPU 數字的重讀間隔（秒）；記憶體只在開頁時量一次
+local WARN_MS, HEAVY_MS = 0.3, 1.0  -- CPU 上色門檻（ms/幀），跟效能監控分頁同一組
+local GEAR_TEX   = "Interface\\Buttons\\UI-OptionsButton"
 local SHOTS_PATH = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
 local BAR_H      = 34           -- 底部套用列（有待套用變更才出現）
 local ALL        = "\001all"    -- 「全部」標籤的鍵；不會跟任何 TOC 分類撞名
@@ -174,6 +181,40 @@ local function PaintCard(card, hover)
     end
 end
 
+-- 用量列：「CPU 0.7%」（佔整個遊戲一幀的比例，近期平均）與「記憶體 3.2 MB」。
+-- 沒在跑的（停用、還沒載入）顯示「—」。CPU 偏高照 ms/幀 的門檻上色（橘／紅），其餘灰字。
+local function FmtMem(kb)
+    local mb = kb / 1024
+    if mb >= 100 then return ("%.0f MB"):format(mb) end
+    if mb >= 10 then return ("%.1f MB"):format(mb) end
+    return ("%.2f MB"):format(mb)
+end
+
+local function PaintUsage(card)
+    local entry = card.entry
+    if not entry then return end
+    local running = Info.EntryEnabled(entry) and C_AddOns.IsAddOnLoaded(entry.folders[1])
+    local ms, pct
+    if running then ms, pct = Info.EntryCPU(entry) end
+    if ms then
+        local color = (ms >= HEAVY_MS and "|cffff5555") or (ms >= WARN_MS and "|cffff9900") or "|cff8c8c8c"
+        if pct then
+            card.cpu:SetText(("|cff8c8c8cCPU|r %s%.1f%%|r"):format(color, pct))
+        else
+            card.cpu:SetText(("|cff8c8c8cCPU|r %s%.2f ms|r"):format(color, ms))
+        end
+    else
+        card.cpu:SetText("|cff5a5a5aCPU —|r")
+    end
+    local kb = running and Info.EntryMemKB(entry) or nil
+    if kb then
+        card.mem:SetText("|cff8c8c8c記憶體 " .. FmtMem(kb) .. "|r")
+    else
+        card.mem:SetText("|cff5a5a5a記憶體 —|r")
+    end
+    card.usageMs, card.usagePct, card.usageKB = ms, pct, kb
+end
+
 -- 開關列的底：平時跟卡片同色（只靠上緣那條線分開），滑過亮一階
 local function PaintFoot(foot, hover)
     foot.bg:SetColorTexture(1, 1, 1, hover and 0.07 or 0)
@@ -190,6 +231,14 @@ local function PaintState(card)
     if want ~= nil then on = want end
     card.on, card.changed = on, (want ~= nil)
     card.canOpen = HasEntry(entry) and true or false
+    -- 右上角二選一：能開設定＝齒輪；不能＝「無設定介面」。套組本體兩個都不放（設定就是這扇視窗）。
+    card.gear:SetShown(card.canOpen)
+    card.gearBg:SetShown(card.canOpen)
+    card.gear:SetDesaturated(not on)
+    card.gear:SetAlpha(on and 1 or OFF_ALPHA)
+    local noUI = not card.canOpen and not entry.locked
+    card.noUI:SetShown(noUI)
+    card.noUIBg:SetShown(noUI)
 
     local a = on and 1 or OFF_ALPHA
     card.shot:SetDesaturated(not on)
@@ -251,6 +300,15 @@ local function ShowCardTip(card)
         GameTooltip:AddLine(" ")
         GameTooltip:AddLine(desc, 0.9, 0.9, 0.9, true)
     end
+    if card.usageMs then
+        GameTooltip:AddLine(" ")
+        local cpu = ("近期 CPU %.2f ms/幀"):format(card.usageMs)
+        if card.usagePct then cpu = cpu .. ("（佔一幀的 %.1f%%）"):format(card.usagePct) end
+        GameTooltip:AddLine(cpu, 0.6, 0.6, 0.6)
+        if card.usageKB then
+            GameTooltip:AddLine("記憶體 " .. FmtMem(card.usageKB), 0.6, 0.6, 0.6)
+        end
+    end
     GameTooltip:AddLine(" ")
     if entry.locked then
         GameTooltip:AddLine("設定就在這個視窗的其他分頁", 0.5, 0.5, 0.5)
@@ -296,12 +354,45 @@ local function CreateCard(parent)
     card.icon:SetPoint("TOPLEFT", ph, "BOTTOMLEFT", TEXT_PAD - 1, -7)
     card.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    -- 開關列：卡片最底下一整列都是點擊區（左：狀態字，右：滑動開關），跟上面「點了開設定」
+    -- 右上角的角標（疊在縮圖上，所以建在 OVERLAY 的高 sublevel）
+    card.gearBg = card:CreateTexture(nil, "OVERLAY", nil, 5)
+    P.Size(card.gearBg, 18, 18)
+    card.gearBg:SetPoint("TOPRIGHT", ph, "TOPRIGHT", -4, -4)
+    card.gearBg:SetColorTexture(0, 0, 0, 0.7)
+    card.gear = card:CreateTexture(nil, "OVERLAY", nil, 6)
+    P.Size(card.gear, 14, 14)
+    card.gear:SetPoint("CENTER", card.gearBg, "CENTER")
+    card.gear:SetTexture(GEAR_TEX)
+
+    card.noUI = card:CreateFontString(nil, "OVERLAY")
+    card.noUI:SetFontObject(W.fontSmall)
+    card.noUI:SetTextColor(0.6, 0.6, 0.6)
+    card.noUI:SetPoint("TOPRIGHT", ph, "TOPRIGHT", -8, -7)
+    card.noUI:SetText("無設定介面")
+    card.noUIBg = card:CreateTexture(nil, "OVERLAY", nil, 5)
+    card.noUIBg:SetPoint("TOPLEFT", card.noUI, "TOPLEFT", -4, 3)
+    card.noUIBg:SetPoint("BOTTOMRIGHT", card.noUI, "BOTTOMRIGHT", 4, -3)
+    card.noUIBg:SetColorTexture(0, 0, 0, 0.7)
+
+    -- 用量列：卡片最底下，純顯示（上緣一條 1px 線）。字由 PaintUsage 寫。
+    local useLine = P.NoSnap(card:CreateTexture(nil, "BORDER"))
+    useLine:SetColorTexture(0, 0, 0, 1)
+    useLine:SetPoint("BOTTOMLEFT", bpx, bpx + P.Scale(USE_H))
+    useLine:SetPoint("BOTTOMRIGHT", -bpx, bpx + P.Scale(USE_H))
+    useLine:SetHeight(bpx)
+    card.cpu = card:CreateFontString(nil, "OVERLAY")
+    card.cpu:SetFontObject(W.fontSmall)
+    card.cpu:SetPoint("BOTTOMLEFT", TEXT_PAD, bpx + P.Scale(USE_H) / 2 - 5)
+    card.mem = card:CreateFontString(nil, "OVERLAY")
+    card.mem:SetFontObject(W.fontSmall)
+    card.mem:SetPoint("BOTTOMRIGHT", -TEXT_PAD, bpx + P.Scale(USE_H) / 2 - 5)
+
+    -- 開關列：用量列正上方一整列都是點擊區（左：狀態字，右：滑動開關），跟上面「點了開設定」
     -- 的區域分開，不會誤點。上緣一條 1px 線。
     -- ⚠ 卡片會回收：一律讀 card.entry，不把資料抓進 closure
     local foot = CreateFrame("Button", nil, card)
-    foot:SetPoint("BOTTOMLEFT", bpx, bpx)
-    foot:SetPoint("BOTTOMRIGHT", -bpx, bpx)
+    foot:SetPoint("BOTTOMLEFT", bpx, bpx + P.Scale(USE_H))
+    foot:SetPoint("BOTTOMRIGHT", -bpx, bpx + P.Scale(USE_H))
     foot:SetHeight(P.Scale(FOOT_H))
     card.foot = foot
 
@@ -396,6 +487,7 @@ local function FillCard(card, entry)
     card.title:SetText(title)
     card.desc:SetText(CardDesc(entry, title))
     PaintState(card)
+    PaintUsage(card)
 end
 
 ------------------------------------------------------------
@@ -517,6 +609,17 @@ local function Init()
     if tab then return end
     tab = ns.Options.NewTabFrame()
 
+    -- 用量列的 CPU 數字定期重讀。掛在分頁 frame 上：分頁一藏引擎就不派送，不用自己拆。
+    local acc = 0
+    tab:SetScript("OnUpdate", function(_, elapsed)
+        acc = acc + elapsed
+        if acc < USE_TICK then return end
+        acc = 0
+        for _, card in ipairs(cards) do
+            if card.entry and card:IsShown() then PaintUsage(card) end
+        end
+    end)
+
     local title = W.CreateSectionTitle(tab, "快速設定", ns.Options.PANEL_W - 32)
     title:SetPoint("TOPLEFT", 16, -14)
 
@@ -574,6 +677,7 @@ ns.RegisterCallback("ShowOptionsTab", "quickTab", function(id)
         return
     end
     Init()
+    Info.MeasureMemory()    -- 整個 Lua 堆掃一次（有 30 秒冷卻、戰鬥中不掃）；之後這一頁不再量
     Rebuild()
     RefreshTabs()
     RefreshGrid()
