@@ -12,10 +12,10 @@ generalTab:Hide()
 -------------------------------------------------
 -- visibility
 -------------------------------------------------
-local hideBlizzardPartyCB, hideBlizzardRaidCB, hideRaidManagerCB, pingMarkerCB
+local hideBlizzardPartyCB, hideBlizzardRaidCB, hideRaidManagerCB, pingMarkerCB, pingMarkerSeconds
 
 local function CreateVisibilityPane()
-    local visibilityPane = Cell.CreateTitledPane(generalTab, L["Visibility"], 205, 101)
+    local visibilityPane = Cell.CreateTitledPane(generalTab, L["Visibility"], 205, 150)
     visibilityPane:SetPoint("TOPLEFT", generalTab, "TOPLEFT", 5, -5)
 
     -- showSoloCB = Cell.CreateCheckButton(visibilityPane, L["Show Solo"], function(checked, self)
@@ -77,6 +77,14 @@ local function CreateVisibilityPane()
         popup:SetPoint("TOPLEFT", generalTab, 117, -77)
     end, L["Show Ping Marker"], L["Shows the ping marker on a pinged group member's frame"], L["Blizzard's hidden raid frames keep running in the background while this is on"], L["Require reload of the UI"])
     pingMarkerCB:SetPoint("TOPLEFT", hideRaidManagerCB, "BOTTOMLEFT", 0, -7)
+
+    -- fix from MiliUI: how long the marker stays on the button (Cell's own setting, default 3).
+    -- Takes effect on the next ping, no reload.
+    pingMarkerSeconds = Cell.CreateSlider(L["Ping Marker Duration"], visibilityPane, 1, 10, 137, 1)
+    pingMarkerSeconds:SetPoint("TOPLEFT", pingMarkerCB, "BOTTOMLEFT", 0, -25)
+    pingMarkerSeconds.afterValueChangedFn = function(value)
+        CellDB["general"]["pingMarkerSeconds"] = value
+    end
 end
 
 -------------------------------------------------
@@ -198,7 +206,8 @@ local lockCB, fadeOutCB, menuPositionDD
 
 local function CreatePositionPane()
     local positionPane = Cell.CreateTitledPane(generalTab, L["Position"], 205, 120)
-    positionPane:SetPoint("TOPLEFT", generalTab, 5, -120)
+    -- fix from MiliUI: was -120; the Visibility pane above grew by the ping marker rows
+    positionPane:SetPoint("TOPLEFT", generalTab, 5, -165)
 
     lockCB = Cell.CreateCheckButton(positionPane, L["Lock Cell Frames"], function(checked, self)
         CellDB["general"]["locked"] = checked
@@ -526,6 +535,7 @@ local function ShowTab(tab)
         hideBlizzardRaidCB:SetChecked(CellDB["general"]["hideBlizzardRaid"])
         hideRaidManagerCB:SetChecked(CellDB["general"]["hideBlizzardRaidManager"])
         pingMarkerCB:SetChecked(CellDB["general"]["pingMarker"] ~= false)
+        pingMarkerSeconds:SetValue(tonumber(CellDB["general"]["pingMarkerSeconds"]) or 3)
 
         -- position
         lockCB:SetChecked(CellDB["general"]["locked"])

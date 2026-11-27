@@ -29,9 +29,6 @@ local F = Cell.funcs
 -------------------------------------------------
 local issecretvalue = issecretvalue or function() return false end
 
--- 一顆 pin 在引擎裡的壽命上限。暴雪自己的圖示在「被 ping 的人換到另一格」時收不到清除
--- （移除那一下對不到原來那一格了），所以鏡射一定要自己有逾時
-local PING_EXPIRE = 20
 -- 圖示的原生大小是 30；按鈕通常比暴雪團隊框矮，縮一點
 local SCALE = 0.8
 
@@ -99,13 +96,13 @@ local function HideOverlay(button)
     o:Hide()
 end
 
--- 顯示幾秒：米利的單位框架有載入時照它一般分頁的「閃爍秒數」（兩邊的標記同時收），那時不跟暴雪的清除；
--- 沒有載入就跟著暴雪那顆的壽命（ClearPing），PING_EXPIRE 當保險
-local function CustomSeconds()
-    local uf = _G.MiliUIUF
-    local g = uf and uf.db and uf.db.global
-    local secs = g and tonumber(g.pingFlashSeconds)
+-- 顯示幾秒：Cell 自己的設定（一般 → 可見性的滑桿，預設 3）。只看這個秒數，不跟暴雪清掉自己
+-- 那顆的時間 —— 跟著它收的話，設得比暴雪的標記壽命長就沒有作用。
+local DEFAULT_SECONDS = 3
+local function Seconds()
+    local secs = CellDB and CellDB["general"] and tonumber(CellDB["general"]["pingMarkerSeconds"])
     if secs and secs >= 1 then return secs end
+    return DEFAULT_SECONDS
 end
 
 local function Light(button, kitArt)
@@ -120,7 +117,7 @@ local function Light(button, kitArt)
     o.anim:Play()
     o.stamp = (o.stamp or 0) + 1
     local stamp = o.stamp
-    C_Timer.After(CustomSeconds() or PING_EXPIRE, function()
+    C_Timer.After(Seconds(), function()
         if o.stamp == stamp then HideOverlay(button) end
     end)
     Cell.pingStats.lit = Cell.pingStats.lit + 1
@@ -171,10 +168,10 @@ local function OnShowPing(icon, kit)
     C_Timer.After(0, function() Apply(icon, unit, kit) end)
 end
 
+-- 暴雪清掉它自己那顆：只記帳，不跟著收（標記照設定的秒數顯示，見 Seconds）。
+-- 那顆圖示之後點亮別人時，Apply 開頭的 ClearIcon 會把舊的放掉。
 local function OnClearPing(icon)
     Cell.pingStats.cleared = Cell.pingStats.cleared + 1
-    if CustomSeconds() then return end      -- 照設定的秒數顯示，不跟暴雪的清除
-    C_Timer.After(0, function() ClearIcon(icon) end)
 end
 
 local function HookCuf(cuf)
