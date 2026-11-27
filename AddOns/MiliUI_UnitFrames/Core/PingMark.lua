@@ -35,9 +35,6 @@ local _, ns = ...
 local PM = {}
 ns.PingMark = PM
 
--- 一顆 pin 在引擎裡的壽命上限。被 ping 的人在 pin 消失前換到另一格時，暴雪那顆圖示收不到清除，
--- 所以鏡射一定要自己有逾時
-local PING_EXPIRE = 20
 local DEFAULT_SECONDS = 3
 local SCALE = 0.9                   -- 圖示原生 30
 
@@ -104,7 +101,8 @@ local function Release(host)
     pool[#pool + 1] = m
 end
 
--- 顯示多久：玩家設的秒數（預設 3）與暴雪清掉，先到的算；再怎樣也不超過 PING_EXPIRE
+-- 顯示多久：**只看玩家設的秒數**（預設 3，使用者指定要能自己調）。暴雪清掉自己那顆的時間不管
+-- （見 OnClearPing）——跟著它收的話，設得比暴雪的標記壽命長就沒有作用，選項等於假的。
 local function Light(host, kitArt)
     local m = active[host]
     if not m then
@@ -124,7 +122,7 @@ local function Light(host, kitArt)
     m.token = (m.token or 0) + 1
     local token = m.token
     local secs = tonumber(ns.db.global.pingFlashSeconds) or DEFAULT_SECONDS
-    if secs < 1 then secs = 1 elseif secs > PING_EXPIRE then secs = PING_EXPIRE end
+    if secs < 1 then secs = 1 end
     C_Timer.After(secs, function()
         if active[host] == m and m.token == token then Release(host) end
     end)
@@ -169,9 +167,10 @@ local function OnShowPing(icon, kit)
     C_Timer.After(0, function() Apply(icon, unit, kit) end)
 end
 
+-- 暴雪清掉它自己那顆：只記帳，**不跟著收**。我們的標記照玩家設的秒數顯示（Light 裡的計時器）；
+-- 那顆圖示之後點亮別人時，Apply 開頭的 ClearIcon 會把舊的放掉。
 local function OnClearPing(icon)
     PM.stats.cleared = PM.stats.cleared + 1
-    C_Timer.After(0, function() ClearIcon(icon) end)
 end
 
 local function HookCuf(cuf)

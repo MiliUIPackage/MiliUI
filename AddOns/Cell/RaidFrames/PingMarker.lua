@@ -99,6 +99,15 @@ local function HideOverlay(button)
     o:Hide()
 end
 
+-- 顯示幾秒：米利的單位框架有載入時照它一般分頁的「閃爍秒數」（兩邊的標記同時收），那時不跟暴雪的清除；
+-- 沒有載入就跟著暴雪那顆的壽命（ClearPing），PING_EXPIRE 當保險
+local function CustomSeconds()
+    local uf = _G.MiliUIUF
+    local g = uf and uf.db and uf.db.global
+    local secs = g and tonumber(g.pingFlashSeconds)
+    if secs and secs >= 1 then return secs end
+end
+
 local function Light(button, kitArt)
     local o = Overlay(button)
     o.bg:SetAtlas(kitArt.bg)
@@ -111,7 +120,7 @@ local function Light(button, kitArt)
     o.anim:Play()
     o.stamp = (o.stamp or 0) + 1
     local stamp = o.stamp
-    C_Timer.After(PING_EXPIRE, function()
+    C_Timer.After(CustomSeconds() or PING_EXPIRE, function()
         if o.stamp == stamp then HideOverlay(button) end
     end)
     Cell.pingStats.lit = Cell.pingStats.lit + 1
@@ -164,6 +173,7 @@ end
 
 local function OnClearPing(icon)
     Cell.pingStats.cleared = Cell.pingStats.cleared + 1
+    if CustomSeconds() then return end      -- 照設定的秒數顯示，不跟暴雪的清除
     C_Timer.After(0, function() ClearIcon(icon) end)
 end
 

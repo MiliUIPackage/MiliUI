@@ -367,7 +367,7 @@ function DB.BuildDefaults()
             strata      = "LOW",
             smoothBars  = true,
             pingFlash = true,            -- 隊友被 ping 時在框上閃 ping 標記（鏡射暴雪團隊框，Core/PingMark.lua）
-            pingFlashSeconds = 3,        -- 最多閃幾秒（使用者指定預設 3，一般分頁可調 1～10；暴雪先清掉就先收）
+            pingFlashSeconds = 3,        -- 閃幾秒（使用者指定預設 3，一般分頁可調 1～10；只看這個秒數，不跟暴雪的清除）
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
             tooltipHideInCombat = false, -- 戰鬥中不顯示提示
             colors = {
