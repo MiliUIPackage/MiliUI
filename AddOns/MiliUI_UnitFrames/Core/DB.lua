@@ -1295,6 +1295,17 @@ function DB.BuildDefaults()
                                 showStack = true, stackSize = 10,
                                 stackAnchor = "TOP", stackX = 0, stackY = 4,
                                 durationText = true, durationThreshold = 60 },
+                    -- 增益（預設關，使用者指定）：框**左側外面**一排，從右往左長（RLTB：x 釘的是整排右緣）。
+                    --   大小 23 見方 ＝ 血條＋能量條的高度（血條 0..-14、能量條 -13..-23，共用 1px ⇒ 23），
+                    --   y = 0 跟血條頂對齊、底落在能量條底。
+                    --   x = 12：團隊標記在 14..38（24 寬），再往左讓 2 才不會壓到標記。
+                    -- 顯示全部：首領身上的增益本來就少，而且多半就是要注意的那個（狂暴、護盾、易傷免疫）。
+                    buffs  = { enabled = false, x = 12, y = 0, w = 23, h = 23,
+                               maxCount = 6, perRow = 6, growth = "RLTB", spacing = 1,
+                               onlyMine = false, filterMode = "all",
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = true, durationThreshold = 60 },
                     mpbar = { enabled = true, x = 36, y = -13, w = 184, h = 10, level = 4,
                               texts = {   -- 座標相對能量條 TOPLEFT（能量條在 36,-13）
                                   textDef{ pattern = "[percmp]%", x = 0, y = -1, w = 184, h = 10, size = 10,
