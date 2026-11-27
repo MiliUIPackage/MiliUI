@@ -433,19 +433,59 @@ end
 
 -- 從這扇視窗開別的插件的設定時叫：視窗不關，退到後面讓路。
 --
--- 我們平常在 DIALOG、層級 100。別家的設定視窗多半在 MEDIUM／HIGH，不讓路會整扇被我們蓋住。
--- 退讓＝strata 換成 MEDIUM **而且層級降到 0**：
---   · 暴雪設定頁實機是 MEDIUM／層級 1（XML 寫 HIGH，但 2026-11-28 /dump 出來是 MEDIUM）——
---     只換 strata、層級留 100 的話，我們照樣蓋在它前面。
---   · 我們跟暴雪設定頁都是 toplevel：同在 MEDIUM 之後，點哪一扇哪一扇就到前面（引擎自己做的），
---     所以退讓只需要把「一開始誰在前」擺對。
--- 退讓狀態（yielded）一路留到下次 Options.Open：中間視窗被暴雪面板收掉再叫回來（W.CloseOnEscape）、
--- 被 ESC 關掉再叫回來（下面的 ESC 分段）都要維持在後面，所以 OnShow 會重新壓一次層級。
+-- 我們平常在 DIALOG、層級 100。退讓＝strata 換成 LOW：
+--   · 暴雪設定頁實機是 MEDIUM／層級 1（XML 寫 HIGH，但 2026-11-28 /dump 出來是 MEDIUM），
+--     別家的設定視窗也多半在 MEDIUM／HIGH。
+--   · ⚠ 不要留在 MEDIUM 靠層級排前後：試過「MEDIUM＋層級 0」，實機 /dump 我們是 MEDIUM／0、
+--     暴雪設定頁 MEDIUM／1，畫面上我們照樣蓋在它前面（原因不明；同 strata 內兩扇 toplevel
+--     視窗的前後看來不照面板自己的層級）。所以改成跨 strata。
+--   · 代價：toplevel 的「點了就到最前」只在同一個 strata 裡有效，退到 LOW 之後點我們不會自己
+--     浮上來 ⇒ 下面的 frontWatch 自己做：點我們就回 DIALOG、點別的地方就再退回 LOW。
+-- 退讓模式（yielded）一路留到下次 Options.Open；中間視窗被暴雪面板收掉再叫回來
+-- （W.CloseOnEscape）、被 ESC 關掉再叫回來（下面的 ESC 分段）都從「退在後面」開始。
 local yielded = false
 
 local function ApplyYield()
-    panel:SetFrameStrata("MEDIUM")
-    panel:SetFrameLevel(0)
+    panel:SetFrameStrata("LOW")
+end
+
+-- 滑鼠焦點是不是我們這扇視窗（含標題列、分頁鈕這些掛在面板外側的子框）
+local function FocusIsOurs()
+    local foci = GetMouseFoci and GetMouseFoci()
+    local f = foci and foci[1]
+    for _ = 1, 30 do
+        if not f or f == UIParent or f == WorldFrame then return false, f ~= nil and f ~= WorldFrame end
+        if f == panel then return true, true end
+        local ok, parent = pcall(f.GetParent, f)
+        if not ok then return false, true end
+        f = parent
+    end
+    return false, true
+end
+
+-- 退讓模式中的點擊換前後。只在視窗開著而且 yielded 時才跑，每幀一次 IsMouseButtonDown。
+--   點在我們身上 → 回 DIALOG（到最前）
+--   點在面板範圍外的其他介面上 → 退回 LOW（讓給剛點的那扇）
+--   點在面板範圍內但焦點不是我們（＝別人的視窗正蓋在我們上面）→ 不動
+--   點在遊戲世界 → 不動
+-- ⚠ 我們的下拉選單掛在 UIParent、不算「我們身上」：選單超出面板下緣的那一截點下去會讓面板退後，
+--   選到的值照樣生效，再點一下面板就回來。
+local function CreateFrontWatch()
+    local watch = CreateFrame("Frame", nil, panel)
+    local wasDown = false
+    watch:SetScript("OnUpdate", function()
+        if not yielded then return end
+        local down = IsMouseButtonDown("LeftButton")
+        if down and not wasDown then
+            local ours, onUI = FocusIsOurs()
+            if ours then
+                panel:SetFrameStrata("DIALOG")
+            elseif onUI and not panel:IsMouseOver() then
+                ApplyYield()
+            end
+        end
+        wasDown = down
+    end)
 end
 
 ------------------------------------------------------------
@@ -498,6 +538,7 @@ local function CreatePanel()
     -- 叫回來（從卡片開的設定有些就是暴雪的設定頁——Settings.OpenToCategory 走 ShowUIPanel，
     -- 會連 UISpecialFrames 一起收）。ESC 照常關。
     W.CloseOnEscape(panel)
+    CreateFrontWatch()
 
     -- 不掛視窗外側的標題文字：banner 已經有套組名稱與版本，再掛一行是重複資訊。
     -- 但把手 chip 要跟其他八個插件擺在同一個位置 —— 整套視窗的「這裡能拖」
@@ -624,7 +665,6 @@ function Options.Open(tabId)
     end
     yielded = false
     panel:SetFrameStrata("DIALOG")
-    panel:SetFrameLevel(100)
     ApplyPosition()
     panel:Show()
     panel:Raise()
