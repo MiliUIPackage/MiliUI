@@ -25,7 +25,7 @@ local CONTROLS = {
     { type = "dropdown", sub = "frame", key = "follow", label = L["Align to"],
       items = { { text = L["Power bar"], value = "mpbar" }, { text = L["Health bar"], value = "hpbar" },
                     { text = L["Whole frame"], value = "frame" }, { text = L["Not aligned (my own numbers)"], value = "none" } } },
-    { type = "text", label = L["The left edge comes from the bar picked here; icon size stays as set. The X below is only used when it is set to not aligned. When the mana bar or resource bars are not showing, the summons move up into their place. Dragging it in Edit Mode switches this to not aligned."] },
+    { type = "text", label = L["The left edge comes from the bar picked here; icon size stays as set. The X below is only used when it is set to not aligned. When the resource bars are not showing, the summons move up into their place. Dragging it in Edit Mode switches this to not aligned."] },
     { type = "numbers", sub = "frame", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
     { type = "slider", sub = "frame", key = "iconSize", label = L["Icon size"], min = 16, max = 64 },
     { type = "slider", sub = "frame", key = "spacing", label = L["Spacing"], min = 0, max = 16 },
