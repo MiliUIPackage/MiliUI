@@ -29,3 +29,6 @@ metadata:
 **設定視窗寬 728**（2026-11-28，原 700）：單位分頁左欄加寬 28 讓「目標的目標的目標」一行放得下，表單區 520 不變。
 
 **隊伍框直排步距自動算**（2026-11-28，使用者指定）：`frame.autoSpacing`＋`ns.AutoStackStep`＝框與血條／能量條的範圍＋**有開的**增益／減益列＋`frame.stackGap`（設定頁的「間距」，預設 4，代表剩下的空隙）。`frame.spacing` 對隊伍框只剩備用。預設 Y 180。
+
+**「某某的目標」不提供驅散類型邊框**（2026-11-28，使用者定案，DB v24）：戰鬥中不能對光環容器 Hide/Show ⇒ 換目標後重掃不了、邊框停在上一個目標。`ns.INDIRECT_UNIT_KEYS` 六個單位在 `DispelHighlight` 的 `IsOn` 一律回 false、設定頁不出那一節、v24 把存檔寫成關。同一個限制也影響這些框的增益／減益列（未處理）。
+**Ping 標記**見 [[wow-ping-unit-detection]]（`global.pingFlash`，一般分頁）。

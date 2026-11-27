@@ -47,6 +47,7 @@ Core.lua
 Enhance\SlashRL.lua
 Enhance\AddonNames.lua
 Enhance\Baganator_Keystone.lua
+Enhance\Cell_PingMark.lua
 Enhance\LibCustomGlow_FpsGate.lua
 Enhance\TeleportMenu_Spacing.lua
 Enhance\GameMenu_MiliUIButton.lua

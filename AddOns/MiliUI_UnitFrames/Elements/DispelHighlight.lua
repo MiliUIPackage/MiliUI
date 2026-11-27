@@ -89,7 +89,13 @@ local function Signature(inset)
     return table.concat(parts, "|")
 end
 
+-- ⚠ 「某某的目標」一律不畫（使用者定案，2026-11-28）：這種 token 沒有自己的光環事件，換人之後
+--   要靠 Hide/Show 光環容器才會重掃，而戰鬥中不能對容器 Hide/Show（Elements/Auras.lua 的 Bounce
+--   只能記帳到脫戰）⇒ 戰鬥中一換目標，邊框就停在上一個目標的結果，顏色亂上（實際回報）。
+--   不可靠的資訊不如不給：選項拿掉（Options/Tab_Unit.lua）、存檔 v24 一律寫成關、這裡再擋一道
+--   （匯入的舊字串、手改的存檔都過不了）。
 local function IsOn(uf)
+    if ns.INDIRECT_UNIT_KEYS[uf.unitKey] then return false end
     return uf.db and uf.db.frame and uf.db.frame.dispelHighlight ~= false
 end
 

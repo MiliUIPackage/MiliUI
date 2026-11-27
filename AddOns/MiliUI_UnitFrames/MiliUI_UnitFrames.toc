@@ -49,6 +49,7 @@ Core\Interrupt.lua
 Core\Tags.lua
 Core\Registry.lua
 Core\UnitFrame.lua
+Core\PingMark.lua
 Core\HideBlizzard.lua
 Elements\HealthThreat.lua
 Elements\Health.lua

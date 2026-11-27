@@ -366,6 +366,7 @@ function DB.BuildDefaults()
             snapToGrid  = false,
             strata      = "LOW",
             smoothBars  = true,
+            pingFlash = true,            -- 有人 ping 這個單位時在框上閃兩秒 ping 圖示（Core/PingMark.lua）
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
             tooltipHideInCombat = false, -- 戰鬥中不顯示提示
             colors = {
@@ -1209,11 +1210,6 @@ function DB.BuildDefaults()
                 enabled = false,
                 frame = frameDef{ x = -427, y = 187, w = 90, h = 22, growth = "DOWN", spacing = 93,
                                   hSpacing = 10, fadeOutOfRange = true, visGroup = "party",
-                                  -- 驅散類型邊框預設關：「某某的目標」這種 token 沒有自己的光環事件，換人之後
-                                  -- 要靠 Hide/Show 光環容器才會重掃，而戰鬥中不能對容器 Hide/Show（Elements/Auras.lua
-                                  -- 的 Bounce）⇒ 戰鬥中隊友一換目標，邊框就停在上一個目標的結果（實際回報：亂上色）。
-                                  -- 隊友的目標在戰鬥中換得很勤，這條資訊不可靠，不如不畫；要看驅散看隊伍框本身。
-                                  dispelHighlight = false,
                                   anchor = { on = true, to = "party", side = "RIGHT", x = 4, y = 0 } },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 90, h = 16, level = 4,
@@ -1474,6 +1470,12 @@ function DB.BuildDefaults()
                 end
             end
         end
+    end
+    -- 「某某的目標」不提供驅散類型邊框（理由見 Elements/DispelHighlight.lua 的 IsOn）：預設值統一寫成關，
+    -- 不靠每個單位的 frameDef 各自記得寫
+    for key in pairs(ns.INDIRECT_UNIT_KEYS or {}) do
+        local u = defaults.units[key]
+        if u and u.frame then u.frame.dispelHighlight = false end
     end
     -- 「某某的目標」預設貼在主框上：貼法從上面寫的預設位置換算（見 ANCHOR_PAIRS 上面的說明）。
     -- 預設版面五組都在 ANCHOR_MAX_GAP 之內、首領兩排的排法相同 ⇒ 全部 on
@@ -2081,6 +2083,19 @@ local PROFILE_MIGRATIONS = {
                 f.anchor = DB.ComputeAnchor(View(pair[1]), View(pair[2]), pair[2], gscale,
                     ns.MULTI_UNIT_KEYS and ns.MULTI_UNIT_KEYS[pair[1]] and ns.MULTI_UNIT_KEYS[pair[2]])
             end
+        end
+    end,
+
+    -- v24（2026-11-28）：「某某的目標」六個框的驅散類型邊框整個拿掉（使用者定案）。
+    -- 功能本身在戰鬥中不可靠（換目標之後光環容器重掃不了，邊框停在上一個目標，見
+    -- Elements/DispelHighlight.lua 的 IsOn），選項也從設定頁移除了 ⇒ 存檔一律寫成關。
+    -- 不套值閘：不是「改預設值」，是功能下架；留著 true 的話匯出／之後若再開放都會帶著錯的狀態。
+    [24] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        for key in pairs(ns.INDIRECT_UNIT_KEYS or {}) do
+            local f = type(units[key]) == "table" and units[key].frame
+            if type(f) == "table" then f.dispelHighlight = false end
         end
     end,
 }

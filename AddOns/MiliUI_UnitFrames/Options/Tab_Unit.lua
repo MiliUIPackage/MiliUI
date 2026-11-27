@@ -306,11 +306,14 @@ local function FrameSpecs(unitKey)
 
     -- 驅散類型高亮（Elements/DispelHighlight.lua）。跟滑鼠高亮是同一圈邊框、壓在它上面，
     -- 所以緊接在它後面
-    tinsert(list, { type = "header", label = L["Debuff type highlight"] })
-    tinsert(list, { type = "toggle", root = "frame", key = "dispelHighlight",
-                    label = L["Color by type"] })
-    tinsert(list, { type = "text", label = L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] })
-    tinsert(list, { type = "custom", label = "", build = DispelTestRow(unitKey) })
+    -- 「某某的目標」沒有這一節：那些框上這個功能整個不提供（理由見 Elements/DispelHighlight.lua 的 IsOn）
+    if not ns.INDIRECT_UNIT_KEYS[unitKey] then
+        tinsert(list, { type = "header", label = L["Debuff type highlight"] })
+        tinsert(list, { type = "toggle", root = "frame", key = "dispelHighlight",
+                        label = L["Color by type"] })
+        tinsert(list, { type = "text", label = L["While the unit has a Magic, Curse, Disease, Poison or Bleed debuff, the border turns that type's color, on top of the mouseover highlight. Hostile units show Enrage instead. Colors and thickness are set globally under General."] })
+        tinsert(list, { type = "custom", label = "", build = DispelTestRow(unitKey) })
+    end
 
     tinsert(list, { type = "header", label = L["Reset"] })
     tinsert(list, { type = "button", label = L["Restore defaults"], text = L["Restore everything for this unit"], color = "red",

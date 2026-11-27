@@ -12,7 +12,7 @@ local L = ns.L          -- Locales\Locale.lua 在 TOC 排在本檔之前
 
 ns.ADDON_NAME  = ADDON
 ns.VERSION     = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
-ns.DB_VERSION  = 23          -- schemaVersion，遷移鏈用（DB.Migrate 加條目時一起 bump）
+ns.DB_VERSION  = 24          -- schemaVersion，遷移鏈用（DB.Migrate 加條目時一起 bump）
                              -- ⚠ 沒有 12：開發期間推到 12 又整包丟掉，本機 SV 的
                              -- schemaVersionSeen 記著 12，重用會讓那步遷移被靜默跳過
 
@@ -47,6 +47,13 @@ ns.UNIT_KEYS = {
 --   uf.bossIndex 只有 bossN 本身才有，語意是「這是第幾隻首領」（頭像拿它對地城手冊的
 --   displayID，見 Elements/Portrait.lua）——隊友框絕不能有，不然打首領時隊友頭像會換成首領。
 ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true, party = true, partytarget = true }
+
+-- 「某某的目標」：token 是 <別的單位>target，指向誰不固定、而且**沒有自己的單位事件**。
+-- 驅散類型邊框在這些框上整個不提供（見 Elements/DispelHighlight.lua 的 IsOn）。
+ns.INDIRECT_UNIT_KEYS = {
+    targettarget = true, targettargettarget = true, focustarget = true,
+    pettarget = true, partytarget = true, bosstarget = true,
+}
 
 -- DB key → 這個 key 底下的 token（照 ns.UNITS 的順序；多格單位第 n 個就是第 n 格）。
 -- 錨定用：「隊伍的目標第 3 格」要找「隊伍第 3 格」的框（見 Core/UnitFrame.lua 的 ns.AnchorHost）
