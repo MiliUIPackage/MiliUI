@@ -4,9 +4,10 @@
 -- 風格走 MiliUI.Style 的深色皮（對齊米利單位框架設定介面：黑邊白字、hover 職業色）。
 --
 -- 設定按鈕：
---   點擊 → 隱藏 ESC 選單、開啟 Blizzard Settings → MiliUI 主分類（原本的行為）
---   滑過 → 往上展開米利UI選單，列出各米利系列插件的設定入口
---          （選單本體與註冊接口在 Menu.lua）
+--   左鍵 → 隱藏 ESC 選單、開快速設定面板（Options/QuickPanel.lua：分組標籤＋三欄卡片，
+--          點卡片直接開那支插件的設定）
+--   右鍵 → 隱藏 ESC 選單、開主設定視窗的「插件總覽」分頁
+--   滑過只出提示框講這兩件事。原本滑過會往上展開一整排插件名的選單，2026-11-28 拿掉了。
 -- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
 ------------------------------------------------------------
 
@@ -14,6 +15,8 @@ local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local BUTTON_TEXT = "米利UI設定"
+local SETTING_TIP_LEFT  = "左鍵：快速設定"
+local SETTING_TIP_RIGHT = "右鍵：插件總覽"
 local RELOAD_TIP_LEFT  = "重新載入"
 local RELOAD_TIP_RIGHT = "右鍵：立即重新載入"
 local RELOAD_ICON = "Interface\\Buttons\\UI-RefreshButton"
@@ -23,7 +26,6 @@ local VERSION_NEW_FORMAT = "米利UI套組：%s\n發現新版本：%s"
 
 local settingBtn -- 設定按鈕，OnShow 時建立一次
 local reloadBtn  -- 重載按鈕，OnShow 時建立一次
-local menu       -- 滑過設定按鈕展開的米利UI選單，第一次滑過才建立
 local versionText -- 右下角版本標籤，OnShow 時建立一次
 
 StaticPopupDialogs["MILIUI_GAMEMENU_RELOAD"] = {
@@ -37,14 +39,18 @@ StaticPopupDialogs["MILIUI_GAMEMENU_RELOAD"] = {
     preferredIndex = 3,
 }
 
-local function OpenSettings()
+local function OpenSettings(_, button)
+    -- 收 ESC 選單是動暴雪面板系統管的框，戰鬥中不碰
     if InCombatLockdown() then
         print("|cff00ff00[MiliUI]|r 戰鬥中無法開啟。")
         return
     end
     HideUIPanel(GameMenuFrame)
-    -- 開自製設定視窗（Options/Panel.lua），不再繞暴雪 Settings 面板
-    ns.OpenOptions()
+    if button == "RightButton" then
+        ns.OpenOptions("addons")
+    else
+        ns.OpenQuickPanel()
+    end
 end
 
 local function DoReload(_, button)
@@ -60,46 +66,6 @@ local function DoReload(_, button)
         HideUIPanel(GameMenuFrame)
         StaticPopup_Show("MILIUI_GAMEMENU_RELOAD")
     end
-end
-
-------------------------------------------------------------
--- 米利UI選單（滑過設定按鈕往上展開）
--- 項目由各米利系列插件自己註冊，清單與接口見 MiliUI/Menu.lua。
--- 沒有任何插件註冊時 OpenAt 會自己判空不開，這裡不必先檢查。
-------------------------------------------------------------
--- 選單會長到 GameMenuFrame 的框外，level 要壓過設定按鈕（+10）。
--- ⚠ 光是「選單框 +20」在永恆不夠：永恆版 GameMenuFrame 多了手把用的 `FrameGlow`
---   （XML 寫死 frameLevel=505），而 `FrameGlowMixin:OnLoad` 會把標題框拉到它上面
---   （Blizzard_SharedXMLBase/FocusEffects.lua：`headerFrame:SetFrameLevel(self:GetFrameLevel() + 1)`）
---   ⇒ 標題「遊戲選項」在 506，選單往下翻開時字會整個浮在選單上面。
---   正式服的標題框只有 +1，所以那邊看不出來。層級用讀的，不抄常數。
-local function RaiseMenu()
-    if not menu then return end
-    local level = GameMenuFrame:GetFrameLevel() + 20
-    local header = GameMenuFrame.Header
-    if header and header.GetFrameLevel then
-        level = math.max(level, header:GetFrameLevel() + 10)
-    end
-    menu:SetFrameLevel(math.min(level, 10000))
-end
-
-local function EnsureMenu()
-    if menu then return menu end
-    if not (MiliUI and MiliUI.Menu and MiliUI.Menu.Create) then return nil end
-    if not GameMenuFrame then return nil end
-
-    menu = MiliUI.Menu.Create(GameMenuFrame, function()
-        -- 開設定面板要先收掉 ESC 選單，但那是暴雪的面板系統管的框，
-        -- 戰鬥中動它會惹麻煩 —— 跟設定按鈕本身同一套判斷。
-        if InCombatLockdown() then
-            print("|cff00ff00[MiliUI]|r 戰鬥中無法開啟。")
-            return false
-        end
-        HideUIPanel(GameMenuFrame)
-    end)
-    menu:SetFrameStrata(GameMenuFrame:GetFrameStrata())
-    RaiseMenu()
-    return menu
 end
 
 local function EnsureButton()
@@ -118,15 +84,18 @@ local function EnsureButton()
     -- 與 GameMenuFrame 同 strata，level 高一階確保在前景接得到滑鼠
     settingBtn:SetFrameStrata(GameMenuFrame:GetFrameStrata())
     settingBtn:SetFrameLevel(GameMenuFrame:GetFrameLevel() + 10)
-    settingBtn:RegisterForClicks("LeftButtonUp")
+    settingBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     settingBtn:SetScript("OnClick", OpenSettings)
 
     -- ⚠ 一定要在 ApplyDarkButton 之後才 Hook：那支是用 SetScript 掛 hover 變色的，
     -- 順序反過來這個 hook 會被整個蓋掉，而且不報錯。
     settingBtn:HookScript("OnEnter", function(self)
-        local m = EnsureMenu()
-        if m then m:OpenAt(self) end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(SETTING_TIP_LEFT, 1, 0.84, 0)
+        GameTooltip:AddLine(SETTING_TIP_RIGHT, 1, 0.84, 0)
+        GameTooltip:Show()
     end)
+    settingBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)
 
     return settingBtn
 end
