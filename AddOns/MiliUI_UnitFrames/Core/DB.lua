@@ -1090,8 +1090,8 @@ function DB.BuildDefaults()
             -- 顯示條件預設「只在小隊」：進團隊 party1-4 依然存在（unit watch 照樣顯示），
             -- 要靠這層閘藏起來，團隊交給團隊框。
             --
-            -- 位置：畫面左側、玩家框（-300, -225）的左上方，第一格中心 (-560, 150)，
-            -- 往下長、格距 93 ⇒ 第四格中心 y = -129，整組跟玩家框（-300, -225）不重疊。
+            -- 位置：畫面左側、玩家框（-300, -225）的左上方，第一格中心 (-560, 180)（使用者指定），
+            -- 往下長、格距 93 ⇒ 第四格中心 y = -99，整組跟玩家框（-300, -225）不重疊。
             -- 格距 93（使用者指定：要容得下上下兩排光環，再加一點間距）：
             --   框高 36 ＋ 能量條往下露的 5 ＝ 41
             --   ＋ 4 ＋ 這一格的增益列 20（框下 45..65）
@@ -1099,7 +1099,7 @@ function DB.BuildDefaults()
             -- 增益預設關，但格距照「兩排都開」留：打開時不必再回來調。
             party = {
                 enabled = false,
-                frame = frameDef{ x = -560, y = 150, w = 168, h = 36, growth = "DOWN", spacing = 93,
+                frame = frameDef{ x = -560, y = 180, w = 168, h = 36, growth = "DOWN", spacing = 93,
                                   hSpacing = 10, fadeOutOfRange = true, visGroup = "party" },
                 elements = {
                     -- 層級嚴格遞增（同目標框）：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
@@ -1200,11 +1200,11 @@ function DB.BuildDefaults()
             -- 位置：**錨定在對應的那一格隊伍框上**（frame.anchor，見 Core/UnitFrame.lua）：第 n 格貼隊伍第 n 格的
             -- 右側、頂緣對齊、留 4。隊伍框搬家、改格距、換樣式，這一排都自己跟著走（使用者指定）。
             -- frame.x/y／growth／spacing 只在「不錨定」或隊伍框沒啟用時才用得到，值是照隊伍框預設位置
-            -- 算出來的同一個地方：隊伍框中心 (-560, 150)、168×36 ⇒ 右緣 -476、頂 168；留 4 ⇒ 左緣 -472、
-            -- 中心 x = -472 + 45 = -427；頂對齊 ⇒ 中心 y = 168 − 11 = 157；格距同隊伍框 93。
+            -- 算出來的同一個地方：隊伍框中心 (-560, 180)、168×36 ⇒ 右緣 -476、頂 198；留 4 ⇒ 左緣 -472、
+            -- 中心 x = -472 + 45 = -427；頂對齊 ⇒ 中心 y = 198 − 11 = 187；格距同隊伍框 93。
             partytarget = {
                 enabled = false,
-                frame = frameDef{ x = -427, y = 157, w = 90, h = 22, growth = "DOWN", spacing = 93,
+                frame = frameDef{ x = -427, y = 187, w = 90, h = 22, growth = "DOWN", spacing = 93,
                                   hSpacing = 10, fadeOutOfRange = true, visGroup = "party",
                                   anchor = { on = true, to = "party", side = "RIGHT", x = 4, y = 0 } },
                 elements = {
