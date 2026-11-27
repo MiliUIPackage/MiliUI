@@ -21,6 +21,7 @@ ns.UNITS = {
     "player", "target", "targettarget", "targettargettarget",
     "focus", "focustarget", "pet", "pettarget",
     "party1", "party2", "party3", "party4",
+    "party1target", "party2target", "party3target", "party4target",
     "boss1", "boss2", "boss3", "boss4", "boss5",
     "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
 }
@@ -32,6 +33,8 @@ ns.UNIT_KEYS = {
     focus = "focus", focustarget = "focustarget",
     pet = "pet", pettarget = "pettarget",
     party1 = "party", party2 = "party", party3 = "party", party4 = "party",
+    party1target = "partytarget", party2target = "partytarget",
+    party3target = "partytarget", party4target = "partytarget",
     boss1 = "boss", boss2 = "boss", boss3 = "boss", boss4 = "boss", boss5 = "boss",
     boss1target = "bosstarget", boss2target = "bosstarget", boss3target = "bosstarget",
     boss4target = "bosstarget", boss5target = "bosstarget",
@@ -43,7 +46,7 @@ ns.UNIT_KEYS = {
 -- ⚠ 版面用途（排位／預覽第一格／編輯模式只有第一格可拖）一律讀 stackIndex。
 --   uf.bossIndex 只有 bossN 本身才有，語意是「這是第幾隻首領」（頭像拿它對地城手冊的
 --   displayID，見 Elements/Portrait.lua）——隊友框絕不能有，不然打首領時隊友頭像會換成首領。
-ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true, party = true }
+ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true, party = true, partytarget = true }
 
 -- 全域框架名（其他插件靠這些名字整合，例如 MiliUI Focuser）
 ns.GLOBAL_NAMES = {
@@ -53,6 +56,8 @@ ns.GLOBAL_NAMES = {
     pet = "MiliUIUF_Pet", pettarget = "MiliUIUF_PetTarget",
     party1 = "MiliUIUF_Party1", party2 = "MiliUIUF_Party2",
     party3 = "MiliUIUF_Party3", party4 = "MiliUIUF_Party4",
+    party1target = "MiliUIUF_Party1Target", party2target = "MiliUIUF_Party2Target",
+    party3target = "MiliUIUF_Party3Target", party4target = "MiliUIUF_Party4Target",
     boss1 = "MiliUIUF_Boss1", boss2 = "MiliUIUF_Boss2", boss3 = "MiliUIUF_Boss3",
     boss4 = "MiliUIUF_Boss4", boss5 = "MiliUIUF_Boss5",
     boss1target = "MiliUIUF_Boss1Target", boss2target = "MiliUIUF_Boss2Target",
@@ -65,7 +70,7 @@ ns.UNIT_LABELS = {
     player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
     targettargettarget = L["Target of Target of Target"],
     focus = L["Focus"], focustarget = L["Focus Target"],
-    pet = L["Pet"], pettarget = L["Pet Target"], party = L["Party"],
+    pet = L["Pet"], pettarget = L["Pet Target"], party = L["Party"], partytarget = L["Party Target"],
     boss = L["Boss"], bosstarget = L["Boss Target"], totem = L["Summons"],
 }
 

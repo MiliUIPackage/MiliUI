@@ -16,6 +16,9 @@ metadata:
 - 職責圖示 `icons.role`（只有 party 預設值有這個鍵），`UnitGroupRolesAssigned` 先 Desecret。
 - 預覽：停用的單位不建孿生，勾起來時由 `Preview.Rebuild` 補建；party 四格固定假資料（`PARTY_SLOTS`）。
 
+- 2026-11-27 使用者調整：光環比照目標框「上減益（開）、下增益（關）」，兩排 8×20＋7＝167 對齊框緣；格距 70。使用者說隊伍框「還沒發佈、不需要遷移」，改預設值直接改（自己的存檔用「恢復預設」或套「經典頭像」樣式吃到新值）。
+- **隊伍的目標** `partytarget`（party1-4target，預設關）：90×22 短條、沒有頭像與光環，預設貼在隊伍框右邊同格距；是獨立的框，隊伍框搬動／換樣式後不會自己跟。隊友的 `UNIT_TARGET` 只在這種框生出來時才註冊（`ns.Events.WatchPartyTargets`），不進 `SCOPED` 的無條件名單。
+
 **樣式快速選擇**（`c58d2c127`，合進本機 master，**版面數字未實機看過**）
 - 樣式＝一包設定值，不是活的底層。`Core/Styles.lua`：`Build`（classic 就是 BuildDefaults）、`PRESERVE` 保留清單（唯一一張表）、`Compose`、`ApplyMany`／`Undo`（快照一層、只在記憶體）。支援 player／target／focus／party。
 - 試穿：`Preview.SetOverride(unitKey, tbl, tag)` 讓孿生的 `uf.db` 指到臨時表；重指 uf.db 一律走 `TwinDB`。試穿中拖曳寫回存檔。

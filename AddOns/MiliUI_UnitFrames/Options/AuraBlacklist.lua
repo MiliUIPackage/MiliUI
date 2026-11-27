@@ -91,6 +91,7 @@ local function UnitToken(unitKey)
     if unitKey == "boss" then return "boss1" end
     if unitKey == "bosstarget" then return "boss1target" end
     if unitKey == "party" then return "party1" end
+    if unitKey == "partytarget" then return "party1target" end
     return unitKey
 end
 

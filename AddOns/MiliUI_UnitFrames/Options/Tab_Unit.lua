@@ -30,6 +30,7 @@ local UNIT_LIST = {
     { key = "pet",          label = L["Pet"] },
     { key = "pettarget",    label = L["Pet Target"] },
     { key = "party",        label = L["Party"] },
+    { key = "partytarget",  label = L["Party Target"] },
     { key = "boss",         label = L["Boss"] },
     { key = "bosstarget",   label = L["Boss Target"] },
 }
@@ -175,7 +176,7 @@ local function FrameSpecs(unitKey)
     end
     if ns.MULTI_UNIT_KEYS[unitKey] then
         -- 同一節（方向／間距）首領與隊伍共用，只有標題換
-        tinsert(list, { type = "header", label = unitKey == "party" and L["Party member layout"] or L["Multiple boss layout"] })
+        tinsert(list, { type = "header", label = (unitKey == "party" or unitKey == "partytarget") and L["Party member layout"] or L["Multiple boss layout"] })
         tinsert(list, { type = "dropdown", root = "frame", key = "growth", label = L["Grow direction"],
                         items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" },
                                   { text = L["Rightward"], value = "RIGHT" }, { text = L["Leftward"], value = "LEFT" } } })

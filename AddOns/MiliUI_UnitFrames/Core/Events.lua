@@ -409,6 +409,7 @@ local TARGET_FRAME_OF = {
     target = "targettarget", focus = "focustarget", pet = "pettarget",
 }
 for i = 1, 5 do TARGET_FRAME_OF["boss" .. i] = "boss" .. i .. "target" end
+for i = 1, 4 do TARGET_FRAME_OF["party" .. i] = "party" .. i .. "target" end
 
 SCOPED = {
     UNIT_TARGET = {
@@ -565,6 +566,24 @@ function ns.Defer(fn, ...)
         dqQueued = true
         C_Timer.After(0, FlushDeferred)
     end
+end
+
+------------------------------------------------------------
+-- 隊伍的目標框（party1-4target）：隊友換目標的 UNIT_TARGET
+--
+-- ⚠ party1-4 **不放進 SCOPED.UNIT_TARGET 的 tokens**：那張表是 Start 無條件註冊的，
+--   放進去等於每個玩家（包含沒開隊伍的目標框的人）在五人隊伍裡都要收隊友每一次換目標。
+--   隊伍的目標框預設關，所以改成「框真的生出來才註冊」（Core/UnitFrame.lua 的 SpawnUnitFrame 呼叫）。
+--   派送走同一顆 UnitReg frame → DispatchScoped → SCOPED.UNIT_TARGET.fn → TARGET_FRAME_OF。
+-- 事件之外還有 Units.lua 的 INDIRECT_UNITS 輪詢當保險（隊友遞補換人那種沒有事件的情況）。
+------------------------------------------------------------
+local partyTargetWatched = false
+function ns.Events.WatchPartyTargets()
+    if partyTargetWatched then return end
+    partyTargetWatched = true
+    UnitReg("UNIT_TARGET", "party1", "party2")
+    UnitReg("UNIT_TARGET", "party3", "party4")
+    for i = 1, 4 do unitRegistered["UNIT_TARGET/party" .. i] = true end
 end
 
 function ns.Events.Start()

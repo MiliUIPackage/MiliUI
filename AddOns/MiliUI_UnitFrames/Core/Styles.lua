@@ -191,8 +191,10 @@ local SLIM_P_HP_H = 22
 local SLIM_P_MP_H = 5
 local SLIM_P_MP_Y = -(SLIM_P_HP_H - 1)              -- -21
 local SLIM_P_H    = SLIM_P_HP_H + SLIM_P_MP_H - 1   -- 26 = 22 + 5 - 1
-local SLIM_P_GAP  = 4
-local SLIM_P_SPACING = SLIM_P_H + SLIM_P_GAP        -- 30：上一格頂到下一格頂（格間留 4）
+-- 光環同經典隊伍框：減益在框上方、增益在框下方，圖示 19（8 × 19 ＋ 7 ＝ 159 ＝ 160 − 1，跟框等寬）
+local SLIM_P_AURA = 19
+-- 格距：框高 26 ＋ 4 ＋ 下一格的減益列 19 ＋ 4 ＝ 53，取 54
+local SLIM_P_SPACING = SLIM_P_H + 4 + SLIM_P_AURA + 4 + 1
 
 local STATUS_FULL = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"]
 local STATUS_SELF = L["[gray_if_dead:Dead][gray_if_ghost:Ghost]"]
@@ -340,11 +342,11 @@ local function SlimParty(u)
         -- 格距只有 4，條上方放不下一行字：施法目標改成條內右上角
         Put(els.castbar.castTarget, { x = -4, y = -1, w = W, h = 10, justifyV = "TOP" })
     end
-    -- 光環：框右側外面一排，同經典（x = 框寬 + 3、垂直置中 (26 - 18) / 2 = 4）；
-    -- 增益接在減益右邊 4 × 19 ＝ 76，再空 4（同經典 171 → 251 的 80）
-    Aura(els, "debuffs", { x = W + 3, y = -(H - 18) / 2 })        -- 163, -4
-    Aura(els, "buffs",   { x = W + 3 + 80, y = -(H - 18) / 2 })   -- 243, -4
-    -- 小圖示：格距只有 4，經典那種跨在框頂上的團標／隊長會壓到上一格 ⇒ 全部收進框的高度裡。
+    -- 光環：同經典隊伍框的上下兩排（位置語意見 Core/DB.lua 的 party），只換圖示大小讓整排跟框等寬
+    --   減益 y = 4（框頂上方）；增益 y = -(26 + 4) = -30（框底下方留 4）
+    Aura(els, "debuffs", { x = 0, y = 4, w = SLIM_P_AURA, h = SLIM_P_AURA })
+    Aura(els, "buffs",   { x = 0, y = -(H + 4), w = SLIM_P_AURA, h = SLIM_P_AURA })
+    -- 小圖示：框頂上方是減益列，經典那種跨在框頂上的團標／隊長會蓋到減益 ⇒ 全部收進框的高度裡。
     --   職責：血條內左側，14×14、垂直置中 (22 - 14) / 2 = 4
     --   隊長：框左邊外側上半，10×10、y = -1 ⇒ -1..-11
     --   團標：框左邊外側下半，14×14、y = -12 ⇒ -12..-26（剛好到框底 26）
@@ -373,7 +375,8 @@ local CARD_P_BAR_W   = CARD_P_W - CARD_P_H - CARD_GAP    -- 130 = 168 - 36 - 2
 local CARD_P_HP_H    = 28
 local CARD_P_MP_H    = CARD_P_H - CARD_P_HP_H + 1        -- 9 = 36 - 28 + 1
 local CARD_P_MP_Y    = -(CARD_P_HP_H - 1)                -- -27 ⇒ 底 -36
-local CARD_P_SPACING = CARD_P_H + 4                      -- 40：格間留 4
+-- 格距：框高 36 ＋ 4 ＋ 下一格的減益列 20 ＋ 4 ＝ 64（光環同經典隊伍框：上減益、下增益）
+local CARD_P_SPACING = CARD_P_H + 4 + 20 + 4
 
 local PORTRAIT_BG = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
 
@@ -506,11 +509,10 @@ local function CardParty(u)
         Put(cb.time,  { x = -4, y = 0, w = bw, h = H, size = 10, justifyH = "RIGHT", justifyV = "MIDDLE" })
         Put(cb.castTarget, { x = -4, y = -1, w = bw, h = 10, size = 9, justifyH = "RIGHT", justifyV = "TOP" })
     end
-    -- 光環：框寬、框高都跟經典隊伍框相同 ⇒ 減益 x = 168 + 3 = 171、y = -(36 - 18) / 2 = -9，
-    -- 增益 171 + 80 = 251（同經典）
-    Aura(els, "debuffs", { x = W + 3, y = -(H - 18) / 2 })
-    Aura(els, "buffs",   { x = W + 3 + 80, y = -(H - 18) / 2 })
-    -- 小圖示：全部收進框裡（格距 4，跨框頂的會壓到上一格）
+    -- 光環：框寬跟經典隊伍框相同 ⇒ 減益沿用經典（x = 0、y = 4、20 見方、8 × 20 ＋ 7 ＝ 167）；
+    -- 這裡沒有往下露的能量條，增益改貼框底留 4 ⇒ y = -(36 + 4) = -40
+    Aura(els, "buffs", { y = -(H + 4) })
+    -- 小圖示：全部收進框裡（框頂上方是減益列，跨框頂的會蓋到減益）
     --   職責：條內左側 (41, -7)
     --   隊長：頭像左上角內側 (1, -1)，10×10
     --   團標：頭像右下角內側，14×14：x = 36 - 14 - 1 = 21、y = -(36 - 14 - 1) = -21

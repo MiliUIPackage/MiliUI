@@ -12,6 +12,7 @@ local _, ns = ...
 local INDIRECT_UNITS = {
     "targettarget", "targettargettarget", "focustarget", "pettarget",
     "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
+    "party1target", "party2target", "party3target", "party4target",
 }
 local INDIRECT_KEY = "watch_indirect"
 

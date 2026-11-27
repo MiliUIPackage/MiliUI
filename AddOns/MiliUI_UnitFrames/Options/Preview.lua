@@ -74,6 +74,8 @@ local FAKE_BASE = {
                      classificationKey = "worldboss" },
     -- 首領的目標：實戰上幾乎都是坦，所以套玩家那組假資料
     bosstarget   = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    -- 隊伍的目標：隊友打的多半是敵人（示範用敵對色，跟旁邊隊伍框的職業色分得開）
+    partytarget  = { name = L["Target"],   pc = false, reaction = 2, level = 80 },
     -- 隊伍：四格各不相同，真正的內容在下面的 PARTY_SLOTS
     party        = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
 }
@@ -98,7 +100,7 @@ local PARTY_SLOTS = {
 local SLOT_OVERRIDES = { party = PARTY_SLOTS }
 
 -- 每個 unitKey 預覽幾格（沒列的多格單位是 3 格）
-local TWIN_COUNT = { party = 4 }
+local TWIN_COUNT = { party = 4, partytarget = 4 }
 
 -- 玩家框的範例資源要跟本人一致：以前所有單位一律「魔力 15萬/25萬」，暗牧（瘋狂 0～100）
 -- 看到的範例就跟實際框對不上，顏色也是法力藍。玩家本人的資源型態與上限脫戰是明文

@@ -892,7 +892,7 @@ local function InstallMenuClassifierFix()
         -- bossNtarget 跟 targettarget 同一類（指向不固定）。bossN **本身**不在裡面：
         -- 它在字串分類那段就早退出了，而且首領也不會是玩家。
         if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")
-                or lu:match("^boss%dtarget$")) then
+                or lu:match("^boss%dtarget$") or lu:match("^party%dtarget$")) then
             return
         end
         local guid = UnitGUID(unit)
@@ -939,6 +939,8 @@ function ns.SpawnUnitFrame(unit)
     if unit:match("^boss%d$") then
         uf.bossIndex = uf.stackIndex
     end
+    -- 隊伍的目標框：隊友換目標的事件只在這種框真的存在時才註冊（見 Core/Events.lua）
+    if unitKey == "partytarget" then ns.Events.WatchPartyTargets() end
 
     uf:RegisterForClicks("AnyUp")
     uf:SetAttribute("*type1", "target")

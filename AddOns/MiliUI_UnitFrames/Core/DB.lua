@@ -1006,11 +1006,13 @@ function DB.BuildDefaults()
             -- 要靠這層閘藏起來，團隊交給團隊框。
             --
             -- 位置：畫面左側、玩家框（-300, -225）的左上方，第一格中心 (-560, 150)，
-            -- 往下長、格距 50 ⇒ 第四格中心 y = 0，整組跟玩家框不重疊。
-            -- 格距 50：框高 36 ＋ 能量條往下露的 5 ＝ 41，留 9 不互壓。
+            -- 往下長、格距 70 ⇒ 第四格中心 y = -60，整組跟玩家框不重疊。
+            -- 格距 70（使用者要求拉開）：框高 36 ＋ 能量條往下露的 5 ＝ 41，下一格的減益列
+            -- 在它框頂上方 4..24，所以 41 ＋ 4（留白）＋ 20（減益）＋ 4 ＝ 69，取 70。
+            -- ⚠ 增益（預設關）打開的話在框下 45..65，會跟下一格的減益列疊到，要自己把格距再拉開。
             party = {
                 enabled = false,
-                frame = frameDef{ x = -560, y = 150, w = 168, h = 36, growth = "DOWN", spacing = 50,
+                frame = frameDef{ x = -560, y = 150, w = 168, h = 36, growth = "DOWN", spacing = 70,
                                   hSpacing = 10, fadeOutOfRange = true, visGroup = "party" },
                 elements = {
                     -- 層級嚴格遞增（同目標框）：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
@@ -1074,17 +1076,21 @@ function DB.BuildDefaults()
                                   justifyH = "RIGHT", justifyV = "MIDDLE", color = white(1) },
                         icon  = { x = 4, y = -10, w = 16, h = 16 },
                     },
-                    -- 光環：框右側外面一排。x = 171（框寬 168 ＋ 3），y = -9 讓 18 高的圖示對齊框的垂直中線。
-                    -- 減益 bossrole（isBossOrRoleAura）：首領技能與職責相關的減益，跟首領的目標框同一套
-                    -- 理由——小框放不下「全部」，要的是「這個隊友現在中了什麼該注意的」。
-                    -- 增益預設關；打開的話接在減益右邊（4 × 19 ＝ 76，再空 4）。
-                    buffs  = { enabled = false, x = 251, y = -9, w = 18, h = 18,
-                               maxCount = 4, perRow = 4, growth = "LRTB", spacing = 1,
+                    -- 光環跟目標框同一套（使用者指定）：減益在框**上方**往上長（預設開）、增益在框**下方**（預設關）。
+                    -- 對齊照目標框的規則「整排右緣落在框寬減 1px 邊框」：8 × 20 ＋ 7 間距 ＝ 167 ＝ 168 − 1，
+                    -- 兩排都從 x = 0 起算，左右剛好跟框等寬。
+                    --   減益 y = 4：離框頂 4（同目標框）
+                    --   增益 y = -45：框底 -36、能量條往下露到 -41，再留 4（同目標框 58 → 62）
+                    -- 目標框的增益排是 x = -8 對齊錯位的能量條；這裡錯位只有 5，(172 − 7) / 8 不是整數，
+                    -- 對不齊像素，所以兩排都對框緣。
+                    -- 減益 bossrole（isBossOrRoleAura）：首領技能與職責相關的減益——「這個隊友現在中了什麼該注意的」。
+                    buffs  = { enabled = false, x = 0, y = -45, w = 20, h = 20,
+                               maxCount = 8, perRow = 8, growth = "LRTB", spacing = 1,
                                showStack = true, stackSize = 10,
                                stackAnchor = "TOP", stackX = 0, stackY = 4,
                                durationText = false, durationThreshold = 60, filterMode = "bigdef" },
-                    debuffs = { enabled = true, x = 171, y = -9, w = 18, h = 18,
-                                maxCount = 4, perRow = 4, growth = "LRTB", spacing = 1,
+                    debuffs = { enabled = true, x = 0, y = 4, w = 20, h = 20,
+                                maxCount = 8, perRow = 8, growth = "LRBT", spacing = 1,
                                 onlyMine = false, filterMode = "bossrole",
                                 showStack = true, stackSize = 10,
                                 stackAnchor = "TOP", stackX = 0, stackY = 4,
@@ -1096,6 +1102,56 @@ function DB.BuildDefaults()
                               raidtarget = { enabled = true, x = 76, y = 8,  w = 16, h = 16, level = ICON_LEVEL },
                               leader     = { enabled = true, x = 5,  y = 8,  w = 10, h = 10, level = ICON_LEVEL },
                               role       = { enabled = true, x = 3,  y = -4, w = 14, h = 14, level = ICON_LEVEL } },
+                },
+            },
+
+            ------------------------------------------------------------
+            -- 隊伍的目標（party1-4target 共用一份設定；預設不啟用，使用者指定）
+            --
+            -- 樣式比照目標的目標，但更短：一條 90×22 的小長方形（血條 16 ＋ 能量條 7，共用 1px）。
+            -- 沒有頭像、沒有光環 —— 它回答的只有「這個隊友現在在打誰／補誰」。
+            --
+            -- 位置：貼在隊伍框右邊、頂緣對齊。隊伍框中心 (-560, 150)、168×36 ⇒ 右緣 -476、頂 168；
+            -- 留 4 ⇒ 左緣 -472、中心 x = -472 + 45 = -427；頂對齊 ⇒ 中心 y = 168 − 11 = 157。
+            -- 格距跟隊伍框一樣 70，四格才會一格對一格。
+            -- ⚠ 它是獨立的框：搬動隊伍框、改隊伍框格距或套用樣式之後，這一排要自己跟著調。
+            partytarget = {
+                enabled = false,
+                frame = frameDef{ x = -427, y = 157, w = 90, h = 22, growth = "DOWN", spacing = 70,
+                                  hSpacing = 10, fadeOutOfRange = true, visGroup = "party" },
+                elements = {
+                    hpbar = { enabled = true, x = 0, y = 0, w = 90, h = 16, level = 4,
+                              texts = {   -- 座標相對血條 TOPLEFT
+                                  textDef{ pattern = "[perchp]%", x = -3, y = 0, w = 90, h = 16, size = 10,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
+                              colorMethod = "classreaction", bgColorMethod = "solid",
+                              bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.4, bgAlpha = 1, border = true,
+                              showHealPrediction = false,
+                              healPredictionAlpha = 0.35,
+                              showAbsorb = true, absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
+                              showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
+                    -- 能量條 y = -15：疊在血條最下面那 1px 上，底 -22 ＝ 框底
+                    mpbar = { enabled = true, x = 0, y = -15, w = 90, h = 7, level = 0,
+                              texts = {},
+                              colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 1, bgAlpha = 1, border = true },
+                    -- 名字寬 52：90 − 3 − 35（留給「100%」）
+                    texts = {
+                        textDef{ pattern = "[name]", x = 3, y = 0, w = 52, h = 16, size = 10,
+                                 justifyH = "LEFT", justifyV = "MIDDLE" },
+                    },
+                    icons = { enabled = true,
+                              raidtarget = { enabled = true, x = 38, y = 7, w = 14, h = 14, level = ICON_LEVEL } },
                 },
             },
 
