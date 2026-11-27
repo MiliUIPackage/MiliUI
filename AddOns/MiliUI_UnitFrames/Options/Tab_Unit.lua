@@ -162,6 +162,27 @@ local function FrameSpecs(unitKey)
         { type = "slider", root = "frame", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
         { type = "text", label = L["100 is the original size, multiplied by the global scale on the General tab. Everything on the frame scales with it, including the resource and mana bars anchored below; the frame grows around its center, so the position stays put."] },
     }
+    -- 錨定在別的單位框上（frame.anchor，只有預設值帶這張表的單位有；目前是隊伍的目標 → 隊伍）。
+    -- 接在「位置」那一列後面：開著的時候位置由宿主決定，上面那組 X／Y 只是備用。
+    local udb = ns.GetUnitDB(unitKey)
+    local anchor = udb and udb.frame and udb.frame.anchor
+    if type(anchor) == "table" then
+        local at
+        for i, spec in ipairs(list) do
+            if spec.type == "numbers" and spec.label == L["Position"] then at = i + 1 break end
+        end
+        local rows = {
+            { type = "toggle", root = "frame", sub = "anchor", key = "on",
+              label = L["Follow %s"]:format(ns.UNIT_LABELS[anchor.to] or anchor.to) },
+            { type = "text", label = L["Each frame sticks to its matching frame and moves with it, so layout and style changes there carry over. The position above is only used when this is off or that unit is disabled. Dragging adjusts the offset."] },
+            { type = "dropdown", root = "frame", sub = "anchor", key = "side", label = L["Attach side"],
+              items = { { text = L["Right side"], value = "RIGHT" }, { text = L["Left side"], value = "LEFT" },
+                        { text = L["Top side"], value = "TOP" }, { text = L["Bottom side"], value = "BOTTOM" } } },
+            { type = "numbers", root = "frame", sub = "anchor", label = L["Offset"],
+              fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
+        }
+        for i, spec in ipairs(rows) do tinsert(list, (at or #list + 1) + i - 1, spec) end
+    end
     -- ⚠ 「啟用此單位框」與它的說明永遠是表單的頭兩列（使用者指定）：其他東西一律插在它們後面。
     --   放在樣式那一節底下的話，那個勾選看起來像是樣式的一部分。
     local at = 3

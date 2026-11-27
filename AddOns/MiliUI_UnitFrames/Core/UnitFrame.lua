@@ -395,6 +395,74 @@ function ns.FrameScale(fdb)
     return s
 end
 
+------------------------------------------------------------
+-- 錨定在別的單位框上（frame.anchor）
+--
+-- frame.anchor = { on, to = 另一個單位的 DB key, side = "RIGHT"｜"LEFT"｜"TOP"｜"BOTTOM", x, y }
+--   * 只有預設值帶這張表的單位才有這個功能（目前：隊伍的目標 → 隊伍）。**永遠是表**，
+--     「不錨定」是 on = false —— 寫成 anchor = false 的話下次登入 MergeDefaults 會把整張表補回來。
+--   * 多格對多格是「第 n 格貼第 n 格」（stackIndex 對 ns.KEY_TOKENS 的第 n 個），所以宿主的
+--     格距、方向、樣式怎麼改，這一排都自己跟著走，不必再算一次 growth／spacing。
+--   * x／y 是貼上去之後的位移，單位跟 frame.x/y 一樣是畫面（UIParent）單位。
+--   * 宿主找不到（那個單位沒啟用、沒生出來）就退回 frame.x/y 的畫面座標 —— 不會消失。
+--   * 宿主藏著（沒有那個隊友）照樣錨得上去：藏著的框有矩形。
+-- 兩邊都是 protected 單位按鈕、錨定只在脫戰時做（ApplyFramePosition 的戰鬥閘），不會多出保護問題。
+------------------------------------------------------------
+-- side → 自己的點, 宿主的點。左右兩側頂緣對齊、上下兩側左緣對齊
+ns.ANCHOR_SIDES = {
+    RIGHT  = { "TOPLEFT",    "TOPRIGHT" },
+    LEFT   = { "TOPRIGHT",   "TOPLEFT" },
+    TOP    = { "BOTTOMLEFT", "TOPLEFT" },
+    BOTTOM = { "TOPLEFT",    "BOTTOMLEFT" },
+}
+
+-- 這個框現在要貼的宿主框（真實框找真實框、預覽孿生找孿生）；不錨定或找不到回 nil
+function ns.AnchorHost(uf, a)
+    if type(a) ~= "table" or not a.on or type(a.to) ~= "string" then return nil end
+    if not uf or a.to == uf.unitKey then return nil end
+    local idx = uf.stackIndex or 1
+    local host
+    if uf.isPreview then
+        host = ns.Preview and ns.Preview.TwinOf and ns.Preview.TwinOf(a.to, idx)
+    else
+        local tokens = ns.KEY_TOKENS[a.to]
+        host = tokens and ns.frames[tokens[idx]]
+    end
+    if host and host ~= uf then return host end
+    return nil
+end
+
+-- 拖曳要寫回哪張表：錨定中（而且宿主找得到）寫 anchor 的 x/y，不然寫 frame 的 x/y。
+-- 兩張表都有 x／y 欄位，拖曳那套游標差值的算法不必分兩份（見 EditMode.lua 的 ns.AttachDrag）
+function ns.DragDB(uf, fdb)
+    local a = fdb and fdb.anchor
+    if ns.AnchorHost(uf, a) then return a end
+    return fdb
+end
+
+-- 貼到宿主上；成功回 true。nx／ny 是畫面單位，SetPoint 的位移是框自己的單位 ⇒ 除回 scale
+function ns.SetAnchoredPoint(uf, a, host, nx, ny)
+    local pts = ns.ANCHOR_SIDES[a.side] or ns.ANCHOR_SIDES.RIGHT
+    local s = uf:GetScale()
+    if not s or s <= 0 then s = 1 end
+    uf:ClearAllPoints()
+    -- pcall：錨成一圈（宿主反過來依賴這個框）時 SetPoint 會拋錯，退回畫面座標
+    local ok = pcall(uf.SetPoint, uf, pts[1], host, pts[2], ns.P.Scale(nx or 0) / s, ns.P.Scale(ny or 0) / s)
+    if not ok then uf:ClearAllPoints() end
+    return ok
+end
+
+-- 宿主那個單位的框剛生出來／剛重建：貼著它的框重新定位一次（原本可能退回畫面座標了）
+function ns.ReanchorDependents(hostKey)
+    if InCombatLockdown() then return end
+    for _, other in pairs(ns.frames) do
+        local a = other.db and other.db.frame and other.db.frame.anchor
+        if type(a) == "table" and a.on and a.to == hostKey and other.unitKey ~= hostKey then
+            ns.ApplyFramePosition(other)
+        end
+    end
+end
+
 function ns.ApplyFramePosition(uf)
     if InCombatLockdown() then return end   -- uf 是 protected frame（SetScale 也受保護）
     local fdb = uf.db.frame
@@ -439,12 +507,17 @@ function ns.ApplyFramePosition(uf)
     local eff = UIParent:GetEffectiveScale() * s
     local w, h = SnapAt(fdb.w or 100, eff), SnapAt(fdb.h or 30, eff)
     uf:SetSize(w, h)
-    uf:ClearAllPoints()
-    local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
-    local vw, vh = w * s, h * s          -- 畫面上（UIParent 單位）的實際大小
-    uf:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT",
-                ns.P.Scale(pw / 2 + x - vw / 2) / s,
-                ns.P.Scale(ph / 2 + y - vh / 2) / s)
+    -- 錨定在別的單位框上（見上面 frame.anchor 的說明）：貼得上去就不走畫面座標
+    local a = fdb.anchor
+    local host = ns.AnchorHost(uf, a)
+    if not (host and ns.SetAnchoredPoint(uf, a, host, a.x, a.y)) then
+        uf:ClearAllPoints()
+        local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
+        local vw, vh = w * s, h * s          -- 畫面上（UIParent 單位）的實際大小
+        uf:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT",
+                    ns.P.Scale(pw / 2 + x - vw / 2) / s,
+                    ns.P.Scale(ph / 2 + y - vh / 2) / s)
+    end
     uf:SetFrameStrata(ns.db.global.strata or "LOW")
     -- 「隱藏時仍可點擊」的墊底按鈕照抄這裡算出來的位置（沒開過選項就沒有這顆）
     if uf.visCatcher then ns.Visibility.PlaceCatcher(uf) end
@@ -1155,5 +1228,7 @@ function ns.ApplySettings(unitKey)
             end
         end
     end
+    -- 這個單位的框可能剛生出來（登入後才啟用）：貼著它的框原本退回了畫面座標，重貼一次
+    ns.ReanchorDependents(unitKey)
     ns.Fire("SettingsApplied", unitKey)
 end

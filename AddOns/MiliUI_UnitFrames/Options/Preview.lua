@@ -43,9 +43,27 @@ local function TwinDB(unitKey)
 end
 
 -- 拖曳寫回的永遠是存檔（理由見上）
-local function SavedFrameDB(unitKey)
-    local udb = ns.GetUnitDB(unitKey)
-    return udb and udb.frame
+-- 錨定在別的單位框上的（隊伍的目標）回的是 frame.anchor：拖的是貼上去之後的位移（ns.DragDB）
+local function SavedFrameDB(uf)
+    local udb = ns.GetUnitDB(uf.unitKey)
+    return udb and ns.DragDB(uf, udb.frame)
+end
+
+-- 錨定找宿主用：這個 unitKey 的第 index 顆孿生（ns.AnchorHost）
+function Preview.TwinOf(unitKey, index)
+    local list = twins[unitKey]
+    return list and list[index or 1] or nil
+end
+
+-- 貼在別的孿生上的孿生重新定位一次。孿生是照 ns.db.units 的 pairs 順序建的，
+-- 貼人的那一排可能比宿主早建（當下找不到宿主、退回畫面座標）；宿主補建之後也要重貼
+local function ReanchorTwins()
+    for _, list in pairs(twins) do
+        for _, uf in ipairs(list) do
+            local a = uf.db and uf.db.frame and uf.db.frame.anchor
+            if type(a) == "table" and a.on then ns.ApplyFramePosition(uf) end
+        end
+    end
 end
 
 ------------------------------------------------------------
@@ -289,7 +307,7 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             end)
             -- 從圖示上拖曳＝搬整個框（不然框底下那排光環會變成拖不動的死角）
             if not (uf.stackIndex and uf.stackIndex > 1) then
-                ns.AttachDrag(b, uf, function() return SavedFrameDB(uf.unitKey) end, function()
+                ns.AttachDrag(b, uf, function() return SavedFrameDB(uf) end, function()
                     ns.ApplySettings(uf.unitKey)
                 end)
             end
@@ -418,7 +436,7 @@ local function HookOutsideElement(uf, unitKey, region, target)
         end
     end)
     if not (uf.stackIndex and uf.stackIndex > 1) then
-        ns.AttachDrag(region, uf, function() return SavedFrameDB(unitKey) end, function()
+        ns.AttachDrag(region, uf, function() return SavedFrameDB(uf) end, function()
             ns.ApplySettings(unitKey)
         end)
     end
@@ -436,7 +454,7 @@ local function HookTwinMouse(uf, unitKey)
     end)
     -- 多格的單位（首領、隊伍）只有第一格可拖，跟編輯模式同一個規則（拖了整組跟著走）
     if not (uf.stackIndex and uf.stackIndex > 1) then
-        ns.AttachDrag(uf, uf, function() return SavedFrameDB(unitKey) end, function()
+        ns.AttachDrag(uf, uf, function() return SavedFrameDB(uf) end, function()
             ns.ApplySettings(unitKey)
         end)
     end
@@ -488,6 +506,7 @@ function Preview.Rebuild(unitKey)
         ns.Refresh(uf, "unitchanged", true)   -- force：設定重建不能被同幀去重吃掉
         if uf.db.enabled then uf:Show() else uf:Hide() end
     end
+    ReanchorTwins()     -- 這個單位的孿生可能剛補建：貼著它的那一排重貼
     -- 重建會沿用舊 alpha，重新套一次高亮才不會全部變回不透明
     if Preview.selectedKey then Preview.Highlight(Preview.selectedKey) end
     Preview.ApplyInteractive()   -- 這次重建可能長出新的光環圖示，補開滑鼠
@@ -770,6 +789,8 @@ local function DoOpen()
             xpcall(OpenTwinsFor, ns.ReportError, unitKey)
         end
     end
+
+    ReanchorTwins()     -- 全部建完才貼得到宿主（建的順序不保證）
 
     if not ticker then
         ticker = C_Timer.NewTicker(0.8, Tick)

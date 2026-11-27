@@ -48,6 +48,15 @@ ns.UNIT_KEYS = {
 --   displayID，見 Elements/Portrait.lua）——隊友框絕不能有，不然打首領時隊友頭像會換成首領。
 ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true, party = true, partytarget = true }
 
+-- DB key → 這個 key 底下的 token（照 ns.UNITS 的順序；多格單位第 n 個就是第 n 格）。
+-- 錨定用：「隊伍的目標第 3 格」要找「隊伍第 3 格」的框（見 Core/UnitFrame.lua 的 ns.AnchorHost）
+ns.KEY_TOKENS = {}
+for _, unit in ipairs(ns.UNITS) do
+    local key = ns.UNIT_KEYS[unit]
+    ns.KEY_TOKENS[key] = ns.KEY_TOKENS[key] or {}
+    tinsert(ns.KEY_TOKENS[key], unit)
+end
+
 -- 全域框架名（其他插件靠這些名字整合，例如 MiliUI Focuser）
 ns.GLOBAL_NAMES = {
     player = "MiliUIUF_Player", target = "MiliUIUF_Target",

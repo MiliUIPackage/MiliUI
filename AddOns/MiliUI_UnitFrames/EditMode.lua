@@ -85,6 +85,12 @@ function ns.AttachDrag(handle, frame, getFDB, onMoved, applyPoint)
             applyPoint(nx, ny)
             return
         end
+        -- 錨定在別的單位框上（getFDB 回的是 frame.anchor，見 ns.DragDB）：拖的是貼上去之後的位移
+        local fdb = getFDB()
+        if fdb and fdb.side and ns.AnchorHost then
+            local host = ns.AnchorHost(frame, fdb)
+            if host and ns.SetAnchoredPoint(frame, fdb, host, nx, ny) then return end
+        end
         local s = frame:GetScale()
         if not s or s <= 0 then s = 1 end
         frame:ClearAllPoints()
@@ -185,7 +191,7 @@ local function EnterPreview()
         if not uf.db.enabled then return end
         local label = ns.UNIT_LABELS[unitKey] or unitKey
         local sel = AttachSelection(uf, L["MiliUI UF: "] .. label,
-            function() return uf.db.frame end, function()
+            function() return ns.DragDB(uf, uf.db.frame) end, function()
             ns.ApplySettings(unitKey)     -- 同步第 2 格以後（boss2-5、party2-4）與孿生
         end)
         uf:EnableMouse(true)

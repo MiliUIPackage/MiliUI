@@ -1112,14 +1112,16 @@ function DB.BuildDefaults()
             -- 樣式比照目標的目標，但更短：一條 90×22 的小長方形（血條 16 ＋ 能量條 7，共用 1px）。
             -- 沒有頭像、沒有光環 —— 它回答的只有「這個隊友現在在打誰／補誰」。
             --
-            -- 位置：貼在隊伍框右邊、頂緣對齊。隊伍框中心 (-560, 150)、168×36 ⇒ 右緣 -476、頂 168；
-            -- 留 4 ⇒ 左緣 -472、中心 x = -472 + 45 = -427；頂對齊 ⇒ 中心 y = 168 − 11 = 157。
-            -- 格距跟隊伍框一樣 93，四格才會一格對一格。
-            -- ⚠ 它是獨立的框：搬動隊伍框、改隊伍框格距或套用樣式之後，這一排要自己跟著調。
+            -- 位置：**錨定在對應的那一格隊伍框上**（frame.anchor，見 Core/UnitFrame.lua）：第 n 格貼隊伍第 n 格的
+            -- 右側、頂緣對齊、留 4。隊伍框搬家、改格距、換樣式，這一排都自己跟著走（使用者指定）。
+            -- frame.x/y／growth／spacing 只在「不錨定」或隊伍框沒啟用時才用得到，值是照隊伍框預設位置
+            -- 算出來的同一個地方：隊伍框中心 (-560, 150)、168×36 ⇒ 右緣 -476、頂 168；留 4 ⇒ 左緣 -472、
+            -- 中心 x = -472 + 45 = -427；頂對齊 ⇒ 中心 y = 168 − 11 = 157；格距同隊伍框 93。
             partytarget = {
                 enabled = false,
                 frame = frameDef{ x = -427, y = 157, w = 90, h = 22, growth = "DOWN", spacing = 93,
-                                  hSpacing = 10, fadeOutOfRange = true, visGroup = "party" },
+                                  hSpacing = 10, fadeOutOfRange = true, visGroup = "party",
+                                  anchor = { on = true, to = "party", side = "RIGHT", x = 4, y = 0 } },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 90, h = 16, level = 4,
                               texts = {   -- 座標相對血條 TOPLEFT
