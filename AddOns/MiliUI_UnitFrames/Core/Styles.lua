@@ -193,8 +193,9 @@ local SLIM_P_MP_Y = -(SLIM_P_HP_H - 1)              -- -21
 local SLIM_P_H    = SLIM_P_HP_H + SLIM_P_MP_H - 1   -- 26 = 22 + 5 - 1
 -- 光環同經典隊伍框：減益在框上方、增益在框下方，圖示 19（8 × 19 ＋ 7 ＝ 159 ＝ 160 − 1，跟框等寬）
 local SLIM_P_AURA = 19
--- 格距：框高 26 ＋ 4 ＋ 下一格的減益列 19 ＋ 4 ＝ 53，取 54
-local SLIM_P_SPACING = SLIM_P_H + 4 + SLIM_P_AURA + 4 + 1
+-- 格距要容得下上下兩排光環（同經典隊伍框的算法，見 Core/DB.lua 的 party）：
+--   框高 26 ＋ 4 ＋ 這一格的增益列 19 ＋ 4 ＋ 下一格的減益列 19 ＋ 4 ＝ 76
+local SLIM_P_SPACING = SLIM_P_H + 4 + SLIM_P_AURA + 4 + SLIM_P_AURA + 4
 
 local STATUS_FULL = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"]
 local STATUS_SELF = L["[gray_if_dead:Dead][gray_if_ghost:Ghost]"]
@@ -375,8 +376,9 @@ local CARD_P_BAR_W   = CARD_P_W - CARD_P_H - CARD_GAP    -- 130 = 168 - 36 - 2
 local CARD_P_HP_H    = 28
 local CARD_P_MP_H    = CARD_P_H - CARD_P_HP_H + 1        -- 9 = 36 - 28 + 1
 local CARD_P_MP_Y    = -(CARD_P_HP_H - 1)                -- -27 ⇒ 底 -36
--- 格距：框高 36 ＋ 4 ＋ 下一格的減益列 20 ＋ 4 ＝ 64（光環同經典隊伍框：上減益、下增益）
-local CARD_P_SPACING = CARD_P_H + 4 + 20 + 4
+-- 格距要容得下上下兩排光環（光環同經典隊伍框：上減益、下增益，20 見方）：
+--   框高 36 ＋ 4 ＋ 這一格的增益列 20 ＋ 4 ＋ 下一格的減益列 20 ＋ 4 ＝ 88
+local CARD_P_SPACING = CARD_P_H + 4 + 20 + 4 + 20 + 4
 
 local PORTRAIT_BG = { r = 0.08, g = 0.08, b = 0.08, a = 1 }
 
