@@ -366,7 +366,8 @@ function DB.BuildDefaults()
             snapToGrid  = false,
             strata      = "LOW",
             smoothBars  = true,
-            pingFlash = true,            -- 有人 ping 這個單位時在框上閃三秒 ping 圖示（Core/PingMark.lua）
+            pingFlash = true,            -- 有人 ping 這個單位時在框上閃 ping 圖示（Core/PingMark.lua）
+            pingFlashSeconds = 3,        -- 閃幾秒（使用者指定預設 3，一般分頁可調 1～10）
             showTooltip = true,          -- 滑鼠移到單位框顯示提示
             tooltipHideInCombat = false, -- 戰鬥中不顯示提示
             colors = {

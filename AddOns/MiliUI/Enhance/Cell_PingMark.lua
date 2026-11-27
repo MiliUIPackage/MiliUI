@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- MiliUI: Cell 的 Ping 標記
--- 有人 ping 某個單位時，在 Cell 對應的那一格上閃三秒 ping 圖示。不改 Cell 原始碼。
+-- 有人 ping 某個單位時，在 Cell 對應的那一格上閃幾秒 ping 圖示（秒數跟單位框架的設定，預設 3）。不改 Cell 原始碼。
 --
 -- 跟 MiliUI_UnitFrames/Core/PingMark.lua 是同一套做法（那邊有完整的來龍去脈），兩邊各自獨立：
 --   * 來源只有 CHAT_MSG_PING 的聊天文字（暴雪單位框用的 UNIT_PING_PIN_ADDED 插件收不到，
@@ -10,10 +10,10 @@
 --   * 圖示框掛在 UIParent 底下、**錨到** Cell 的單位按鈕上（按鈕是 protected，戰鬥中不能替它
 --     生子框；錨在 protected 框上不會讓自己變成 protected），用完回池。
 --
--- 開關：跟著單位框架的「被 ping 時在框上閃 ping 圖示」（MiliUI_UnitFrames 的一般分頁）；
--- 單位框架沒載入就一律開。
+-- 開關與秒數：跟著單位框架一般分頁的「被 ping 時在框上閃 ping 圖示」「閃爍秒數」；
+-- 單位框架沒載入就一律開、3 秒。
 ------------------------------------------------------------
-local FLASH_SECONDS = 3
+local DEFAULT_SECONDS = 3
 local ICON_SIZE = 22
 
 local isSecret = issecretvalue or function() return false end
@@ -95,7 +95,11 @@ local function Flash(host, atlas)
     m.anim:Play()
     m.token = (m.token or 0) + 1
     local token = m.token
-    C_Timer.After(FLASH_SECONDS, function()
+    local uf = _G.MiliUIUF
+    local g = uf and uf.db and uf.db.global
+    local secs = tonumber(g and g.pingFlashSeconds) or DEFAULT_SECONDS
+    if secs < 1 then secs = 1 end
+    C_Timer.After(secs, function()
         if active[host] == m and m.token == token then Release(host) end
     end)
 end
