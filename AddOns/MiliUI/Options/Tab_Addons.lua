@@ -626,8 +626,10 @@ local function EntryCategory(entry)
 end
 ns.AddonInfo.EntryCategory = EntryCategory
 
-local function RebuildItems()
-    wipe(items)
+-- 「看得到的條目」＝名冊裡有安裝的＋沒列名冊的已安裝插件（自動條目）。
+-- 這一頁與快速設定（Options/QuickPanel.lua）列的是同一份；順手把 entriesByKey 填好，
+-- 套用待套用變更時才查得到自動條目。
+local function CollectVisible()
     local installed = GetInstalled()
 
     local covered = {}
@@ -651,6 +653,13 @@ local function RebuildItems()
             visible[#visible + 1] = e
         end
     end
+    return visible
+end
+ns.AddonInfo.CollectVisible = CollectVisible
+
+local function RebuildItems()
+    wipe(items)
+    local visible = CollectVisible()
 
     local byCat, catOrder = {}, {}
     for _, e in ipairs(visible) do
