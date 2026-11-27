@@ -944,9 +944,9 @@ local function RuneText(edb)
 end
 
 -- 一列的版面：pip 依段數切；bar 就整條
-local function LayoutRow(row, key, edb, numSeg)
+local function LayoutRow(row, key, edb, numSeg, width)
     local def = RESOURCES[key]
-    local totalW = ns.P.Scale(edb.totalw or 200)
+    local totalW = ns.P.Scale(width or edb.totalw or 200)
     local h = ns.P.Scale(edb.h or 6)
     row:SetSize(totalW, h)
 
@@ -1075,9 +1075,9 @@ local function Build(uf, edb)
     end
     -- 整條在框體下方，露出的那截也要接 ping，見 ArmPingReceiver
     ns.ArmPingReceiver(uf, f, uf.unitKey == "player" and "player-resource" or "unit")
-    f:ClearAllPoints()
-    -- holybar 語意：錨在框架底邊下方
-    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(edb.x or 0), ns.P.Scale(edb.y or 0))
+    -- holybar 語意：錨在框架底邊下方。左緣跟隨與遞補見 Core/UnitFrame.lua 的 ns.PlaceClassPower
+    f.owner = uf
+    ns.PlaceClassPower(uf)
     f:SetFrameLevel(edb.level or 5)
     f.sigKeys = nil      -- 逼下一次 Update 重排（見 LayoutMatches）
     f:Show()
@@ -1118,6 +1118,12 @@ local function RememberLayout(f, rows, newSegs)
 end
 
 local function Relayout(f, edb, rows, newSegs)
+    -- 總寬：跟隨目標（能量條／血條／整個框）或自己的 totalw，見 Core/UnitFrame.lua 的 ns.FollowSpan
+    local width = edb.totalw or 200
+    if f.owner then
+        local _, w = ns.FollowSpan(f.owner.db, edb.follow)
+        if w then width = w end
+    end
     local h = ns.P.Scale(edb.h or 6)
     local gap = ns.P.Scale(edb.rowSpacing or 2)
     local prev
@@ -1134,13 +1140,18 @@ local function Relayout(f, edb, rows, newSegs)
         else
             row:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
         end
-        LayoutRow(row, key, edb, newSegs[i])
+        LayoutRow(row, key, edb, newSegs[i], width)
         row:Show()
         prev = row
     end
     for i = #rows + 1, #f.rows do f.rows[i]:Hide() end
     local n = #rows
-    f:SetSize(ns.P.Scale(edb.totalw or 200), n > 0 and (n * h + (n - 1) * gap) or 1)
+    f:SetSize(ns.P.Scale(width), n > 0 and (n * h + (n - 1) * gap) or 1)
+    -- 列數變了（專精／型態換了、資源出現或消失）：底下的召喚物要重新遞補
+    if f.rowCount ~= n then
+        f.rowCount = n
+        if f.owner then ns.RestackBelow(f.owner) end
+    end
 end
 
 ------------------------------------------------------------
@@ -1801,9 +1812,11 @@ local function Build(uf, edb)
     --   * 錨點語意：TOPLEFT 對單位框的 BOTTOMLEFT，也就是「掛在框下方、Y 往下為負」
     --   * 外觀：底色 + 四邊 1px 黑邊
     -- 預設值排在資源條「上面一點」，兩條不重疊（見 Core/DB.lua）
-    f:SetSize(ns.P.Scale(edb.w or 200), ns.P.Scale(edb.h or 6))
+    -- 左緣與寬度：跟隨目標（預設能量條）或自己的 x／w，見 Core/UnitFrame.lua 的 ns.FollowSpan
+    local fx, fw = ns.FollowSpan(uf.db, edb.follow)
+    f:SetSize(ns.P.Scale(fw or edb.w or 200), ns.P.Scale(edb.h or 6))
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(edb.x or 0), ns.P.Scale(edb.y or 0))
+    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(fx or edb.x or 0), ns.P.Scale(edb.y or 0))
     f:SetFrameLevel(edb.level or 6)
     f:SetAlpha(edb.alpha or 1)
 
@@ -1820,6 +1833,7 @@ local function Build(uf, edb)
     SizeEdges(f.edges)
     for _, e in ipairs(f.edges) do e:SetShown(edb.border ~= false) end
     f:Show()
+    f.stackShown = nil     -- Build 一律先顯示；讓接下來那次 Update 重新判斷並觸發遞補
 end
 
 local function Update(uf, edb, bucket)
@@ -1828,7 +1842,14 @@ local function Update(uf, edb, bucket)
     -- 主資源是法力時不顯示（powertype 已在 cache 消毒為明文）。
     -- 預覽孿生也照玩家「目前」的真實資源型態決定，否則會多出一條現實裡不存在的紫線
     local pt = uf.isPreview and ns.Desecret(UnitPowerType("player"), 0) or (uf.cache.powertype or 0)
-    if pt == 0 then
+    -- 出現／消失的那一下，底下的資源條與召喚物要重新遞補（Core/UnitFrame.lua 的 ns.RestackBelow）
+    local show = pt ~= 0
+    if f.stackShown ~= show then
+        f.stackShown = show
+        f:SetShown(show)
+        ns.RestackBelow(uf)
+    end
+    if not show then
         f:Hide()
         return
     end

@@ -202,6 +202,8 @@ local function EnterPreview()
     if totem and ns.db.units.totem.enabled then
         local sel = AttachSelection(totem, L["MiliUI UF: Summons"],
             function() return ns.db.units.totem.frame end, function()
+            -- 拖過＝玩家要自己擺：關掉左緣跟隨與遞補，不然放手之後又被算回去
+            ns.db.units.totem.frame.follow = "none"
             if ns.TotemsApplySettings then ns.TotemsApplySettings() end
         end, ns.TotemsAnchorTo)
         totem:Show()      -- 框本身固定四格寬，選取框直接蓋得準

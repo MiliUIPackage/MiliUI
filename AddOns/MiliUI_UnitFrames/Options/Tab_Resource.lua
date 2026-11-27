@@ -100,6 +100,11 @@ local function BuildControls()
     local layout = {
         { type = "text",   label = L["Anchored below the player frame, stacking downward. Which resources appear follows your specialization and switches automatically."] },
         { type = "header", label = L["Position and size"] },
+        -- 左緣與寬度跟著哪條走、沒顯示的往上遞補（Core/UnitFrame.lua 的 ns.FollowSpan／ns.StackShift）
+        { type = "dropdown", key = "follow", label = L["Align to"],
+          items = { { text = L["Power bar"], value = "mpbar" }, { text = L["Health bar"], value = "hpbar" },
+                    { text = L["Whole frame"], value = "frame" }, { text = L["Not aligned (my own numbers)"], value = "none" } } },
+        { type = "text", label = L["The left edge and width come from the bar picked here, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned. When the row above it is not showing, this one moves up into its place."] },
         { type = "numbers", label = L["Position"], fields = { { key = "x", label = "X" }, { key = "y", label = "Y" } } },
         { type = "text",   label = L["Offset from the bottom-left corner of the player frame (negative goes down)."] },
         { type = "slider", key = "totalw",     label = L["Total width"],   min = 40, max = 400, step = 2 },

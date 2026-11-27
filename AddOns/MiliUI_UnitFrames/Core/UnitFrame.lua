@@ -464,6 +464,115 @@ function ns.ReanchorDependents(hostKey)
 end
 
 ------------------------------------------------------------
+-- 玩家框底下那一疊（魔力小條 → 資源條 → 召喚物）：左緣與寬度跟著誰、沒顯示的往上遞補
+--
+-- 這三樣本來就錨在玩家框左下角（框搬家會跟著走），寫死的是「左緣 x = 8、寬 200」——
+-- 那兩個數字只在經典樣式對得上（剛好是往右下錯位的能量條）。換樣式、改條寬就對不齊了。
+-- 所以改成從目標算（各元件的 follow 欄位，使用者定案 2026-11-29）：
+--   "mpbar"  跟能量條（預設：經典樣式算出來就是 x = 8、寬 200，跟以前一模一樣）
+--   "hpbar"  跟血條
+--   "frame"  跟整個框
+--   "none"   不跟，用元件自己的 x／寬度（那兩個數字一直留著，切回來不會不見）
+-- 目標那條停用時依序退回：能量條 → 血條 → 整個框。
+-- 召喚物是四顆圖示不是一條條：只對齊左緣，圖示大小照自己的設定。
+--
+-- 遞補：三樣各有自己的 y（框底往下：魔力小條 -6、資源條 -14、召喚物 -25）。上面那樣沒顯示
+-- （主資源就是法力所以沒有魔力小條、這個專精沒有資源條）時，下面的往上補它的位置，不留空格。
+-- 只有 follow 不是 "none" 的元件才參加遞補，而且只往上補（被補的位置要在自己上面）——
+-- 玩家把它搬去別處（例如框的上方）的話，位置關係不是「一疊」，不該被拉走。
+------------------------------------------------------------
+function ns.FollowSpan(udb, follow)
+    if not follow or follow == "none" or type(udb) ~= "table" then return nil end
+    local els, fdb = udb.elements or {}, udb.frame or {}
+    local function Bar(name)
+        local e = els[name]
+        if type(e) == "table" and e.enabled ~= false and (tonumber(e.w) or 0) > 0 then
+            return tonumber(e.x) or 0, tonumber(e.w)
+        end
+    end
+    if follow == "mpbar" then
+        local x, w = Bar("mpbar")
+        if x then return x, w end
+        follow = "hpbar"
+    end
+    if follow == "hpbar" then
+        local x, w = Bar("hpbar")
+        if x then return x, w end
+    end
+    return 0, tonumber(fdb.w) or 200
+end
+
+local function Following(edb)
+    return type(edb) == "table" and edb.follow ~= nil and edb.follow ~= "none"
+end
+
+-- which = "classpower"｜"totem"：這個元件要往上補多少（框內單位，≥ 0）
+function ns.StackShift(uf, which)
+    if not (uf and uf.db) then return 0 end
+    local els = uf.db.elements or {}
+    local mana, cp = els.manabar, els.classpower
+    local manaY = type(mana) == "table" and tonumber(mana.y) or nil
+    local cpY = type(cp) == "table" and tonumber(cp.y) or nil
+    local mf, cf = uf.elements.manabar, uf.elements.classpower
+    local manaShown = mf ~= nil and mf:IsShown() and type(mana) == "table" and mana.enabled ~= false
+    local cpShown = cf ~= nil and cf:IsShown() and type(cp) == "table" and cp.enabled ~= false
+        and (cf.rowCount or 0) > 0
+    if which == "classpower" then
+        if Following(cp) and not manaShown and manaY and cpY and manaY > cpY then return manaY - cpY end
+        return 0
+    end
+    local tdb = ns.db.units.totem
+    local tfdb = tdb and tdb.frame
+    local tY = tfdb and tonumber(tfdb.y)
+    if not (tY and Following(tfdb)) then return 0 end
+    if cpShown then
+        -- 資源條在：召喚物維持跟它的距離；資源條自己補上去多少，召喚物就跟著補多少
+        local s = ns.StackShift(uf, "classpower")
+        return (cpY and cpY > tY) and s or 0
+    end
+    -- 資源條不在：召喚物補資源條的位置；魔力小條也不在就補到魔力小條的位置
+    local top = tY
+    if cpY and cpY > top then top = cpY end
+    if not manaShown and manaY and manaY > top then top = manaY end
+    return top - tY
+end
+
+-- 把資源條擺到該在的位置（跟隨＋遞補）。Elements/ClassPower.lua 的 Build 與這裡的重排共用
+function ns.PlaceClassPower(uf)
+    local f = uf.elements.classpower
+    local edb = uf.db.elements and uf.db.elements.classpower
+    if not (f and type(edb) == "table") then return end
+    local x = ns.FollowSpan(uf.db, edb.follow) or edb.x or 0
+    local y = (edb.y or 0) + ns.StackShift(uf, "classpower")
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(x), ns.P.Scale(y))
+end
+
+-- 魔力小條出現／消失、資源條列數變了：下面的重新遞補一次。
+-- ⚠ 資源條上掛著接 ping 的子框，可能讓它在戰鬥中受保護（保護往父層傳）⇒ 受保護就延到脫戰。
+local restackPending
+function ns.RestackBelow(uf)
+    if not uf or uf.unitKey ~= "player" then return end
+    local f = uf.elements.classpower
+    if f then
+        if InCombatLockdown() and f:IsProtected() then
+            restackPending = restackPending or {}
+            restackPending[uf] = true
+        else
+            ns.PlaceClassPower(uf)
+        end
+    end
+    -- 召喚物框只有一顆、跟著真實的玩家框（預覽孿生不管它）
+    if not uf.isPreview and ns.TotemsApplyPosition then ns.TotemsApplyPosition() end
+end
+ns.Events.Register("PLAYER_REGEN_ENABLED", "restack_below", function()
+    if not restackPending then return end
+    local list = restackPending
+    restackPending = nil
+    for uf in pairs(list) do ns.RestackBelow(uf) end
+end)
+
+------------------------------------------------------------
 -- 直排步距自動算（frame.autoSpacing，目前只有隊伍框開）
 --
 -- 步距 ＝ 這一格往下占到哪裡 ＋ 下一格往上占到哪裡 ＋ frame.stackGap（玩家設的「剩下的空隙」）。
@@ -1278,5 +1387,7 @@ function ns.ApplySettings(unitKey)
     end
     -- 這個單位的框可能剛生出來（登入後才啟用）：貼著它的框原本退回了畫面座標，重貼一次
     ns.ReanchorDependents(unitKey)
+    -- 玩家框的條寬／位置變了：底下那一疊（資源條、召喚物）照新的目標重排
+    if unitKey == "player" and ns.frames.player then ns.RestackBelow(ns.frames.player) end
     ns.Fire("SettingsApplied", unitKey)
 end
