@@ -739,7 +739,7 @@ local function ManaBarSpecs()
         { type = "dropdown", sub = "manabar", key = "follow", label = L["Align to"],
           items = { { text = L["Power bar"], value = "mpbar" }, { text = L["Health bar"], value = "hpbar" },
                     { text = L["Whole frame"], value = "frame" }, { text = L["Not aligned (my own numbers)"], value = "none" } } },
-        { type = "text", label = L["The left edge and width come from the bar picked here, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned. When the row above it is not showing, this one moves up into its place."] },
+        { type = "text", label = L["The left edge and width come from the bar picked here, so this stays lined up when you change styles or bar sizes. The X and width below are only used when it is set to not aligned."] },
         PosSize("manabar"),
         { type = "dropdown", sub = "manabar", key = "fillDirection", label = L["Fill direction"], items = FILL_DIRECTION_ITEMS },
         { type = "text", label = L["Same coordinate meaning as the resource bars: Y starts at the bottom edge of the frame, negative goes down."] ..

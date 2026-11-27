@@ -476,9 +476,9 @@ end
 -- 目標那條停用時依序退回：能量條 → 血條 → 整個框。
 -- 召喚物是四顆圖示不是一條條：只對齊左緣，圖示大小照自己的設定。
 --
--- 遞補：三樣各有自己的 y（框底往下：魔力小條 -6、資源條 -14、召喚物 -25）。上面那樣沒顯示
--- （主資源就是法力所以沒有魔力小條、這個專精沒有資源條）時，下面的往上補它的位置，不留空格。
--- 只有 follow 不是 "none" 的元件才參加遞補，而且只往上補（被補的位置要在自己上面）——
+-- 遞補：三樣各有自己的 y（框底往下：魔力小條 -6、資源條 -14、召喚物 -25）。資源條不在時
+-- 召喚物往上補它的位置；魔力小條不在則**都不動**（見 ns.StackShift）。
+-- 只有 follow 不是 "none" 的召喚物才補，而且只往上補（資源條的位置要在它上面）——
 -- 玩家把它搬去別處（例如框的上方）的話，位置關係不是「一疊」，不該被拉走。
 ------------------------------------------------------------
 function ns.FollowSpan(udb, follow)
@@ -507,48 +507,38 @@ local function Following(edb)
 end
 
 -- which = "classpower"｜"totem"：這個元件要往上補多少（框內單位，≥ 0）
+--
+-- 使用者定案（2026-11-29）：**沒有魔力小條時什麼都不動** —— 多數職業平常就沒有魔力小條，
+-- 補位等於把資源條整個往上搬 8，那不是「補空格」而是改了大家看慣的位置。
+-- 所以只剩一種遞補：資源條不在（這個專精沒有、或被關掉）時，召喚物補到資源條的位置。
 function ns.StackShift(uf, which)
-    if not (uf and uf.db) then return 0 end
+    if which ~= "totem" or not (uf and uf.db) then return 0 end
     local els = uf.db.elements or {}
-    local mana, cp = els.manabar, els.classpower
-    local manaY = type(mana) == "table" and tonumber(mana.y) or nil
+    local cp = els.classpower
     local cpY = type(cp) == "table" and tonumber(cp.y) or nil
-    local mf, cf = uf.elements.manabar, uf.elements.classpower
-    local manaShown = mf ~= nil and mf:IsShown() and type(mana) == "table" and mana.enabled ~= false
+    local cf = uf.elements.classpower
     local cpShown = cf ~= nil and cf:IsShown() and type(cp) == "table" and cp.enabled ~= false
         and (cf.rowCount or 0) > 0
-    if which == "classpower" then
-        if Following(cp) and not manaShown and manaY and cpY and manaY > cpY then return manaY - cpY end
-        return 0
-    end
     local tdb = ns.db.units.totem
     local tfdb = tdb and tdb.frame
     local tY = tfdb and tonumber(tfdb.y)
-    if not (tY and Following(tfdb)) then return 0 end
-    if cpShown then
-        -- 資源條在：召喚物維持跟它的距離；資源條自己補上去多少，召喚物就跟著補多少
-        local s = ns.StackShift(uf, "classpower")
-        return (cpY and cpY > tY) and s or 0
-    end
-    -- 資源條不在：召喚物補資源條的位置；魔力小條也不在就補到魔力小條的位置
-    local top = tY
-    if cpY and cpY > top then top = cpY end
-    if not manaShown and manaY and manaY > top then top = manaY end
-    return top - tY
+    if not (tY and Following(tfdb)) or cpShown then return 0 end
+    if cpY and cpY > tY then return cpY - tY end
+    return 0
 end
 
--- 把資源條擺到該在的位置（跟隨＋遞補）。Elements/ClassPower.lua 的 Build 與這裡的重排共用
+-- 把資源條擺到該在的位置（左緣跟隨；它自己不遞補）。Elements/ClassPower.lua 的 Build 與這裡的重排共用
 function ns.PlaceClassPower(uf)
     local f = uf.elements.classpower
     local edb = uf.db.elements and uf.db.elements.classpower
     if not (f and type(edb) == "table") then return end
     local x = ns.FollowSpan(uf.db, edb.follow) or edb.x or 0
-    local y = (edb.y or 0) + ns.StackShift(uf, "classpower")
+    local y = edb.y or 0
     f:ClearAllPoints()
     f:SetPoint("TOPLEFT", uf, "BOTTOMLEFT", ns.P.Scale(x), ns.P.Scale(y))
 end
 
--- 魔力小條出現／消失、資源條列數變了：下面的重新遞補一次。
+-- 資源條列數變了（出現／消失）：召喚物重新遞補一次；順便把資源條照目前的跟隨目標重擺。
 -- ⚠ 資源條上掛著接 ping 的子框，可能讓它在戰鬥中受保護（保護往父層傳）⇒ 受保護就延到脫戰。
 local restackPending
 function ns.RestackBelow(uf)

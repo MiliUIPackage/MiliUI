@@ -1833,7 +1833,6 @@ local function Build(uf, edb)
     SizeEdges(f.edges)
     for _, e in ipairs(f.edges) do e:SetShown(edb.border ~= false) end
     f:Show()
-    f.stackShown = nil     -- Build 一律先顯示；讓接下來那次 Update 重新判斷並觸發遞補
 end
 
 local function Update(uf, edb, bucket)
@@ -1842,14 +1841,7 @@ local function Update(uf, edb, bucket)
     -- 主資源是法力時不顯示（powertype 已在 cache 消毒為明文）。
     -- 預覽孿生也照玩家「目前」的真實資源型態決定，否則會多出一條現實裡不存在的紫線
     local pt = uf.isPreview and ns.Desecret(UnitPowerType("player"), 0) or (uf.cache.powertype or 0)
-    -- 出現／消失的那一下，底下的資源條與召喚物要重新遞補（Core/UnitFrame.lua 的 ns.RestackBelow）
-    local show = pt ~= 0
-    if f.stackShown ~= show then
-        f.stackShown = show
-        f:SetShown(show)
-        ns.RestackBelow(uf)
-    end
-    if not show then
+    if pt == 0 then
         f:Hide()
         return
     end
