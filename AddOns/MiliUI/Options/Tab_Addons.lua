@@ -77,7 +77,8 @@ ns.AddonInfo = {
     EntryTitle   = EntryTitle,
     StripCodes   = StripCodes,
     EntryEnabled = EntryEnabled,
-    -- OpenSettings／EntryCategory 在下面定義完才補進來（快速設定面板 Options/QuickPanel.lua 要用）
+    -- OpenSettings／EntryCategory 與待套用開關那幾支在下面定義完才補進來
+    -- （快速設定面板 Options/QuickPanel.lua 要用）
 }
 
 local function EntryCPU(entry)
@@ -204,8 +205,9 @@ local function OpenEntrySettings(entry)
         fn = ResolveOpen(entry)
     end
     if fn then
-        -- 別家的設定視窗多半在較低的 strata，先讓路
-        if ns.Options.panel then ns.Options.panel:Hide() end
+        -- 主設定視窗留著不關（玩家要連續調好幾支），但別家的設定視窗多半在較低的 strata，
+        -- 所以退到後面讓路（Options.YieldFront，下次開窗或關窗時復原）
+        ns.Options.YieldFront()
         fn()
     else
         ns.Print("這個插件還沒註冊設定入口（可能要等它載入完成），稍後再試。")
@@ -238,10 +240,20 @@ local function UpdateApplyBar()
     end
 end
 
+-- 「快速設定」分頁沒開過插件總覽也能套用：entriesByKey 是總覽頁 RebuildItems 才填的，
+-- 找不到就直接翻名冊（快速設定的卡片一定是名冊條目）。
+local function FindEntry(key)
+    local e = entriesByKey[key]
+    if e then return e end
+    for _, r in ipairs(ns.AddonRoster.entries) do
+        if r.key == key then return r end
+    end
+end
+
 local function ApplyPending()
     local installed = GetInstalled()
     for key, desired in pairs(pending) do
-        local entry = entriesByKey[key]
+        local entry = FindEntry(key)
         if entry then
             for _, folder in ipairs(entry.folders) do
                 if installed[folder] then
@@ -257,6 +269,24 @@ local function ApplyPending()
     end
     ReloadUI()
 end
+
+-- 期望狀態跟現況一樣就不留（pending 只裝「真的要改」的）。locked 的不給動。
+local function SetDesired(entry, desired)
+    if entry.locked then return end
+    if desired == EntryEnabled(entry) then
+        pending[entry.key] = nil
+    else
+        pending[entry.key] = desired
+    end
+end
+
+-- 待套用的開關是兩頁（快速設定的卡片、這一頁的勾選）共用的同一份：
+-- 在哪一頁改、在哪一頁按套用都一樣。兩頁各自在切進來時整頁重畫，不用互相通知。
+ns.AddonInfo.GetDesired     = function(entry) return pending[entry.key] end
+ns.AddonInfo.SetDesired     = SetDesired
+ns.AddonInfo.PendingCount   = PendingCount
+ns.AddonInfo.ApplyPending   = ApplyPending
+ns.AddonInfo.DiscardPending = function() wipe(pending) end
 
 ------------------------------------------------------------
 -- 詳情面板
@@ -450,11 +480,7 @@ local function OnRowToggle(row, checked)
         row.cb:SetChecked(true)
         return
     end
-    if checked == EntryEnabled(entry) then
-        pending[entry.key] = nil
-    else
-        pending[entry.key] = checked
-    end
+    SetDesired(entry, checked)
     UpdateApplyBar()
     RefreshRows()
     if selectedKey ~= entry.key then
