@@ -12,10 +12,10 @@ generalTab:Hide()
 -------------------------------------------------
 -- visibility
 -------------------------------------------------
-local hideBlizzardPartyCB, hideBlizzardRaidCB, hideRaidManagerCB
+local hideBlizzardPartyCB, hideBlizzardRaidCB, hideRaidManagerCB, pingMarkerCB
 
 local function CreateVisibilityPane()
-    local visibilityPane = Cell.CreateTitledPane(generalTab, L["Visibility"], 205, 80)
+    local visibilityPane = Cell.CreateTitledPane(generalTab, L["Visibility"], 205, 101)
     visibilityPane:SetPoint("TOPLEFT", generalTab, "TOPLEFT", 5, -5)
 
     -- showSoloCB = Cell.CreateCheckButton(visibilityPane, L["Show Solo"], function(checked, self)
@@ -65,6 +65,18 @@ local function CreateVisibilityPane()
         popup:SetPoint("TOPLEFT", generalTab, 117, -77)
     end, L["Hide Blizzard Frames"], L["Require reload of the UI"])
     hideRaidManagerCB:SetPoint("TOPLEFT", hideBlizzardRaidCB, "BOTTOMLEFT", 0, -7)
+
+    -- fix from MiliUI: ping marker (RaidFrames/PingMarker.lua). Reload: it decides at login
+    -- whether Blizzard's hidden frames are parked (kept running) or fully unregistered.
+    pingMarkerCB = Cell.CreateCheckButton(visibilityPane, L["Show Ping Marker"], function(checked, self)
+        CellDB["general"]["pingMarker"] = checked
+
+        local popup = Cell.CreateConfirmPopup(generalTab, 200, L["A UI reload is required.\nDo it now?"], function()
+            ReloadUI()
+        end, nil, true)
+        popup:SetPoint("TOPLEFT", generalTab, 117, -77)
+    end, L["Show Ping Marker"], L["Shows the ping marker on a pinged group member's frame"], L["Blizzard's hidden raid frames keep running in the background while this is on"], L["Require reload of the UI"])
+    pingMarkerCB:SetPoint("TOPLEFT", hideRaidManagerCB, "BOTTOMLEFT", 0, -7)
 end
 
 -------------------------------------------------
@@ -513,6 +525,7 @@ local function ShowTab(tab)
         hideBlizzardPartyCB:SetChecked(CellDB["general"]["hideBlizzardParty"])
         hideBlizzardRaidCB:SetChecked(CellDB["general"]["hideBlizzardRaid"])
         hideRaidManagerCB:SetChecked(CellDB["general"]["hideBlizzardRaidManager"])
+        pingMarkerCB:SetChecked(CellDB["general"]["pingMarker"] ~= false)
 
         -- position
         lockCB:SetChecked(CellDB["general"]["locked"])

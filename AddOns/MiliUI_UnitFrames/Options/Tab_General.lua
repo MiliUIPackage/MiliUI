@@ -120,7 +120,7 @@ local CONTROLS = {
     { type = "header", label = L["Pings"] },
     { type = "toggle", key = "pingFlash", label = L["Flash the ping icon on a pinged unit's frame"] },
     { type = "slider", key = "pingFlashSeconds", label = L["Flash duration (sec)"], min = 1, max = 10, step = 1 },
-    { type = "text",   label = L["When someone pings a unit, its ping icon blinks on that unit's frame. It is read from the ping's chat line, so it does not work while chat is restricted (boss encounters, Mythic+)."] },
+    { type = "text",   label = L["When a group member is pinged, the ping marker blinks on that member's frame. It mirrors the marker on Blizzard's own hidden raid-style frames, which keep running in the background while this is on. Changing it needs a reload."] },
 
     { type = "header", label = L["Tooltips"] },
     { type = "toggle", key = "showTooltip", label = L["Show unit tooltip"] },

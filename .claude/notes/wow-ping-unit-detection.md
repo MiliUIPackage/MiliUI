@@ -1,16 +1,21 @@
 ---
 name: wow-ping-unit-detection
-description: 插件要知道「哪個單位被 ping」只有 CHAT_MSG_PING 的聊天文字可用；UNIT_PING_PIN_ADDED 註冊得起來但收不到
+description: 插件要知道「哪個單位被 ping」的唯一可靠做法是鏡射暴雪精簡團隊框上的 pingIconFrame（hooksecurefunc ShowPing／ClearPing）；事件收不到、聊天文字沒意義
 metadata:
   type: reference
 ---
 
-2026-11-28 實機探針（12.1.5，追隨者地城，脫戰與戰鬥中都測）：
+**結論（2026-11-28）**：鏡射暴雪自己的圖示。EllesmereUI 團隊框與 DandersFrames 都這樣做。
 
-- 暴雪自己的單位框靠 `UNIT_PING_PIN_ADDED(guid, uiTextureKit)`／`UNIT_PING_PIN_REMOVED(guid)` 畫標記（`UnitPingIconFrameTemplate`，
-  整組標 forbidden）。**插件 RegisterEvent 會成功，但 ping 自己／隊友／敵人一次都收不到**。`RegisterAllEvents` 過濾名字含 PING 的，也只有 `CHAT_MSG_PING`。
-- `CHAT_MSG_PING` 的 arg1 是組好的一句話：`|A:ping_chat_<種類>:0:0:0:0|a` ＋ 內文。種類看到 nonthreat／warning／threat（還有 assist／attack／onmyway）。
-  內文是「名字」或「在地化前綴：名字」（警告：某某、威脅警報：某某）；ping 地面是「注意這裡」。**沒有 GUID**（arg12 是 nil），arg2 帶聊天頻道裝飾（`[隊長] [名字]`）不能用。
-- 追隨者地城戰鬥中文字是明文；事件有 `SecretInChatMessagingLockdown`，首領戰／傳奇鑰石會是秘密值（未實機）。
-- 做法：拿內文對 `UnitName`（整句相等，或前綴＋冒號／空白＋名字結尾），圖示直接用 `ping_chat_<種類>` 那張 atlas。
-  實作在 `MiliUI_UnitFrames/Core/PingMark.lua` 與 `MiliUI/Enhance/Cell_PingMark.lua`（圖示框掛 UIParent、錨到單位框，戰鬥中可用）。兩支都**未實機看過**。
+- `UNIT_PING_PIN_ADDED(guid, kit)`／`_REMOVED` 對插件是受限事件：RegisterEvent 不報錯但**一次都收不到**（實機探針，12.1.5）。唯一的消費者 `UnitPingIconFrameTemplate` 是 forbidden，插件建不出來。
+- 暴雪每一格精簡框（`CompactRaidFrameN`、`CompactRaidGroupXMemberY`、`CompactPartyFrameMemberN`）上的 `cuf.pingIconFrame` 是普通物件。暴雪收到事件 → 對到那一格 → 檢查 CVar `showPingsOnRaidFrames` → 呼叫 `icon:ShowPing(kit)`／`icon:ClearPing()`。
+  `hooksecurefunc(icon, "ShowPing", …)` 拿到 kit（字串，如 Attack／Warning）與 `icon:GetParent().unit`；圖用 `Ping_Frame_BG_<kit>`＋`Ping_Frame_<kit>`（先 `C_Texture.GetAtlasInfo` 查，技能類 ping 沒有框用圖）。掛勾時機：`hooksecurefunc("CompactUnitFrame_SetUpFrame", …)`＋登入／名冊變動掃一遍；跳過 `NamePlate*`；`icon:IsForbidden()` 為真就放棄。
+- **前提是暴雪精簡框在背景活著**（名冊變動照樣排版、每格有正確單位）。EUI 的做法：容器解事件＋搬到隱藏父層，但 **`CompactRaidFrameManager` 只搬不解事件**，由它帶著容器排版。Cell 原本連 manager 一起解，所以收不到。
+- 被 ping 的人在 pin 消失前換格，暴雪那顆收不到清除 ⇒ 鏡射要自己逾時（兩家都取 20 秒）。
+- 聊天那條 `CHAT_MSG_PING`：`|A:ping_chat_<種類>:…|a`＋「名字」或「前綴：名字」，沒有 GUID、聊天受限時是秘密值。試過拿文字對名字，使用者定案「沒有意義」，已移除，別再做。
+
+**我們的實作**（未實機驗證；使用者要求全面照 EUI 做法）：
+- `MiliUI_UnitFrames/Core/PingMark.lua`：`global.pingFlash`（預設開）、`pingFlashSeconds`（預設 3，最多閃幾秒）。開著時 `Core/HideBlizzard.lua` 不解 `CompactPartyFrame` 的事件。診斷 `/dump MiliUIUF.PingMark.stats`。
+- `Cell/RaidFrames/PingMarker.lua`（直接寫進 Cell，本地分支修改）：`CellDB.general.pingMarker`（nil＝開），一般 → 可見性多一顆勾選框。開著時 `Cell/HideBlizzard.lua` 對 manager／`CompactPartyFrame` 只 Park（搬到隱藏父層＋SetParent 掛勾補搬），不解事件；關掉回到原本整組停掉。診斷 `/dump Cell.pingStats`。
+- 兩邊對暴雪框只讀不寫（弱鍵表記帳）、hook 裡只排程到下一幀。開關都要重載才生效（解事件是單向的）。
+- 待驗證：manager 活著時暴雪會不會把容器／管理員面板弄回畫面上；五人隊伍沒開「團隊風格隊伍框」時有沒有精簡框可鏡射；首領戰／傳奇鑰石中是否照常觸發；大團多跑一套暴雪框的效能。

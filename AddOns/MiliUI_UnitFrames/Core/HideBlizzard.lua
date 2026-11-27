@@ -234,7 +234,12 @@ function ns.HideBlizzardFrames()
                 Unreg(pet and pet.HealthBar)
             end
         end
-        Unreg(CompactPartyFrame)
+        -- Ping 標記（Core/PingMark.lua）是鏡射暴雪精簡框上的那顆圖示，精簡框要繼續更新成員才對得到人
+        -- ⇒ 那個功能開著時不解 CompactPartyFrame 的事件（它掛在已經藏起來的 PartyFrame 底下，
+        -- 照樣看不到，只是在背景跑）。關掉就照舊解掉。登入時決定一次，所以那個開關要重載才生效。
+        if ns.db.global.pingFlash == false then
+            Unreg(CompactPartyFrame)
+        end
     end
 
     -- 施法條：閘看**元件實際建出來沒有**（uf.elements.castbar），不是只看設定值 ——

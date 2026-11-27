@@ -56,11 +56,49 @@ end
 -- NeeRgY's fork also drops it and credits it with fixing scenario/delve objective tracking --
 -- that cannot be the mechanism, so if their fix is real it came from something else in their
 -- HideBlizzard rewrite. Do not re-add this line expecting it to hide anything.
+-- fix from MiliUI: ping marker (RaidFrames/PingMarker.lua) needs Blizzard's compact frames alive.
+--
+-- The marker is mirrored off the ping icon Blizzard keeps on each of ITS compact frames, so those
+-- frames must still be laid out on every roster change (each one bound to the right unit) even
+-- though nobody sees them. While the option is on we therefore only PARK things under the hidden
+-- parent and leave the pieces that drive the layout registered:
+--   * CompactRaidFrameManager keeps its events -- it is what runs the roster through the
+--     container (the container's own events are still unregistered below, same as before)
+--   * CompactPartyFrame keeps its events -- it refreshes its own member frames
+-- With the option off this file behaves exactly as it always did: everything unregistered,
+-- nothing runs in the background. The choice is read once at login (unregistering is one-way),
+-- hence the reload prompt on the checkbox.
+local function PingMarkerOn()
+    return not (CellDB and CellDB["general"] and CellDB["general"]["pingMarker"] == false)
+end
+
+-- A parked frame must stay parked: with their events alive, Blizzard's own code can hand these
+-- frames back to UIParent. Re-park on the next frame (never inside the hook -- that runs in
+-- Blizzard's execution path) and only out of combat (they are protected).
+local parkHooked = {}
+local function Park(frame)
+    frame:SetParent(hiddenParent)
+    if parkHooked[frame] then return end
+    parkHooked[frame] = true
+    hooksecurefunc(frame, "SetParent", function(self, parent)
+        if parent == hiddenParent then return end
+        C_Timer.After(0, function()
+            if self:GetParent() ~= hiddenParent and not InCombatLockdown() then
+                self:SetParent(hiddenParent)
+            end
+        end)
+    end)
+end
+
 function F.HideBlizzardParty()
     -- Midnight 12.0.0+ may have different party frame structure
     if _G.CompactPartyFrame then
-        _G.CompactPartyFrame:UnregisterAllEvents()
-        _G.CompactPartyFrame:SetParent(hiddenParent)
+        if PingMarkerOn() then
+            Park(_G.CompactPartyFrame)
+        else
+            _G.CompactPartyFrame:UnregisterAllEvents()
+            _G.CompactPartyFrame:SetParent(hiddenParent)
+        end
     end
 
     if _G.PartyFrame then
@@ -88,11 +126,21 @@ end
 function F.HideBlizzardRaid()
     if _G.CompactRaidFrameContainer then
         _G.CompactRaidFrameContainer:UnregisterAllEvents()
-        _G.CompactRaidFrameContainer:SetParent(hiddenParent)
+        if PingMarkerOn() then
+            Park(_G.CompactRaidFrameContainer)
+        else
+            _G.CompactRaidFrameContainer:SetParent(hiddenParent)
+        end
     end
 end
 
 function F.HideBlizzardRaidManager()
+    -- ping marker on: park only, keep the manager running (see PingMarkerOn above)
+    if PingMarkerOn() then
+        if _G.CompactRaidFrameManager then Park(_G.CompactRaidFrameManager) end
+        return
+    end
+
     if CompactRaidFrameManager_SetSetting then
         CompactRaidFrameManager_SetSetting("IsShown", "0")
     end

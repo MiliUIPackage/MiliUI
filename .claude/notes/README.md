@@ -149,7 +149,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [project-miliui-uf-refresh-journal.md](project-miliui-uf-refresh-journal.md) | 單位框「換目標後名字停在上一個」的診斷：`/muf debug` 重畫時間線＋看門狗只記不修；根因至今未在實機抓到；全同步引擎不能抄 |
 | [project-miliui-unit-frame.md](project-miliui-unit-frame.md) | MiliUI_UnitFrames（v1.4.8）十個單位框；MergeDefaults 兩道閘（刪條目記 false、版本號不回收）；疊加層走全域 API、計算器 getter 先落地；模型永遠 Show、父框秘密 alpha 不繼承；ENCOUNTER_START 時 boss token 還不存在；只看自己單位的事件綁 token；提示走 GameTooltip_SetDefaultAnchor；符文數字二選一別再改 |
 | [project-miliui-uf-party-styles.md](project-miliui-uf-party-styles.md) | 隊伍框架 party1-4（預設關、stackIndex 與 bossIndex 分工、換人比 GUID）；樣式快速選擇＝一包設定值（PRESERVE 保留清單、試穿走 Preview.SetOverride、快照只留一層）；樣式版面數字未實機 |
-| [wow-ping-unit-detection.md](wow-ping-unit-detection.md) | 哪個單位被 ping 只能從 CHAT_MSG_PING 的聊天文字反推（沒有 GUID、拿內文對名字）；UNIT_PING_PIN_ADDED 註冊成功但插件收不到；聊天受限時文字是秘密值 |
+| [wow-ping-unit-detection.md](wow-ping-unit-detection.md) | ping 標記＝鏡射暴雪精簡團隊框上的 pingIconFrame（hooksecurefunc ShowPing／ClearPing）；UNIT_PING_PIN_ADDED 插件收不到、聊天文字做法已移除；前提是 CompactRaidFrameManager 不解事件 |
 | [project-miliui-tooltip.md](project-miliui-tooltip.md) | MiliUI_Tooltip：取代 TinyTooltip 的自製滑鼠提示；taint 接觸面清單、接管清單含 FriendsTooltip 與 `MiliUITip_API.Adopt`；戰鬥中秘密 token 與 Leatrix 殘留兩次破案的規則 |
 | [project-miliui-uf-visibility-gate.md](project-miliui-uf-visibility-gate.md) | 顯示條件用兩層閘框（DB v19 顯示時機 OR＋限制優先）：外層 `RegisterStateDriver` 戰鬥中照樣切、內層只剩副本；超出距離預設疊暗色不降 alpha；血量不滿不淡出走曲線、模型要 SetIgnoreParentAlpha |
 | [project-miliui-uf-comment-attribution.md](project-miliui-uf-comment-attribution.md) | 註解不點名第三方插件，判準是 repo 裡有沒有複製到那個檔案；PixelPerfect.lua 與四張貼圖、關於頁致謝是僅有的例外 |
@@ -340,7 +340,7 @@ memory 那邊改過就重跑一次。**以 memory 為準**，這裡是匯出結�
 | [wow-mplus-enemy-forces-fields.md](wow-mplus-enemy-forces-fields.md) | M+ 敵軍進度的 criteria 欄位語意是反直覺的——quantity 已經是百分比、quantityString 才是絕對數量（還帶假的 % 號） |
 | [wow-new-file-needs-client-restart.md](wow-new-file-needs-client-restart.md) | TOC 新增的 .lua 檔、新放的媒體檔，/reload 不會載入，要整個重開遊戲；改既有 TOC 的標題／分類等欄位 /reload 就會重讀；交件時要提醒使用者 |
 | [wow-overlay-castbar-hosts.md](wow-overlay-castbar-hosts.md) | 暴雪的替身施法條 OverlayPlayerCastingBarFrame 有五個宿主——只有覆蓋快捷列是「代班玩家施法條」，專精／天賦／專業視窗裡的是視窗自己的進度條；藏暴雪施法條時只能在宿主是 OverrideActionBar 時解它 |
-| [wow-ping-unit-detection.md](wow-ping-unit-detection.md) | 插件要知道「哪個單位被 ping」只有 CHAT_MSG_PING 的聊天文字可用；UNIT_PING_PIN_ADDED 註冊得起來但收不到 |
+| [wow-ping-unit-detection.md](wow-ping-unit-detection.md) | 插件要知道「哪個單位被 ping」的唯一可靠做法是鏡射暴雪精簡團隊框上的 pingIconFrame（hooksecurefunc ShowPing／ClearPing）；事件收不到、聊天文字沒意義 |
 | [wow-playermodel-setunit-restreams.md](wow-playermodel-setunit-restreams.md) | PlayerModel:SetUnit 對「已經載好的同一個單位」再呼叫一次也會重新串流、空一兩幀；UNIT_MODEL_CHANGED 不是可靠的「模型換了」訊號 |
 | [wow-repopme-release-suppressed.md](wow-repopme-release-suppressed.md) | RepopMe（釋放靈魂）在遭遇壓制釋放／禁止釋放光環／墜落中是空操作，自動釋放要照暴雪 DEATH 彈窗的三個條件重試，不能固定延遲單發；自我復活選項要看 canUse |
 | [wow-secret-key-table-lookup.md](wow-secret-key-table-lookup.md) | How to fix \"attempted to index a table that cannot be indexed with secret keys\" in WoW addons |

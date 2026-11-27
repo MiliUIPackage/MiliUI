@@ -1,91 +1,95 @@
 ------------------------------------------------------------
--- Ping 標記：有人 ping 某個單位時，在那個單位的框上閃幾秒 ping 圖示（預設 3 秒，global.pingFlashSeconds）
+-- Ping 標記：隊友被 ping 時，在他的框上閃 ping 標記
 --
--- 來源只有 CHAT_MSG_PING 那一行聊天文字（2026-11-28 實機探針）：
---   * 暴雪自己的單位框是聽 UNIT_PING_PIN_ADDED(guid, 標記種類) 畫標記的，那個事件插件
---     **註冊得起來、但一次都收不到**（ping 自己、隊友、敵人都試過，只來 CHAT_MSG_PING）。
---   * CHAT_MSG_PING 的文字是組好的一句話：`|A:ping_chat_<種類>:0:0:0:0|a` ＋ 內文，內文是
---     「名字」或「前綴：名字」（警告：某某、威脅警報：某某；前綴是在地化字串）。沒有 GUID，
---     arg12 是 nil；送出者那一欄也帶著聊天頻道的裝飾，不能拿來用。
---   所以只能拿內文去對名字：整句等於名字，或前綴＋分隔＋名字結尾。
+-- 做法＝鏡射暴雪自己團隊框上的那顆標記（2026-11-28 對照兩家成熟的團隊框，寫法取不在暴雪框上
+-- 寫欄位的那一家；Cell 那一份在 Cell/RaidFrames/PingMarker.lua，兩邊各自獨立）：
 --
--- 限制（都是來源決定的，不是沒做完）：
---   * 首領戰／傳奇鑰石這些聊天受限的時段，文字是秘密值 ⇒ 對不了名字，那時不會顯示。
---   * ping 地面（「注意這裡」）沒有單位，不顯示。
---   * 同名的兩個單位會一起亮（同一批小怪）。
---   * 單位名字讀不到（身分受限的敵人，UnitName 回秘密值）的框不會亮。
+-- 沒有直接管道：
+--   * UNIT_PING_PIN_ADDED / _REMOVED 對插件是受限事件 —— RegisterEvent 不報錯，但一次都收不到
+--     （實機探針：ping 自己、隊友、敵人，只來 CHAT_MSG_PING）。
+--   * 唯一的消費者 UnitPingIconFrameTemplate 是 forbidden，插件建不出來。
+--   * CHAT_MSG_PING 只有組好的文字、沒有 GUID，首領戰／傳奇鑰石中還是秘密值。第一版拿文字對名字，
+--     使用者定案沒有意義，已經整個拿掉。
 --
--- 畫法：圖示用聊天裡那張 atlas（ping_chat_<種類>，聊天畫得出來就一定存在）。
--- 圖示框是掛在 UIParent 底下的普通框、**錨到**單位框上，不是單位框的子物件：
---   單位框是 protected，戰鬥中不能替它生子框；而「錨在 protected 框上」不會讓自己變成
---   protected（保護往父層與被錨的那一方傳，不往錨別人的這一方傳），戰鬥中照樣能擺、能顯示。
--- 用池：同時被 ping 的框很少，用完藏起來留著重用（frame 刪不掉）。
+-- 碰得到的是暴雪已經建在**它自己**每一格精簡框上的圖示（cuf.pingIconFrame，普通物件）。暴雪的
+-- 處理流程把被 ping 的 GUID 對到那一格、檢查 showPingsOnRaidFrames，再呼叫圖示的
+-- ShowPing(kit)／ClearPing()。在這兩個方法後面接 secure post-hook，拿到標記種類與那一格的單位，
+-- 再畫到我們自己「正在顯示同一個人」的框上（隊伍框；那個人剛好是目標／專注目標時那兩個框也亮）。
+-- 事件是暴雪自己收的，所以不受聊天限制。
+--
+-- ⚠ 前提：暴雪的精簡框要在背景活著、每一格綁著正確的單位。
+--   * 團隊：那是暴雪團隊框的事。有別的團隊框插件把它整組停掉的話，這裡就收不到（Cell 開著
+--     自己的 ping 標記時會讓它在背景繼續跑）。
+--   * 五人隊伍：只有開了「團隊風格隊伍框」才有精簡框（CompactPartyFrame）。我們藏暴雪隊伍框時
+--     在這個功能開著的情況下不解它的事件（Core/HideBlizzard.lua），讓它繼續更新成員。
+--   關掉這個選項就回到原本的做法，暴雪框不在背景跑；要重載才生效（解事件是單向的）。
+--
+-- ⚠ 對暴雪框**只讀不寫**（notes：wow-121-addon-code-in-secure-stack）：掛過哪顆、哪顆點亮了誰，
+--   全記在自己的弱鍵表。hook 本體跑在暴雪的執行流程裡，只取值、把工作丟到下一幀。
+--
+-- 圖示框掛在 UIParent 底下、**錨到**單位框上（不是單位框的子物件）：單位框是 protected，而
+-- 錨在 protected 框上不會讓自己變成 protected，戰鬥中照樣能擺、能顯示。用池重用（frame 刪不掉）。
 ------------------------------------------------------------
 local _, ns = ...
 
 local PM = {}
 ns.PingMark = PM
 
+-- 一顆 pin 在引擎裡的壽命上限。被 ping 的人在 pin 消失前換到另一格時，暴雪那顆圖示收不到清除，
+-- 所以鏡射一定要自己有逾時
+local PING_EXPIRE = 20
 local DEFAULT_SECONDS = 3
-local ICON_SIZE = 28
+local SCALE = 0.9                   -- 圖示原生 30
 
--- 內文裡「前綴」與名字之間的分隔：半形冒號、全形冒號（UTF-8 三個位元組）、空白
-local function IsSeparatorTail(s)
-    if s == "" then return false end
-    local last = s:sub(-1)
-    if last == ":" or last == " " then return true end
-    return s:sub(-3) == "\239\188\154"
+local hooked = setmetatable({}, { __mode = "k" })   -- 暴雪圖示 -> true（掛了）/ false（永遠不掛）
+local litBy  = setmetatable({}, { __mode = "k" })   -- 暴雪圖示 -> { 我們點亮的單位框, ... }
+
+-- /muf debug 之外的快速診斷：/dump MiliUIUF.PingMark.stats
+PM.stats = { hooked = 0, shown = 0, cleared = 0, lit = 0 }
+
+local function Enabled()
+    return ns.db and ns.db.global and ns.db.global.pingFlash ~= false
 end
 
--- 聊天文字 → 圖示 atlas, 內文（去掉圖示與色碼）。認不出來回 nil
-function PM.Parse(text)
-    if type(text) ~= "string" then return nil end
-    local atlas = text:match("|A:(ping_chat_[%w_]+):")
-    if not atlas then return nil end
-    local body = text:gsub("|A.-|a", ""):gsub("|T.-|t", ""):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    body = body:gsub("^%s+", ""):gsub("%s+$", "")
-    if body == "" then return nil end
-    return atlas, body
-end
-
--- 內文是不是在 ping 這個名字
-function PM.Matches(body, name)
-    if type(name) ~= "string" or name == "" then return false end
-    if body == name then return true end
-    local n = #name
-    if #body <= n then return false end
-    -- 「前綴：名字」
-    if body:sub(-n) == name and IsSeparatorTail((body:sub(1, #body - n):gsub("%s+$", " "))) then return true end
-    -- 語序相反的語系：「名字：前綴」
-    if body:sub(1, n) == name then
-        local rest = body:sub(n + 1)
-        local c = rest:sub(1, 1)
-        if c == ":" or c == " " or rest:sub(1, 3) == "\239\188\154" then return true end
+-- 每種標記的框用圖只查一次。技能類的 ping 沒有框用圖（暴雪自己的 SetAtlas 也會失敗），那種不亮
+local art = {}
+local function KitArt(kit)
+    local a = art[kit]
+    if a == nil then
+        local bg, icon = "Ping_Frame_BG_" .. kit, "Ping_Frame_" .. kit
+        local bgInfo, iconInfo = C_Texture.GetAtlasInfo(bg), C_Texture.GetAtlasInfo(icon)
+        a = bgInfo and iconInfo and {
+            bg = bg, bgW = bgInfo.width, bgH = bgInfo.height,
+            icon = icon, iconW = iconInfo.width, iconH = iconInfo.height,
+        } or false
+        art[kit] = a
     end
-    return false
+    return a
 end
 
 ------------------------------------------------------------
 -- 圖示池
 ------------------------------------------------------------
-local pool, active = {}, {}     -- active[host] = mark
+local pool, active = {}, {}     -- active[單位框] = 標記框
 
 local function Acquire()
     local m = table.remove(pool)
     if m then return m end
     m = CreateFrame("Frame", nil, UIParent)
-    m:SetSize(ICON_SIZE, ICON_SIZE)
+    m:SetSize(30 * SCALE, 30 * SCALE)
     m:SetFrameStrata("HIGH")
     m:EnableMouse(false)
-    m.tex = m:CreateTexture(nil, "OVERLAY")
-    m.tex:SetAllPoints()
-    -- 閃爍：整顆的 alpha 在 1 ↔ 0.25 之間來回（每趟 0.25 秒）
+    m.bg = m:CreateTexture(nil, "BACKGROUND")
+    m.bg:SetPoint("CENTER")
+    m.icon = m:CreateTexture(nil, "ARTWORK")
+    m.icon:SetPoint("CENTER")
+    -- 閃爍：alpha 在 1 ↔ 0.35 之間來回
     m.anim = m:CreateAnimationGroup()
     m.anim:SetLooping("BOUNCE")
     local a = m.anim:CreateAnimation("Alpha")
     a:SetFromAlpha(1)
-    a:SetToAlpha(0.25)
-    a:SetDuration(0.25)
+    a:SetToAlpha(0.35)
+    a:SetDuration(0.3)
     a:SetSmoothing("IN_OUT")
     return m
 end
@@ -100,9 +104,8 @@ local function Release(host)
     pool[#pool + 1] = m
 end
 
--- 在 host（任何框）正中央閃一顆。同一個框連續被 ping：換圖、重新計時
-function PM.Flash(host, atlas)
-    if not (host and host.IsVisible and host:IsVisible()) then return end
+-- 顯示多久：玩家設的秒數（預設 3）與暴雪清掉，先到的算；再怎樣也不超過 PING_EXPIRE
+local function Light(host, kitArt)
     local m = active[host]
     if not m then
         m = Acquire()
@@ -110,36 +113,98 @@ function PM.Flash(host, atlas)
         m:ClearAllPoints()
         m:SetPoint("CENTER", host, "CENTER", 0, 0)
     end
-    m.tex:SetAtlas(atlas)
+    m.bg:SetAtlas(kitArt.bg)
+    m.bg:SetSize(kitArt.bgW * SCALE, kitArt.bgH * SCALE)
+    m.icon:SetAtlas(kitArt.icon)
+    m.icon:SetSize(kitArt.iconW * SCALE, kitArt.iconH * SCALE)
     m:SetAlpha(1)
     m:Show()
     m.anim:Stop()
     m.anim:Play()
     m.token = (m.token or 0) + 1
     local token = m.token
-    local secs = tonumber(ns.db and ns.db.global and ns.db.global.pingFlashSeconds) or DEFAULT_SECONDS
-    if secs < 1 then secs = 1 end
+    local secs = tonumber(ns.db.global.pingFlashSeconds) or DEFAULT_SECONDS
+    if secs < 1 then secs = 1 elseif secs > PING_EXPIRE then secs = PING_EXPIRE end
     C_Timer.After(secs, function()
         if active[host] == m and m.token == token then Release(host) end
     end)
+    PM.stats.lit = PM.stats.lit + 1
 end
 
-------------------------------------------------------------
--- 事件
-------------------------------------------------------------
-local function OnPing(text)
-    if not (ns.db and ns.db.global and ns.db.global.pingFlash ~= false) then return end
-    if ns.IsSecret(text) then return end       -- 聊天受限時段：對不了名字
-    local atlas, body = PM.Parse(text)
-    if not atlas then return end
+local function ClearIcon(icon)
+    local list = litBy[icon]
+    if not list then return end
+    litBy[icon] = nil
+    for i = 1, #list do Release(list[i]) end
+end
+
+-- 下一幀才跑（不在暴雪的執行流程裡動畫面）
+local function Apply(icon, unit, kit)
+    ClearIcon(icon)     -- 這顆圖示換了一個人：先放掉它之前點亮的
+    if not Enabled() then return end
+    local kitArt = KitArt(kit)
+    if not kitArt then return end
+    -- 隊友的 GUID 是明文；讀不到就對不了，放棄這一次（不猜）
+    local guid = UnitGUID(unit)
+    if not guid or ns.IsSecret(guid) then return end
+    local list = {}
     for _, uf in pairs(ns.frames) do
         if uf:IsVisible() then
-            local name = UnitName(uf.unit)
-            if not ns.IsSecret(name) and PM.Matches(body, name) then
-                PM.Flash(uf, atlas)
+            local g = UnitGUID(uf.unit)
+            if g and not ns.IsSecret(g) and g == guid then
+                list[#list + 1] = uf
+                Light(uf, kitArt)
             end
         end
     end
+    if #list > 0 then litBy[icon] = list end
 end
 
-ns.Events.Register("CHAT_MSG_PING", "pingmark", OnPing)
+local function OnShowPing(icon, kit)
+    PM.stats.shown = PM.stats.shown + 1
+    if ns.IsSecret(kit) or type(kit) ~= "string" then return end
+    local owner = icon:GetParent()
+    local unit = owner and owner.unit
+    if ns.IsSecret(unit) or type(unit) ~= "string" then return end
+    C_Timer.After(0, function() Apply(icon, unit, kit) end)
+end
+
+local function OnClearPing(icon)
+    PM.stats.cleared = PM.stats.cleared + 1
+    C_Timer.After(0, function() ClearIcon(icon) end)
+end
+
+local function HookCuf(cuf)
+    local icon = cuf and cuf.pingIconFrame
+    if not icon or hooked[icon] ~= nil then return end
+    -- 名條的精簡框帶著同一顆子框，不是我們要鏡射的
+    local okN, name = pcall(cuf.GetName, cuf)
+    if okN and type(name) == "string" and name:find("^NamePlate") then
+        hooked[icon] = false
+        return
+    end
+    local okF, forbidden = pcall(icon.IsForbidden, icon)
+    if not okF or forbidden then
+        hooked[icon] = false
+        return
+    end
+    hooked[icon] = true
+    hooksecurefunc(icon, "ShowPing", OnShowPing)
+    hooksecurefunc(icon, "ClearPing", OnClearPing)
+    PM.stats.hooked = PM.stats.hooked + 1
+end
+
+-- 每顆圖示只掛一次：之後建出來的由 SetUpFrame 的 post-hook 接，已經存在的在登入／名冊變動時掃一遍
+if type(CompactUnitFrame_SetUpFrame) == "function" then
+    hooksecurefunc("CompactUnitFrame_SetUpFrame", HookCuf)
+end
+
+local function Sweep()
+    for i = 1, 40 do HookCuf(_G["CompactRaidFrame" .. i]) end
+    for g = 1, 8 do
+        for i = 1, 5 do HookCuf(_G["CompactRaidGroup" .. g .. "Member" .. i]) end
+    end
+    for i = 1, 5 do HookCuf(_G["CompactPartyFrameMember" .. i]) end
+end
+ns.Events.Register("PLAYER_ENTERING_WORLD", "pingmark_sweep", Sweep)
+ns.Events.Register("GROUP_ROSTER_UPDATE", "pingmark_sweep", Sweep)
