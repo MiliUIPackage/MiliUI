@@ -209,10 +209,20 @@ local function FrameSpecs(unitKey)
         tinsert(list, { type = "dropdown", root = "frame", key = "growth", label = L["Grow direction"],
                         items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" },
                                   { text = L["Rightward"], value = "RIGHT" }, { text = L["Leftward"], value = "LEFT" } } })
-        tinsert(list, { type = "slider", root = "frame", key = "spacing", label = L["Spacing"], min = 20, max = 120 })
+        local auto = udb and udb.frame and udb.frame.autoSpacing
+        if auto then
+            -- 自動步距（隊伍框）：框高與有開的光環列自動算，這裡調的只是剩下的空隙（ns.AutoStackStep）
+            tinsert(list, { type = "slider", root = "frame", key = "stackGap", label = L["Spacing"], min = 0, max = 60 })
+        else
+            tinsert(list, { type = "slider", root = "frame", key = "spacing", label = L["Spacing"], min = 20, max = 120 })
+        end
         -- 橫排的間距另存一份（hSpacing＝格與格之間的空隙），理由見 ns.ApplyFramePosition
         tinsert(list, { type = "slider", root = "frame", key = "hSpacing", label = L["Horizontal gap"], min = 0, max = 100 })
-        tinsert(list, { type = "text", label = L["Spacing is used when stacking up or down, measured from one frame's top to the next. Horizontal gap is the empty space between frames when laid out left or right."] })
+        if auto then
+            tinsert(list, { type = "text", label = L["When stacking up or down, room for the frame and for whichever buff and debuff rows are turned on is added automatically; Spacing is the empty space left between them. Horizontal gap is the empty space between frames when laid out left or right."] })
+        else
+            tinsert(list, { type = "text", label = L["Spacing is used when stacking up or down, measured from one frame's top to the next. Horizontal gap is the empty space between frames when laid out left or right."] })
+        end
     end
     ------------------------------------------------------------
     -- 顯示條件

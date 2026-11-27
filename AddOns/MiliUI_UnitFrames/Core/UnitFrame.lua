@@ -463,6 +463,53 @@ function ns.ReanchorDependents(hostKey)
     end
 end
 
+------------------------------------------------------------
+-- 直排步距自動算（frame.autoSpacing，目前只有隊伍框開）
+--
+-- 步距 ＝ 這一格往下占到哪裡 ＋ 下一格往上占到哪裡 ＋ frame.stackGap（玩家設的「剩下的空隙」）。
+-- 「占到哪裡」只算框本身、血條／能量條（能量條可能往下露一截）、以及**有開的**增益／減益列：
+-- 關掉增益就扣掉增益那一排的高度，關掉減益也一樣（使用者指定），不必自己回來調格距。
+-- 小圖示（隊長、團標）不算：它們跨在框頂上是刻意的，本來就蓋在光環列上。
+-- 全部是未縮放的框內單位，呼叫端再乘縮放。
+--
+-- 光環塊的範圍照 Elements/Auras.lua 的錨點語意：往上長（growth 帶 BT）時 y 是塊的**底**，
+-- 否則 y 是塊的頂；先直後橫（T／B 開頭）時排數與每排顆數對調。
+------------------------------------------------------------
+local function AuraSpan(e)
+    if type(e) ~= "table" or e.enabled == false then return nil end
+    local n = math.max(1, math.min(tonumber(e.maxCount) or 1, 40))
+    local per = math.max(1, tonumber(e.perRow) or n)
+    local g = e.growth or "LRTB"
+    local first = g:sub(1, 1)
+    local lines = (first == "T" or first == "B") and math.min(n, per) or math.ceil(n / per)
+    local sp = tonumber(e.spacing) or 0
+    local height = lines * ((tonumber(e.h) or 0) + sp) - sp
+    local y = tonumber(e.y) or 0
+    if g:find("BT", 1, true) then return y + height, y end       -- 頂, 底
+    return y, y - height
+end
+
+function ns.AutoStackStep(udb)
+    local fdb, els = udb.frame, udb.elements or {}
+    local top, bottom = 0, -(tonumber(fdb.h) or 30)     -- 框本身：頂 0、底 -h
+    for _, name in ipairs({ "hpbar", "mpbar" }) do
+        local e = els[name]
+        if type(e) == "table" and e.enabled ~= false then
+            local y = tonumber(e.y) or 0
+            top = math.max(top, y)
+            bottom = math.min(bottom, y - (tonumber(e.h) or 0))
+        end
+    end
+    for _, name in ipairs({ "buffs", "debuffs" }) do
+        local t, b = AuraSpan(els[name])
+        if t then
+            top = math.max(top, t)
+            bottom = math.min(bottom, b)
+        end
+    end
+    return (top - bottom) + (tonumber(fdb.stackGap) or 4)
+end
+
 function ns.ApplyFramePosition(uf)
     if InCombatLockdown() then return end   -- uf 是 protected frame（SetScale 也受保護）
     local fdb = uf.db.frame
@@ -482,7 +529,8 @@ function ns.ApplyFramePosition(uf)
             local step = ((fdb.w or 100) + (fdb.hSpacing or 10)) * s
             x = x + (growth == "RIGHT" and n or -n) * step
         else
-            local spacing = (fdb.spacing or 47) * s
+            -- autoSpacing：步距照框與有開的光環列自動算，設定的只是剩下的空隙（見 ns.AutoStackStep）
+            local spacing = (fdb.autoSpacing and ns.AutoStackStep(uf.db) or fdb.spacing or 47) * s
             if growth == "UP" then
                 y = y + n * spacing
             else

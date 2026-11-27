@@ -73,6 +73,8 @@ local PRESERVE = {
     -- 框：位置、縮放、多格排列方向
     { "frame", "x" }, { "frame", "y" }, { "frame", "scale" },
     { "frame", "growth" }, { "frame", "hSpacing" },
+    -- 多格單位自動步距時玩家設的「剩下的空隙」（步距本身照框與光環列自動算，見 ns.AutoStackStep）
+    { "frame", "autoSpacing" }, { "frame", "stackGap" },
     -- 框：錨定在別的單位框上（整張表；現在有樣式的四個單位都沒有這張表，留著是「位置」這一類的完整性）
     { "frame", "anchor" },
     -- 框：顯示條件（Core/Visibility.lua 讀的全部鍵）
