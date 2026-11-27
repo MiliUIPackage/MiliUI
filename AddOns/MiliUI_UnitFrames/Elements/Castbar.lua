@@ -60,16 +60,11 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 -- 單條施法條物件
 ------------------------------------------------------------
 ------------------------------------------------------------
--- 施法條蓋到的文字：唱法時壓暗（像被施法條的底色蓋住），淡出時跟著回來
+-- 施法條蓋到的文字：唱法時透明，淡出時跟著回來
 --
 -- 施法條要遮住底下的名字與血量數字，但**不是靠層級**：文字一律在滑鼠／選取／驅散邊框
 -- 之上（ns.OverlayLevel），施法條若也抬到那上面，唱法時整圈驅散邊框就被遮掉（使用者
--- 定案 2026-10-18：不能接受）。所以施法條留在邊框底下，改由它自己把蓋到的文字壓暗。
--- ⚠ 壓暗不是藏掉（使用者回報 2026-11-28：以前文字是「在施法條底下被遮住」，改成全透明之後
--- 變成整個消失）。文字的 alpha ＝ 1 − 施法條底色的不透明度（f.coverAlpha，預設底色 0.8 ⇒ 0.2），
--- 就是文字真的墊在底色下面時看起來的亮度；底色全透明的施法條就完全不動文字。
--- 「蓋到」看的是字實際落在哪（TextRect），不是整個文字框：預設的文字框常常是 200×50
--- 只為了對齊，字只占其中一行，拿整個框去比會把施法條外面的字也算進去。
+-- 定案 2026-10-18：不能接受）。所以施法條留在邊框底下，改由它自己把蓋到的文字調成透明。
 -- 哪幾條算「蓋到」在 Build 時用版面矩形算一次（coveredTextIdx），顯示時只掃那幾條。
 -- 用 alpha 不用 Hide：名字文字上掛著玩家框的 ping 接收器，藏起來它就從 frame stack 消失。
 --
@@ -77,11 +72,9 @@ ns.CastbarFormatTime = FormatTime      -- 預覽孿生共用同一個 formatter
 -- { list = 清單名, i = 索引 }，框一律經 ns.TextFramesOf 現查，不存框的參照：
 -- 新增條目之後那條的框要等文字元件下一次 Build 才生得出來。
 ------------------------------------------------------------
--- reveal：0 ＝ 施法條完全顯示（文字壓到最暗）、1 ＝ 施法條淡光了（文字全亮）
-local function SetCoveredAlpha(f, reveal)
+local function SetCoveredAlpha(f, a)
     local uf, idx = f.uf, f.coveredTextIdx
     if not (uf and idx) then return end
-    local a = 1 - (f.coverAlpha or 0.8) * (1 - reveal)
     for k = 1, #idx do
         local ref = idx[k]
         local frames = ns.TextFramesOf(uf, ref.list)
@@ -102,22 +95,6 @@ local function RestoreCoveredTexts(f)
     end
 end
 
--- 文字條目的字大約落在哪（上緣、下緣，條目自己的座標系）：照垂直對齊取一行字高。
--- 字高就抓字級（不加行距）：預設的能量數字貼著施法條下緣外側，多抓 2px 就會被算成蓋到。
--- 會換行的長字串估不準，寧可少算不多算。
-local function TextRect(t)
-    local top = t.y or 0
-    local h = t.h or 12
-    local line = math.min(h, t.size or 12)
-    local jv = t.justifyV or "TOP"
-    if jv == "BOTTOM" then
-        top = top - (h - line)
-    elseif jv == "MIDDLE" then
-        top = top - (h - line) / 2
-    end
-    return top, top - line
-end
-
 local function ComputeCoveredTexts(f, uf, edb)
     local list
     local els = uf.db.elements
@@ -133,9 +110,8 @@ local function ComputeCoveredTexts(f, uf, edb)
             if bar then ox, oy = bar.x or 0, bar.y or 0 end
             for i, t in ipairs(texts) do
                 if type(t) == "table" and t.enabled ~= false then
-                    local ty1, ty2 = TextRect(t)
-                    local bx1, by1 = ox + (t.x or 0), oy + ty1
-                    local bx2, by2 = bx1 + (t.w or 100), oy + ty2
+                    local bx1, by1 = ox + (t.x or 0), oy + (t.y or 0)
+                    local bx2, by2 = bx1 + (t.w or 100), by1 - (t.h or 12)
                     if bx1 < ax2 and ax1 < bx2 and by2 < ay1 and ay2 < by1 then
                         list = list or {}
                         list[#list + 1] = { list = name, i = i }
@@ -918,8 +894,6 @@ local function Build(uf, edb)
 
     local bg = edb.bg or { r = 0, g = 0, b = 0, a = 0.8 }
     f.bgTex:SetVertexColor(bg.r, bg.g, bg.b, bg.a or 0.8)
-    -- 蓋到的文字要壓多暗＝底色實際蓋掉多少（底色 alpha × 整條 alpha），見 SetCoveredAlpha
-    f.coverAlpha = math.max(0, math.min(1, (bg.a or 0.8) * f.baseAlpha))
     f.bar:SetStatusBarTexture(Media.BarTexture(ns.db.global.barTexture))
     Media.NoSnap(f.bar)
     -- 填充方向。施法往起點的反方向長、引導從滿格往起點退，兩者的相對關係不變。
