@@ -6,10 +6,10 @@
 -- 把原本的清單記進 MiliUI_DB.debugMode（帳號層級），打開 scriptErrors，然後重載。
 -- 離開時照記下的清單重新啟用、scriptErrors 還原，再重載。
 --
--- 入口：/miliui debug on|off、設定視窗「插件總覽」分頁標題列右邊那顆按鈕。
+-- 入口：/miliui debug on|off（原本插件總覽分頁還有一顆按鈕，2026-11-28 隨分頁拿掉）。
 --
 -- ⚠ 開關的範圍（角色參數）：
---   插件總覽分頁的批次開關是「不帶角色參數＝所有角色一起」。這裡沿用，但多分一種情況：
+--   快速設定的批次開關是「不帶角色參數＝所有角色一起」。這裡沿用，但多分一種情況：
 --   * 對所有角色都啟用（GetAddOnEnableState 不帶角色 = All）→ 停用／還原都不帶角色參數。
 --   * 只對部分角色啟用（= Some，玩家自己按角色設過）→ 停用／還原都只動目前這隻角色，
 --     不然還原時會把它擴散成全角色啟用、或把別隻角色的設定一起清掉。
@@ -43,7 +43,7 @@ local function EnableState(name, character)
     return C_AddOns.GetAddOnEnableState(name, character)
 end
 
--- 跟插件總覽分頁的 IsFolderEnabled 同一個判準：對目前角色不是 None 就算啟用
+-- 跟 Options/Tab_Addons.lua 的 IsFolderEnabled 同一個判準：對目前角色不是 None 就算啟用
 local function EnabledForMe(name)
     local s = EnableState(name, Me())
     if s == nil then return true end
@@ -207,10 +207,10 @@ local function Remind()
     local n = DM.DisabledCount()
     if IS_ZH then
         ns.Print(("|cffff9900目前在除錯模式中|r：已停用 %d 個插件，只留套組本體與 BugSack。"):format(n))
-        print("  回報完問題後輸入 |cffffd200/miliui debug off|r，或到設定視窗「插件總覽」按「離開除錯模式」，就會把插件還原。")
+        print("  回報完問題後輸入 |cffffd200/miliui debug off|r，就會把插件還原。")
     else
         ns.Print(("|cffff9900Debug mode is ON|r: %d addons disabled, only MiliUI and BugSack are loaded."):format(n))
-        print("  Type |cffffd200/miliui debug off|r (or use the Addons tab in /miliui) to restore your addons.")
+        print("  Type |cffffd200/miliui debug off|r to restore your addons.")
     end
 end
 

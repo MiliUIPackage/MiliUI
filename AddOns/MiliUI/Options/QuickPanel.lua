@@ -6,17 +6,17 @@
 -- （左：狀態字，右：滑動開關，整列可點）切換插件的啟用狀態。取代原本「滑過按鈕往上展開一整排插件名」的選單。
 --
 -- 資料全部是被動的，這裡沒有任何清單要維護：
---   · 收錄＝全部已安裝的插件，跟插件總覽同一份（Info.CollectVisible：名冊條目＋沒列名冊的
+--   · 收錄＝全部已安裝的插件（Info.CollectVisible，資料層在 Options/Tab_Addons.lua：名冊條目＋沒列名冊的
 --     自動條目）。停用中的也列，整張壓暗——不列的話關掉之後就沒地方開回來。
 --     沒有設定入口的（函式庫、純功能型）一樣有卡片，只是點了沒反應、滑過不反白，只能開關。
---   · 分組＝各插件 TOC 的 Category（-語系），跟插件總覽同一支函式
+--   · 分組＝各插件 TOC 的 Category（-語系）
 --   · 縮圖＝Media\Shots\<key>.png，沒有就露出底下的佔位層（插件圖示放大）
 --   · 標題／簡介＝TOC 的 Title／Notes（名冊的 desc 優先）
--- 開設定的路由也是插件總覽那一套（ns.AddonInfo.OpenSettings）。
+-- 開設定的路由是 ns.AddonInfo.OpenSettings。滑過卡片的提示框放完整說明與版本。
 --
--- 開關是批次的，而且跟隔壁「插件總覽」共用同一份待套用清單（Info.SetDesired／GetDesired）：
+-- 開關是批次的（Info.SetDesired／GetDesired）：
 -- 按卡片底部那一列只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
--- 除錯模式、完整說明、CPU 用量仍然只在插件總覽。
+-- 原本另有一頁「插件總覽」（清單＋詳情），2026-11-28 併進這一頁後拿掉了。
 -- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
 local _, ns = ...
@@ -24,7 +24,7 @@ local _, ns = ...
 local W, P = ns.W, ns.P
 local Info = ns.AddonInfo
 
-local TOP_Y      = -46          -- 標籤欄與卡片區的上緣（上面是分頁標題），跟插件總覽對齊
+local TOP_Y      = -46          -- 標籤欄與卡片區的上緣（上面是分頁標題）
 local TAB_X      = 16
 local TAB_W      = 146          -- 標籤欄（含捲軸讓出的 20，列實際寬 126）
 local TAB_H      = 26
@@ -39,7 +39,7 @@ local FOOT_H     = 22           -- 卡片底部的開關列
 local SW_W, SW_H = 28, 14       -- 滑動開關（直角：外框＋一塊會左右移的滑塊）
 local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8 + FOOT_H
 local SHOTS_PATH = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
-local BAR_H      = 34           -- 底部套用列（有待套用變更才出現），跟插件總覽同高
+local BAR_H      = 34           -- 底部套用列（有待套用變更才出現）
 local ALL        = "\001all"    -- 「全部」標籤的鍵；不會跟任何 TOC 分類撞名
 
 local CARD_BG, CARD_BG_HOVER = { 0.115, 0.115, 0.115, 1 }, { 0.17, 0.17, 0.17, 1 }
@@ -72,7 +72,7 @@ end
 --     使用方法: …           ← 怎麼開設定（卡片本身就是入口）
 -- 前兩段與「使用方法」那段都丟掉；丟到沒東西了就退回用「使用方法」，再沒有就整段照舊。
 -- ⚠ 一定要先把跳脫序列全部拿掉：截斷點落在 |c／|n 中間，漏出來的半截會被當字面印出來
---   （插件總覽的詳情區為此乾脆不截斷；這裡只有兩行的位置，只能截）。
+--   （完整的說明在滑過卡片的提示框，那邊不截斷）。
 local function CardDesc(entry, title)
     local raw = entry.desc or Info.EntryMeta(entry, "Notes") or ""
     raw = raw:gsub("|T.-|t", ""):gsub("|A.-|a", "")
@@ -134,7 +134,7 @@ local function Rebuild()
         g.entries[#g.entries + 1] = e
     end
 
-    -- 跟插件總覽同一套排序：分組照名稱、組內照剝掉色碼的標題。
+    -- 排序：分組照名稱、組內照剝掉色碼的標題。
     -- 「全部」就是各組照順序接起來，同組的卡片才會排在一起。
     table.sort(order)
     groups[1] = all
@@ -234,13 +234,43 @@ local function PaintState(card)
     PaintCard(card, card:IsMouseOver() and not foot:IsMouseOver())
 end
 
+-- 滑過卡片的提示框：完整標題、版本、完整說明（卡片上只放得下兩行），最後一行講點了會怎樣。
+-- 說明原樣交給 GameTooltip（|n 換行與色碼它自己會處理，不截斷就沒有半截跳脫序列的問題）。
+local function ShowCardTip(card)
+    local entry = card.entry
+    if not entry then return end
+    GameTooltip:SetOwner(card, "ANCHOR_RIGHT")
+    GameTooltip:SetText(Info.EntryTitle(entry), 1, 1, 1)
+    local bits = {}
+    local ver = Info.EntryMeta(entry, "Version")
+    if ver then bits[#bits + 1] = "版本 " .. ver end
+    if #entry.folders > 1 then bits[#bits + 1] = ("%d 個資料夾"):format(#entry.folders) end
+    if #bits > 0 then GameTooltip:AddLine(table.concat(bits, "  ・  "), 0.6, 0.6, 0.6) end
+    local desc = entry.desc or Info.EntryMeta(entry, "Notes")
+    if desc and desc ~= "" then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(desc, 0.9, 0.9, 0.9, true)
+    end
+    GameTooltip:AddLine(" ")
+    if entry.locked then
+        GameTooltip:AddLine("設定就在這個視窗的其他分頁", 0.5, 0.5, 0.5)
+    elseif not card.canOpen then
+        GameTooltip:AddLine("這個插件沒有可直接開啟的設定入口", 0.5, 0.5, 0.5)
+    elseif not card.on or not Info.EntryEnabled(entry) then
+        GameTooltip:AddLine("啟用並重載後才能開啟它的設定", 0.5, 0.5, 0.5)
+    else
+        GameTooltip:AddLine("點擊開啟設定", W.Accent())
+    end
+    GameTooltip:Show()
+end
+
 local function CreateCard(parent)
     local card = CreateFrame("Button", nil, parent, "BackdropTemplate")
     P.Size(card, CARD_W, CARD_H)
     W.Stylize(card, CARD_BG)
 
     -- 縮圖區：佔位層墊在底下，擷圖檔存在時整片蓋過去、不存在時 SetTexture 靜默失敗
-    -- 露出佔位層（跟插件總覽的詳情區同一招，不用偵測檔案在不在）。
+    -- 露出佔位層（不用偵測檔案在不在）。
     -- 貼著卡片的 1px 邊：內縮用 P.Pixel、貼圖關像素貼齊（.claude/notes/wow-1px-border-rules.md）
     local bpx = P.Pixel(1, card)
     local shotH = P.Scale(SHOT_H)
@@ -334,9 +364,13 @@ local function CreateCard(parent)
     card.desc:SetWordWrap(true)
     card.desc:SetMaxLines(DESC_LINES)
 
-    card:SetScript("OnEnter", function(self) PaintCard(self, true) end)
+    card:SetScript("OnEnter", function(self)
+        PaintCard(self, true)
+        ShowCardTip(self)
+    end)
     card:SetScript("OnLeave", function(self)
         PaintCard(self, self:IsMouseOver() and not self.foot:IsMouseOver())
+        if GameTooltip:GetOwner() == self then GameTooltip:Hide() end
     end)
     card:SetScript("OnClick", function(self)
         local entry = self.entry
@@ -505,7 +539,6 @@ local function Init()
     gridHolder = holder
     grid = W.CreateScrollFrame(holder)
 
-    -- 套用列：位置、用字、配色都跟插件總覽那一列一樣（同一份待套用清單的兩個入口）
     applyBtn = W.CreateButton(tab, "套用並重載介面", "green", 140, 24)
     applyBtn:SetPoint("BOTTOMRIGHT", -16, 8)
     applyBtn:SetScript("OnClick", Info.ApplyPending)
@@ -534,7 +567,7 @@ local function Init()
     grid.empty:Hide()
 end
 
--- 每次切進來都重讀名冊：待套用的開關可能剛在隔壁「插件總覽」改過
+-- 每次切進來都重讀名冊（插件清單、啟用狀態）
 ns.RegisterCallback("ShowOptionsTab", "quickTab", function(id)
     if id ~= "quick" then
         if tab then tab:Hide() end

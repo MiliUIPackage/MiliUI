@@ -15,7 +15,7 @@ end
 
 -- 米利UI選單（ESC 選單「米利UI設定」滑過展開）的項目。直接往全域表塞：
 -- 玩家可能只裝這支、沒有本體。接口說明見 MiliUI/Menu.lua。
--- 本體的插件總覽也靠同一個 key（Roster.lua 的 menuKey = "qol"）開設定。
+-- 本體的快速設定也靠同一個 key（Roster.lua 的 menuKey = "qol"）開設定。
 MiliUI_MenuEntries = MiliUI_MenuEntries or {}
 MiliUI_MenuEntries[#MiliUI_MenuEntries + 1] = {
     key     = "qol",

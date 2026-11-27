@@ -17,7 +17,7 @@
 -- 分頁一關就完全停擺：OnUpdate 掛在分頁 frame 上，Hide 之後引擎不會派送，
 -- 不必自己記得拆。分頁沒被打開過連 frame 都不會建。
 --
--- 條目的合併與名稱沿用「插件總覽」那份名冊（ns.AddonInfo，見 Tab_Addons.lua）：
+-- 條目的合併與名稱沿用快速設定那份名冊（ns.AddonInfo，見 Tab_Addons.lua）：
 -- RaiderIO 的七個資料夾算成一列，玩家看到的才是「一個插件吃我多少」。
 --
 -- ⚠ 幾何單位：欄位的 SetPoint 位移是**原始單位**，所以欄寬也一律用原始單位

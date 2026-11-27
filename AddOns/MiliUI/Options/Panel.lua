@@ -42,7 +42,6 @@ local bannerVersion, bannerNewest
 local tabs = {
     -- 第一頁＝預設頁（/miliui、ESC 按鈕左鍵、小地圖鈕）：玩家開這扇多半是要調某支插件
     { id = "quick",   label = "快速設定",   order = 5 },    -- Options/QuickPanel.lua
-    { id = "addons",  label = "插件總覽",   order = 10 },
     { id = "enhance", label = "插件強化",   order = 30 },
     -- 戰鬥遮罩不蓋這一頁：唯讀的儀表板，沒有任何會被戰鬥擋下的動作，
     -- 而「戰鬥中插件吃多少 CPU」正好是最需要看的時候（首領戰平均那個指標就是為此存在）
@@ -337,8 +336,7 @@ local function AboutLines()
         "整合多款實用插件的推薦設定，讓你快速上手無需繁瑣調校。",
         "",
         ns.PREFIX_COLOR .. "快速導覽|r",
-        "|cff8888cc•|r  |cffffd200快速設定|r — 分組列出各插件的縮圖與簡介，點一張卡片直接開那支插件的設定",
-        "|cff8888cc•|r  |cffffd200插件總覽|r — 檢視套組收錄的插件、開啟各插件設定、勾選啟用或停用",
+        "|cff8888cc•|r  |cffffd200快速設定|r — 分組列出全部插件的縮圖與簡介，點卡片直接開那支插件的設定，卡片底部的開關啟用或停用",
     }
     if tabById.qol then
         lines[#lines + 1] = "|cff8888cc•|r  |cffffd200便利功能|r — 商人自動修裝與賣垃圾、任務自動接交、骰裝提示過濾、戰利品通知等省事的設定"

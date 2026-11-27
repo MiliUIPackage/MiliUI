@@ -17,7 +17,7 @@
 --
 -- 修法：它自己的存檔初始化（ADDON_LOADED → YUI_DB_READY）照常跑完之後，
 --   在它的事件匯流排上把 PLAYER_LOGIN／PLAYER_ENTERING_WORLD 同步重播一次。
---   同步很重要：MiliUI 插件總覽的「開啟設定」是 LoadAddOn 完馬上找 /yah，
+--   同步很重要：MiliUI 快速設定的「開啟設定」是 LoadAddOn 完馬上找 /yah，
 --   拍賣場那邊也是載入完緊接著就 Show。
 ---------------------------------------------------------------
 

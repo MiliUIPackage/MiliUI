@@ -4,10 +4,10 @@
 -- 風格走 MiliUI.Style 的深色皮（對齊米利單位框架設定介面：黑邊白字、hover 職業色）。
 --
 -- 設定按鈕：
---   左鍵 → 隱藏 ESC 選單、開主設定視窗的「快速設定」分頁（Options/QuickPanel.lua：
---          分組標籤＋三欄卡片，點卡片直接開那支插件的設定）
---   右鍵 → 隱藏 ESC 選單、開主設定視窗的「插件總覽」分頁
---   滑過只出提示框講這兩件事。原本滑過會往上展開一整排插件名的選單，2026-11-28 拿掉了。
+--   點擊 → 隱藏 ESC 選單、開主設定視窗的「快速設定」分頁（Options/QuickPanel.lua：
+--          分組標籤＋三欄卡片，點卡片直接開那支插件的設定、卡片底部開關插件）
+--   原本右鍵開「插件總覽」分頁，2026-11-28 那一頁併進快速設定後左右鍵都一樣。
+--   原本滑過會往上展開一整排插件名的選單，同一天拿掉了。
 -- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
 ------------------------------------------------------------
 
@@ -15,8 +15,7 @@ local AddonName, ns = ...
 if AddonName ~= "MiliUI" then return end
 
 local BUTTON_TEXT = "米利UI設定"
-local SETTING_TIP_LEFT  = "左鍵：快速設定"
-local SETTING_TIP_RIGHT = "右鍵：插件總覽"
+local SETTING_TIP = "開啟快速設定：調整各插件、啟用或停用"
 local RELOAD_TIP_LEFT  = "重新載入"
 local RELOAD_TIP_RIGHT = "右鍵：立即重新載入"
 local RELOAD_ICON = "Interface\\Buttons\\UI-RefreshButton"
@@ -46,7 +45,7 @@ local function OpenSettings(_, button)
         return
     end
     HideUIPanel(GameMenuFrame)
-    ns.OpenOptions(button == "RightButton" and "addons" or "quick")
+    ns.OpenOptions("quick")
 end
 
 local function DoReload(_, button)
@@ -87,8 +86,7 @@ local function EnsureButton()
     -- 順序反過來這個 hook 會被整個蓋掉，而且不報錯。
     settingBtn:HookScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(SETTING_TIP_LEFT, 1, 0.84, 0)
-        GameTooltip:AddLine(SETTING_TIP_RIGHT, 1, 0.84, 0)
+        GameTooltip:SetText(SETTING_TIP, 1, 0.84, 0)
         GameTooltip:Show()
     end)
     settingBtn:HookScript("OnLeave", function() GameTooltip:Hide() end)

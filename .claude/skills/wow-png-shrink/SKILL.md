@@ -18,8 +18,9 @@ python3 .claude/skills/wow-png-shrink/scripts/shrink_png.py <資料夾或檔案>
 
 ## 套組預覽圖的固定跑法
 
-`AddOns/MiliUI/Media/Shots/` 的顯示區是 **420×210 UI 單位**
-（[Tab_Addons.lua](../../../AddOns/MiliUI/Options/Tab_Addons.lua) 的 `SHOT_W, SHOT_H`），
+`AddOns/MiliUI/Media/Shots/` 的規格沿用原本插件總覽詳情區的 **420×210 UI 單位**
+（那一頁 2026-11-28 併進快速設定；現在只剩卡片 190×95 在用，
+[QuickPanel.lua](../../../AddOns/MiliUI/Options/QuickPanel.lua) 的 `CARD_W`／`SHOT_H`，舊規格只會更清楚），
 規格是 2 倍圖 840×420：
 
 ```bash

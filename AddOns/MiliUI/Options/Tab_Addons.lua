@@ -1,38 +1,22 @@
 ------------------------------------------------------------
--- 「插件總覽」分頁：套組收錄插件的控制台
+-- 插件名冊的資料層：條目查詢、開設定的路由、待套用的開關
 --
--- 左：分組清單（勾選開關＋圖示＋名稱），右：選中插件的詳情
--- （預覽圖／說明／CPU 用量／開啟設定按鈕）。
---
--- 開關模型是批次的：勾選變更先記在 pending，底部按「套用並重載」才一次
--- Enable/DisableAddOn ＋ ReloadUI——停用本來就要重載才生效，攢一批只重載一次。
--- 名冊（分組、指令、說明覆蓋）在 Options/Roster.lua。
--- 標題列右邊的「進入／離開除錯模式」是 Enhance/DebugMode.lua 的入口（那支在 TOC 排在
--- 本檔之後，一律執行期才問 ns.DebugMode）。
+-- 這裡沒有任何介面。原本是「插件總覽」分頁（左清單＋右詳情），2026-11-28 併進
+-- 「快速設定」（Options/QuickPanel.lua，卡片底部的開關列）之後分頁拿掉了，留下兩頁
+-- 本來就共用的這一層：
+--   · ns.AddonInfo：條目的標題／圖示／分組／啟用狀態、看得到的條目清單（CollectVisible）
+--   · 開設定的路由（OpenSettings）：自製走 MiliUI_MenuEntries、第三方走斜線指令、再退到暴雪 Settings 分類
+--   · 待套用的開關（SetDesired／ApplyPending）：批次的，按「套用並重載介面」才一次
+--     Enable/DisableAddOn ＋ ReloadUI——停用本來就要重載才生效，攢一批只重載一次
+-- 名冊（開關綁定、指令、說明覆蓋）在 Options/Roster.lua。
+-- 用的人：快速設定、效能監控（Options/Tab_Perf.lua）、/miliui check（Api.lua）。
+-- 檔名沿用 Tab_Addons.lua：改檔名等於 TOC 多一支新檔，玩家得重開遊戲才載得到。
 ------------------------------------------------------------
 local _, ns = ...
 
-local W, P = ns.W, ns.P
-
-local LIST_X, LIST_W  = 16, 296
-local DETAIL_X        = LIST_X + LIST_W + 8
-local TOP_Y           = -46
-local BAR_H           = 34          -- 底部套用列
-local SHOT_W, SHOT_H  = 420, 210    -- 擷圖顯示區（2:1，檔案建議 840x420）
-local DESC_BOTTOM     = 44          -- 說明捲動區的下緣：讓開「開啟該插件設定」那顆按鈕
-local SHOTS_PATH      = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
-local CPU_TICK        = 2           -- 詳情面板 CPU 數字的更新間隔（秒）
-
-local tab, list, detail
-local items = {}                    -- 攤平後的清單（group 列 + entry 列）
 local entriesByKey = {}
 local autoByFolder = {}             -- 沒列名冊的插件的自動條目（快取，pending 的 key 才穩定）
 local pending = {}                  -- key -> 期望的啟用狀態（跟現況不同才留著）
-local selectedKey
-
-local applyText, applyBtn, discardBtn, hintText
-local debugBtn, debugText, debugPopup   -- 除錯模式（標題列右邊）
-
 ------------------------------------------------------------
 -- 狀態查詢
 ------------------------------------------------------------
@@ -68,8 +52,8 @@ local function StripCodes(s)
     return (s:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
 
--- 「效能監控」分頁也要照同一套規則把名冊攤成條目（見 Options/Tab_Perf.lua）。
--- 抄一份過去的話，哪天標題／圖示的取法變了就得記得改兩個地方。
+-- 快速設定與效能監控（Options/Tab_Perf.lua）都照同一套規則把名冊攤成條目。
+-- 各抄一份的話，哪天標題／圖示的取法變了就得記得改兩個地方。
 -- ⚠ 這幾支只讀 entry.folders[1]，傳進來的表有 folders 就夠，不必是名冊裡的那筆。
 ns.AddonInfo = {
     GetInstalled = GetInstalled,
@@ -77,22 +61,8 @@ ns.AddonInfo = {
     EntryTitle   = EntryTitle,
     StripCodes   = StripCodes,
     EntryEnabled = EntryEnabled,
-    -- OpenSettings／EntryCategory 與待套用開關那幾支在下面定義完才補進來
-    -- （快速設定面板 Options/QuickPanel.lua 要用）
+    -- OpenSettings／EntryCategory／CollectVisible 與待套用開關那幾支在下面定義完才補進來
 }
-
-local function EntryCPU(entry)
-    if not (C_AddOnProfiler and C_AddOnProfiler.GetAddOnMetric
-            and Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric.RecentAverageTime) then
-        return nil
-    end
-    local total = 0
-    for _, f in ipairs(entry.folders) do
-        local ok, v = pcall(C_AddOnProfiler.GetAddOnMetric, f, Enum.AddOnProfilerMetric.RecentAverageTime)
-        if ok and type(v) == "number" then total = total + v end
-    end
-    return total
-end
 
 ------------------------------------------------------------
 -- 開啟該插件設定的路由：自製走 MiliUI_MenuEntries、第三方走斜線指令、
@@ -216,7 +186,7 @@ end
 ns.AddonInfo.OpenSettings = OpenEntrySettings
 
 ------------------------------------------------------------
--- 套用列
+-- 待套用的開關
 ------------------------------------------------------------
 local function PendingCount()
     local n = 0
@@ -224,24 +194,7 @@ local function PendingCount()
     return n
 end
 
-local function UpdateApplyBar()
-    local n = PendingCount()
-    if n > 0 then
-        hintText:Hide()
-        applyText:SetText(("|cffff9900%d 項變更待套用|r"):format(n))
-        applyText:Show()
-        applyBtn:Show()
-        discardBtn:Show()
-    else
-        applyText:Hide()
-        applyBtn:Hide()
-        discardBtn:Hide()
-        hintText:Show()
-    end
-end
-
--- 「快速設定」分頁沒開過插件總覽也能套用：entriesByKey 是總覽頁 RebuildItems 才填的，
--- 找不到就直接翻名冊（快速設定的卡片一定是名冊條目）。
+-- entriesByKey 是 CollectVisible 填的；還沒填過就直接翻名冊。
 local function FindEntry(key)
     local e = entriesByKey[key]
     if e then return e end
@@ -280,8 +233,6 @@ local function SetDesired(entry, desired)
     end
 end
 
--- 待套用的開關是兩頁（快速設定的卡片、這一頁的勾選）共用的同一份：
--- 在哪一頁改、在哪一頁按套用都一樣。兩頁各自在切進來時整頁重畫，不用互相通知。
 ns.AddonInfo.GetDesired     = function(entry) return pending[entry.key] end
 ns.AddonInfo.SetDesired     = SetDesired
 ns.AddonInfo.PendingCount   = PendingCount
@@ -289,333 +240,7 @@ ns.AddonInfo.ApplyPending   = ApplyPending
 ns.AddonInfo.DiscardPending = function() wipe(pending) end
 
 ------------------------------------------------------------
--- 詳情面板
-------------------------------------------------------------
-local detailUI = {}
-
-local function CreateDetail()
-    detail = W.CreateFrame(nil, tab, 0, 0)
-    detail:SetPoint("TOPLEFT", DETAIL_X, TOP_Y)
-    detail:SetPoint("BOTTOMRIGHT", -16, BAR_H + 8)
-    W.Stylize(detail, { 0.08, 0.08, 0.08, 0.9 })
-
-    -- 擷圖區：佔位層永遠墊在底下，擷圖檔存在時整片蓋過去、
-    -- 不存在時 SetTexture 靜默失敗、露出佔位層——不用偵測檔案在不在
-    local shotHolder = CreateFrame("Frame", nil, detail, "BackdropTemplate")
-    shotHolder:SetPoint("TOP", 0, -12)
-    P.Size(shotHolder, SHOT_W, SHOT_H)
-    W.Stylize(shotHolder, { 0.06, 0.06, 0.06, 1 })
-
-    -- 佔位層與擷圖都貼著 1px 邊框：內縮用同一個 P.Pixel(1)、關像素貼齊（.claude/notes/wow-1px-border-rules.md）
-    local bpx = P.Pixel(1)
-    local phGrad = P.NoSnap(shotHolder:CreateTexture(nil, "BACKGROUND", nil, 1))
-    phGrad:SetPoint("TOPLEFT", bpx, -bpx)
-    phGrad:SetPoint("BOTTOMRIGHT", -bpx, bpx)
-    phGrad:SetColorTexture(1, 1, 1, 1)
-    local ar, ag, ab = W.Accent()
-    phGrad:SetGradient("VERTICAL", CreateColor(ar, ag, ab, 0), CreateColor(ar, ag, ab, 0.10))
-
-    local phIcon = shotHolder:CreateTexture(nil, "ARTWORK")
-    P.Size(phIcon, 48, 48)
-    phIcon:SetPoint("CENTER", 0, 12)
-    phIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-    local phText = shotHolder:CreateFontString(nil, "ARTWORK")
-    phText:SetFontObject(W.fontSmall)
-    phText:SetPoint("TOP", phIcon, "BOTTOM", 0, -8)
-    phText:SetText("|cff666666尚未提供預覽圖|r")
-
-    local shot = P.NoSnap(shotHolder:CreateTexture(nil, "OVERLAY"))
-    shot:SetPoint("TOPLEFT", bpx, -bpx)
-    shot:SetPoint("BOTTOMRIGHT", -bpx, bpx)
-
-    -- 詳情大字（具名字型要帶 NAMESPACE 前綴）
-    local detailFont = CreateFont(ns.WidgetsEnv.NAMESPACE .. "_FontDetail")
-    detailFont:SetFont(MiliUI.Style.Font, 16, "")
-    detailFont:SetTextColor(1, 1, 1)
-    detailFont:SetShadowColor(0, 0, 0)
-    detailFont:SetShadowOffset(1, -1)
-
-    local name = detail:CreateFontString(nil, "OVERLAY")
-    name:SetFontObject(detailFont)
-    name:SetPoint("TOPLEFT", shotHolder, "BOTTOMLEFT", 2, -10)
-    name:SetPoint("RIGHT", detail, "RIGHT", -12, 0)
-    name:SetJustifyH("LEFT")
-    name:SetWordWrap(false)
-
-    local meta = detail:CreateFontString(nil, "OVERLAY")
-    meta:SetFontObject(W.fontSmall)
-    meta:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -4)
-    meta:SetPoint("RIGHT", detail, "RIGHT", -12, 0)
-    meta:SetJustifyH("LEFT")
-
-    -- 說明：完整顯示，裝不下的自己捲。
-    -- ⚠ 不要拿 SetMaxLines 截斷——TOC 的 Notes 夾著 |n 換行與 |c 色碼，截斷點一旦落在
-    -- 跳脫序列中間，漏出來的半截就被當字面印成「|...」（EasyExperienceBar 必中）。
-    local descBox = CreateFrame("Frame", nil, detail)
-    descBox:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -8)
-    descBox:SetPoint("BOTTOMRIGHT", detail, "BOTTOMRIGHT", -12, DESC_BOTTOM)
-
-    local descScroll = W.CreateScrollFrame(descBox)
-
-    local desc = descScroll.child:CreateFontString(nil, "OVERLAY")
-    desc:SetFontObject(W.fontNormal)
-    desc:SetPoint("TOPLEFT")
-    desc:SetJustifyH("LEFT")
-    desc:SetJustifyV("TOP")
-    desc:SetSpacing(3)
-
-    -- 捲動範圍＝換行後的實際字高，所以得先有明確寬度才量得準。第一次 Init 時框還沒
-    -- layout（GetWidth 是 0），量不到就先擱著，等 OnSizeChanged 尺寸底定再補算一次。
-    local function SyncDescHeight()
-        local w = descScroll:GetWidth()
-        if w <= 0 then return end
-        desc:SetWidth(w)
-        descScroll:SetContentHeight(desc:GetStringHeight() + 4)
-    end
-    descScroll:HookScript("OnSizeChanged", SyncDescHeight)
-
-    local openBtn = W.CreateButton(detail, "開啟該插件設定", "accent", 150, 24)
-    openBtn:SetPoint("BOTTOMLEFT", 12, 12)
-    openBtn:Hide()
-
-    local openHint = detail:CreateFontString(nil, "OVERLAY")
-    openHint:SetFontObject(W.fontSmall)
-    openHint:SetPoint("BOTTOMLEFT", 14, 16)
-    openHint:Hide()
-
-    -- CPU 數字定期重讀（只在詳情可見時跑）
-    local acc = 0
-    detail:SetScript("OnUpdate", function(_, elapsed)
-        acc = acc + elapsed
-        if acc < CPU_TICK then return end
-        acc = 0
-        if detailUI.RefreshMeta then detailUI.RefreshMeta() end
-    end)
-
-    detailUI.shotHolder, detailUI.phIcon, detailUI.shot = shotHolder, phIcon, shot
-    detailUI.name, detailUI.meta, detailUI.desc = name, meta, desc
-    detailUI.descScroll, detailUI.SyncDescHeight = descScroll, SyncDescHeight
-    detailUI.openBtn, detailUI.openHint = openBtn, openHint
-end
-
-local function ShowDetail(entry)
-    if not entry then return end
-
-    detailUI.phIcon:SetTexture(EntryMeta(entry, "IconTexture")
-        or "Interface\\Icons\\INV_Misc_QuestionMark")
-    detailUI.shot:SetTexture(nil)
-    detailUI.shot:SetTexture(SHOTS_PATH .. entry.key .. ".png")
-
-    detailUI.name:SetText(EntryTitle(entry))
-
-    function detailUI.RefreshMeta()
-        local bits = {}
-        local ver = EntryMeta(entry, "Version")
-        if ver then bits[#bits + 1] = "版本 " .. ver end
-        if #entry.folders > 1 then bits[#bits + 1] = ("%d 個資料夾"):format(#entry.folders) end
-
-        local enabled = EntryEnabled(entry)
-        local want = pending[entry.key]
-        local state
-        if want ~= nil then
-            state = want and "|cffff9900待套用：啟用|r" or "|cffff9900待套用：停用|r"
-        else
-            state = enabled and "|cff33ff66已啟用|r" or "|cff808080已停用|r"
-        end
-        bits[#bits + 1] = state
-
-        local cpu = enabled and EntryCPU(entry) or nil
-        if cpu then bits[#bits + 1] = ("近期 CPU %.2f ms/幀"):format(cpu) end
-
-        detailUI.meta:SetText("|cff999999" .. table.concat(bits, "  ・  ") .. "|r")
-    end
-    detailUI.RefreshMeta()
-
-    local descText = entry.desc or EntryMeta(entry, "Notes") or "（這個插件沒有提供說明）"
-    detailUI.desc:SetText(descText)
-    detailUI.descScroll:SetVerticalScroll(0)   -- 換插件要回到最上面，別留著上一個的捲動位置
-    detailUI.SyncDescHeight()
-
-    -- 按鈕顯示與否由名冊寫死（有定義入口＋插件啟用中就顯示），介面才穩定；
-    -- 「入口當下到底在不在」的即時偵測移到按下去那一刻（OpenEntrySettings）——
-    -- 解析失敗會講原因，不會有靜默的死按鈕。
-    if (entry.menuKey or entry.slash or entry.category or entry.settings)
-            and EntryEnabled(entry) and not entry.locked then
-        detailUI.openBtn:SetScript("OnClick", function()
-            OpenEntrySettings(entry)
-        end)
-        detailUI.openBtn:Show()
-        detailUI.openHint:Hide()
-    else
-        detailUI.openBtn:Hide()
-        if entry.locked then
-            detailUI.openHint:SetText("|cff666666設定就在這個視窗的其他分頁|r")
-        elseif not EntryEnabled(entry) then
-            detailUI.openHint:SetText("|cff666666插件已停用，啟用並重載後才能開啟它的設定|r")
-        else
-            detailUI.openHint:SetText("|cff666666這個插件沒有可直接開啟的設定入口|r")
-        end
-        detailUI.openHint:Show()
-    end
-end
-
-------------------------------------------------------------
--- 清單
-------------------------------------------------------------
-local function RefreshRows()
-    list:Update(items, list.updateRow)
-end
-
-local function SelectKey(key)
-    selectedKey = key
-    RefreshRows()
-    ShowDetail(entriesByKey[key])
-end
-
-local function OnRowToggle(row, checked)
-    local entry = row.entryKey and entriesByKey[row.entryKey]
-    if not entry then return end
-    if entry.locked then
-        row.cb:SetChecked(true)
-        return
-    end
-    SetDesired(entry, checked)
-    UpdateApplyBar()
-    RefreshRows()
-    if selectedKey ~= entry.key then
-        SelectKey(entry.key)
-    elseif detailUI.RefreshMeta then
-        detailUI.RefreshMeta()
-    end
-end
-
-local function BuildRow(row)
-    row:EnableMouse(true)
-
-    -- hover／選中裝飾：左緣 3px 職業色直條＋整列淡染
-    row.indicator = row:CreateTexture(nil, "ARTWORK")
-    row.indicator:SetColorTexture(W.Accent(0.9))
-    row.indicator:SetPoint("TOPLEFT", 0, 0)
-    row.indicator:SetPoint("BOTTOMLEFT", 0, 0)
-    row.indicator:SetWidth(P.Scale(3))
-    row.indicator:Hide()
-
-    row.sel = row:CreateTexture(nil, "BACKGROUND", nil, 2)
-    row.sel:SetAllPoints()
-    row.sel:SetColorTexture(W.Accent(0.16))
-    row.sel:Hide()
-
-    row.hoverTex = row:CreateTexture(nil, "BACKGROUND", nil, 3)
-    row.hoverTex:SetAllPoints()
-    row.hoverTex:SetColorTexture(1, 1, 1, 0.05)
-    row.hoverTex:Hide()
-
-    -- 分組標題列的元素
-    row.groupFS = W.CreateGroupLabel(row, "")
-    row.groupFS:SetPoint("LEFT", 8, -2)
-    row.groupLine = P.NoSnap(row:CreateTexture(nil, "ARTWORK"))   -- 1px 線關像素貼齊
-    row.groupLine:SetColorTexture(W.Accent(0.35))
-    row.groupLine:SetPoint("LEFT", row.groupFS, "RIGHT", 8, -1)
-    row.groupLine:SetPoint("RIGHT", row, "RIGHT", -8, 0)
-    row.groupLine:SetHeight(P.Pixel(1))
-
-    -- 插件列的元素。⚠ 列會回收：onChange 一律讀 row.entryKey，不抓資料進 closure
-    row.cb = W.CreateCheckButton(row, nil, function(checked)
-        OnRowToggle(row, checked)
-    end)
-    row.cb:SetPoint("LEFT", 8, 0)
-
-    row.icon = row:CreateTexture(nil, "ARTWORK")
-    P.Size(row.icon, 16, 16)
-    row.icon:SetPoint("LEFT", 28, 0)
-    row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-
-    row.nameFS = row:CreateFontString(nil, "OVERLAY")
-    row.nameFS:SetFontObject(W.fontNormal)
-    row.nameFS:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
-    row.nameFS:SetPoint("RIGHT", row, "RIGHT", -64, 0)
-    row.nameFS:SetJustifyH("LEFT")
-    row.nameFS:SetWordWrap(false)
-
-    row.stateFS = row:CreateFontString(nil, "OVERLAY")
-    row.stateFS:SetFontObject(W.fontSmall)
-    row.stateFS:SetPoint("RIGHT", -6, 0)
-    row.stateFS:SetJustifyH("RIGHT")
-
-    row:SetScript("OnEnter", function(self)
-        if not self.entryKey then return end
-        self.hoverTex:Show()
-        self.indicator:Show()
-    end)
-    row:SetScript("OnLeave", function(self)
-        self.hoverTex:Hide()
-        if self.entryKey ~= selectedKey then self.indicator:Hide() end
-    end)
-    row:SetScript("OnMouseDown", function(self)
-        if self.entryKey then SelectKey(self.entryKey) end
-    end)
-end
-
--- ⚠ 列會回收：每一格都要重設，兩種列（分組標題／插件）互相蓋乾淨
-local function UpdateRow(row, item)
-    if item.kind == "group" then
-        row.entryKey = nil
-        row.stripe:Hide()
-        row.sel:Hide()
-        row.indicator:Hide()
-        row.hoverTex:Hide()
-        row.cb:Hide()
-        row.icon:Hide()
-        row.nameFS:SetText("")
-        row.stateFS:SetText("")
-        row.groupFS:SetText(item.label)
-        row.groupFS:Show()
-        row.groupLine:Show()
-        return
-    end
-
-    local entry = item.entry
-    row.entryKey = entry.key
-    row.groupFS:SetText("")
-    row.groupLine:Hide()
-
-    local enabled = EntryEnabled(entry)
-    local want = pending[entry.key]
-    -- 不能寫 (want ~= nil) and want or enabled：want 是 false 時會 fall through 到 enabled
-    local shown = enabled
-    if want ~= nil then shown = want end
-
-    row.cb:Show()
-    row.cb:SetChecked(shown)
-    row.cb:SetEnabled(not entry.locked)
-    row.cb:SetAlpha(entry.locked and 0.45 or 1)
-
-    row.icon:Show()
-    row.icon:SetTexture(EntryMeta(entry, "IconTexture")
-        or "Interface\\Icons\\INV_Misc_QuestionMark")
-    row.icon:SetDesaturated(not shown)
-
-    row.nameFS:SetText(EntryTitle(entry))
-    row.nameFS:SetAlpha(shown and 1 or 0.45)
-
-    if want ~= nil then
-        row.stateFS:SetText("|cffff9900待套用|r")
-    elseif not enabled then
-        row.stateFS:SetText("|cff707070停用|r")
-    else
-        row.stateFS:SetText("")
-    end
-
-    local isSel = (entry.key == selectedKey)
-    row.sel:SetShown(isSel)
-    row.indicator:SetShown(isSel or row:IsMouseOver())
-end
-
-------------------------------------------------------------
--- 名冊 → 攤平清單，分組與排序照官方插件列表：
--- 分組讀主資料夾的 TOC Category（客戶端語系版），組內剝掉色碼後按標題排。
--- 沒列名冊的已安裝插件自動補列，分組一樣看它的 Category。
+-- 看得到的條目。分組照官方插件列表：讀主資料夾的 TOC Category（客戶端語系版）。
 ------------------------------------------------------------
 local function EntryCategory(entry)
     local main = entry.folders[1]
@@ -627,7 +252,7 @@ end
 ns.AddonInfo.EntryCategory = EntryCategory
 
 -- 「看得到的條目」＝名冊裡有安裝的＋沒列名冊的已安裝插件（自動條目）。
--- 這一頁與快速設定（Options/QuickPanel.lua）列的是同一份；順手把 entriesByKey 填好，
+-- 自動條目要快取（autoByFolder）：pending 的 key 才穩定。順手把 entriesByKey 填好，
 -- 套用待套用變更時才查得到自動條目。
 local function CollectVisible()
     local installed = GetInstalled()
@@ -656,148 +281,3 @@ local function CollectVisible()
     return visible
 end
 ns.AddonInfo.CollectVisible = CollectVisible
-
-local function RebuildItems()
-    wipe(items)
-    local visible = CollectVisible()
-
-    local byCat, catOrder = {}, {}
-    for _, e in ipairs(visible) do
-        local cat = EntryCategory(e)
-        if not byCat[cat] then
-            byCat[cat] = {}
-            catOrder[#catOrder + 1] = cat
-        end
-        tinsert(byCat[cat], e)
-    end
-    table.sort(catOrder)   -- 「[整合]」的半形括號字典序在中文之前，套組本體那組自然置頂
-    for _, cat in ipairs(catOrder) do
-        table.sort(byCat[cat], function(a, b)
-            return StripCodes(EntryTitle(a)) < StripCodes(EntryTitle(b))
-        end)
-        items[#items + 1] = { kind = "group", label = cat }
-        for _, e in ipairs(byCat[cat]) do
-            items[#items + 1] = { kind = "entry", entry = e }
-        end
-    end
-end
-
-------------------------------------------------------------
--- 分頁組裝
-------------------------------------------------------------
-local function Init()
-    if tab then return end
-    tab = ns.Options.NewTabFrame()
-
-    local title = W.CreateSectionTitle(tab, "插件總覽", ns.Options.PANEL_W - 32)
-    title:SetPoint("TOPLEFT", 16, -14)
-
-    list = W.CreateRowList(tab, LIST_W, 1, 24, BuildRow)
-    list:SetPoint("TOPLEFT", LIST_X, TOP_Y)
-    list:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", LIST_X, BAR_H + 8)
-    list.updateRow = UpdateRow
-
-    CreateDetail()
-
-    -- 底部：預設是操作提示，有待套用變更時換成套用列
-    hintText = tab:CreateFontString(nil, "OVERLAY")
-    hintText:SetFontObject(W.fontSmall)
-    hintText:SetPoint("BOTTOMLEFT", 18, 12)
-    hintText:SetText("|cff888888勾選＝啟用插件。取消勾選後按「套用並重載」才會生效；"
-        .. "點一列可在右側看介紹與開啟該插件的設定。|r")
-
-    applyBtn = W.CreateButton(tab, "套用並重載介面", "green", 140, 24)
-    applyBtn:SetPoint("BOTTOMRIGHT", -16, 8)
-    applyBtn:SetScript("OnClick", ApplyPending)
-    applyBtn:Hide()
-
-    discardBtn = W.CreateButton(tab, "放棄變更", "normal", 90, 24)
-    discardBtn:SetPoint("RIGHT", applyBtn, "LEFT", -8, 0)
-    discardBtn:SetScript("OnClick", function()
-        wipe(pending)
-        UpdateApplyBar()
-        RefreshRows()
-        if detailUI.RefreshMeta then detailUI.RefreshMeta() end
-    end)
-    discardBtn:Hide()
-
-    applyText = tab:CreateFontString(nil, "OVERLAY")
-    applyText:SetFontObject(W.fontNormal)
-    applyText:SetPoint("RIGHT", discardBtn, "LEFT", -12, 0)
-    applyText:Hide()
-
-    -- 標題列右邊：除錯模式（Enhance/DebugMode.lua）。按鈕寫的是「按下去會做什麼」，
-    -- 狀態寫在左邊那行字：平時灰字講用途，除錯中橘字講停用了幾個
-    debugBtn = W.CreateButton(tab, "進入除錯模式", "normal", 110, 20)
-    W.FitButton(debugBtn, 110, 20)
-    debugBtn:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 5)
-    debugBtn:SetScript("OnClick", function()
-        local dm = ns.DebugMode
-        if not dm then return end
-        if not debugPopup then
-            debugPopup = W.CreateConfirmPopup(ns.WidgetsEnv.PopupParent(), 320, "", function()
-                local ok
-                if dm.IsActive() then ok = dm.Leave() else ok = dm.Enter() end
-                if ok then
-                    wipe(pending)
-                    ReloadUI()
-                end
-            end)
-        end
-        if dm.IsActive() then
-            debugPopup.text:SetText("重新啟用進入除錯模式前的插件（除錯中自己開關過的以原本的清單為準），"
-                .. "並還原錯誤訊息的顯示設定，然後重新載入介面。")
-        else
-            debugPopup.text:SetText(("將停用 %d 個插件，只留米利UI套組本體、!BugGrabber、BugSack，"
-                .. "並開啟 Lua 錯誤顯示，然後重新載入介面。原本的清單會記下來，之後按「離開除錯模式」即可還原。")
-                :format(dm.PendingCount()))
-        end
-        debugPopup:Show()
-    end)
-
-    debugText = tab:CreateFontString(nil, "OVERLAY")
-    debugText:SetFontObject(W.fontSmall)
-    debugText:SetPoint("RIGHT", debugBtn, "LEFT", -10, 0)
-    debugText:SetJustifyH("RIGHT")
-end
-
--- 除錯模式按鈕跟著現況換字；除錯中用 primary（離開才是這時候該按的那顆）
-local function UpdateDebugButton()
-    local dm = ns.DebugMode
-    if not (debugBtn and dm) then
-        if debugBtn then debugBtn:Hide() debugText:Hide() end
-        return
-    end
-    if dm.IsActive() then
-        debugBtn:SetText("離開除錯模式")
-        W.SetButtonVariant(debugBtn, "primary")
-        debugText:SetText(("|cffff9900除錯模式中：已停用 %d 個插件|r"):format(dm.DisabledCount()))
-    else
-        debugBtn:SetText("進入除錯模式")
-        W.SetButtonVariant(debugBtn, "normal")
-        debugText:SetText("|cff888888回報問題用：只留套組本體與 BugSack|r")
-    end
-    W.FitButton(debugBtn, 110, 20)
-end
-
-ns.RegisterCallback("ShowOptionsTab", "addonsTab", function(id)
-    if id ~= "addons" then
-        if tab then tab:Hide() end
-        return
-    end
-    Init()
-    RebuildItems()
-    if not selectedKey or not entriesByKey[selectedKey] then
-        for _, item in ipairs(items) do
-            if item.kind == "entry" then
-                selectedKey = item.entry.key
-                break
-            end
-        end
-    end
-    RefreshRows()
-    ShowDetail(entriesByKey[selectedKey])
-    UpdateApplyBar()
-    UpdateDebugButton()
-    tab:Show()
-end)
