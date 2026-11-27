@@ -1208,6 +1208,11 @@ function DB.BuildDefaults()
                 enabled = false,
                 frame = frameDef{ x = -427, y = 187, w = 90, h = 22, growth = "DOWN", spacing = 93,
                                   hSpacing = 10, fadeOutOfRange = true, visGroup = "party",
+                                  -- 驅散類型邊框預設關：「某某的目標」這種 token 沒有自己的光環事件，換人之後
+                                  -- 要靠 Hide/Show 光環容器才會重掃，而戰鬥中不能對容器 Hide/Show（Elements/Auras.lua
+                                  -- 的 Bounce）⇒ 戰鬥中隊友一換目標，邊框就停在上一個目標的結果（實際回報：亂上色）。
+                                  -- 隊友的目標在戰鬥中換得很勤，這條資訊不可靠，不如不畫；要看驅散看隊伍框本身。
+                                  dispelHighlight = false,
                                   anchor = { on = true, to = "party", side = "RIGHT", x = 4, y = 0 } },
                 elements = {
                     hpbar = { enabled = true, x = 0, y = 0, w = 90, h = 16, level = 4,
