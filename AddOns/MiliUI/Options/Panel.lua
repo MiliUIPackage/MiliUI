@@ -567,8 +567,19 @@ end
 -- ⚠ 只換 strata、不 Lower()：Lower 會掉到同 strata 所有框之下，快捷列就畫到我們上面了。
 --   層級留在 100，所以別家同在 MEDIUM 而且層級很低的視窗還是可能被蓋住——那種請玩家拖開。
 -- 下次 Open 才復原成 DIALOG（關窗不復原，理由見 OnHide）。
+--
+-- ⚠ 換 strata 前後要把 toplevel 關掉再開：面板是 toplevel（W.CreateTitleBar），整扇連子孫
+--   併成一層畫。2026-11-28 實機：只 SetFrameStrata 的話，視窗被暴雪設定頁收掉再叫回來時
+--   還是畫在暴雪設定頁（HIGH）前面——推測併層當下的層級沒跟著新 strata 重算（未證實，
+--   所以用重開 toplevel 逼它重建；還是不行就要實機 /dump 兩邊的 strata 再查）。
+local function SetPanelStrata(strata)
+    panel:SetToplevel(false)
+    panel:SetFrameStrata(strata)
+    panel:SetToplevel(true)
+end
+
 function Options.YieldFront()
-    if panel and panel:IsShown() then panel:SetFrameStrata("MEDIUM") end
+    if panel and panel:IsShown() then SetPanelStrata("MEDIUM") end
 end
 
 function Options.Open(tabId)
@@ -577,7 +588,7 @@ function Options.Open(tabId)
         panel:Hide()
         return
     end
-    panel:SetFrameStrata("DIALOG")
+    SetPanelStrata("DIALOG")
     ApplyPosition()
     panel:Show()
     panel:Raise()
