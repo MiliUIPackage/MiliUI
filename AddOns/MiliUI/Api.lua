@@ -59,7 +59,7 @@ end
 -- container 是本體建的分頁框（錨在 banner 底下、蓋滿其餘的視窗），width 是視窗寬。
 -- 標題與捲軸由呼叫端自己建，這樣它自己的獨立視窗跟這一頁長得一模一樣。
 -- 回傳 true＝註冊成功；欄位不對或 id 已存在回傳 false。
--- 靜態分頁的 order：插件總覽 10、插件強化 30、效能監控 40、預設值匯入 50、關於 90。
+-- 靜態分頁的 order：插件總覽 10、快速設定 15、插件強化 30、效能監控 40、預設值匯入 50、關於 90。
 function MiliUI.RegisterOptionsTab(def)
     if type(def) ~= "table" or type(def.id) ~= "string" or def.id == ""
             or type(def.label) ~= "string" or type(def.build) ~= "function" then

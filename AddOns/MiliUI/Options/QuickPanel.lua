@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 快速設定面板：ESC 選單「米利UI設定」按鈕左鍵開的那一扇
+-- 「快速設定」分頁：主設定視窗的第二頁，ESC 選單「米利UI設定」按鈕左鍵直達
 --
 -- 左：分組標籤（第一顆「全部」），右：三欄卡片（縮圖在上、標題＋兩行簡介在下），
 -- 點卡片直接開那支插件的設定。取代原本「滑過按鈕往上展開一整排插件名」的選單。
@@ -11,15 +11,15 @@
 --   · 標題／簡介＝TOC 的 Title／Notes（名冊的 desc 優先）
 -- 開設定的路由也是插件總覽那一套（ns.AddonInfo.OpenSettings）。
 --
--- 啟用／停用插件不在這裡做——那是插件總覽的事（按鈕右鍵，或面板右上角那顆）。
+-- 啟用／停用插件不在這裡做——那是隔壁「插件總覽」分頁的事（按鈕右鍵直達）。
+-- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
 local _, ns = ...
 
 local W, P = ns.W, ns.P
 local Info = ns.AddonInfo
 
-local PANEL_W, PANEL_H = 780, 620
-local TOP_Y      = -44          -- 標籤欄與卡片區的上緣（上面那一列是說明字＋「插件總覽」鈕）
+local TOP_Y      = -46          -- 標籤欄與卡片區的上緣（上面是分頁標題），跟插件總覽對齊
 local TAB_X      = 16
 local TAB_W      = 146          -- 標籤欄（含捲軸讓出的 20，列實際寬 126）
 local TAB_H      = 26
@@ -36,7 +36,7 @@ local ALL        = "\001all"    -- 「全部」標籤的鍵；不會跟任何 TO
 
 local CARD_BG, CARD_BG_HOVER = { 0.115, 0.115, 0.115, 1 }, { 0.17, 0.17, 0.17, 1 }
 
-local panel, tabList, grid
+local tab, tabList, grid
 local cards = {}
 local groups = {}               -- { { key =, label =, entries = {} }, ... }，第一筆是「全部」
 local selected = ALL
@@ -185,9 +185,7 @@ local function CreateCard(parent)
             ns.Print("戰鬥中無法開啟。")
             return
         end
-        -- 別家的設定視窗多半在比較低的 strata，先讓路
-        panel:Hide()
-        Info.OpenSettings(entry)
+        Info.OpenSettings(entry)    -- 會先收掉主設定視窗，讓路給別家的視窗
     end)
     return card
 end
@@ -302,54 +300,29 @@ function RefreshTabs()
 end
 
 ------------------------------------------------------------
--- 面板
+-- 分頁組裝
 ------------------------------------------------------------
-local function CreatePanel()
-    if panel then return end
+local function Init()
+    if tab then return end
+    tab = ns.Options.NewTabFrame()
 
-    panel = W.CreateFrame("MiliUIPack_Quick", UIParent, PANEL_W, PANEL_H)
-    panel:Hide()                    -- CreateFrame 預設顯示
-    panel:SetFrameStrata("DIALOG")
-    panel:SetFrameLevel(100)
-    panel:SetMovable(true)
-    panel:SetClampedToScreen(true)
-    panel:SetBackdropBorderColor(W.Accent(0.8))
-    panel:SetPoint("CENTER")        -- 位置不存檔：這扇是「點一下就走」的跳板，每場從中央開
-    tinsert(UISpecialFrames, "MiliUIPack_Quick")
+    local title = W.CreateSectionTitle(tab, "快速設定", ns.Options.PANEL_W - 32)
+    title:SetPoint("TOPLEFT", 16, -14)
 
-    W.CreateTitleBar(panel, "米利UI設定")
-
-    local close = W.CreateButton(panel, "", "red", 20, 20)
-    close:SetPoint("TOPRIGHT", -3, -3)
-    close:SetFrameLevel(panel:GetFrameLevel() + 200)
-    local x = close:CreateTexture(nil, "OVERLAY")
-    x:SetTexture("Interface\\Buttons\\UI-StopButton")
-    x:SetSize(12, 12)
-    x:SetPoint("CENTER")
-    x:SetVertexColor(1, 0.85, 0.85)
-    close:SetScript("OnClick", function() panel:Hide() end)
-
-    local hint = panel:CreateFontString(nil, "OVERLAY")
+    local hint = tab:CreateFontString(nil, "OVERLAY")
     hint:SetFontObject(W.fontSmall)
-    hint:SetPoint("TOPLEFT", TAB_X + 2, -18)
-    hint:SetText("|cff888888點一張卡片開啟該插件的設定。要啟用／停用插件請到「插件總覽」。|r")
+    hint:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 7)
+    hint:SetJustifyH("RIGHT")
+    hint:SetText("|cff888888點一張卡片開啟該插件的設定|r")
 
-    local overview = W.CreateButton(panel, "插件總覽", "normal", 90, 22)
-    W.FitButton(overview, 90, 22)
-    overview:SetPoint("TOPRIGHT", -30, -12)
-    overview:SetScript("OnClick", function()
-        panel:Hide()
-        ns.OpenOptions("addons")
-    end)
-
-    tabList = W.CreateRowList(panel, TAB_W, 1, TAB_H, BuildTab)
+    tabList = W.CreateRowList(tab, TAB_W, 1, TAB_H, BuildTab)
     tabList:SetPoint("TOPLEFT", TAB_X, TOP_Y)
-    tabList:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", TAB_X, 12)
+    tabList:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", TAB_X, 12)
     -- 分組通常十來個、裝得下：捲軸用不到就收起來，不要留一條空軌道在標籤與卡片之間
     local bar = tabList.scroll.ScrollBar
     if bar and bar.SetHideIfUnscrollable then bar:SetHideIfUnscrollable(true) end
 
-    local holder = CreateFrame("Frame", nil, panel)
+    local holder = CreateFrame("Frame", nil, tab)
     holder:SetPoint("TOPLEFT", GRID_X, TOP_Y)
     holder:SetPoint("BOTTOMRIGHT", -8, 12)
     grid = W.CreateScrollFrame(holder)
@@ -359,33 +332,17 @@ local function CreatePanel()
     grid.empty:SetPoint("TOP", 0, -40)
     grid.empty:SetText("|cff888888這一組目前沒有啟用中的插件|r")
     grid.empty:Hide()
-
-    panel:SetScript("OnShow", function(self)
-        -- ⚠ 第一件事：重算 1px 外框。Stylize 當初 HookScript 的 OnShow 對帳被這個
-        -- SetScript 蓋掉了（.claude/notes/wow-1px-border-rules.md）
-        W.RefreshEdge(self)
-        Rebuild()
-        RefreshTabs()
-        RefreshGrid()
-    end)
-
-    -- 進戰鬥就收：卡片點下去要開的多半是別家的視窗，戰鬥中開不得；
-    -- 留著一扇每張卡都按不動的面板沒有意義
-    panel:RegisterEvent("PLAYER_REGEN_DISABLED")
-    panel:SetScript("OnEvent", function(self) self:Hide() end)
 end
 
--- 再叫一次＝收起來（跟主設定視窗的 /miliui 同一個手感）
-function ns.OpenQuickPanel()
-    if InCombatLockdown() then
-        ns.Print("戰鬥中無法開啟。")
+-- 每次切進來都重讀名冊：插件的啟用狀態可能剛在隔壁「插件總覽」改過
+ns.RegisterCallback("ShowOptionsTab", "quickTab", function(id)
+    if id ~= "quick" then
+        if tab then tab:Hide() end
         return
     end
-    CreatePanel()
-    if panel:IsShown() then
-        panel:Hide()
-        return
-    end
-    panel:Show()
-    panel:Raise()
-end
+    Init()
+    Rebuild()
+    RefreshTabs()
+    RefreshGrid()
+    tab:Show()
+end)

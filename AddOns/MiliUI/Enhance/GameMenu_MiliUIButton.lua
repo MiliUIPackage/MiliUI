@@ -4,8 +4,8 @@
 -- 風格走 MiliUI.Style 的深色皮（對齊米利單位框架設定介面：黑邊白字、hover 職業色）。
 --
 -- 設定按鈕：
---   左鍵 → 隱藏 ESC 選單、開快速設定面板（Options/QuickPanel.lua：分組標籤＋三欄卡片，
---          點卡片直接開那支插件的設定）
+--   左鍵 → 隱藏 ESC 選單、開主設定視窗的「快速設定」分頁（Options/QuickPanel.lua：
+--          分組標籤＋三欄卡片，點卡片直接開那支插件的設定）
 --   右鍵 → 隱藏 ESC 選單、開主設定視窗的「插件總覽」分頁
 --   滑過只出提示框講這兩件事。原本滑過會往上展開一整排插件名的選單，2026-11-28 拿掉了。
 -- 重載按鈕：左鍵跳出確認視窗，右鍵直接 ReloadUI()
@@ -46,11 +46,7 @@ local function OpenSettings(_, button)
         return
     end
     HideUIPanel(GameMenuFrame)
-    if button == "RightButton" then
-        ns.OpenOptions("addons")
-    else
-        ns.OpenQuickPanel()
-    end
+    ns.OpenOptions(button == "RightButton" and "addons" or "quick")
 end
 
 local function DoReload(_, button)
