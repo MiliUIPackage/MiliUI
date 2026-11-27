@@ -73,6 +73,8 @@ local PRESERVE = {
     -- 框：位置、縮放、多格排列方向
     { "frame", "x" }, { "frame", "y" }, { "frame", "scale" },
     { "frame", "growth" }, { "frame", "hSpacing" },
+    -- 框：錨定在別的單位框上（整張表；現在有樣式的四個單位都沒有這張表，留著是「位置」這一類的完整性）
+    { "frame", "anchor" },
     -- 框：顯示條件（Core/Visibility.lua 讀的全部鍵）
     { "frame", "visShowCombat" }, { "frame", "visShowTarget" },
     { "frame", "visShowEnemy" },  { "frame", "visShowFocus" },

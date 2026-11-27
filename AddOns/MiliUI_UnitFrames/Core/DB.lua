@@ -99,6 +99,91 @@ local function frameDef(o)
     return o
 end
 
+------------------------------------------------------------
+-- 「某某的目標」錨定在主框上（frame.anchor，機制見 Core/UnitFrame.lua）
+--
+-- 這五個框的位置本來是各自的畫面座標；v23 起預設貼在主框上，主框搬家、改尺寸、換樣式
+-- 都會跟著走。貼法**不是另外挑一組數字**，而是從兩個框的畫面座標換算出來的
+-- （DB.ComputeAnchor）：預設值與舊設定檔的遷移走同一支，換算前後畫面上的位置相同。
+--
+-- 換算（座標都是「框中心相對畫面中心」，尺寸要乘上各自的縮放才是畫面上的大小）：
+--   先算兩個矩形的四邊，再看它在主框的哪一側 ⇒ side；位移照 ns.ANCHOR_SIDES 那組點算：
+--     RIGHT  自己左上 對 主框右上：x = 自己左 − 主框右，y = 自己頂 − 主框頂
+--     LEFT   自己右上 對 主框左上：x = 自己右 − 主框左，y = 自己頂 − 主框頂
+--     TOP    自己左下 對 主框左上：x = 自己左 − 主框左，y = 自己底 − 主框頂
+--     BOTTOM 自己左上 對 主框左下：x = 自己左 − 主框左，y = 自己頂 − 主框底
+--   四側搭配任意位移可以表示任何相對位置，所以挑哪一側只影響「主框改尺寸時哪一邊跟著走」。
+-- 兩種情況算得出位移、但 **on = false（不錨定）**：
+--   * 兩個框離得很遠（空隙超過 ANCHOR_MAX_GAP）—— 看起來是刻意分開擺的，主框搬家不該拖著它走
+--   * 多格對多格（首領的目標 → 首領）而兩邊的排列方向或步距不同 —— 錨定是第 n 格貼第 n 格，
+--     排法不同的話第 2 格以後會跑位
+-- frame.x/y 一律不動：關掉錨定、或主框沒啟用時退回原本的位置。
+------------------------------------------------------------
+local ANCHOR_PAIRS = {
+    { "targettarget", "target" },
+    { "targettargettarget", "targettarget" },
+    { "focustarget", "focus" },
+    { "pettarget", "pet" },
+    { "bosstarget", "boss" },
+}
+-- 預設版面裡最遠的一組是「目標的目標的目標」在「目標的目標」上方 84（中間隔著光環列），取 160 留餘裕
+local ANCHOR_MAX_GAP = 160
+
+-- 回傳畫面上的矩形（左、右、頂、底、寬、高）與縮放。g ＝ 全域縮放（倍率）
+local function FrameRect(f, g)
+    local s = g * (tonumber(f.scale) or 100) / 100
+    if s <= 0 then s = 1 end
+    local vw, vh = (tonumber(f.w) or 100) * s, (tonumber(f.h) or 30) * s
+    local x, y = tonumber(f.x) or 0, tonumber(f.y) or 0
+    return x - vw / 2, x + vw / 2, y + vh / 2, y - vh / 2, vw, vh, s
+end
+
+-- 多格單位的步距（畫面單位）：直排是 spacing、橫排是框寬＋空隙，都乘縮放（同 ns.ApplyFramePosition）
+local function StackStep(f, s)
+    local growth = f.growth or "DOWN"
+    if growth == "RIGHT" or growth == "LEFT" then
+        return ((tonumber(f.w) or 100) + (tonumber(f.hSpacing) or 10)) * s
+    end
+    return (tonumber(f.spacing) or 47) * s
+end
+
+local function Round2(v) return math.floor(v * 100 + 0.5) / 100 end
+
+-- me／host：兩個框的 frame 設定表；multi：兩邊都是一份設定多個框的單位
+function DB.ComputeAnchor(me, host, hostKey, globalScale, multi)
+    if type(me) ~= "table" or type(host) ~= "table" then return nil end
+    local g = (tonumber(globalScale) or 100) / 100
+    if g <= 0 then g = 1 end
+    local L, R, T, B, vw, vh, s = FrameRect(me, g)
+    local hL, hR, hT, hB, hvw, hvh, hs = FrameRect(host, g)
+    local dcx, dcy = (L + R) / 2 - (hL + hR) / 2, (T + B) / 2 - (hT + hB) / 2
+    local gapX = math.max(L - hR, hL - R, 0)
+    local gapY = math.max(B - hT, hB - T, 0)
+    local horizontal
+    if gapX > 0 or gapY > 0 then
+        horizontal = gapX >= gapY
+    else
+        -- 兩個矩形疊在一起：看中心差在哪個方向比較大（各自除以兩框的平均邊長）
+        horizontal = math.abs(dcx) / ((vw + hvw) / 2) >= math.abs(dcy) / ((vh + hvh) / 2)
+    end
+    local side, x, y
+    if horizontal then
+        if dcx >= 0 then side, x, y = "RIGHT", L - hR, T - hT
+        else side, x, y = "LEFT", R - hL, T - hT end
+    else
+        if dcy >= 0 then side, x, y = "TOP", L - hL, B - hT
+        else side, x, y = "BOTTOM", L - hL, T - hB end
+    end
+    local on = math.max(gapX, gapY) <= ANCHOR_MAX_GAP
+    if on and multi then
+        if (me.growth or "DOWN") ~= (host.growth or "DOWN")
+                or math.abs(StackStep(me, s) - StackStep(host, hs)) > 0.5 then
+            on = false
+        end
+    end
+    return { on = on, to = hostKey, side = side, x = Round2(x), y = Round2(y) }
+end
+
 -- 標準文字元件預設
 local function textDef(o)
     o.enabled  = o.enabled ~= false
@@ -1371,6 +1456,15 @@ function DB.BuildDefaults()
             end
         end
     end
+    -- 「某某的目標」預設貼在主框上：貼法從上面寫的預設位置換算（見 ANCHOR_PAIRS 上面的說明）。
+    -- 預設版面五組都在 ANCHOR_MAX_GAP 之內、首領兩排的排法相同 ⇒ 全部 on
+    for _, pair in ipairs(ANCHOR_PAIRS) do
+        local me, host = defaults.units[pair[1]], defaults.units[pair[2]]
+        if me and host then
+            me.frame.anchor = DB.ComputeAnchor(me.frame, host.frame, pair[2], defaults.global.scale,
+                ns.MULTI_UNIT_KEYS and ns.MULTI_UNIT_KEYS[pair[1]] and ns.MULTI_UNIT_KEYS[pair[2]])
+        end
+    end
     return defaults
 end
 
@@ -1933,6 +2027,40 @@ local PROFILE_MIGRATIONS = {
                 -- 原地改寫（不換表）：保持相對順序，也不留洞
                 wipe(texts)
                 for i, t in ipairs(keep) do texts[i] = t end
+            end
+        end
+    end,
+
+    -- v23（2026-11-28）：「某某的目標」五個框預設貼在主框上（frame.anchor）。
+    -- 預設值多了 anchor 這張表，光靠 MergeDefaults 補的話，搬過框的玩家會被補上「預設位移」，
+    -- 小框當場跳到主框旁邊的預設位置 ⇒ 這裡先照他**現在**兩個框的位置換算出等價的貼法寫進去
+    -- （DB.ComputeAnchor，跟預設值同一支），畫面上的位置不變，只是之後會跟著主框走。
+    -- 離得很遠、或首領兩排排法不同的，換算結果是 on = false（維持各走各的）。
+    -- 這是結構轉換、而且換算本身保位置，不套值閘；已經有 anchor 表的不動。
+    -- 舊設定檔可能缺整個單位或缺欄位（那個單位／欄位是後來才加的）：缺的拿預設值補進來算，
+    -- 因為 MergeDefaults 接著補上的就是那些值。frame.x/y 不動（關掉錨定時的退路）。
+    [23] = function(profile)
+        local units = profile.units
+        if type(units) ~= "table" then return end
+        local d = DB.BuildDefaults()
+        local function View(key)
+            local f = type(units[key]) == "table" and units[key].frame
+            local df = d.units[key] and d.units[key].frame
+            if type(df) ~= "table" then return nil end
+            if type(f) ~= "table" then return df end
+            local v = {}
+            for _, k in ipairs({ "x", "y", "w", "h", "scale", "growth", "spacing", "hSpacing" }) do
+                if f[k] ~= nil then v[k] = f[k] else v[k] = df[k] end
+            end
+            return v
+        end
+        local gscale = type(profile.global) == "table" and profile.global.scale or d.global.scale
+        for _, pair in ipairs(ANCHOR_PAIRS) do
+            local udb = units[pair[1]]
+            local f = type(udb) == "table" and udb.frame
+            if type(f) == "table" and f.anchor == nil then
+                f.anchor = DB.ComputeAnchor(View(pair[1]), View(pair[2]), pair[2], gscale,
+                    ns.MULTI_UNIT_KEYS and ns.MULTI_UNIT_KEYS[pair[1]] and ns.MULTI_UNIT_KEYS[pair[2]])
             end
         end
     end,

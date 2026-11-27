@@ -60,11 +60,16 @@ local ELEMENT_LIST = {
 ------------------------------------------------------------
 -- 左欄與 chip 列的尺寸
 --
--- 兩排的字都是會被翻譯的，而兩邊都沒有多的橫向空間可以拿：左欄右邊 x=128 就是分隔線，
+-- 兩排的字都是會被翻譯的，而兩邊都沒有多的橫向空間可以拿：左欄右邊就是分隔線，
 -- 再過去那 520 的表單寬是照最擠的一列量到的極限（見 Libs/MiliUIWidgets/Env.lua）。
 -- 所以兩排都改成「橫的放不下就往下長」：單位鈕字換行、按鈕長高，chip 整顆換到下一排。
+--
+-- 左欄寬度照中文最長的那顆「目標的目標的目標」（8 個字）一行放得下來定（使用者指定）：
+-- 原本按鈕 106 寬會換成兩行，加 28 ⇒ 134。這 28 是把整個視窗加寬換來的（Options/Panel.lua 的
+-- PANEL_W 700 → 728），分隔線與右邊整塊一起往右推，表單區的 520 不變。歐語更長的照舊換行。
 ------------------------------------------------------------
-local UNIT_BTN_W, UNIT_BTN_H, UNIT_BTN_GAP = 106, 24, 4
+local UNIT_COL_EXTRA = 28
+local UNIT_BTN_W, UNIT_BTN_H, UNIT_BTN_GAP = 106 + UNIT_COL_EXTRA, 24, 4
 local UNIT_BTN_X, UNIT_BTN_TOP = 12, -14
 
 local CHIP_H         = 20
@@ -73,7 +78,7 @@ local CHIP_TEXT_PAD  = 16      -- chip 的字左右各留一半
 local CHIP_GAP_X     = 3
 local CHIP_GAP_Y     = 3
 local CHIP_ROW_PAD   = 2       -- chipRow 比 chip 本身高出來的那一點（單排＝20+2＝22）
-local CHIP_ROW_X     = 140     -- chipRow 左緣離分頁左緣
+local CHIP_ROW_X     = 140 + UNIT_COL_EXTRA     -- chipRow 左緣離分頁左緣
 local CHIP_ROW_R     = 12      -- chipRow 右緣離分頁右緣
 -- 換排的門檻比 chipRow 本身寬一點：最後一顆可以伸進右邊留白的這幾 px 再換排。
 -- 繁中全展開 544 / 548 是剛好卡邊的，字寬的估算只要差 4px 就會變成兩排 —— 而改成
@@ -1117,7 +1122,7 @@ end
 local function ChipRowWidth()
     local w = tab.chipRow:GetWidth()
     if type(w) ~= "number" or w < 1 then
-        w = (ns.Options.PANEL_W or 700) - CHIP_ROW_X - CHIP_ROW_R
+        w = (ns.Options.PANEL_W or 728) - CHIP_ROW_X - CHIP_ROW_R
     end
     return w + CHIP_ROW_SLACK
 end
@@ -1233,8 +1238,8 @@ local function Init()
     local sep = ns.Media.NoSnap(tab:CreateTexture(nil, "ARTWORK"))   -- 1px 線：關像素貼齊
     sep:SetTexture("Interface\\BUTTONS\\WHITE8X8")
     sep:SetVertexColor(0, 0, 0, 1)
-    sep:SetPoint("TOPLEFT", 128, -10)
-    sep:SetPoint("BOTTOMLEFT", 128, 10)
+    sep:SetPoint("TOPLEFT", 128 + UNIT_COL_EXTRA, -10)
+    sep:SetPoint("BOTTOMLEFT", 128 + UNIT_COL_EXTRA, 10)
     sep:SetWidth(ns.P.Pixel(1))
 
     -- 右上：元件切換列

@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 主設定視窗：700×520，分頁鈕掛視窗上緣外側兼拖曳把手
+-- 主設定視窗：728×520，分頁鈕掛視窗上緣外側兼拖曳把手
 -- 骨架在共用層（Libs/MiliUIWidgets/Window.lua 的 W.CreateOptionsWindow），這裡只寫差異：
 -- 開關時的即時預覽、設定搜尋、遮擋監看，以及給 /muf debug 的點擊記錄
 -- 分頁解耦：ns.Fire("ShowOptionsTab", id)，各分頁檔案自己註冊、懶初始化
@@ -13,7 +13,9 @@ local W = ns.W
 ns.Options = {}
 local Options = ns.Options
 
-local PANEL_W, PANEL_H = 700, 520
+-- 寬 728 = 原本的 700 ＋ 單位分頁左欄加寬的 28（「目標的目標的目標」要一行放得下，
+-- 見 Options/Tab_Unit.lua 的 UNIT_COL_EXTRA）；右邊表單區的 520 不變
+local PANEL_W, PANEL_H = 728, 520
 
 -- 分頁自己算版面時要用到視窗寬（例如單位分頁的 chip 列：可用寬度 = 視窗寬 − 左右錨點）。
 -- 掛出來是為了不讓同一個 700 在別的檔案裡變成第二個魔術數字

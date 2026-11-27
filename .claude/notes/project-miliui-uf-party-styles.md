@@ -17,7 +17,7 @@ metadata:
 - 預覽：停用的單位不建孿生，勾起來時由 `Preview.Rebuild` 補建；party 四格固定假資料（`PARTY_SLOTS`）。
 
 - 2026-11-27 使用者調整：光環比照目標框「上減益（開）、下增益（關）」，兩排 8×20＋7＝167 對齊框緣；格距 70。使用者說隊伍框「還沒發佈、不需要遷移」，改預設值直接改（自己的存檔用「恢復預設」或套「經典頭像」樣式吃到新值）。
-- **隊伍的目標** `partytarget`（party1-4target，預設關）：90×22 短條、沒有頭像與光環，**錨定在對應的隊伍框上**（`frame.anchor = { on, to, side, x, y }`，永遠是表、不錨定是 `on = false`；第 n 格貼第 n 格；找不到宿主退回 frame.x/y；拖曳寫 anchor 的位移，見 `ns.AnchorHost`／`ns.DragDB`）。其他「某某的目標」框改錨定只討論過、未實作。隊伍格距已改成容得下上下兩排光環（經典 93／精簡條 76／頭像卡 88）。隊友的 `UNIT_TARGET` 只在這種框生出來時才註冊（`ns.Events.WatchPartyTargets`），不進 `SCOPED` 的無條件名單。
+- **隊伍的目標** `partytarget`（party1-4target，預設關）：90×22 短條、沒有頭像與光環，**錨定在對應的隊伍框上**（`frame.anchor = { on, to, side, x, y }`，永遠是表、不錨定是 `on = false`；第 n 格貼第 n 格；找不到宿主退回 frame.x/y；拖曳寫 anchor 的位移，見 `ns.AnchorHost`／`ns.DragDB`）。2026-11-28 起目標的目標／目標的目標的目標／專注的目標／寵物的目標／首領的目標也預設錨定在主框上：**DB v23 換算遷移**（`DB.ComputeAnchor`，預設值與遷移同一支；從兩框的座標、尺寸、縮放換算等價的 side＋位移，畫面位置不變；空隙超過 160 或首領兩排排法不同 ⇒ `on = false`；frame.x/y 不動當退路）。隊伍格距已改成容得下上下兩排光環（經典 93／精簡條 76／頭像卡 88）。隊友的 `UNIT_TARGET` 只在這種框生出來時才註冊（`ns.Events.WatchPartyTargets`），不進 `SCOPED` 的無條件名單。
 
 **樣式快速選擇**（`c58d2c127`，合進本機 master，**版面數字未實機看過**）
 - 樣式＝一包設定值，不是活的底層。`Core/Styles.lua`：`Build`（classic 就是 BuildDefaults）、`PRESERVE` 保留清單（唯一一張表）、`Compose`、`ApplyMany`／`Undo`（快照一層、只在記憶體）。支援 player／target／focus／party。
@@ -25,3 +25,5 @@ metadata:
 - 套用後寫 `udb.style`（不進預設值）。`BuildElements` 多一條：設定表裡沒有、框上卻建過的元件要收掉（專注目標的頭像卡借了頭像元件）。
 - 使用者定案：樣式不改顏色方式；頭像卡在玩家與目標鏡像。我的決定（使用者未確認）：專注目標精簡條維持 120 寬、頭像卡 200×44；套用範圍只有「這個單位／四個支援的單位」。
 - 設定頁按鈕用自己的 key `Apply style`（共用層的 `Apply` 在 zhTW 是「執行」）。
+
+**設定視窗寬 728**（2026-11-28，原 700）：單位分頁左欄加寬 28 讓「目標的目標的目標」一行放得下，表單區 520 不變。
