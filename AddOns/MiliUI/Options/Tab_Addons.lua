@@ -76,6 +76,8 @@ ns.AddonInfo = {
     EntryMeta    = EntryMeta,
     EntryTitle   = EntryTitle,
     StripCodes   = StripCodes,
+    EntryEnabled = EntryEnabled,
+    -- OpenSettings／EntryCategory 在下面定義完才補進來（快速設定面板 Options/QuickPanel.lua 要用）
 }
 
 local function EntryCPU(entry)
@@ -209,6 +211,7 @@ local function OpenEntrySettings(entry)
         ns.Print("這個插件還沒註冊設定入口（可能要等它載入完成），稍後再試。")
     end
 end
+ns.AddonInfo.OpenSettings = OpenEntrySettings
 
 ------------------------------------------------------------
 -- 套用列
@@ -595,6 +598,7 @@ local function EntryCategory(entry)
     if not cat or cat == "" then cat = "其他" end
     return cat
 end
+ns.AddonInfo.EntryCategory = EntryCategory
 
 local function RebuildItems()
     wipe(items)

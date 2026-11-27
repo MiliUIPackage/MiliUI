@@ -32,6 +32,7 @@ Libs\MiliUIWidgets\Window.lua
 Options\Roster.lua
 Options\Panel.lua
 Options\Tab_Addons.lua
+Options\QuickPanel.lua
 Options\Tab_Enhance.lua
 Options\HeapTrack.lua
 Options\Tab_Perf.lua
