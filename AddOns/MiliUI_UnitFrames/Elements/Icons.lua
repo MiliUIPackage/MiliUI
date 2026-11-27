@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- 小圖示：團隊標記 / 狀態（戰鬥/休息）/ 隊長 / PvP / 小隊編號 / 寵物快樂度（永恆版）
+-- 小圖示：團隊標記 / 狀態（戰鬥/休息）/ 隊長 / PvP / 小隊編號 / 職責（隊伍框）/ 寵物快樂度（永恆版）
 -- 團隊標記 index 可能是秘密值 → SetRaidTargetIconTexture 吃秘密值（C 端）
 ------------------------------------------------------------
 local _, ns = ...
@@ -46,7 +46,22 @@ local OVERSIZE = { restanim = 1.5, combat = 1.35 }
 -- 預覽用的假團隊標記：每個單位給不同號碼，一眼分得出是哪一格
 local PREVIEW_MARK = {
     player = 1, target = 8, targettarget = 2, targettargettarget = 4, focus = 7,
-    focustarget = 3, pet = 6, pettarget = 4, boss = 8, bosstarget = 5,
+    focustarget = 3, pet = 6, pettarget = 4, boss = 8, bosstarget = 5, party = 2,
+}
+
+------------------------------------------------------------
+-- 職責圖示（坦／補／輸出），只有隊伍框的預設值有這組鍵
+--
+-- 圖用暴雪團隊框同一組 atlas（UnitFrameUtil 的 GetMicroIconForRole 回的就是這三張）。
+-- ⚠ UnitGroupRolesAssigned 在「單位身分受限」時回秘密字串（notes 的 wow-121-unit-api-secrets）。
+--   隊友依定義不受限（受限＝不是你控制的、也不在你隊伍／團隊裡），正常是明文；
+--   但秘密字串**不能當 table key**，所以一律先 Desecret：讀不到就當沒有職責、不畫，
+--   不去猜一個（猜錯比不畫更誤導）。換職責會發 GROUP_ROSTER_UPDATE → reaction 桶，不必另掛事件。
+------------------------------------------------------------
+local ROLE_ATLAS = {
+    TANK    = "roleicon-tiny-tank",
+    HEALER  = "roleicon-tiny-healer",
+    DAMAGER = "roleicon-tiny-dps",
 }
 
 ------------------------------------------------------------
@@ -219,6 +234,7 @@ local function Build(uf, edb)
     SetupIcon(uf, "status", edb.status, nil, uf.unitKey == "player")
     SetupIcon(uf, "leader", edb.leader, "Interface\\GroupFrame\\UI-Group-LeaderIcon")
     SetupIcon(uf, "pvp", edb.pvp, nil)
+    SetupIcon(uf, "role", edb.role, nil)
     SetupGroup(uf, edb.group)
     -- 快樂度：預設值每個設定檔都帶著（匯入匯出不分版本），但只有永恆版的寵物框真的建
     SetupIcon(uf, "happiness", edb.happiness, nil, ns.IS_FOREVER and uf.unitKey == "pet")
@@ -268,7 +284,9 @@ local function Update(uf, edb, bucket)
 
     local ld = uf.iconTextures.leader
     if ld and not ld.disabled and edb.leader and edb.leader.enabled then
-        if preview or ToBool(UnitIsGroupLeader(unit)) then   -- 12.1 秘密 boolean → ToBool
+        -- 預覽：多格的單位（隊伍框）只在第一格示意，四格都戴皇冠看起來像錯誤
+        if (preview and (uf.stackIndex or 1) == 1)
+                or (not preview and ToBool(UnitIsGroupLeader(unit))) then   -- 12.1 秘密 boolean → ToBool
             ld:Show()
         else
             ld:Hide()
@@ -287,6 +305,24 @@ local function Update(uf, edb, bucket)
             pvp:Show()
         else
             pvp:Hide()
+        end
+    end
+
+    -- 職責：預覽吃假資料（每格不同，見 Options/Preview.lua），真實框問暴雪
+    local ro = uf.iconTextures.role
+    if ro and not ro.disabled and edb.role and edb.role.enabled then
+        local role
+        if preview then
+            role = uf.cache.previewRole or "DAMAGER"
+        else
+            role = ns.Desecret(UnitGroupRolesAssigned(unit), nil)
+        end
+        local atlas = role and ROLE_ATLAS[role]
+        if atlas and AtlasInfo(atlas) then
+            ro.tex:SetAtlas(atlas)
+            ro:Show()
+        else
+            ro:Hide()
         end
     end
 

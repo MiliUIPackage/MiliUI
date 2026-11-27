@@ -12,7 +12,8 @@ local IsSecret = ns.IsSecret
 ns.Preview = {}
 local Preview = ns.Preview
 
-local twins = {}         -- [unitKey] = { uf, ... }（boss 有 3 個）
+local twins = {}         -- [unitKey] = { uf, ... }（boss 有 3 個、party 有 4 個）
+local OpenTwinsFor       -- 前置宣告：Rebuild 要用，實體在下面「開關」那一節
 local ticker
 local isOpen = false
 local suppressedReal = false
@@ -46,7 +47,31 @@ local FAKE_BASE = {
                      classificationKey = "worldboss" },
     -- 首領的目標：實戰上幾乎都是坦，所以套玩家那組假資料
     bosstarget   = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
+    -- 隊伍：四格各不相同，真正的內容在下面的 PARTY_SLOTS
+    party        = { name = L["Mili"],     pc = true,  reaction = 5, level = 80 },
 }
+
+------------------------------------------------------------
+-- 依格數覆寫（目前只有隊伍框）
+--
+-- 一份設定多個框的單位，假資料預設是同一份（首領三格長一樣沒關係，看的是排列）。
+-- 隊伍框不行：使用者要在預覽裡同時看到「職責圖示、職業色、半血、死亡」各長什麼樣，
+-- 四格一樣就等於只看到一種狀態。所以每格一組：坦（滿血）／補（82%）／輸出（45%）／
+-- 輸出（死亡）。名字直接用暴雪的職業名（十二個語系都是官方譯名，不必進語系表）。
+--
+-- 這幾格的血量**固定不動**（previewFixed）：Tick 的掉血補血循環會讓「死亡」那格復活、
+-- 「滿血」那格掉血，四種狀態就對不上了。
+------------------------------------------------------------
+local PARTY_SLOTS = {
+    { classFile = "WARRIOR", role = "TANK",    hp = 100, powertype = 1, maxmp = 100 },   -- 怒氣
+    { classFile = "PRIEST",  role = "HEALER",  hp = 82 },
+    { classFile = "MAGE",    role = "DAMAGER", hp = 45 },
+    { classFile = "DRUID",   role = "DAMAGER", hp = 0 },
+}
+local SLOT_OVERRIDES = { party = PARTY_SLOTS }
+
+-- 每個 unitKey 預覽幾格（沒列的多格單位是 3 格）
+local TWIN_COUNT = { party = 4 }
 
 -- 玩家框的範例資源要跟本人一致：以前所有單位一律「魔力 15萬/25萬」，暗牧（瘋狂 0～100）
 -- 看到的範例就跟實際框對不上，顏色也是法力藍。玩家本人的資源型態與上限脫戰是明文
@@ -72,7 +97,37 @@ local function ApplyPowerFields(cache, unitKey)
     return ptype
 end
 
-local function BuildFakeCache(unitKey)
+-- 套用依格數覆寫（見 PARTY_SLOTS）。血量四個欄位要一起改：條吃 previewHP、
+-- 文字吃 previewValues、上色吃 frachp、狀態文字吃 dead
+local FAKE_MAX_HP = 1650000
+local function ApplySlot(cache, slot)
+    local file = slot.classFile
+    local name = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[file]) or file
+    cache.name, cache.firstname, cache.fullname = name, name, name
+    cache.classFile = file
+    cache.class = name
+    cache.race = ""
+    cache.previewRole = slot.role
+    cache.previewFixed = true
+    local hp = slot.hp
+    cache.previewHP = hp
+    cache.frachp = hp / 100
+    cache.perchp = hp
+    cache.previewValues.curhp = math.floor(FAKE_MAX_HP * hp / 100)
+    cache.previewValues.perchp = hp
+    cache.dead = (hp == 0)
+    if slot.powertype then
+        cache.powertype = slot.powertype
+        cache.previewValues.maxmp = slot.maxmp
+        cache.previewValues.curmp = math.floor(slot.maxmp * cache.previewMP / 100)
+    end
+    if cache.dead then
+        cache.previewMP, cache.fracmp, cache.percmp = 0, 0, 0
+        cache.previewValues.curmp, cache.previewValues.percmp = 0, 0
+    end
+end
+
+local function BuildFakeCache(unitKey, stackIndex)
     local base = FAKE_BASE[unitKey] or FAKE_BASE.player
     local cls = ns.db.global.classification
     -- isPlayer 預設跟 pc 一樣，但可以個別覆寫（寵物就是 pc=true / isPlayer=false）
@@ -114,6 +169,9 @@ local function BuildFakeCache(unitKey)
         },
     }
     ApplyPowerFields(cache, unitKey)
+    local slots = SLOT_OVERRIDES[unitKey]
+    local slot = slots and slots[stackIndex or 1]
+    if slot then ApplySlot(cache, slot) end
     return cache
 end
 
@@ -201,7 +259,7 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
                 end
             end)
             -- 從圖示上拖曳＝搬整個框（不然框底下那排光環會變成拖不動的死角）
-            if not (uf.bossIndex and uf.bossIndex > 1) then
+            if not (uf.stackIndex and uf.stackIndex > 1) then
                 ns.AttachDrag(b, uf, function() return uf.db.frame end, function()
                     ns.ApplySettings(uf.unitKey)
                 end)
@@ -275,14 +333,17 @@ end
 ------------------------------------------------------------
 -- 孿生生命週期
 ------------------------------------------------------------
-local function SpawnTwin(unitKey, bossIndex)
+local function SpawnTwin(unitKey, stackIndex)
     local uf = CreateFrame("Button", nil, UIParent, "BackdropTemplate")
     uf.isPreview = true
     uf.unit = "player"           -- 安全 token；元件的預覽分支不會真的拿去查
     uf.unitKey = unitKey
-    uf.bossIndex = bossIndex
+    -- 同真實框（Core/UnitFrame.lua 的 SpawnUnitFrame）：排位看 stackIndex，
+    -- bossIndex 只有首領本身才有
+    uf.stackIndex = stackIndex
+    if unitKey == "boss" then uf.bossIndex = stackIndex end
     uf.db = ns.GetUnitDB(unitKey)
-    uf.cache = BuildFakeCache(unitKey)
+    uf.cache = BuildFakeCache(unitKey, stackIndex)
     uf.elements = {}
     ns.ApplyFramePosition(uf)
     ns.BuildElements(uf)
@@ -327,7 +388,7 @@ local function HookOutsideElement(uf, unitKey, region, target)
             ns.Options.FocusUnitElement(unitKey, target.element)
         end
     end)
-    if not (uf.bossIndex and uf.bossIndex > 1) then
+    if not (uf.stackIndex and uf.stackIndex > 1) then
         ns.AttachDrag(region, uf, function() return uf.db.frame end, function()
             ns.ApplySettings(unitKey)
         end)
@@ -344,8 +405,8 @@ local function HookTwinMouse(uf, unitKey)
             ns.Options.FocusUnitElement(unitKey)
         end
     end)
-    -- boss 只有第一格可拖，跟編輯模式同一個規則（拖了整組跟著走）
-    if not (uf.bossIndex and uf.bossIndex > 1) then
+    -- 多格的單位（首領、隊伍）只有第一格可拖，跟編輯模式同一個規則（拖了整組跟著走）
+    if not (uf.stackIndex and uf.stackIndex > 1) then
         ns.AttachDrag(uf, uf, function() return uf.db.frame end, function()
             ns.ApplySettings(unitKey)
         end)
@@ -375,7 +436,14 @@ end
 function Preview.Rebuild(unitKey)
     if not isOpen then return end
     local list = twins[unitKey]
-    if not list then return end
+    if not list then
+        -- 停用的單位開窗時不建孿生（見 OpenTwinsFor）；面板開著時才勾起來的，在這裡補建
+        local udb = ns.GetUnitDB(unitKey)
+        if not (udb and udb.enabled) then return end
+        OpenTwinsFor(unitKey)
+        list = twins[unitKey]
+        if not list then return end
+    end
     for _, uf in ipairs(list) do
         uf.db = ns.GetUnitDB(unitKey)
         ns.ApplyFramePosition(uf)
@@ -466,17 +534,20 @@ local function Tick()
                 ns.Refresh(uf, "power")
             end
         end
-        local hp = uf.cache.previewHP + STATES[stateIndex]
-        if hp > 100 then hp = 100 elseif hp < 0 then hp = 0 end
-        uf.cache.previewHP = hp
-        uf.cache.frachp = hp / 100
-        uf.cache.perchp = hp
-        uf.cache.previewValues.curhp = math.floor(1650000 * hp / 100)
-        uf.cache.previewValues.perchp = hp
-        uf.cache.dead = (hp == 0)
+        -- 固定狀態的格子（隊伍框的四格，見 PARTY_SLOTS）不跑掉血補血循環
+        if not uf.cache.previewFixed then
+            local hp = uf.cache.previewHP + STATES[stateIndex]
+            if hp > 100 then hp = 100 elseif hp < 0 then hp = 0 end
+            uf.cache.previewHP = hp
+            uf.cache.frachp = hp / 100
+            uf.cache.perchp = hp
+            uf.cache.previewValues.curhp = math.floor(FAKE_MAX_HP * hp / 100)
+            uf.cache.previewValues.perchp = hp
+            uf.cache.dead = (hp == 0)
 
-        ns.Refresh(uf, "health")
-        ns.Refresh(uf, "death")
+            ns.Refresh(uf, "health")
+            ns.Refresh(uf, "death")
+        end
 
         if auraSel then
             local aedb = uf.db.elements and uf.db.elements[auraSel]
@@ -562,7 +633,10 @@ local opener = CreateFrame("Frame")
 -- ⚠ 逐一隔離的對象就是它 —— Open 是面板 OnShow 呼叫的，任何一個 unitKey 拋錯
 -- （例如匯入字串帶進來的假單位）都會讓真實框已經藏起來、孿生只建到一半，
 -- 而且每次開面板重演一次。
-local function OpenTwinsFor(unitKey)
+-- ⚠ 停用的單位**不建**孿生：frame 刪不掉，建了就永久多幾顆藏著的框，Tick 還照樣每 0.8 秒
+--   重畫它們。隊伍框預設關、一建就是四格，最明顯。面板開著時才勾起來的由 Preview.Rebuild 補建
+--   （SettingsApplied 會帶它過去），看起來跟以前「建好藏著、勾了才顯示」一樣。
+function OpenTwinsFor(unitKey)
     -- 已經有孿生的話要重指 uf.db：換設定檔若在戰鬥中被排隊，脫戰時面板可能已經關了
     -- ⇒ RebindProfile 觸發的 SettingsApplied 被 Preview 的 `if not isOpen` 吃掉，
     -- 下次開窗孿生就還顯示上一份設定檔。
@@ -572,8 +646,12 @@ local function OpenTwinsFor(unitKey)
         end
     end
     if not twins[unitKey] then
+        local udb = ns.GetUnitDB(unitKey)
+        if not (udb and udb.enabled) then return end
         if ns.MULTI_UNIT_KEYS[unitKey] then
-            twins[unitKey] = { SpawnTwin(unitKey, 1), SpawnTwin(unitKey, 2), SpawnTwin(unitKey, 3) }
+            local list = {}
+            for i = 1, TWIN_COUNT[unitKey] or 3 do list[i] = SpawnTwin(unitKey, i) end
+            twins[unitKey] = list
         else
             twins[unitKey] = { SpawnTwin(unitKey) }
         end
@@ -593,7 +671,7 @@ local function DoOpen()
         uf:Hide()
     end
 
-    -- 孿生：每個 unitKey 一個；boss 顯示 3 個示意
+    -- 孿生：每個 unitKey 一個；首領顯示 3 個示意、隊伍 4 個（見 TWIN_COUNT）
     for unitKey in pairs(ns.db.units) do
         if unitKey ~= "totem" then
             xpcall(OpenTwinsFor, ns.ReportError, unitKey)

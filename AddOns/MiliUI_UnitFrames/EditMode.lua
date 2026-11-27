@@ -179,14 +179,14 @@ local combatWatcher = CreateFrame("Frame")
 
 local function EnterPreview()
     ns.Preview.Open("editmode")
-    -- 孿生蓋選取框（boss 只有第一格可拖，拖了整組跟著走）
+    -- 孿生蓋選取框（一份設定多個框的——首領、隊伍——只有第一格可拖，拖了整組跟著走）
     ns.Preview.EachTwin(function(uf, unitKey)
-        if uf.bossIndex and uf.bossIndex > 1 then return end
+        if uf.stackIndex and uf.stackIndex > 1 then return end
         if not uf.db.enabled then return end
         local label = ns.UNIT_LABELS[unitKey] or unitKey
         local sel = AttachSelection(uf, L["MiliUI UF: "] .. label,
             function() return uf.db.frame end, function()
-            ns.ApplySettings(unitKey)     -- 同步 boss2-5 與孿生
+            ns.ApplySettings(unitKey)     -- 同步第 2 格以後（boss2-5、party2-4）與孿生
         end)
         uf:EnableMouse(true)
         sel:ShowHighlighted()

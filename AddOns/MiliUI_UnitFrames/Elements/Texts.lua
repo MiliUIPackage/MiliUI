@@ -172,7 +172,10 @@ local function Build(uf, edb)
         if needMetro then
             -- Update 自己從 uf.db.elements 重拿三個清單，第二個參數只是派發閘門的慣例；
             -- 不能因為框層清單不在就跳過（oor 可能寫在條的文字裡）
+            -- 藏在顯示條件閘框底下的框（IsShown 真、IsVisible 假）不畫，理由同
+            -- Core/UnitFrame.lua 的 range 輪詢；閘框重新顯示時會補一次全量重畫
             uf.metroTextsFn = uf.metroTextsFn or function()
+                if not uf:IsVisible() then return end
                 ns.Elements.texts.update(uf, uf.db.elements.texts, "metro")
             end
             ns.Metro.Bind(uf, metroKey, 0.5, uf.metroTextsFn)

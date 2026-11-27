@@ -29,6 +29,7 @@ local UNIT_LIST = {
     { key = "focustarget",  label = L["Focus Target"] },
     { key = "pet",          label = L["Pet"] },
     { key = "pettarget",    label = L["Pet Target"] },
+    { key = "party",        label = L["Party"] },
     { key = "boss",         label = L["Boss"] },
     { key = "bosstarget",   label = L["Boss Target"] },
 }
@@ -160,8 +161,13 @@ local function FrameSpecs(unitKey)
         { type = "slider", root = "frame", key = "scale", label = L["Scale (%)"], min = 50, max = 200, step = 1 },
         { type = "text", label = L["100 is the original size, multiplied by the global scale on the General tab. Everything on the frame scales with it, including the resource and mana bars anchored below; the frame grows around its center, so the position stays put."] },
     }
+    -- 隊伍框預設關，而且一開就會藏掉暴雪的隊伍框：最上面先講清楚它是什麼、什麼時候出現
+    if unitKey == "party" then
+        tinsert(list, 1, { type = "text", label = L["Off by default. Shows the other four members of a 5-player party; hidden in raids. Turning it on hides the default party frames."] })
+    end
     if ns.MULTI_UNIT_KEYS[unitKey] then
-        tinsert(list, { type = "header", label = L["Multiple boss layout"] })
+        -- 同一節（方向／間距）首領與隊伍共用，只有標題換
+        tinsert(list, { type = "header", label = unitKey == "party" and L["Party member layout"] or L["Multiple boss layout"] })
         tinsert(list, { type = "dropdown", root = "frame", key = "growth", label = L["Grow direction"],
                         items = { { text = L["Downward"], value = "DOWN" }, { text = L["Upward"], value = "UP" },
                                   { text = L["Rightward"], value = "RIGHT" }, { text = L["Leftward"], value = "LEFT" } } })
@@ -785,9 +791,9 @@ local function BlacklistRow(unitKey, name)
 end
 
 -- 友方單位的減益，引擎只准用 ID 過濾標記 NeverSecret 的法術（疲勞、自律這類）。
--- 玩家／寵物永遠是友方 ⇒ 挑選視窗直接把過濾不了的灰掉（Options/AuraBlacklist.lua）；
+-- 玩家／寵物／隊友永遠是友方 ⇒ 挑選視窗直接把過濾不了的灰掉（Options/AuraBlacklist.lua）；
 -- 目標／專注目標這些**執行期**才知道是敵是友，所以全部放行，只在說明裡註明。
-local FRIENDLY_ONLY_UNITS = { player = true, pet = true }
+local FRIENDLY_ONLY_UNITS = { player = true, pet = true, party = true }
 ns.AURA_FRIENDLY_ONLY_UNITS = FRIENDLY_ONLY_UNITS
 
 local BLACKLIST_MARKER = {}     -- 佔位，下面換成黑名單那一列（減益另加說明）
@@ -859,6 +865,8 @@ local function IconSpecs(els)
         { key = "pvp",        label = "PvP" },
         -- 只有玩家／目標的預設值有 group 鍵，其他單位不會出現這一節
         { key = "group",      label = L["Group number"] },
+        -- 只有隊伍框的預設值有 role 鍵。標籤用暴雪的全域字串（「職責」），十二個語系都是官方用語
+        { key = "role",       label = _G.ROLE or "Role" },
         -- 永恆版的寵物框才有（預設值本身就只在永恆版建）；forever 這道閘是擋「從永恆版匯入的設定檔」
         { key = "happiness",  label = L["Pet happiness"], forever = true },
     }

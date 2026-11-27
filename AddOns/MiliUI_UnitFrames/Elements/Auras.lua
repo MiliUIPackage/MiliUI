@@ -577,7 +577,7 @@ end
 ------------------------------------------------------------
 -- 換人重掃
 --
--- 動態 token（target / focus / bossN）在框架保持顯示的情況下換人，容器不會自己重解析。
+-- 動態 token（target / focus / bossN / partyN）在框架保持顯示的情況下換人，容器不會自己重解析。
 -- ⚠ 從插件端呼叫 `UpdateAllAuras` **只設得到髒旗標，推不動私有端的處理器**
 -- （實測結論）——真正跨得過分界的是 Hide/Show：
 -- intrinsic 的 OnShow 跑在安全端，會從那裡重掃一次。
@@ -707,6 +707,10 @@ ns.Events.Register("INSTANCE_ENCOUNTER_ENGAGE_UNIT", "auras_repoke_b", function(
         RepokeFrame(ns.frames["boss" .. i .. "target"])
     end
 end)
+-- 隊友遞補（partyN 換了一個人、框保持顯示）。「誰換了」由 Core/Events.lua 的
+-- RefreshPartyMembers 比 GUID 判斷，這裡只接它的通知 ⇒ 不另外掛 GROUP_ROSTER_UPDATE，
+-- 隊伍框沒啟用時這個回呼永遠不會被叫到。
+ns.RegisterCallback("PartyUnitChanged", "auras_repoke_p", RepokeFrame)
 
 -- 給同樣用 AuraContainer 的其他模組（Elements/DispelHighlight.lua）。
 -- 戰鬥閘與延後重播只有這一套，別在別處另寫一份 Hide/Show。

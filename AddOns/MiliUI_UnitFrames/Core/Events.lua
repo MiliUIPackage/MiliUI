@@ -276,6 +276,48 @@ local function UnitReg(event, token, token2)
     return f
 end
 
+------------------------------------------------------------
+-- 隊伍框（party1-4）換人
+--
+-- partyN 指到誰由名冊順序決定：有人離隊，後面的人整排往前遞補，框**保持顯示**
+-- 卻換了一個人 —— RegisterUnitWatch 不會 Hide/Show（token 一直存在），沒有
+-- OnShow 可以補畫，唯一的訊號是 GROUP_ROSTER_UPDATE。
+--
+-- ⚠ 不能每次 GROUP_ROSTER_UPDATE 都推 unitchanged：這個事件很吵（換職責、換拾取方式、
+--   隊友上下線都會來），而 unitchanged 是全量重畫（重載 3D 頭像、彈光環容器），
+--   無差別推就是每次都閃一下。只有 GUID 真的換了才推；隊長圖示／職責圖示這些
+--   「人沒換、狀態變了」的由上面那行 reaction 桶負責。
+-- GUID 讀不到（秘密值，理論上隊友不會，見 notes 的 wow-121-unit-api-secrets）就當作換人了：
+--   失敗方向朝「重畫」，不朝「停在上一個人」（同 Units.lua 的 UnitChanged）。
+-- 換人之後光環容器與驅散高亮也要重戳（Elements/Auras.lua 訂 PartyUnitChanged），
+-- 理由同目標框：動態 token 換人，容器不會自己重解析。
+--
+-- 隊伍框沒啟用時 ns.frames.partyN 全是 nil，這裡四次查表就結束，不讀任何 API。
+------------------------------------------------------------
+local PARTY_TOKENS = { "party1", "party2", "party3", "party4" }
+
+local function RefreshPartyMembers()
+    for i = 1, #PARTY_TOKENS do
+        local token = PARTY_TOKENS[i]
+        local uf = ns.frames[token]
+        if uf then
+            local guid
+            if UnitExists(token) then guid = UnitGUID(token) end     -- UnitExists 回明文布林
+            local changed
+            if ns.IsSecret(guid) or ns.IsSecret(uf.rosterGuid) then
+                changed = true
+            else
+                changed = guid ~= uf.rosterGuid
+            end
+            uf.rosterGuid = guid
+            if changed and guid ~= nil then
+                RefreshUnit(token, "unitchanged", nil, "roster")
+                if uf:IsVisible() then ns.Fire("PartyUnitChanged", uf) end
+            end
+        end
+    end
+end
+
 -- 非單位事件（沒有 unit 參數，或參數不是「這個框在看的單位」）走全域 frame。
 -- 這些都是低頻事件，留在全域沒有成本問題。
 local SPECIAL = {
@@ -301,6 +343,7 @@ local SPECIAL = {
     -- 是隊友），只刷玩家的話別人的隊長圖示會停在舊狀態，直到那個框因為別的原因重畫。
     GROUP_ROSTER_UPDATE = function()
         ns.RefreshAll("reaction")
+        RefreshPartyMembers()
     end,
     -- 隊長換人。GROUP_ROSTER_UPDATE **不涵蓋這個**——組成沒變、只是權杖換人時
     -- 只會發這一個事件。同樣走 reaction 桶（隊長圖示在裡面）

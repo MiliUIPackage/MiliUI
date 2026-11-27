@@ -364,7 +364,8 @@ local function QueueShowRefresh(uf)
 end
 
 ------------------------------------------------------------
--- 位置：CENTER 對 CENTER 偏移；boss1-5 依 growth/spacing（橫排是 hSpacing）疊排
+-- 位置：CENTER 對 CENTER 偏移；一份設定多個框（boss1-5、party1-4…）依 growth/spacing
+-- （橫排是 hSpacing）疊排，第幾格看 uf.stackIndex
 ------------------------------------------------------------
 -- 在指定的 effective scale 上對齊實體像素。
 -- ⚠ 不能用 ns.P.Scale：它一律拿 UIParent 的縮放去湊整數像素，框架自己 SetScale 之後
@@ -401,10 +402,10 @@ function ns.ApplyFramePosition(uf)
     -- 整框縮放：設定值是百分比（全域 × 個別，見 ns.FrameScale），w/h/元件座標全部維持
     -- 「未縮放」的語意，放大縮小交給 SetScale ⇒ 調縮放不會動到任何一個既有數字。
     local s = ns.FrameScale(fdb)
-    if uf.bossIndex and uf.bossIndex > 1 then
+    if uf.stackIndex and uf.stackIndex > 1 then
         -- 間距也跟著縮放：不跟的話放大後整疊首領框會互相重疊，
         -- 縮小後又散開一大片 —— 使用者要的是「整組一起變大」而不是「每格變大」。
-        local n = uf.bossIndex - 1
+        local n = uf.stackIndex - 1
         local growth = fdb.growth
         if growth == "RIGHT" or growth == "LEFT" then
             -- 橫排：間距是「格與格之間的空隙」，步距＝框寬＋空隙。不沿用直排的 spacing
@@ -467,7 +468,13 @@ function ns.ApplyFrameFade(uf)
     if uf.isPreview or not uf.db.frame.fadeOutOfRange or (uf.baseUnit or uf.unit) == "player" then
         ns.Metro.Unbind(uf, key)
     else
-        uf.rangeFn = uf.rangeFn or function() ns.Visibility.ApplyAlpha(uf) end
+        -- ⚠ Metro.Bind 跟的是 IsShown，被顯示條件閘框藏起來的框（IsShown 真、IsVisible 假）
+        --   照樣在輪詢。最明顯的是隊伍框進團隊：party1-4 仍然存在、unit watch 照顯示，
+        --   只是被「只在小隊」藏住 ⇒ 整場團隊四格白輪詢。藏著就不算，閘框重新顯示時
+        --   OnGateShown 會補套一次透明度（Core/Visibility.lua）。
+        uf.rangeFn = uf.rangeFn or function()
+            if uf:IsVisible() then ns.Visibility.ApplyAlpha(uf) end
+        end
         -- ⚠ 距離沒有事件可訂閱（WoW 不發「距離變了」），只能輪詢 ⇒ **間隔就是延遲**。
         -- 0.3 秒時肉眼看得出遮罩／淡出慢半拍（實測回報）。收到 0.15：
         -- 探針是 IsSpellInRange 這種便宜的 C 呼叫，而且只掛在「有開淡出且正在顯示」
@@ -593,7 +600,7 @@ function ns.UpdateTargetHighlight(uf)
     if not (th and uf.targetHLOn) then return end
     if uf.isPreview then
         -- 預覽：第一格當示意（假資料，沒有真的目標可問）
-        th:SetAlpha((uf.bossIndex or 1) == 1 and 1 or 0)
+        th:SetAlpha((uf.stackIndex or 1) == 1 and 1 or 0)
         return
     end
     local same = UnitIsUnit(uf.unit, "target")
@@ -872,10 +879,10 @@ local function InstallMenuClassifierFix()
         --   Spotlight 框可以被指到 target/focus 那幾個），沒辦法按插件切一半，所以
         --   Cell 在就整組讓給它，Cell 不在才由我們接。
         if _G.CellUnitPopupClassifierFix then return end
-        -- ⚠⚠ raidN / partyN 不是死碼，別清掉：**我們自己沒有隊伍／團隊框**（見
-        --   ns.UNIT_KEYS），這兩條是為了別人的團隊框（沒有 Cell 的安裝、或暴雪原生框）。
+        -- ⚠⚠ raidN / partyN 不是死碼，別清掉：**我們自己沒有團隊框**，隊伍框（party1-4）
+        --   預設也關著，這兩條是為了別人的團隊／隊伍框（沒有 Cell 的安裝、或暴雪原生框）。
         --   raidN 在 SECURE_ACTIONS.togglemenu 沒有早退出分支，跟 target 一樣會走完整條
-        --   UnitIsUnit 鏈而被誤判成寵物。
+        --   UnitIsUnit 鏈而被誤判成寵物。（我們自己的 partyN 在字串分類那段就早退出了。）
         -- bossNtarget 跟 targettarget 同一類（指向不固定）。bossN **本身**不在裡面：
         -- 它在字串分類那段就早退出了，而且首領也不會是玩家。
         if not (MENU_FIX_TOKENS[lu] or lu:match("^raid%d+$") or lu:match("^party%d+$")
@@ -918,8 +925,13 @@ function ns.SpawnUnitFrame(unit)
     uf.cache = { unit = unit }
     uf.elements = {}
     if ns.MULTI_UNIT_KEYS[unitKey] then
-        -- "boss3" 與 "boss3target" 都取得到 3
-        uf.bossIndex = tonumber(unit:match("boss(%d)"))
+        -- 排在第幾格（版面用）："boss3"、"boss3target"、"party3" 都取得到 3
+        uf.stackIndex = tonumber(unit:match("(%d)"))
+    end
+    -- 「第幾隻首領」只給 bossN 本身（頭像拿它對地城手冊的 displayID）。
+    -- bossNtarget 指的是首領在打的人、partyN 是隊友，都不能帶這個欄位
+    if unit:match("^boss%d$") then
+        uf.bossIndex = uf.stackIndex
     end
 
     uf:RegisterForClicks("AnyUp")

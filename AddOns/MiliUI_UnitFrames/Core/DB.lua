@@ -993,6 +993,113 @@ function DB.BuildDefaults()
             },
 
             ------------------------------------------------------------
+            -- 隊伍（party1-4 共用一份設定，同 boss；不含自己，團隊交給團隊框）
+            --
+            -- 外觀是目標框同一套語言的縮小版（使用者選定）：3D 頭像鋪滿整框當底、半透明
+            -- 職業色血條疊在上面、能量條往左下錯開露一截。數字照目標框的比例縮：
+            -- 目標框 200×50、能量條錯 8 ⇒ 這裡 168×36、錯 5。
+            --
+            -- 預設不啟用（使用者指定）。啟用之後才建框、才藏暴雪隊伍框（Core/HideBlizzard.lua），
+            -- 所以新鍵由 MergeDefaults 補就好，不必遷移：舊設定檔補進來的也是 enabled = false。
+            --
+            -- 顯示條件預設「只在小隊」：進團隊 party1-4 依然存在（unit watch 照樣顯示），
+            -- 要靠這層閘藏起來，團隊交給團隊框。
+            --
+            -- 位置：畫面左側、玩家框（-300, -225）的左上方，第一格中心 (-560, 150)，
+            -- 往下長、格距 50 ⇒ 第四格中心 y = 0，整組跟玩家框不重疊。
+            -- 格距 50：框高 36 ＋ 能量條往下露的 5 ＝ 41，留 9 不互壓。
+            party = {
+                enabled = false,
+                frame = frameDef{ x = -560, y = 150, w = 168, h = 36, growth = "DOWN", spacing = 50,
+                                  hSpacing = 10, fadeOutOfRange = true, visGroup = "party" },
+                elements = {
+                    -- 層級嚴格遞增（同目標框）：mp 條 0 / mp 框 1 / 血條背景 2 / 3D 頭像 3（去背）/ 血條前景 4
+                    -- （背景若跟 mp 框同層，mp 的黑框會浮上來透過半透明前景露出）
+                    portrait = { enabled = true, x = 0, y = 0, w = 168, h = 36, mode = "3d",
+                                 bg = { r = 0.165, g = 0.165, b = 0.165, a = 0 }, level = 3,
+                                 modelAlpha = 1, zoom = 1, rotation = 0,
+                                 modelOffsetX = 0, modelOffsetY = 0,
+                                 fallback2D = false },
+                    hpbar = { enabled = true, x = 0, y = 0, w = 168, h = 36, level = 4, bgLevel = 2, lossAlpha = 0.9,
+                              texts = {   -- 座標相對血條 TOPLEFT（血條在 0,0）：右側、垂直置中
+                                  textDef{ pattern = "[perchp]%", x = -2, y = 0, w = 168, h = 36, size = 13,
+                                           justifyH = "RIGHT", justifyV = "MIDDLE" },
+                              },
+                              colorMethod = "classreaction", bgColorMethod = "solid", bgColor = { r = 0.12, g = 0.12, b = 0.12, a = 1 },
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 0.5, bgAlpha = 1, border = true,
+                              showHealPrediction = true, showAbsorb = true,
+                              healPredictionAlpha = 0.35,
+                              healPredictionFollowBar = false, healPredictionColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbColor = { r = 1, g = 1, b = 1, a = 0.4 },
+                              absorbReverseFill = true,
+                              showOvershield = true, overshieldGlowReverse = false,
+                              absorbBarPosition = "none", absorbBarHeight = 4, absorbBarGap = 1,
+                              absorbBarColor = { r = 0.6, g = 0.85, b = 1, a = 1 },
+                              overshieldColor = { r = 1, g = 1, b = 1, a = 1 },
+                              showHealAbsorb = true, healAbsorbColor = { r = 1, g = 0.1, b = 0.1, a = 1 },
+                              showMaxHealthLoss = true, maxHealthLossColor = { r = 0.4, g = 0.05, b = 0.05, a = 1 } },
+                    -- 能量條：跟血條同尺寸、往左下錯開 5（目標框是 8），只露出左緣與下緣一截
+                    mpbar = { enabled = true, x = -5, y = -5, w = 168, h = 36, level = 0,
+                              texts = {},   -- 小框不放能量數字（空表＝玩家的選擇，MergeDefaults 不補）
+                              colorMethod = "power", bgColorMethod = "powerdark",
+                              barColor = { r = 0.8, g = 0.8, b = 0.8, a = 1 },
+                              barAlpha = 1, bgAlpha = 1, border = true },
+                    -- 框層文字：名字（左上，讓出左邊的職責圖示）、狀態（底部置中）。
+                    -- 不放等級與種族職業：隊友等級一樣、職業看血條顏色就知道
+                    texts = {
+                        textDef{ pattern = "[name]", x = 19, y = -3, w = 110, h = 16, size = 13 },
+                        -- 狀態（超出距離／離線／死亡／鬼魂…）：跟目標框同一條 key，九個語系早就有翻譯
+                        textDef{ pattern = L["[gray_if_oor:Out of Range ][gray_if_tapped:Tapped ][gray_if_offline:Offline ][gray_if_dead:Dead ][gray_if_ghost:Ghost ]"],
+                                 x = 0, y = 2, w = 168, h = 36, size = 11,
+                                 justifyH = "CENTER", justifyV = "BOTTOM", level = 10 },
+                    },
+                    -- 施法條預設關。打開的話跟目標框一樣蓋在血條／頭像那塊（填充半透明＋前緣亮點），
+                    -- 不往框外長 —— 往下長會壓到下一格（格距只有 50）。
+                    -- 隊友是友方：不畫「不可打斷」灰、不換斷法就緒色、不標重要法術（那些是給敵方看的）
+                    castbar = {
+                        enabled = false, x = 0, y = 0, w = 168, h = 36, level = 12,
+                        bg = black(0.8), timeFormat = "elapsedTotal",
+                        showInterruptState = false, showCompleteFlash = true, fadeTime = 0.5, interruptHold = 0.4,
+                        showSpark = true, barAlpha = 0.3,
+                        showInterruptReady = false, showImportantCast = false, classColorBar = false,
+                        showCastTarget = false,
+                        castTarget = { x = 0, y = -2, w = 164, h = 36, size = 10, flags = "OUTLINE",
+                                       justifyH = "RIGHT", justifyV = "MIDDLE",
+                                       color = { r = 1, g = 0.82, b = 0.4, a = 1 } },
+                        showShield = false, shieldStyle = "blizzard", shieldScale = 1.2, shieldOffsetX = 0, shieldOffsetY = 0,
+                        spell = { x = 24, y = -2, w = 140, h = 36, size = 11, flags = "OUTLINE",
+                                  justifyH = "LEFT", justifyV = "MIDDLE", color = white(1) },
+                        time  = { x = -2, y = -24, w = 168, h = 12, size = 10, flags = "OUTLINE",
+                                  justifyH = "RIGHT", justifyV = "MIDDLE", color = white(1) },
+                        icon  = { x = 4, y = -10, w = 16, h = 16 },
+                    },
+                    -- 光環：框右側外面一排。x = 171（框寬 168 ＋ 3），y = -9 讓 18 高的圖示對齊框的垂直中線。
+                    -- 減益 bossrole（isBossOrRoleAura）：首領技能與職責相關的減益，跟首領的目標框同一套
+                    -- 理由——小框放不下「全部」，要的是「這個隊友現在中了什麼該注意的」。
+                    -- 增益預設關；打開的話接在減益右邊（4 × 19 ＝ 76，再空 4）。
+                    buffs  = { enabled = false, x = 251, y = -9, w = 18, h = 18,
+                               maxCount = 4, perRow = 4, growth = "LRTB", spacing = 1,
+                               showStack = true, stackSize = 10,
+                               stackAnchor = "TOP", stackX = 0, stackY = 4,
+                               durationText = false, durationThreshold = 60, filterMode = "bigdef" },
+                    debuffs = { enabled = true, x = 171, y = -9, w = 18, h = 18,
+                                maxCount = 4, perRow = 4, growth = "LRTB", spacing = 1,
+                                onlyMine = false, filterMode = "bossrole",
+                                showStack = true, stackSize = 10,
+                                stackAnchor = "TOP", stackX = 0, stackY = 4,
+                                durationText = true, durationThreshold = 60,
+                                blacklist = satedBlacklist() },
+                    -- 小圖示比照目標框縮小：團標在框上緣正中、隊長在左上角外緣。
+                    -- 職責圖示（坦／補／輸出）只有隊伍框有這個鍵，在名字左邊（名字的 x 已經讓出來）
+                    icons = { enabled = true,
+                              raidtarget = { enabled = true, x = 76, y = 8,  w = 16, h = 16, level = ICON_LEVEL },
+                              leader     = { enabled = true, x = 5,  y = 8,  w = 10, h = 10, level = ICON_LEVEL },
+                              role       = { enabled = true, x = 3,  y = -4, w = 14, h = 14, level = ICON_LEVEL } },
+                },
+            },
+
+            ------------------------------------------------------------
             boss = {   -- boss1-5 共用；boss1 在 frame.x/y，其餘依 growth/spacing 排
                 -- 使用者實地調好的版面（2026-08-16 從 SavedVariables 原樣收進來，含位置）。
                 -- 我們自己畫首領框、暴雪的已隱藏，所以位置與暴雪首領框無關。

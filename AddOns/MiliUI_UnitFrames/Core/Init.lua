@@ -20,25 +20,30 @@ ns.DB_VERSION  = 22          -- schemaVersion，遷移鏈用（DB.Migrate 加條
 ns.UNITS = {
     "player", "target", "targettarget", "targettargettarget",
     "focus", "focustarget", "pet", "pettarget",
+    "party1", "party2", "party3", "party4",
     "boss1", "boss2", "boss3", "boss4", "boss5",
     "boss1target", "boss2target", "boss3target", "boss4target", "boss5target",
 }
 
--- unit token → DB key（boss1-5 共用一份設定，boss1-5target 也是）
+-- unit token → DB key（boss1-5 共用一份設定，boss1-5target、party1-4 也是）
 ns.UNIT_KEYS = {
     player = "player", target = "target", targettarget = "targettarget",
     targettargettarget = "targettargettarget",
     focus = "focus", focustarget = "focustarget",
     pet = "pet", pettarget = "pettarget",
+    party1 = "party", party2 = "party", party3 = "party", party4 = "party",
     boss1 = "boss", boss2 = "boss", boss3 = "boss", boss4 = "boss", boss5 = "boss",
     boss1target = "bosstarget", boss2target = "bosstarget", boss3target = "bosstarget",
     boss4target = "bosstarget", boss5target = "bosstarget",
 }
 
--- 一份設定對應多個框的單位（框自己帶 bossIndex，第 2 格起依 growth/spacing 排）。
--- 設定面板的「多個首領的排列」那一節、預覽的三顆孿生、SpawnUnitFrame 的 bossIndex
+-- 一份設定對應多個框的單位（框自己帶 stackIndex＝token 裡的數字，第 2 格起依 growth/spacing 排）。
+-- 設定面板的「多個首領的排列」那一節、預覽的多顆孿生、SpawnUnitFrame 的 stackIndex
 -- 都問這張表 —— 以前是三處各寫一次 `unitKey == "boss"`，加第二個就得三處都記得改。
-ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true }
+-- ⚠ 版面用途（排位／預覽第一格／編輯模式只有第一格可拖）一律讀 stackIndex。
+--   uf.bossIndex 只有 bossN 本身才有，語意是「這是第幾隻首領」（頭像拿它對地城手冊的
+--   displayID，見 Elements/Portrait.lua）——隊友框絕不能有，不然打首領時隊友頭像會換成首領。
+ns.MULTI_UNIT_KEYS = { boss = true, bosstarget = true, party = true }
 
 -- 全域框架名（其他插件靠這些名字整合，例如 MiliUI Focuser）
 ns.GLOBAL_NAMES = {
@@ -46,6 +51,8 @@ ns.GLOBAL_NAMES = {
     targettarget = "MiliUIUF_TargetTarget", targettargettarget = "MiliUIUF_TargetTargetTarget",
     focus = "MiliUIUF_Focus", focustarget = "MiliUIUF_FocusTarget",
     pet = "MiliUIUF_Pet", pettarget = "MiliUIUF_PetTarget",
+    party1 = "MiliUIUF_Party1", party2 = "MiliUIUF_Party2",
+    party3 = "MiliUIUF_Party3", party4 = "MiliUIUF_Party4",
     boss1 = "MiliUIUF_Boss1", boss2 = "MiliUIUF_Boss2", boss3 = "MiliUIUF_Boss3",
     boss4 = "MiliUIUF_Boss4", boss5 = "MiliUIUF_Boss5",
     boss1target = "MiliUIUF_Boss1Target", boss2target = "MiliUIUF_Boss2Target",
@@ -58,7 +65,7 @@ ns.UNIT_LABELS = {
     player = L["Player"], target = L["Target"], targettarget = L["Target of Target"],
     targettargettarget = L["Target of Target of Target"],
     focus = L["Focus"], focustarget = L["Focus Target"],
-    pet = L["Pet"], pettarget = L["Pet Target"],
+    pet = L["Pet"], pettarget = L["Pet Target"], party = L["Party"],
     boss = L["Boss"], bosstarget = L["Boss Target"], totem = L["Summons"],
 }
 

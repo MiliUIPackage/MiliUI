@@ -86,10 +86,11 @@ local function CurrentBlacklist()
     return edb[ctxList]
 end
 
--- 這個單位在遊戲裡的 token（設定用的 key 跟 token 只有首領不一樣）
+-- 這個單位在遊戲裡的 token（設定用的 key 跟 token 只有一份設定多個框的不一樣：首領、隊伍）
 local function UnitToken(unitKey)
     if unitKey == "boss" then return "boss1" end
     if unitKey == "bosstarget" then return "boss1target" end
+    if unitKey == "party" then return "party1" end
     return unitKey
 end
 

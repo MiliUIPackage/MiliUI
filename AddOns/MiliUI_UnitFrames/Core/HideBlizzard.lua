@@ -204,6 +204,39 @@ function ns.HideBlizzardFrames()
         end
     end
 
+    -- 隊伍框：做法照首領框那一套（容器 reparent、容器排出來的成員只解事件）。
+    --   PartyFrame     Edit Mode 的系統框，也是整組的容器 ⇒ HandleFrame reparent ＋ SetParent 掛勾補掛
+    --   成員框         PartyFrame 的 PartyMemberFramePool 排出來的（同 BossNTargetFrame）⇒ 只解事件。
+    --                  它們的條不在 HandleFrame 認得的欄位上（HealthBarContainer.HealthBar），另外解
+    --   CompactPartyFrame  「團隊風格隊伍框」那一份，建出來時就是 PartyFrame 的子物件（暴雪
+    --                  CompactPartyFrame_Generate），PartyFrame 藏了它就跟著藏 ⇒ 只解它自己的事件，
+    --                  不另外 reparent（它的位置由 PartyFrame 的版面算，搬走沒有好處）。
+    --                  這個設定沒開過的話根本不會建出來，所以要判 nil。
+    -- ⚠ 對暴雪框只做 reparent／解事件，不寫任何欄位、不 SetScript（.claude/notes 的
+    --   wow-121-addon-code-in-secure-stack 入口 5）
+    -- ⚠ 成員框是池化的：PartyFrame 的 OnShow 會 ReleaseAll 再 Acquire、Setup 重新註冊事件。
+    --   PartyFrame 已經掛在隱藏的父層底下，正常不會再觸發 OnShow；真的被叫回來也只是
+    --   多收事件（框照樣看不見），不是功能問題。
+    local partyDB = ns.GetUnitDB("party")
+    if partyDB and partyDB.enabled and Spawned("party1") and PartyFrame then
+        HandleFrame(PartyFrame)
+        local pool = PartyFrame.PartyMemberFramePool
+        if pool and pool.EnumerateActive then
+            for member in pool:EnumerateActive() do
+                Unreg(member)
+                local hbc = member.HealthBarContainer
+                Unreg(hbc and hbc.HealthBar)
+                Unreg(hbc and hbc.TempMaxHealthLoss)
+                Unreg(member.ManaBar)
+                Unreg(member.PowerBarAlt)
+                local pet = member.PetFrame
+                Unreg(pet)
+                Unreg(pet and pet.HealthBar)
+            end
+        end
+        Unreg(CompactPartyFrame)
+    end
+
     -- 施法條：閘看**元件實際建出來沒有**（uf.elements.castbar），不是只看設定值 ——
     -- 元件 build 失敗同樣會被 BuildElements 的 xpcall 吃掉
     local playerUF = ns.frames.player
