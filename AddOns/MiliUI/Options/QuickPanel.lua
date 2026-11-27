@@ -6,8 +6,9 @@
 -- （左：狀態字，右：滑動開關，整列可點）切換插件的啟用狀態。取代原本「滑過按鈕往上展開一整排插件名」的選單。
 --
 -- 資料全部是被動的，這裡沒有任何清單要維護：
---   · 收錄＝名冊（Options/Roster.lua）裡「有設定入口、已安裝」的條目（停用中的也列，
---     整張壓暗、點了不開設定——不列的話關掉之後就沒地方開回來）
+--   · 收錄＝全部已安裝的插件，跟插件總覽同一份（Info.CollectVisible：名冊條目＋沒列名冊的
+--     自動條目）。停用中的也列，整張壓暗——不列的話關掉之後就沒地方開回來。
+--     沒有設定入口的（函式庫、純功能型）一樣有卡片，只是點了沒反應、滑過不反白，只能開關。
 --   · 分組＝各插件 TOC 的 Category（-語系），跟插件總覽同一支函式
 --   · 縮圖＝Media\Shots\<key>.png，沒有就露出底下的佔位層（插件圖示放大）
 --   · 標題／簡介＝TOC 的 Title／Notes（名冊的 desc 優先）
@@ -15,7 +16,7 @@
 --
 -- 開關是批次的，而且跟隔壁「插件總覽」共用同一份待套用清單（Info.SetDesired／GetDesired）：
 -- 按卡片底部那一列只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
--- 沒有設定入口的插件、沒列名冊的插件、除錯模式、CPU 用量仍然只在插件總覽。
+-- 除錯模式、完整說明、CPU 用量仍然只在插件總覽。
 -- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
 local _, ns = ...
@@ -112,27 +113,25 @@ end
 ------------------------------------------------------------
 -- 名冊 → 分組
 ------------------------------------------------------------
+-- 這張卡片點了能不能開設定。locked 的（套組本體）設定就在這扇視窗的其他分頁，不算。
 local function HasEntry(entry)
     return (entry.menuKey or entry.slash or entry.category or entry.settings) and not entry.locked
 end
 
 local function Rebuild()
     wipe(groups)
-    local installed = Info.GetInstalled()
     local all = { key = ALL, label = "全部", entries = {} }
     local byCat, order = {}, {}
 
-    for _, e in ipairs(ns.AddonRoster.entries) do
-        if HasEntry(e) and installed[e.folders[1]] then
-            local cat = Info.EntryCategory(e)
-            local g = byCat[cat]
-            if not g then
-                g = { key = cat, label = cat, entries = {} }
-                byCat[cat] = g
-                order[#order + 1] = cat
-            end
-            g.entries[#g.entries + 1] = e
+    for _, e in ipairs(Info.CollectVisible()) do
+        local cat = Info.EntryCategory(e)
+        local g = byCat[cat]
+        if not g then
+            g = { key = cat, label = cat, entries = {} }
+            byCat[cat] = g
+            order[#order + 1] = cat
         end
+        g.entries[#g.entries + 1] = e
     end
 
     -- 跟插件總覽同一套排序：分組照名稱、組內照剝掉色碼的標題。
@@ -164,7 +163,7 @@ local UpdateApplyBar
 -- card.on＝畫面上的開關狀態（有待套用的變更就看變更後的）；card.changed＝有待套用的變更。
 -- 停用的卡片點了不開設定，所以滑過也不反白；有變更的卡片邊框換橘色（跟「待套用」同色）。
 local function PaintCard(card, hover)
-    hover = hover and card.on
+    hover = hover and card.on and card.canOpen
     card:SetBackdropColor(unpack(hover and CARD_BG_HOVER or CARD_BG))
     if card.changed then
         card:SetBackdropBorderColor(1, 0.6, 0, 1)
@@ -190,6 +189,7 @@ local function PaintState(card)
     -- 不能寫 want ~= nil and want or on：want 是 false 時會 fall through
     if want ~= nil then on = want end
     card.on, card.changed = on, (want ~= nil)
+    card.canOpen = HasEntry(entry) and true or false
 
     local a = on and 1 or OFF_ALPHA
     card.shot:SetDesaturated(not on)
@@ -202,7 +202,10 @@ local function PaintState(card)
     card.desc:SetAlpha(a)
 
     local foot = card.foot
-    if want ~= nil then
+    if entry.locked then
+        foot.text:SetText("無法停用")
+        foot.text:SetTextColor(0.5, 0.5, 0.5)
+    elseif want ~= nil then
         foot.text:SetText(on and "待套用：啟用" or "待套用：停用")
         foot.text:SetTextColor(1, 0.6, 0)
     elseif on then
@@ -227,6 +230,7 @@ local function PaintState(card)
         sw.thumb:SetPoint("TOPLEFT", sw.inset, -sw.inset)
         sw.thumb:SetPoint("BOTTOMLEFT", sw.inset, sw.inset)
     end
+    sw:SetAlpha(entry.locked and 0.4 or 1)
     PaintCard(card, card:IsMouseOver() and not foot:IsMouseOver())
 end
 
@@ -337,7 +341,7 @@ local function CreateCard(parent)
     card:SetScript("OnClick", function(self)
         local entry = self.entry
         -- 停用的（含「待套用：停用」「待套用：啟用」還沒重載的）不開設定
-        if not entry or not self.on or not Info.EntryEnabled(entry) then return end
+        if not entry or not self.canOpen or not self.on or not Info.EntryEnabled(entry) then return end
         if InCombatLockdown() then
             ns.Print("戰鬥中無法開啟。")
             return
@@ -486,7 +490,7 @@ local function Init()
     hint:SetFontObject(W.fontSmall)
     hint:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 7)
     hint:SetJustifyH("RIGHT")
-    hint:SetText("|cff888888點卡片開啟該插件的設定；卡片底部的開關切換啟用，套用並重載後生效|r")
+    hint:SetText("|cff888888點卡片開啟該插件的設定（滑過會亮的才有）；卡片底部的開關切換啟用，套用並重載後生效|r")
 
     tabList = W.CreateRowList(tab, TAB_W, 1, TAB_H, BuildTab)
     tabList:SetPoint("TOPLEFT", TAB_X, TOP_Y)
