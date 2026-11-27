@@ -2,8 +2,8 @@
 -- 「快速設定」分頁：主設定視窗的第一頁（預設頁），ESC 選單「米利UI設定」按鈕左鍵直達
 --
 -- 左：分組標籤（第一顆「全部」），右：三欄卡片（縮圖在上、標題＋兩行簡介在下），
--- 點卡片直接開那支插件的設定（主設定視窗不關，退到後面讓路），標題列右邊那顆
--- 「開／關」切換插件的啟用狀態。取代原本「滑過按鈕往上展開一整排插件名」的選單。
+-- 點卡片直接開那支插件的設定（主設定視窗不關，退到後面讓路），卡片最底下那一列
+-- （左：狀態字，右：滑動開關，整列可點）切換插件的啟用狀態。取代原本「滑過按鈕往上展開一整排插件名」的選單。
 --
 -- 資料全部是被動的，這裡沒有任何清單要維護：
 --   · 收錄＝名冊（Options/Roster.lua）裡「有設定入口、已安裝」的條目（停用中的也列，
@@ -14,7 +14,7 @@
 -- 開設定的路由也是插件總覽那一套（ns.AddonInfo.OpenSettings）。
 --
 -- 開關是批次的，而且跟隔壁「插件總覽」共用同一份待套用清單（Info.SetDesired／GetDesired）：
--- 按「開／關」只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
+-- 按卡片底部那一列只是記下來，底部浮出「N 項變更待套用」列，按「套用並重載介面」才一次生效。
 -- 沒有設定入口的插件、沒列名冊的插件、除錯模式、CPU 用量仍然只在插件總覽。
 -- 戰鬥中由主視窗的戰鬥遮罩整頁蓋住（Options/Panel.lua），這裡不用自己擋。
 ------------------------------------------------------------
@@ -34,7 +34,9 @@ local GAP        = 8
 local SHOT_H     = CARD_W / 2   -- 擷圖 2:1（檔案 840x420）
 local TEXT_PAD   = 8
 local DESC_LINES = 2
-local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8
+local FOOT_H     = 22           -- 卡片底部的開關列
+local SW_W, SW_H = 28, 14       -- 滑動開關（直角：外框＋一塊會左右移的滑塊）
+local CARD_H     = SHOT_H + 6 + 16 + 4 + 28 + 8 + FOOT_H
 local SHOTS_PATH = "Interface\\AddOns\\MiliUI\\Media\\Shots\\"
 local BAR_H      = 34           -- 底部套用列（有待套用變更才出現），跟插件總覽同高
 local ALL        = "\001all"    -- 「全部」標籤的鍵；不會跟任何 TOC 分類撞名
@@ -173,7 +175,14 @@ local function PaintCard(card, hover)
     end
 end
 
--- 開關狀態 → 卡片外觀。開關鈕本身表達狀態：開＝primary、關＝normal。
+-- 開關列的底：平時跟卡片同色（只靠上緣那條線分開），滑過亮一階
+local function PaintFoot(foot, hover)
+    foot.bg:SetColorTexture(1, 1, 1, hover and 0.07 or 0)
+end
+
+-- 開關狀態 → 卡片外觀。
+-- 開關列左邊的字：已啟用（白）／已停用（灰）；有待套用的變更就換成橘字講「套用後會變怎樣」。
+-- 滑動開關：開＝職業色框與滑塊、滑塊靠右；關＝黑框灰滑塊、靠左。
 local function PaintState(card)
     local entry = card.entry
     local on = Info.EntryEnabled(entry)
@@ -192,9 +201,33 @@ local function PaintState(card)
     card.title:SetAlpha(a)
     card.desc:SetAlpha(a)
 
-    card.toggle:SetText(on and "開" or "關")
-    W.SetButtonVariant(card.toggle, on and "primary" or "normal")
-    PaintCard(card, card:IsMouseOver())
+    local foot = card.foot
+    if want ~= nil then
+        foot.text:SetText(on and "待套用：啟用" or "待套用：停用")
+        foot.text:SetTextColor(1, 0.6, 0)
+    elseif on then
+        foot.text:SetText("已啟用")
+        foot.text:SetTextColor(0.9, 0.9, 0.9)
+    else
+        foot.text:SetText("已停用")
+        foot.text:SetTextColor(0.5, 0.5, 0.5)
+    end
+    local sw, r, g, b = foot.switch, W.Accent()
+    sw.thumb:ClearAllPoints()
+    if on then
+        sw:SetBackdropColor(r * 0.3, g * 0.3, b * 0.3, 1)
+        sw:SetBackdropBorderColor(r * 0.6, g * 0.6, b * 0.6, 1)
+        sw.thumb:SetColorTexture(r, g, b, 1)
+        sw.thumb:SetPoint("TOPRIGHT", -sw.inset, -sw.inset)
+        sw.thumb:SetPoint("BOTTOMRIGHT", -sw.inset, sw.inset)
+    else
+        sw:SetBackdropColor(0.17, 0.17, 0.17, 1)
+        sw:SetBackdropBorderColor(0, 0, 0, 1)
+        sw.thumb:SetColorTexture(0.45, 0.45, 0.45, 1)
+        sw.thumb:SetPoint("TOPLEFT", sw.inset, -sw.inset)
+        sw.thumb:SetPoint("BOTTOMLEFT", sw.inset, sw.inset)
+    end
+    PaintCard(card, card:IsMouseOver() and not foot:IsMouseOver())
 end
 
 local function CreateCard(parent)
@@ -229,26 +262,60 @@ local function CreateCard(parent)
     card.icon:SetPoint("TOPLEFT", ph, "BOTTOMLEFT", TEXT_PAD - 1, -7)
     card.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
-    -- 開關鈕：標題列右邊，跟圖示同一條中線（圖示上緣 -7、高 14；鈕高 18 ⇒ 上緣 -5）
+    -- 開關列：卡片最底下一整列都是點擊區（左：狀態字，右：滑動開關），跟上面「點了開設定」
+    -- 的區域分開，不會誤點。上緣一條 1px 線。
     -- ⚠ 卡片會回收：一律讀 card.entry，不把資料抓進 closure
-    card.toggle = W.CreateButton(card, "開", "primary", 30, 18)
-    card.toggle:SetPoint("TOPRIGHT", ph, "BOTTOMRIGHT", -(TEXT_PAD - 2), -5)
-    card.toggle:SetScript("OnClick", function()
+    local foot = CreateFrame("Button", nil, card)
+    foot:SetPoint("BOTTOMLEFT", bpx, bpx)
+    foot:SetPoint("BOTTOMRIGHT", -bpx, bpx)
+    foot:SetHeight(P.Scale(FOOT_H))
+    card.foot = foot
+
+    foot.bg = foot:CreateTexture(nil, "BACKGROUND")
+    foot.bg:SetAllPoints()
+
+    local line = P.NoSnap(foot:CreateTexture(nil, "BORDER"))
+    line:SetColorTexture(0, 0, 0, 1)
+    line:SetPoint("TOPLEFT")
+    line:SetPoint("TOPRIGHT")
+    line:SetHeight(bpx)
+
+    foot.text = foot:CreateFontString(nil, "OVERLAY")
+    foot.text:SetFontObject(W.fontSmall)
+    foot.text:SetPoint("LEFT", TEXT_PAD - 1, 0)
+
+    local sw = CreateFrame("Frame", nil, foot, "BackdropTemplate")
+    P.Size(sw, SW_W, SW_H)
+    sw:SetPoint("RIGHT", -(TEXT_PAD - 1), 0)
+    W.Stylize(sw, { 0.17, 0.17, 0.17, 1 })
+    sw.inset = P.Pixel(2, sw)           -- 1px 框＋1px 空隙
+    sw.thumb = P.NoSnap(sw:CreateTexture(nil, "ARTWORK"))
+    sw.thumb:SetWidth(P.Scale(SW_W / 2 - 2))
+    foot.switch = sw
+
+    foot:SetScript("OnClick", function()
         local entry = card.entry
         if not entry then return end
         Info.SetDesired(entry, not card.on)
         PaintState(card)
         UpdateApplyBar()
     end)
-    -- 子框會搶走滑鼠焦點：滑進開關鈕的瞬間卡片收到 OnLeave，滑出來時卡片不一定收到 OnEnter。
-    -- 所以卡片的反白一律用 IsMouseOver（幾何判定，游標在鈕上也算在卡片上）重畫。
-    card.toggle:HookScript("OnEnter", function() PaintCard(card, card:IsMouseOver()) end)
-    card.toggle:HookScript("OnLeave", function() PaintCard(card, card:IsMouseOver()) end)
+    -- 子框會搶走滑鼠焦點：滑進開關列的瞬間卡片收到 OnLeave，滑出來時卡片不一定收到 OnEnter。
+    -- 所以卡片的反白一律用 IsMouseOver（幾何判定）重畫；游標在開關列上時卡片本體不反白——
+    -- 那時候點下去是切換、不是開設定。
+    foot:SetScript("OnEnter", function(self)
+        PaintFoot(self, true)
+        PaintCard(card, false)
+    end)
+    foot:SetScript("OnLeave", function(self)
+        PaintFoot(self, false)
+        PaintCard(card, card:IsMouseOver())
+    end)
 
     card.title = card:CreateFontString(nil, "OVERLAY")
     card.title:SetFontObject(W.fontNormal)
     card.title:SetPoint("LEFT", card.icon, "RIGHT", 5, 0)
-    card.title:SetPoint("RIGHT", card.toggle, "LEFT", -6, 0)
+    card.title:SetPoint("RIGHT", card, "RIGHT", -TEXT_PAD, 0)
     card.title:SetJustifyH("LEFT")
     card.title:SetWordWrap(false)
 
@@ -264,7 +331,9 @@ local function CreateCard(parent)
     card.desc:SetMaxLines(DESC_LINES)
 
     card:SetScript("OnEnter", function(self) PaintCard(self, true) end)
-    card:SetScript("OnLeave", function(self) PaintCard(self, self:IsMouseOver()) end)
+    card:SetScript("OnLeave", function(self)
+        PaintCard(self, self:IsMouseOver() and not self.foot:IsMouseOver())
+    end)
     card:SetScript("OnClick", function(self)
         local entry = self.entry
         -- 停用的（含「待套用：停用」「待套用：啟用」還沒重載的）不開設定
@@ -417,7 +486,7 @@ local function Init()
     hint:SetFontObject(W.fontSmall)
     hint:SetPoint("BOTTOMRIGHT", title, "BOTTOMRIGHT", 0, 7)
     hint:SetJustifyH("RIGHT")
-    hint:SetText("|cff888888點卡片開啟該插件的設定；卡片上的「開／關」切換啟用，套用並重載後生效|r")
+    hint:SetText("|cff888888點卡片開啟該插件的設定；卡片底部的開關切換啟用，套用並重載後生效|r")
 
     tabList = W.CreateRowList(tab, TAB_W, 1, TAB_H, BuildTab)
     tabList:SetPoint("TOPLEFT", TAB_X, TOP_Y)
