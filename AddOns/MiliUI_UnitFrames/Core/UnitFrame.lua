@@ -705,6 +705,12 @@ function ns.BuildElements(uf)
                 if def.disable then xpcall(def.disable, ns.ReportError, uf) end
                 uf.elements[def.name]:Hide()
             end
+        elseif uf.elements[def.name] then
+            -- 設定表裡整個沒有這個元件、框上卻已經建過：設定表被整張換掉了（套用／復原樣式，
+            -- Core/Styles.lua —— 專注目標的頭像卡借了一個頭像元件，換回經典時那一欄消失）。
+            -- 跟停用同一條路收掉；Refresh 的派發看不到 edb 也不會再更新它
+            if def.disable then xpcall(def.disable, ns.ReportError, uf) end
+            uf.elements[def.name]:Hide()
         end
     end
 end

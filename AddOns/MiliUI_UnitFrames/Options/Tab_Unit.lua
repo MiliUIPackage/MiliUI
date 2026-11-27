@@ -165,6 +165,14 @@ local function FrameSpecs(unitKey)
     if unitKey == "party" then
         tinsert(list, 1, { type = "text", label = L["Off by default. Shows the other four members of a 5-player party; hidden in raids. Turning it on hides the default party frames."] })
     end
+    -- 樣式快速選擇（Options/StylePicker.lua）：最上面（隊伍那行說明之後），只有支援的單位有
+    local picker = ns.Options.StylePicker
+    if picker and ns.Styles and ns.Styles.Supports(unitKey) then
+        local at = (unitKey == "party") and 2 or 1
+        for i, spec in ipairs(picker.Specs(unitKey)) do
+            tinsert(list, at + i - 1, spec)
+        end
+    end
     if ns.MULTI_UNIT_KEYS[unitKey] then
         -- 同一節（方向／間距）首領與隊伍共用，只有標題換
         tinsert(list, { type = "header", label = unitKey == "party" and L["Party member layout"] or L["Multiple boss layout"] })
@@ -270,6 +278,8 @@ local function FrameSpecs(unitKey)
                               :format(ns.UNIT_LABELS[unitKey] or unitKey),
                     onClick = function()
                         ns.DB.ResetUnit(unitKey)
+                        -- 試穿中按恢復預設：孿生要回到（剛恢復的）存檔，不是繼續穿著樣式
+                        ns.Preview.ClearOverride(unitKey, true)
                         ns.ApplySettings(unitKey)
                     end })
     tinsert(list, { type = "text", label = L["Resets only this unit (position, elements, text). Other units and global styling are untouched."] })
@@ -660,6 +670,8 @@ local function PortraitSpecs()
         { type = "text", label = L["Enemies inside 12.1 instances have restricted identity and their 3D model can't be fetched (in practice it doesn't error, it just returns nothing). By default nothing is drawn in that case; turn this on to draw the 2D portrait instead. The client resolves 2D portraits itself, so even trash works. It's the same one Blizzard's own frames use."] },
         { type = "color", sub = "portrait", key = "bg", label = L["Backdrop color"] },
         { type = "text", label = L["Drop the background opacity to 0 for no backdrop, leaving the 3D model floating on screen. That's the boss frame default."] },
+        -- 頭像自己的 1px 邊框（Elements/Portrait.lua，只有 true 才畫）：頭像卡樣式會打開它
+        { type = "toggle", sub = "portrait", key = "border", label = L["Show border"] },
         { type = "slider", sub = "portrait", key = "modelAlpha", label = L["Model opacity"], min = 0, max = 1, step = 0.05 },
         { type = "text", label = L["Fades the 3D model itself, and it is what lets the health bar be bright. Without it the only ways to keep the model from shouting are a translucent bar fill and heavy missing-health darkening — both of which cost you bar color. Turn this down instead, then raise the fill opacity and lower the darkening."] },
         { type = "slider", sub = "portrait", key = "zoom", label = L["3D zoom"], min = 0, max = 1, step = 0.05 },
@@ -1001,9 +1013,18 @@ local function BuildPanel(unitKey, elementKey)
     -- textCount：文字表單的**結構**是 build 當下依條目數生的，記下來才比對得出
     -- 「新增／刪除／恢復預設之後條目數變了」（見底部的 SettingsApplied）。
     -- 每個面板只記自己的清單：框層文字面板記 texts、血條面板記 hpbar.texts、能量條記 mpbar.texts
+    -- 框架表單的樣式那一節依「單位有沒有啟用」多一行說明（停用時試穿沒有畫面），
+    -- 記下建表當下的狀態，啟用開關一動就重建（見底部的 SettingsApplied）。
+    -- 只有有樣式那一節的單位要記，其他單位的啟用開關維持原本「不重建」的行為。
+    -- ⚠ 不寫成 cond and (x and true or false) or nil：停用時那個 false 會被 or 吃成 nil
+    local enabledAtBuild
+    if elementKey == "frame" and ns.Styles and ns.Styles.Supports(unitKey) then
+        enabledAtBuild = udb.enabled and true or false
+    end
     return { frame = content, refreshers = refreshers, height = height + 24,
              rows = rows,
-             textCount = TEXT_PANEL_LISTS[elementKey] and TextCountOf(unitKey, elementKey) or nil }
+             textCount = TEXT_PANEL_LISTS[elementKey] and TextCountOf(unitKey, elementKey) or nil,
+             enabledAtBuild = enabledAtBuild }
 end
 
 ------------------------------------------------------------
@@ -1101,6 +1122,9 @@ local function RefreshChips(unitKey)
 end
 
 local function SelectUnit(unitKey)
+    -- 換單位＝放掉試穿（樣式卡只屬於那一個單位的表單；切走之後孿生還穿著的話，
+    -- 看起來就像那個單位的設定被改了）
+    if unitKey ~= currentUnit then ns.Preview.ClearOverrides() end
     currentUnit = unitKey
     RefreshChips(unitKey)
     ShowPanel(unitKey, currentElement)
@@ -1133,6 +1157,8 @@ function ns.Options.FocusUnitElement(unitKey, elementKey)
     if elementKey and ElementVisible(udb.elements, elementKey, unitKey) then
         currentElement = elementKey
     end
+    -- 點別的單位的孿生＝換單位，同 SelectUnit 放掉試穿（之後的 SelectUnit 看到的已經是同一個單位）
+    if unitKey ~= currentUnit then ns.Preview.ClearOverrides() end
     currentUnit = unitKey
 
     -- 面板可能停在別的分頁；帶 tabId 就不會被當成「再按一次＝關閉」
@@ -1255,6 +1281,12 @@ ns.RegisterCallback("SettingsApplied", "unitTabPanels", function(unitKey)
         local p = panels[unitKey .. "/" .. listName]
         if p and p.textCount ~= TextCountOf(unitKey, listName) then changed = true end
     end
+    -- 框架表單：啟用狀態跟建表時不同（樣式那一節的「停用中」說明要出現／消失）
+    local fp = panels[unitKey .. "/frame"]
+    local udb = ns.GetUnitDB(unitKey)
+    if fp and fp.enabledAtBuild ~= nil and udb and fp.enabledAtBuild ~= (udb.enabled and true or false) then
+        changed = true
+    end
     if not changed then return end
     InvalidatePanels(unitKey)
     -- 現在顯示的那份可能剛被丟掉 → 立刻重建，不然分頁會空著等使用者亂點。
@@ -1274,6 +1306,7 @@ ns.RegisterCallback("ShowOptionsTab", "unitTab", function(id)
     if id ~= "units" then
         if tab then tab:Hide() end
         if ns.TotemsSetPreview then ns.TotemsSetPreview(false) end   -- 停在召喚物時切走分頁
+        ns.Preview.ClearOverrides()      -- 切分頁＝放掉試穿（樣式卡在這一頁）
         return
     end
     Init()
@@ -1362,6 +1395,35 @@ function ns.Options.RebuildUnitPanel(unitKey, elementKey, keepScroll)
     forcedPanels[id] = { unitKey, elementKey, keepScroll or (req and req[3]) or false }
     ScheduleFlush()
 end
+
+------------------------------------------------------------
+-- 套用／復原樣式之後（Core/Styles.lua 的 Finish）
+--
+-- 一次換掉的是整個單位的設定：尺寸、文字條數、元件開關全部可能變。走同一套失效機制：
+--   * 這幾個單位**其他**的快取面板直接丟（下次點進去重建；範圍是四個單位時四個都丟）
+--   * 正在顯示的那一份走 RebuildUnitPanel 延一幀重建 —— 套用鈕就在這份表單裡，
+--     當場丟掉等於在按鈕的 OnClick 裡把它的父框拆掉
+------------------------------------------------------------
+ns.RegisterCallback("StyleApplied", "unitTabPanels", function(unitKeys)
+    local showing = tab and tab:IsShown() and currentUnit and (currentUnit .. "/" .. currentElement) or nil
+    local rebuildShowing = false
+    for _, key in ipairs(unitKeys or {}) do
+        local prefix = key .. "/"
+        for id, p in pairs(panels) do
+            if id:sub(1, #prefix) == prefix then
+                if id == showing then
+                    rebuildShowing = true
+                else
+                    p.frame:Hide()     -- frame 無法銷毀，丟掉參照＋藏起來就好
+                    panels[id] = nil
+                end
+            end
+        end
+    end
+    if rebuildShowing then
+        ns.Options.RebuildUnitPanel(currentUnit, currentElement, true)
+    end
+end)
 
 ns.RegisterCallback("ResourceCandidatesChanged", "unitTabChips", function()
     -- Reevaluate 在戰鬥中也會跑（UNIT_MAXPOWER、天賦），分頁沒開著就連 timer 都不排

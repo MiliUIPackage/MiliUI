@@ -39,6 +39,7 @@ Core\Init.lua
 Core\Secret.lua
 Core\Media.lua
 Core\DB.lua
+Core\Styles.lua
 Core\Colors.lua
 Core\Cache.lua
 Core\Events.lua
@@ -72,6 +73,7 @@ Options\Search.lua
 Options\Preview.lua
 Options\Panel.lua
 Options\Tab_General.lua
+Options\StylePicker.lua
 Options\Tab_Unit.lua
 Options\HealthThresholds.lua
 Options\AuraBlacklist.lua

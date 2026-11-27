@@ -22,6 +22,33 @@ local suppressedReal = false
 local interactive = false
 
 ------------------------------------------------------------
+-- 試穿（樣式快速選擇，見 Core/Styles.lua）
+--
+-- overrides[unitKey] ＝ 一張臨時的單位設定表（樣式 ＋ 玩家的保留欄位），**不是**存檔那張。
+-- 有 override 的單位，孿生的 uf.db 指到它；真實框與存檔在試穿期間完全不動。
+-- 所有「重指 uf.db」的地方一律走 TwinDB，不要直接寫 ns.GetUnitDB。
+--
+-- 拖曳：試穿中的孿生照樣能拖，而且**寫回存檔**的 frame.x/y（SavedFrameDB）。
+--   位置在保留清單裡（樣式不改位置），寫進臨時表的話放開就丟了；寫存檔、再由 Rebuild
+--   把保留欄位從存檔重抄一次進臨時表，孿生就停在放開的地方，套用之後也還在那裡。
+--   （另一個選項「試穿中不能拖」要在三個掛勾點各加一道閘，而且玩家試穿時想挪一下看位置
+--   是很自然的動作，擋掉反而像壞了。）
+------------------------------------------------------------
+local overrides = {}       -- [unitKey] = 臨時設定表
+local overrideTags = {}    -- [unitKey] = 樣式 id（設定頁拿來標「試穿中」那張卡）
+local staleTwins = {}      -- [unitKey] = true：脫下試穿時沒能重建（戰鬥中／預覽沒開），下次開窗補
+
+local function TwinDB(unitKey)
+    return overrides[unitKey] or ns.GetUnitDB(unitKey)
+end
+
+-- 拖曳寫回的永遠是存檔（理由見上）
+local function SavedFrameDB(unitKey)
+    local udb = ns.GetUnitDB(unitKey)
+    return udb and udb.frame
+end
+
+------------------------------------------------------------
 -- 假資料
 ------------------------------------------------------------
 local FAKE_BASE = {
@@ -260,7 +287,7 @@ local function BuildFakeAuras(uf, elementName, edb, countOverride)
             end)
             -- 從圖示上拖曳＝搬整個框（不然框底下那排光環會變成拖不動的死角）
             if not (uf.stackIndex and uf.stackIndex > 1) then
-                ns.AttachDrag(b, uf, function() return uf.db.frame end, function()
+                ns.AttachDrag(b, uf, function() return SavedFrameDB(uf.unitKey) end, function()
                     ns.ApplySettings(uf.unitKey)
                 end)
             end
@@ -342,7 +369,7 @@ local function SpawnTwin(unitKey, stackIndex)
     -- bossIndex 只有首領本身才有
     uf.stackIndex = stackIndex
     if unitKey == "boss" then uf.bossIndex = stackIndex end
-    uf.db = ns.GetUnitDB(unitKey)
+    uf.db = TwinDB(unitKey)
     uf.cache = BuildFakeCache(unitKey, stackIndex)
     uf.elements = {}
     ns.ApplyFramePosition(uf)
@@ -389,7 +416,7 @@ local function HookOutsideElement(uf, unitKey, region, target)
         end
     end)
     if not (uf.stackIndex and uf.stackIndex > 1) then
-        ns.AttachDrag(region, uf, function() return uf.db.frame end, function()
+        ns.AttachDrag(region, uf, function() return SavedFrameDB(unitKey) end, function()
             ns.ApplySettings(unitKey)
         end)
     end
@@ -407,7 +434,7 @@ local function HookTwinMouse(uf, unitKey)
     end)
     -- 多格的單位（首領、隊伍）只有第一格可拖，跟編輯模式同一個規則（拖了整組跟著走）
     if not (uf.stackIndex and uf.stackIndex > 1) then
-        ns.AttachDrag(uf, uf, function() return uf.db.frame end, function()
+        ns.AttachDrag(uf, uf, function() return SavedFrameDB(unitKey) end, function()
             ns.ApplySettings(unitKey)
         end)
     end
@@ -444,8 +471,13 @@ function Preview.Rebuild(unitKey)
         list = twins[unitKey]
         if not list then return end
     end
+    -- 試穿中：保留欄位（位置、縮放、顯示條件、顏色…）每次重建前從存檔重抄一次，
+    -- 試穿期間拖曳孿生或改顏色寫的是存檔，孿生要跟著反映（見檔頭「試穿」那節）
+    if overrides[unitKey] and ns.Styles then
+        ns.Styles.CopyPreserved(overrides[unitKey], ns.GetUnitDB(unitKey))
+    end
     for _, uf in ipairs(list) do
-        uf.db = ns.GetUnitDB(unitKey)
+        uf.db = TwinDB(unitKey)
         ns.ApplyFramePosition(uf)
         ns.BuildElements(uf)
         ns.ApplyTargetHighlight(uf)   -- 第一格示意「選中目標」的邊框
@@ -469,6 +501,60 @@ function Preview.Highlight(unitKey)
         uf:SetAlpha(key == unitKey and 1 or 0.35)
     end)
 end
+
+------------------------------------------------------------
+-- 試穿的進出口（資料與理由見檔頭「試穿」那節）
+--
+-- 停用中的單位沒有孿生（見 OpenTwinsFor）：override 照樣記著、設定頁照樣標「試穿中」，
+-- 只是畫面上沒有東西可換；面板開著時把它啟用的話，Rebuild 補建孿生時就會穿上。
+-- 每次變動都 Fire("PreviewOverrideChanged", unitKey)：設定頁的樣式卡靠它更新「試穿中」，
+-- 包括不是設定頁自己清掉的那幾種（進編輯模式、換設定檔、關面板）。
+------------------------------------------------------------
+function Preview.SetOverride(unitKey, tbl, tag)
+    if type(tbl) ~= "table" then return end
+    overrides[unitKey] = tbl
+    overrideTags[unitKey] = tag
+    -- 面板沒開（戰鬥中開窗）時 Rebuild 是空轉：先把現有孿生指過去，下次開窗 OpenTwinsFor 也會照指
+    for _, uf in ipairs(twins[unitKey] or {}) do uf.db = tbl end
+    Preview.Rebuild(unitKey)
+    ns.Fire("PreviewOverrideChanged", unitKey)
+end
+
+-- skipRebuild：呼叫端接著就會 ApplySettings（Fire SettingsApplied → Rebuild），不必先重建一次
+function Preview.ClearOverride(unitKey, skipRebuild)
+    if not overrides[unitKey] then return end
+    overrides[unitKey] = nil
+    overrideTags[unitKey] = nil
+    for _, uf in ipairs(twins[unitKey] or {}) do uf.db = ns.GetUnitDB(unitKey) end
+    if not skipRebuild then
+        -- 戰鬥中（ESC 關面板）不能動孿生：底下帶著保護子物件，Show／Hide 會被封鎖（見 EditMode.lua）。
+        -- 預覽沒開時 Rebuild 本來就空轉。兩種都記著，下次開窗 OpenTwinsFor 補重建，
+        -- 不然孿生會穿著試穿的樣子出現
+        if InCombatLockdown() or not isOpen then
+            staleTwins[unitKey] = true
+        else
+            Preview.Rebuild(unitKey)
+        end
+    end
+    ns.Fire("PreviewOverrideChanged", unitKey)
+end
+
+function Preview.ClearOverrides()
+    local keys = {}
+    for key in pairs(overrides) do keys[#keys + 1] = key end
+    for _, key in ipairs(keys) do Preview.ClearOverride(key) end
+end
+
+-- 這個單位正在試穿哪個樣式（沒有＝nil）
+function Preview.OverrideTag(unitKey)
+    return overrides[unitKey] and overrideTags[unitKey] or nil
+end
+
+-- 換設定檔：臨時表是照舊那份的保留欄位組出來的。ProfileChanged 在 RebindProfile 逐單位
+-- ApplySettings **之前**派送，清掉之後那一輪重建就直接讀新的設定檔
+ns.RegisterCallback("ProfileChanged", "previewOverrides", function()
+    Preview.ClearOverrides()
+end)
 
 ------------------------------------------------------------
 -- 假動畫（明文數字循環：掉血→補血→死亡→復活）
@@ -642,7 +728,7 @@ function OpenTwinsFor(unitKey)
     -- 下次開窗孿生就還顯示上一份設定檔。
     if twins[unitKey] then
         for _, uf in ipairs(twins[unitKey]) do
-            uf.db = ns.GetUnitDB(unitKey)
+            uf.db = TwinDB(unitKey)
         end
     end
     if not twins[unitKey] then
@@ -658,6 +744,11 @@ function OpenTwinsFor(unitKey)
     end
     for _, uf in ipairs(twins[unitKey]) do
         if uf.db.enabled then uf:Show() end
+    end
+    -- 上次脫下試穿時沒重建成（見 ClearOverride）：孿生的元件還是試穿的尺寸，照存檔重建一次
+    if staleTwins[unitKey] then
+        staleTwins[unitKey] = nil
+        Preview.Rebuild(unitKey)
     end
 end
 
@@ -695,6 +786,9 @@ opener:SetScript("OnEvent", function(self)
 end)
 
 function Preview.Open(user)
+    -- 進編輯模式：試穿是設定頁的事，編輯模式的拖曳 getter 讀的是 uf.db.frame（EditMode.lua），
+    -- 穿著臨時表進去的話拖完的位置寫進臨時表、放開就丟了 ⇒ 先脫掉
+    if user == "editmode" then Preview.ClearOverrides() end
     users[user or "options"] = true
     interactive = users.options and true or false
     if isOpen then
@@ -713,6 +807,8 @@ function Preview.Open(user)
 end
 
 function Preview.Close(user)
+    -- 關設定面板＝放掉試穿（編輯模式可能還開著，同一批孿生要回到存檔的樣子）
+    if (user or "options") == "options" then Preview.ClearOverrides() end
     users[user or "options"] = nil
     interactive = users.options and true or false
     if next(users) then

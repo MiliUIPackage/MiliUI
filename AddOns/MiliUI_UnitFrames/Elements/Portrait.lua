@@ -306,6 +306,22 @@ local function Build(uf, edb)
     f.bg:SetVertexColor(c.r, c.g, c.b, c.a or 1)
     f.bg:SetShown((c.a or 1) > 0)
 
+    -- 1px 邊框（只有明寫 border = true 才畫）。預設值沒有這個鍵：經典版面的頭像墊在血條
+    -- 底下、邊框由血條畫，頭像自己再畫一圈會從半透明的填充透出來。頭像卡樣式
+    -- （Core/Styles.lua）的頭像在條外面，才需要自己的邊框。
+    -- 疊在模型之上（模型在 edb.level），同血條邊框的畫法（Media.ApplyBorder 走 P.Pixel）
+    if edb.border == true then
+        if not f.borderFrame then
+            f.borderFrame = CreateFrame("Frame", nil, f, "BackdropTemplate")
+            f.borderFrame:SetAllPoints(f)
+        end
+        f.borderFrame:SetFrameLevel((edb.level or 2) + 1)
+        Media.ApplyBorder(f.borderFrame, edb.borderColor)
+        f.borderFrame:Show()
+    elseif f.borderFrame then
+        f.borderFrame:Hide()
+    end
+
     if not f.model then
         f.model = CreateFrame("PlayerModel", nil, f)
         f.model:SetAllPoints(f)
