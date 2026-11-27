@@ -71,7 +71,9 @@ local function Overlay(button)
     o = CreateFrame("Frame", nil, button)
     o:SetSize(30 * SCALE, 30 * SCALE)
     o:SetPoint("CENTER", button, "CENTER", 0, 0)
-    o:SetFrameLevel(button:GetFrameLevel() + 120)
+    -- 蓋在所有指示物之上：名字、團隊標記等都掛在 indicatorFrame（按鈕 +220，見 UnitButton.lua），
+    -- 比它低的話標記會被名字遮住（實際回報）。ping 只亮幾秒，蓋住名字沒關係
+    o:SetFrameLevel(button:GetFrameLevel() + 240)
     o:EnableMouse(false)
     o.bg = o:CreateTexture(nil, "BACKGROUND")
     o.bg:SetPoint("CENTER")
