@@ -444,7 +444,10 @@ local function CreatePanel()
     Options.panel = panel
     ApplyPosition()
 
-    tinsert(UISpecialFrames, "MiliUIPack_Options")
+    -- ESC 關閉走共用層：除了登記 UISpecialFrames，還會在「暴雪開中間面板」把我們順手收掉時
+    -- 叫回來（從卡片開的設定有些就是暴雪的設定頁——Settings.OpenToCategory 走 ShowUIPanel，
+    -- 會連 UISpecialFrames 一起收）。ESC 照常關。
+    W.CloseOnEscape(panel)
 
     -- 不掛視窗外側的標題文字：banner 已經有套組名稱與版本，再掛一行是重複資訊。
     -- 但把手 chip 要跟其他八個插件擺在同一個位置 —— 整套視窗的「這裡能拖」
@@ -464,7 +467,9 @@ local function CreatePanel()
         HideExternal(currentTab)
         self:SetScript("OnUpdate", nil)
         self:SetAlpha(1)
-        self:SetFrameStrata("DIALOG")   -- Options.YieldFront 退過層的話在這裡復原
+        -- ⚠ 不在這裡把 strata 復原成 DIALOG：開暴雪設定頁時我們會被收掉再被叫回來
+        --   （W.CloseOnEscape），那時要維持退讓的 MEDIUM，不然整扇蓋在暴雪設定頁（HIGH）上面。
+        --   復原只在 Options.Open。
     end)
     -- 開窗淡入：OnUpdate lerp，結束就把 handler 拆掉，平時零成本
     panel:SetScript("OnShow", function(self)
@@ -472,6 +477,9 @@ local function CreatePanel()
         -- 被這個 SetScript 整個蓋掉了，不補叫的話 UI／祖先縮放變了之後外框會不見或變 2px
         -- （.claude/notes/wow-1px-border-rules.md）
         W.RefreshEdge(self)
+        -- 被暴雪面板收掉又叫回來的那條路不經過 ShowTab：OnHide 收掉的外掛分頁要在這裡接回來
+        local cur = currentTab and tabById[currentTab]
+        if cur and cur.external then ShowExternal(cur) end
         SetCombatLocked(InCombatLockdown())
         RefreshBanner()
         self:SetAlpha(0)
@@ -558,7 +566,7 @@ end
 -- 我們平常在 DIALOG、層級 100，別家的設定視窗多半在 MEDIUM／HIGH，不讓路會整扇被我們蓋住。
 -- ⚠ 只換 strata、不 Lower()：Lower 會掉到同 strata 所有框之下，快捷列就畫到我們上面了。
 --   層級留在 100，所以別家同在 MEDIUM 而且層級很低的視窗還是可能被蓋住——那種請玩家拖開。
--- 關窗（OnHide）與下次 Open 都會復原成 DIALOG。
+-- 下次 Open 才復原成 DIALOG（關窗不復原，理由見 OnHide）。
 function Options.YieldFront()
     if panel and panel:IsShown() then panel:SetFrameStrata("MEDIUM") end
 end
