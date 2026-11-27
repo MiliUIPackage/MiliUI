@@ -37,3 +37,12 @@ MiliUI_ChatBar 的按鈕也在它的 Sink 底下，但 Sink
 Raise 只抬面板自己，子孫自己 SetFrameLevel 過的留在原地 ⇒ 兩扇視窗同開時控件照 level 交錯（指紋：
 A 的分頁鈕／預覽疊在 B 的內容上、B 的控件又疊在 A 上）。在 `W.CreateTitleBar` 裡 `SetToplevel(true)`，
 每扇視窗整塊畫、點誰誰在前。視窗內的彈窗／戰鬥遮罩靠 level 400～520 排序，不靠 strata。遊戲內已驗證（2026-09-26：視窗前後、下拉、黑名單彈窗、戰鬥遮罩＋關閉鈕都正常）⇒ 扁平化的子樹內部仍照 level 排序。
+
+**兩扇 toplevel 視窗在同一個 strata 裡的前後不照面板層級（2026-11-28，遊戲內已驗證）**：MiliUI 主設定視窗
+從卡片開暴雪設定頁時要退到後面。`SettingsPanel` 實機是 **MEDIUM／層級 1**（XML 寫 `frameStrata="HIGH"`，
+別信 XML，先 `/dump SettingsPanel:GetFrameStrata()`）。我們換到 MEDIUM／層級 100 會蓋住它（合理），但
+**MEDIUM／層級 0 照樣蓋住它**（/dump 確認數字真的是 0 與 1）——原因不明。**跨 strata 才確定**：退到 LOW
+就在後面了。代價是 toplevel 的「點了到最前」只在同 strata 有效，要自己做點擊換前後
+（`Options/Panel.lua` 的 frontWatch：`GetMouseFoci` 往上找祖先，點自己回 DIALOG、點面板範圍外的介面退 LOW）。
+相關：ESC 走 `CloseAllWindows` 會把 UIPanel 與 UISpecialFrames 同一幀全收，要「一次關一扇」就在兩邊 OnHide
+記 `GetTime()`、同一幀就下一幀把自己叫回來；`ShowUIPanel` 開中間面板也會收 UISpecialFrames（`W.CloseOnEscape` 會叫回來）。
