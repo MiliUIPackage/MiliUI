@@ -1,6 +1,6 @@
 ------------------------------------------------------------
 -- MiliUI: Cell 的 Ping 標記
--- 有人 ping 某個單位時，在 Cell 對應的那一格上閃兩秒 ping 圖示。不改 Cell 原始碼。
+-- 有人 ping 某個單位時，在 Cell 對應的那一格上閃三秒 ping 圖示。不改 Cell 原始碼。
 --
 -- 跟 MiliUI_UnitFrames/Core/PingMark.lua 是同一套做法（那邊有完整的來龍去脈），兩邊各自獨立：
 --   * 來源只有 CHAT_MSG_PING 的聊天文字（暴雪單位框用的 UNIT_PING_PIN_ADDED 插件收不到，
@@ -13,7 +13,7 @@
 -- 開關：跟著單位框架的「被 ping 時在框上閃 ping 圖示」（MiliUI_UnitFrames 的一般分頁）；
 -- 單位框架沒載入就一律開。
 ------------------------------------------------------------
-local FLASH_SECONDS = 2
+local FLASH_SECONDS = 3
 local ICON_SIZE = 22
 
 local isSecret = issecretvalue or function() return false end

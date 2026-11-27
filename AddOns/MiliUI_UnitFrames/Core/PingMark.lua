@@ -1,5 +1,5 @@
 ------------------------------------------------------------
--- Ping 標記：有人 ping 某個單位時，在那個單位的框上閃兩秒 ping 圖示
+-- Ping 標記：有人 ping 某個單位時，在那個單位的框上閃三秒 ping 圖示
 --
 -- 來源只有 CHAT_MSG_PING 那一行聊天文字（2026-11-28 實機探針）：
 --   * 暴雪自己的單位框是聽 UNIT_PING_PIN_ADDED(guid, 標記種類) 畫標記的，那個事件插件
@@ -26,7 +26,7 @@ local _, ns = ...
 local PM = {}
 ns.PingMark = PM
 
-local FLASH_SECONDS = 2
+local FLASH_SECONDS = 3
 local ICON_SIZE = 28
 
 -- 內文裡「前綴」與名字之間的分隔：半形冒號、全形冒號（UTF-8 三個位元組）、空白

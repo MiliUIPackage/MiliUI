@@ -119,7 +119,7 @@ local CONTROLS = {
 
     { type = "header", label = L["Pings"] },
     { type = "toggle", key = "pingFlash", label = L["Flash the ping icon on a pinged unit's frame"] },
-    { type = "text",   label = L["When someone pings a unit, its ping icon blinks on that unit's frame for two seconds. It is read from the ping's chat line, so it does not work while chat is restricted (boss encounters, Mythic+)."] },
+    { type = "text",   label = L["When someone pings a unit, its ping icon blinks on that unit's frame for three seconds. It is read from the ping's chat line, so it does not work while chat is restricted (boss encounters, Mythic+)."] },
 
     { type = "header", label = L["Tooltips"] },
     { type = "toggle", key = "showTooltip", label = L["Show unit tooltip"] },
